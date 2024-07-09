@@ -3,7 +3,7 @@
 import cv2
 
 # Local imports
-from pixel_prism.effects.effects import EffectBase
+from pixel_prism.effects import EffectBase
 from pixel_prism.primitives import Point
 
 
@@ -67,33 +67,11 @@ class SIFTPointsEffect(EffectBase):
         self.sift = cv2.SIFT_create(nOctaveLayers=num_scales)
     # end __init__
 
-    def apply(
-            self,
-            image,
-            **kwargs
-    ):
-        """
-        Apply the SIFT effect to the image
-        """
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    def apply(self, image, **kwargs):
+        gray_image = cv2.cvtColor(image[:, :, :3], cv2.COLOR_BGR2GRAY)
         keypoints = self.sift.detect(gray_image, None)
-
-        sift_points = []
-        for kp in keypoints:
-            point = SIFTPoint(
-                x=kp.pt[0],
-                y=kp.pt[1],
-                size=kp.size,
-                angle=kp.angle,
-                response=kp.response,
-                octave=kp.octave,
-                class_id=kp.class_id
-            )
-            sift_points.append(point)
-        # end for
-
+        sift_points = [SIFTPoint(kp.pt[0], kp.pt[1], kp.size, kp.angle, kp.response, kp.octave, kp.class_id) for kp in keypoints]
         return sift_points
-    # end apply
 
 # end SIFTPointsEffect
 

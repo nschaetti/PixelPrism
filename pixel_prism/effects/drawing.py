@@ -29,23 +29,10 @@ class DrawPointsEffect(EffectBase):
         self.thickness = thickness
     # end __init__
 
-    def apply(
-            self,
-            image,
-            **kwargs
-    ):
-        """
-        Apply the draw points effect to the image
-
-        Args:
-            image (np.ndarray): Image to apply the effect to
-            kwargs: Additional keyword arguments
-        """
+    def apply(self, image, **kwargs):
         for point in self.points:
             cv2.circle(image, (int(point.x), int(point.y)), int(point.size / 2), self.color, self.thickness)
-        # end for
         return image
-    # end apply
 
 # end DrawPointsEffect
 

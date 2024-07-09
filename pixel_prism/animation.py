@@ -3,6 +3,10 @@
 # Imports
 import cv2
 from tqdm import tqdm
+import numpy as np
+
+# Locals
+from pixel_prism.base.image import Image
 
 
 class Animation:
@@ -37,8 +41,9 @@ class Animation:
 
     def process_frame(
             self,
-            frame,
-            frame_number
+            image_obj,
+            frame_number,
+            total_frames
     ):
         """
         Process each frame of the video. Should be implemented by derived classes.
@@ -71,8 +76,18 @@ class Animation:
             # Process each frame
             frame_number = 0
             while cap.isOpened() and ret:
-                frame = self.process_frame(frame, frame_number)
-                out.write(frame)
+                image_obj = Image()
+                image_obj.add_layer(
+                    "input_frame",
+                    np.dstack([frame, np.ones_like(frame[:, :, 0]) * 255])
+                )
+                image_obj = self.process_frame(
+                    image_obj,
+                    frame_number,
+                    frame_count
+                )
+                final_frame = image_obj.merge_layers()
+                out.write(final_frame[:, :, :3])  # Sauvegarder en RGB
 
                 ret, frame = cap.read()
                 pbar.update(1)

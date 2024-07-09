@@ -1,8 +1,8 @@
 
-import dlib
+
 import cv2
 
-from pixel_prism.effects import EffectBase
+from pixel_prism.effects import EffectBase, DrawPointsEffect
 from pixel_prism.primitives import Point
 
 
@@ -23,23 +23,58 @@ class FacePointsEffect(EffectBase):
     """
 
     def __init__(self):
-        self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        self.landmark_model = cv2.face.createFacemarkLBF()
+        self.landmark_model.loadModel(cv2.data.haarcascades + "lbfmodel.yaml")
     # end __init__
 
-    def apply(self, image, **kwargs):
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        faces = self.detector(gray_image)
+    def apply(
+            self,
+            image_obj,
+            input_layers,
+            output_layers,
+            **kwargs
+    ):
+        """
+        Apply the face points effect to the image
 
-        face_points = []
-        for face in faces:
-            landmarks = self.predictor(gray_image, face)
-            for n in range(0, 68):  # 68 points de repère faciaux
-                x = landmarks.part(n).x
-                y = landmarks.part(n).y
-                face_points.append(FacePoint(x, y))
+        Args:
+            image_obj (Image): Image object to apply the effect to
+            input_layers (list): List of input layer names
+            output_layers (list): List of output layer names
+            kwargs: Additional keyword arguments
+        """
+        for layer_name in input_layers:
+            layer = image_obj.get_layer(layer_name)
+            if layer:
+                image = layer.image
+                gray_image = cv2.cvtColor(image[:, :, :3], cv2.COLOR_BGR2GRAY)
+                faces = self.face_cascade.detectMultiScale(
+                    gray_image,
+                    scaleFactor=1.1,
+                    minNeighbors=5,
+                    minSize=(30, 30),
+                    flags=cv2.CASCADE_SCALE_IMAGE
+                )
 
-        return face_points
+                face_points = []
+                if len(faces) > 0:
+                    _, landmarks = self.landmark_model.fit(gray_image, faces)
+                    for landmark_set in landmarks:
+                        for point in landmark_set[0]:
+                            face_points.append(FacePoint(point[0], point[1]))
+                        # end for
+                    # end for
+                # end if
+
+                for output_layer_name in output_layers:
+                    output_layer = image_obj.get_layer(output_layer_name)
+                    if output_layer:
+                        output_layer.image = DrawPointsEffect(face_points).apply(output_layer.image)
+                    # end if
+                # end for
+            # end if
+        # end for
     # end apply
 
 # end FacePointsEffect
