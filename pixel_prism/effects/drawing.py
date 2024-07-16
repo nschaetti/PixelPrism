@@ -1,8 +1,11 @@
 
 # Import necessary packages
 import cv2
+import numpy as np
 
+import pixel_prism.effects.functional as F
 from .effect_base import EffectBase
+from pixel_prism.base.image import Image
 
 
 class DrawPointsEffect(EffectBase):
@@ -12,27 +15,42 @@ class DrawPointsEffect(EffectBase):
 
     def __init__(
             self,
-            points,
-            color=(0, 255, 0),
+            color=(255, 255, 0),
             thickness=1
     ):
         """
         Initialize the draw points effect with the points to draw
 
         Args:
-            points (list): List of points to draw
             color (tuple): Color of the points to draw
             thickness (int): Thickness of the points to draw
         """
-        self.points = points
         self.color = color
         self.thickness = thickness
     # end __init__
 
-    def apply(self, image, **kwargs):
-        for point in self.points:
-            cv2.circle(image, (int(point.x), int(point.y)), int(point.size / 2), self.color, self.thickness)
-        return image
+    def apply(
+            self,
+            image: Image,
+            **kwargs
+    ):
+        """
+        Apply the draw points effect to the image
+
+        Args:
+            image (Image): Image to apply the effect to
+            kwargs: Additional keyword arguments
+        """
+        # Assert points are provided
+        if 'points' not in kwargs:
+            raise ValueError("Points must be provided to draw on the image")
+        # end if
+
+        # Points
+        points = kwargs['points']
+
+        return F.draw_points(image, points, self.color, self.thickness)
+    # end apply
 
 # end DrawPointsEffect
 

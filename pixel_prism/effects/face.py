@@ -1,16 +1,37 @@
 
 
+# Imports
 import cv2
 
+# Local
 from pixel_prism.effects import EffectBase, DrawPointsEffect
 from pixel_prism.primitives import Point
+import pixel_prism.effects.functional as F
 
 
 class FacePoint(Point):
-    def __init__(self, x, y, size=1):
+
+    def __init__(
+            self,
+            x,
+            y,
+            size: int = 1
+    ):
+        """
+        Initialize the face point with its coordinates and size
+
+        Args:
+            x (int): X-coordinate of the point
+            y (int): Y-coordinate of the point
+            size (int): Size of the point
+        """
         super().__init__(x, y, size)
+    # end __init__
 
     def __repr__(self):
+        """
+        String representation of the face point
+        """
         return f"FacePoint(x={self.x}, y={self.y}, size={self.size})"
     # end FacePoint
 
@@ -30,9 +51,7 @@ class FacePointsEffect(EffectBase):
 
     def apply(
             self,
-            image_obj,
-            input_layers,
-            output_layers,
+            image,
             **kwargs
     ):
         """
@@ -44,37 +63,12 @@ class FacePointsEffect(EffectBase):
             output_layers (list): List of output layer names
             kwargs: Additional keyword arguments
         """
-        for layer_name in input_layers:
-            layer = image_obj.get_layer(layer_name)
-            if layer:
-                image = layer.image
-                gray_image = cv2.cvtColor(image[:, :, :3], cv2.COLOR_BGR2GRAY)
-                faces = self.face_cascade.detectMultiScale(
-                    gray_image,
-                    scaleFactor=1.1,
-                    minNeighbors=5,
-                    minSize=(30, 30),
-                    flags=cv2.CASCADE_SCALE_IMAGE
-                )
-
-                face_points = []
-                if len(faces) > 0:
-                    _, landmarks = self.landmark_model.fit(gray_image, faces)
-                    for landmark_set in landmarks:
-                        for point in landmark_set[0]:
-                            face_points.append(FacePoint(point[0], point[1]))
-                        # end for
-                    # end for
-                # end if
-
-                for output_layer_name in output_layers:
-                    output_layer = image_obj.get_layer(output_layer_name)
-                    if output_layer:
-                        output_layer.image = DrawPointsEffect(face_points).apply(output_layer.image)
-                    # end if
-                # end for
-            # end if
-        # end for
+        faces = F.face_detection(
+            image,
+            self.face_cascade,
+            self.landmark_model,
+        )
     # end apply
 
 # end FacePointsEffect
+

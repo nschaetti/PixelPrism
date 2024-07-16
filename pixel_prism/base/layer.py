@@ -2,7 +2,7 @@
 
 class Layer:
     """
-
+    Class to represent a layer in an image
     """
 
     def __init__(
@@ -31,7 +31,7 @@ class Layer:
         """
         Return a string representation of the layer
         """
-        return f"Layer(name={self.name}, blend_mode={self.blend_mode}, active={self.active})"
+        return f"Layer(name={self.name}, blend_mode={self.blend_mode}, active={self.active}, image={self.image})"
     # end __repr__
 
 # end Layer

@@ -1,7 +1,10 @@
+
+
+# Imports
 import numpy as np
-import cv2
 
-
+# Local
+import pixel_prism.effects.functional as F
 from pixel_prism.effects.effect_base import EffectBase
 
 
@@ -19,7 +22,6 @@ def load_cube_lut(
         lines = f.readlines()
     # end with
 
-    title = ''
     size = 0
     lut = []
 
@@ -52,22 +54,32 @@ def load_cube_lut(
 
 class LUTEffect(EffectBase):
 
-    def __init__(self, lut_path):
+    def __init__(
+            self,
+            lut_path
+    ):
+        """
+        Initialize the LUT effect with the LUT path
+
+        Args:
+            lut_path (str): Path to the .cube file
+        """
         self.lut, self.size = load_cube_lut(lut_path)
     # end __init__
 
-    def apply(self, image, **kwargs):
-        # Normaliser l'image
-        image = image / 255.0
-        lut = self.lut
+    def apply(
+            self,
+            image,
+            **kwargs
+    ):
+        """
+        Apply the LUT effect to the image
 
-        # Appliquer la LUT
-        index = (image * (self.size - 1)).astype(int)
-        result = lut[index[:, :, 0], index[:, :, 1], index[:, :, 2]]
-
-        # Remettre l'image à l'échelle de 0 à 255
-        result = (result * 255).astype(np.uint8)
-        return result
+        Args:
+            image (np.ndarray): Image to apply the effect to
+            kwargs: Additional keyword arguments
+        """
+        return F.apply_lut(image, self.lut, self.size)
     # end apply
 
 # end LUTEffect

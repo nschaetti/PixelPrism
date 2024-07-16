@@ -6,35 +6,55 @@ from tqdm import tqdm
 import argparse
 
 from pixel_prism.effects.effect_base import EffectBase
+import pixel_prism.effects.functional as F
+from pixel_prism.base.image import Image
 
 
 class GlowEffect(EffectBase):
-    def __init__(self, blur_strength=5, intensity=0.5, blend_mode='screen'):
+    """
+    Glow effect that applies a glow to the image.
+    """
+
+    def __init__(
+            self,
+            blur_strength=5,
+            intensity=0.5,
+            blend_mode='screen'
+    ):
+        """
+        Initialize the glow effect with the blur strength, intensity, and blend mode.
+
+        Args:
+            blur_strength (int): Strength of the Gaussian blur
+            intensity (float): Intensity of the glow
+            blend_mode (str): Blend mode for the glow effect
+        """
         self.blur_strength = blur_strength
         self.intensity = intensity
         self.blend_mode = blend_mode
+    # end __init__
 
-    def apply(self, image, **kwargs):
-        # Appliquer un flou gaussien
-        blurred_image = cv2.GaussianBlur(image, (self.blur_strength * 2 + 1, self.blur_strength * 2 + 1), 0)
+    def apply(
+            self,
+            image: Image,
+            **kwargs
+    ) -> Image:
+        """
+        Apply the glow effect to the image.
 
-        # Appliquer le mode de fusion
-        if self.blend_mode == 'addition':
-            glow_image = cv2.addWeighted(image, 1, blurred_image, self.intensity, 0)
-        elif self.blend_mode == 'multiply':
-            glow_image = cv2.multiply(image, blurred_image)
-            glow_image = cv2.addWeighted(image, 1, glow_image, self.intensity - 1, 0)
-        elif self.blend_mode == 'overlay':
-            glow_image = np.where(blurred_image > 128, 255 - 2 * (255 - blurred_image) * (255 - image) / 255, 2 * image * blurred_image / 255)
-            glow_image = cv2.addWeighted(image, 1, glow_image.astype(np.uint8), self.intensity, 0)
-        else:  # screen is the default blend mode
-            inverted_image = 255 - image
-            inverted_blur = 255 - blurred_image
-            screen_image = cv2.multiply(inverted_image, inverted_blur, scale=1/255.0)
-            screen_image = 255 - screen_image
-            glow_image = cv2.addWeighted(image, 1, screen_image, self.intensity, 0)
+        Args:
+            image (Image): Image to apply the effect to
+            kwargs: Additional keyword arguments
+        """
+        return F.simple_glow(
+            image,
+            intensity=self.intensity,
+            blur_strength=self.blur_strength,
+            blend_mode=self.blend_mode
+        )
+    # end apply
 
-        return glow_image
+# end GlowEffect
 
 
 class AdvancedTVEffect(EffectBase):
@@ -81,47 +101,33 @@ class AdvancedTVEffect(EffectBase):
         Args:
             shape (tuple): Shape of the image (height, width, channels)
         """
-        height, width, _ = shape
-        overlay = np.ones((height, width, 3), dtype=np.float32)
-
-        for j_i, j in enumerate(range(0, width, self.pixel_width)):
-            if j_i % 2 == 0:
-                shift = 0
-            else:
-                shift = self.vertical_shift
-            # end if
-
-            for i in range(-shift, height, self.pixel_height):
-                y = i
-                if y > height:
-                    continue
-
-                sub_img = overlay[y:y + self.pixel_height, j:j + self.pixel_width]
-
-                # Dessiner les bords du pixel
-                cv2.line(sub_img, (0, 0), (self.pixel_width, 0), self.border_color, self.border_strength)
-                cv2.line(sub_img, (0, 0), (0, self.pixel_height), self.border_color, self.border_strength)
-                cv2.line(sub_img, (self.pixel_width, 0), (self.pixel_width, self.pixel_height), self.border_color, self.border_strength)
-                cv2.line(sub_img, (0, self.pixel_height), (self.pixel_width, self.pixel_height), self.border_color, self.border_strength)
-
-                # Casser les coins
-                if self.corner_radius > 0:
-                    cv2.line(sub_img, (0, 0), (self.corner_radius, self.corner_radius), self.border_color, self.border_strength)
-                    cv2.line(sub_img, (self.pixel_width, 0), (self.pixel_width - self.corner_radius, self.corner_radius), self.border_color, self.border_strength)
-                    cv2.line(sub_img, (0, self.pixel_height), (self.corner_radius, self.pixel_height - self.corner_radius), self.border_color, self.border_strength)
-                    cv2.line(sub_img, (self.pixel_width, self.pixel_height), (self.pixel_width - self.corner_radius, self.pixel_height - self.corner_radius), self.border_color, self.border_strength)
-                # end if
-            # end for
-        # end for
-
-        if self.blur_kernel_size > 1:
-            overlay = cv2.GaussianBlur(overlay, (self.blur_kernel_size, self.blur_kernel_size), 0)
-        # end if
-
-        self.overlay = overlay
+        self.overlay = F.create_tv_overlay(
+            shape,
+            pixel_width=self.pixel_width,
+            pixel_height=self.pixel_height,
+            vertical_shift=self.vertical_shift,
+            border_color=self.border_color,
+            border_strength=self.border_strength,
+            corner_radius=self.corner_radius,
+            blur_kernel_size=self.blur_kernel_size
+        )
     # end create_overlay
 
-    def apply(self, image, **kwargs):
+    def apply(
+            self,
+            image: Image,
+            **kwargs
+    ) -> Image:
+        """
+        Apply the TV effect to the image
+
+        Args:
+            image (Image): Image to apply the effect to
+            kwargs: Additional keyword arguments
+
+        Returns:
+            Image: Image with the TV effect applied
+        """
         if self.overlay is None:
             self.create_overlay(image.shape)
         # end if

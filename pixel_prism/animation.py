@@ -8,7 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Locals
-from pixel_prism.base.image import Image
+from pixel_prism.base.imagecanvas import ImageCanvas
+from pixel_prism.render_engine import RenderEngine
 
 
 class Animation:
@@ -20,6 +21,7 @@ class Animation:
             self,
             input_path,
             output_path,
+            keep_frames=0,
             display=False,
             debug_frames=False
     ):
@@ -29,20 +31,29 @@ class Animation:
         Args:
             input_path (str): Path to the input video
             output_path (str): Path to the output video
+            keep_frames (int): Number of frames to keep in memory
             display (bool): Whether to display the video while processing
             debug (bool): Whether to display the layers while processing
         """
         self.input_path = input_path
         self.output_path = output_path
         self.display = display
+        self.keep_frames = keep_frames
         self.debug_frames = debug_frames if debug_frames is not None else []
         self.debug_output_dir = os.path.splitext(output_path)[0] + "_debug"
 
-        if self.display:
-            plt.ion()  # Interactive mode on
+        # Keep frames
+        self.prev_frames = []
 
+        # Display the video
+        if self.display:
+            plt.ion()
+        # end if
+
+        # Create the debug output directory
         if self.debug_frames:
             os.makedirs(self.debug_output_dir, exist_ok=True)
+        # end if
     # end __init__
 
     def init_effects(
@@ -56,7 +67,7 @@ class Animation:
 
     def process_frame(
             self,
-            image_obj,
+            image_canvas,
             frame_number,
             total_frames
     ):
@@ -68,22 +79,22 @@ class Animation:
 
     def display_layers(
             self,
-            image_obj
+            image_canvas
     ):
         """
         Display the layers of the image object.
 
         Args:
-            image_obj (Image): Image object
+            image_canvas (ImageCanvas): Image object
         """
-        num_layers = len(image_obj.layers)
+        num_layers = len(image_canvas.layers)
         fig, axes = plt.subplots(1, num_layers, figsize=(15, 5))
-        if len(image_obj.layers) == 1:
+        if len(image_canvas.layers) == 1:
             axes = [axes]
         # end if
 
         # For each layer
-        for ax, layer in zip(axes, image_obj.layers):
+        for ax, layer in zip(axes, image_canvas.layers):
             ax.imshow(cv2.cvtColor(layer.image[:, :, :3], cv2.COLOR_BGR2RGB))
             ax.set_title(layer.name)
             ax.axis('off')
@@ -94,17 +105,34 @@ class Animation:
         plt.show()
     # end display_layers
 
-    def save_debug_layers(self, image_obj, frame_number):
-        fig, axes = plt.subplots(1, len(image_obj.layers), figsize=(15, 5))
-        if len(image_obj.layers) == 1:
-            axes = [axes]
+    def save_debug_layers(
+            self,
+            image_canvas,
+            frame_number
+    ):
+        """
+        Save the debug layers to a file.
 
-        for ax, layer in zip(axes, image_obj.layers):
-            ax.imshow(cv2.cvtColor(layer.image[:, :, :3], cv2.COLOR_BGR2RGB))
+        Args:
+            image_canvas (ImageCanvas): Image object
+            frame_number (int): Frame number
+        """
+        fig, axes = plt.subplots(1, len(image_canvas.layers), figsize=(15, 5))
+        if len(image_canvas.layers) == 1:
+            axes = [axes]
+        # end if
+
+        # For each layer
+        for ax, layer in zip(axes, image_canvas.layers):
+            ax.imshow(cv2.cvtColor(layer.image.data[:, :, :3], cv2.COLOR_BGR2RGB))
             ax.set_title(layer.name)
             ax.axis('off')
+        # end for
 
+        # Save the figure
         debug_frame_path = os.path.join(self.debug_output_dir, f'frame_{frame_number}.png')
+
+        # Save the figure
         plt.savefig(debug_frame_path)
         plt.close()
     # end save_debug_layers
@@ -139,19 +167,31 @@ class Animation:
             # Process each frame
             frame_number = 0
             while cap.isOpened() and ret:
-                image_obj = Image()
-                image_obj.add_layer(
-                    "input_frame",
-                    np.dstack([frame, np.ones_like(frame[:, :, 0]) * 255])
-                )
-                image_obj = self.process_frame(
-                    image_obj,
+                # Create canvas from frame
+                image_canva = ImageCanvas.from_numpy(frame, add_alpha=True)
+
+                # Process the frame
+                image_canva = self.process_frame(
+                    image_canva,
                     frame_number,
                     frame_count
                 )
-                final_frame = image_obj.merge_layers()
+
+                # Keep the frame
+                if self.keep_frames:
+                    self.prev_frames.append(image_canva)
+                    if len(self.prev_frames) > self.keep_frames:
+                        self.prev_frames.pop(0)
+                    # end if
+                # end if
+
+                # Compose final image
+                final_frame = RenderEngine.render(image_canva)
+
+                # Save as RGB
                 out.write(final_frame[:, :, :3])
 
+                # Display the frame
                 if self.display:
                     plt.clf()  # Clear the current figure
                     plt.imshow(cv2.cvtColor(final_frame[:, :, :3], cv2.COLOR_BGR2RGB))
@@ -160,8 +200,10 @@ class Animation:
                     plt.draw()
                 # end if
 
+                # Save debug layers
                 if frame_number in self.debug_frames:
-                    self.save_debug_layers(image_obj, frame_number)
+                    self.save_debug_layers(image_canva, frame_number)
+                # end if
 
                 ret, frame = cap.read()
                 pbar.update(1)
@@ -174,7 +216,7 @@ class Animation:
         out.release()
 
         # Close the display
-        if self.display or self.debug:
+        if self.display:
             plt.ioff()
             plt.show()
         # end if
