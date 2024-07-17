@@ -77,7 +77,7 @@ class Image:
         """
         Get the specified channel of the image
         """
-        return self.data[:, :, channel]
+        return self.data[:, :, channel:channel + 1]
     # end get_channel
 
     def get_image(self):

@@ -31,17 +31,28 @@ if __name__ == "__main__":
     parser.add_argument("--debug-frames", type=int, nargs='*', help="List of frame numbers to debug")
     parser.add_argument("--class-file", required=True, help="Path to the file containing the CustomAnimation class")
     parser.add_argument("--class-name", required=True, help="Name of the CustomAnimation class to use")
+    parser.add_argument("--kwargs", nargs='*', help="Additional keyword arguments for the CustomAnimation class in key=value format")
     args = parser.parse_args()
 
     # Load the CustomAnimation class from the specified file
     CustomAnimationClass = load_class_from_file(args.class_file, args.class_name)
+
+    # Parse keyword arguments
+    kwargs = {}
+    if args.kwargs:
+        for kwarg in args.kwargs:
+            key, value = kwarg.split('=')
+            kwargs[key] = value
+        # end for
+    # end if
 
     # Create the video composer
     composer = CustomAnimationClass(
         input_path=args.input,
         output_path=args.output,
         display=args.display,
-        debug_frames=args.debug_frames
+        debug_frames=args.debug_frames,
+        **kwargs
     )
 
     # Compose the video

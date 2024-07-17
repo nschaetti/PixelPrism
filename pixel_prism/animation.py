@@ -23,7 +23,8 @@ class Animation:
             output_path,
             keep_frames=0,
             display=False,
-            debug_frames=False
+            debug_frames=False,
+            **kwargs
     ):
         """
         Initialize the animation with an input and output path.
@@ -33,7 +34,8 @@ class Animation:
             output_path (str): Path to the output video
             keep_frames (int): Number of frames to keep in memory
             display (bool): Whether to display the video while processing
-            debug (bool): Whether to display the layers while processing
+            debug_frames (bool): Whether to display the layers while processing
+            kwarg: Additional keyword arguments
         """
         self.input_path = input_path
         self.output_path = output_path
@@ -42,8 +44,14 @@ class Animation:
         self.debug_frames = debug_frames if debug_frames is not None else []
         self.debug_output_dir = os.path.splitext(output_path)[0] + "_debug"
 
+        # Extra keyword arguments
+        self.extra_args = kwargs
+
         # Keep frames
         self.prev_frames = []
+
+        # Dictionary to store the effects
+        self.effects = {}
 
         # Display the video
         if self.display:
@@ -64,6 +72,53 @@ class Animation:
         """
         pass
     # end init_effects
+
+    # Add an effect
+    def add_effect(
+            self,
+            name,
+            effect
+    ):
+        """
+        Add an effect to the animation.
+
+        Args:
+            name (str): Name of the effect
+            effect (EffectBase): Effect to add to the animation
+        """
+        self.effects[name] = effect
+    # end add_effect
+
+    # Get an effect
+    def get_effect(
+            self,
+            name
+    ):
+        """
+        Get an effect from the animation.
+
+        Args:
+            name (str): Name of the effect
+
+        Returns:
+            EffectBase: Effect object
+        """
+        return self.effects.get(name)
+    # end get_effect
+
+    # Remove an effect
+    def remove_effect(
+            self,
+            name
+    ):
+        """
+        Remove an effect from the animation.
+
+        Args:
+            name (str): Name of the effect
+        """
+        self.effects.pop(name)
+    # end remove_effect
 
     def process_frame(
             self,
