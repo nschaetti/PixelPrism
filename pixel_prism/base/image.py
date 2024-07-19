@@ -5,6 +5,7 @@
 # Imports
 from enum import Enum
 import numpy as np
+import requests
 import cv2
 
 
@@ -210,6 +211,38 @@ class Image:
         """
         return Image(image_array)
     # end from_numpy
+
+    @staticmethod
+    def from_file(file_path):
+        """
+        Create an image from a file
+
+        Args:
+            file_path (str): Path to the image file
+        """
+        image_array = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
+
+        # Test if image is loaded
+        if image_array is None:
+            raise ValueError(f"Unable to load image from file: {file_path}")
+        # end if
+
+        return Image(image_array)
+    # end from_file
+
+    @staticmethod
+    def from_url(url):
+        """
+        Create an image from a URL
+
+        Args:
+            url (str): URL of the image
+        """
+        response = requests.get(url)
+        image_array = np.asarray(bytearray(response.content), dtype="uint8")
+        image_array = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
+        return Image(image_array)
+    # end from_url
 
     # Create transparent image
     @staticmethod
