@@ -2,7 +2,7 @@
 import numpy as np
 
 from pixel_prism.base.imagecanvas import ImageCanvas
-from pixel_prism.base.image import ImageMode
+from pixel_prism.base import ImageMode, Image
 
 
 class RenderEngine:
@@ -14,9 +14,10 @@ class RenderEngine:
         """
         if not image_canvas.layers:
             return None
+        # end if
 
         # Initialize the final image as a black image
-        final_image = np.zeros_like(image_canvas.layers[0].image.data)
+        final_image = Image.fill(image_canvas.width, image_canvas.height, (0, 0, 0, 255))
 
         # Iterate over all layers and blend them together
         for layer in image_canvas.layers:
@@ -31,7 +32,7 @@ class RenderEngine:
 
                     # Blend the layers
                     for c in range(0, 3):
-                        final_image[:, :, c] = alpha * layer.image.data[:, :, c] + (1 - alpha) * final_image[:, :, c]
+                        final_image.data[:, :, c] = alpha * layer.image.data[:, :, c] + (1 - alpha) * final_image.data[:, :, c]
                     # end for
                 # end if
             # end if

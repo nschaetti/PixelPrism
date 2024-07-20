@@ -7,9 +7,14 @@ class VideoComposer:
             self,
             input_path,
             output_path,
+            duration: int,
+            fps: int,
+            width: int,
+            height: int,
             animation_class,
-            display=False,
-            debug_frames=False
+            debug_frames=False,
+            save_frames: bool = False,
+            **kwargs
     ):
         """
         Initialize the video composer with an input and output path.
@@ -17,14 +22,25 @@ class VideoComposer:
         Args:
             input_path (str): Path to the input video
             output_path (str): Path to the output video
-            animation_class (Animation): Animation class to use
-            display (bool): Whether to display the video while processing
+            duration (int): Duration of the video in seconds
+            fps (int): Frames per second
+            width (int): Width of the video
+            height (int): Height of the video
+            animation_class: Class of the animation to compose
+            debug_frames (bool): Whether to display the layers while processing
+            save_frames (bool): Whether to save the frames to disk
+            kwarg: Additional keyword
         """
         self.animation = animation_class(
-            input_path,
-            output_path,
-            display=display,
-            debug_frames=debug_frames
+            input_video=input_path,
+            output_video=output_path,
+            duration=duration,
+            fps=fps,
+            width=width,
+            height=height,
+            debug_frames=debug_frames,
+            save_frames=save_frames,
+            **kwargs
         )
     # end __init__
 

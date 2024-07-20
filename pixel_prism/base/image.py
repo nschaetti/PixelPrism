@@ -5,6 +5,7 @@
 # Imports
 from enum import Enum
 import numpy as np
+import cairo
 import requests
 import cv2
 
@@ -183,6 +184,38 @@ class Image:
         # end if
     # end split
 
+    # Create a cairo surface
+    def create_drawing_context(self):
+        """
+        Create a Cairo surface from the image
+        """
+        surface = cairo.ImageSurface.create_for_data(
+            self.data,
+            cairo.FORMAT_ARGB32,
+            self.width,
+            self.height
+        )
+
+        # Create context
+        context = cairo.Context(surface)
+
+        return surface, context
+    # end create_drawing_context
+
+    # Save image to file
+    def save(
+            self,
+            file_path
+    ):
+        """
+        Save the image to a file
+
+        Args:
+            file_path (str): Path to the file
+        """
+        cv2.imwrite(file_path, self.data)
+    # end save
+
     # endregion PUBLIC
 
     # region OVERRIDE
@@ -277,6 +310,40 @@ class Image:
         """
         return Image(np.full((height, width, 4), color, dtype=np.uint8))
     # end color
+
+    # Create color image
+    @staticmethod
+    def fill(
+            width: int,
+            height: int,
+            color: tuple
+    ):
+        """
+        Create a color image
+
+        Args:
+            width (int): Width of the image
+            height (int): Height of the image
+            color (tuple): Color of the image
+        """
+        return Image.color(width, height, color)
+    # end fill
+
+    # Create similar image with color
+    @staticmethod
+    def fill_like(
+            image: 'Image',
+            color: tuple
+    ):
+        """
+        Create a color image
+
+        Args:
+            image (Image): Image to copy
+            color (tuple): Color of the image
+        """
+        return Image.color(image.width, image.height, color)
+    # end fill_like
 
     # endregion Image
 

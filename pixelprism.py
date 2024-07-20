@@ -3,6 +3,8 @@
 import argparse
 import importlib.util
 
+from pixel_prism import VideoComposer
+
 
 def load_class_from_file(
         file_path,
@@ -22,17 +24,45 @@ def load_class_from_file(
 # end load_class_from_file
 
 
+# Boolean argument
+def bool_arg(value):
+    """
+    Parse a boolean argument from the command line.
+
+    Args:
+        value (str): Value to parse
+
+    Returns:
+        bool: Parsed boolean value
+    """
+    if type(value) is bool:
+        return value
+    # end if
+    return value.lower() in ("yes", "true", "t", "1")
+# end bool_arg
+
+
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Apply visual effects to videos using PixelPrism.")
-    parser.add_argument("input", help="Path to the input video file")
+    parser.add_argument("--input", help="Path to the input video file")
     parser.add_argument("output", help="Path to save the output video file")
     parser.add_argument("--display", action="store_true", help="Display the video while processing")
     parser.add_argument("--debug-frames", type=int, nargs='*', help="List of frame numbers to debug")
     parser.add_argument("--class-file", required=True, help="Path to the file containing the CustomAnimation class")
     parser.add_argument("--class-name", required=True, help="Name of the CustomAnimation class to use")
+    parser.add_argument("--duration", type=float, help="Duration of the animation in seconds.")
+    parser.add_argument("--fps", type=int, help="Frames per second of the animation.")
+    parser.add_argument("--width", type=int, default=1920, help="Width of the output video.")
+    parser.add_argument("--height", type=int, default=1080, help="Height of the output video.")
+    parser.add_argument("--save-frames", type=bool_arg, help="Save the frames to disk.")
     parser.add_argument("--kwargs", nargs='*', help="Additional keyword arguments for the CustomAnimation class in key=value format")
     args = parser.parse_args()
+
+    # Check that duration is provided if no input video is given
+    if not args.input and not args.duration:
+        parser.error("Duration (--duration) is required if no input video is specified.")
+    # end if
 
     # Load the CustomAnimation class from the specified file
     CustomAnimationClass = load_class_from_file(args.class_file, args.class_name)
@@ -46,15 +76,20 @@ if __name__ == "__main__":
         # end for
     # end if
 
-    # Create the video composer
-    composer = CustomAnimationClass(
+    # Create video composer
+    composer = VideoComposer(
         input_path=args.input,
         output_path=args.output,
-        display=args.display,
+        duration=args.duration,
+        fps=args.fps,
+        width=args.width,
+        height=args.height,
+        animation_class=CustomAnimationClass,
         debug_frames=args.debug_frames,
+        save_frames=args.save_frames,
         **kwargs
     )
 
-    # Compose the video
-    composer.compose_video()
+    # Create video
+    composer.create_video()
 # end if

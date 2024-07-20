@@ -1,10 +1,15 @@
-
+#
+# Description: Base class for creating animations.
+# Subclasses should implement the `process_frame` method.
+#
 
 # Imports
+from typing import Optional
 import os
 import cv2
-from tqdm import tqdm
 import numpy as np
+from pathlib import Path
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 # Locals
@@ -14,35 +19,69 @@ from pixel_prism.render_engine import RenderEngine
 
 class Animation:
     """
-    Base class for creating animations. Subclasses should implement the `process_frame` method.
+    Base class for creating animations.
+    Subclasses should implement the `process_frame` method.
     """
 
     def __init__(
             self,
-            input_path,
-            output_path,
-            keep_frames=0,
-            display=False,
-            debug_frames=False,
+            input_video: Optional[str] = None,
+            output_video: str = 'output.mp4',
+            duration: int = None,
+            fps: int = 30,
+            width: int = 1920,
+            height: int = 1080,
+            keep_frames: int = 0,
+            debug_frames: int = False,
+            save_frames: bool = False,
             **kwargs
     ):
         """
         Initialize the animation with an input and output path.
 
         Args:
-            input_path (str): Path to the input video
-            output_path (str): Path to the output video
+            input_video (str): Path to the input video
+            output_video (str): Path to the output video
+            duration (int): Duration of the video in seconds
+            fps (int): Frames per second
+            width (int): Width of the video
+            height (int): Height of the video
             keep_frames (int): Number of frames to keep in memory
-            display (bool): Whether to display the video while processing
-            debug_frames (bool): Whether to display the layers while processing
+            debug_frames (int): Whether to display the layers while processing
+            save_frames (bool): Whether to save the frames to disk
             kwarg: Additional keyword arguments
         """
-        self.input_path = input_path
-        self.output_path = output_path
-        self.display = display
+        # Properties
+        self.input_video = input_video
+        self.output_video = output_video
+        self.duration = duration
+        self.fps = fps
+        self.frame_count = int(fps * duration) if duration else None
+        self.width = width
+        self.height = height
+        self.time_info = None
         self.keep_frames = keep_frames
         self.debug_frames = debug_frames if debug_frames is not None else []
-        self.debug_output_dir = os.path.splitext(output_path)[0] + "_debug"
+        self.debug_output_dir = "debug"
+
+        # Input video given
+        if input_video:
+            self.cap = cv2.VideoCapture(input_video)
+            self.input_fps = self.cap.get(cv2.CAP_PROP_FPS)
+            self.frame_count = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        else:
+            self.cap = None
+        # end if
+
+        # Output video writer
+        self.out = cv2.VideoWriter(
+            output_video,
+            cv2.VideoWriter_fourcc(*'mp4v'),
+            fps,
+            (self.width, self.height)
+        )
 
         # Extra keyword arguments
         self.extra_args = kwargs
@@ -53,16 +92,33 @@ class Animation:
         # Dictionary to store the effects
         self.effects = {}
 
-        # Display the video
-        if self.display:
-            plt.ion()
-        # end if
-
         # Create the debug output directory
         if self.debug_frames:
             os.makedirs(self.debug_output_dir, exist_ok=True)
         # end if
+
+        # Save outout frames
+        self.save_frames = save_frames
+        if self.save_frames:
+            self.save_frames_path = os.path.join(Path(output_video).parent, "frames")
+            os.makedirs(
+                self.save_frames_path,
+                exist_ok=True
+            )
+        # end if
     # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def step(self):
+        """
+        Get the step size for the animation.
+        """
+        return 1 / self.fps
+    # end step
+
+    # endregion PROPERTIES
 
     def init_effects(
             self
@@ -122,9 +178,9 @@ class Animation:
 
     def process_frame(
             self,
-            image_canvas,
-            frame_number,
-            total_frames
+            image_canvas: ImageCanvas,
+            t: float,
+            frame_number: int
     ):
         """
         Process each frame of the video. Should be implemented by derived classes.
@@ -198,83 +254,94 @@ class Animation:
         """
         Compose the final video by applying `process_frame` to each frame.
         """
-        cap = cv2.VideoCapture(self.input_path)
+        if self.cap:
+            assert self.fps == self.input_fps, "Input and output FPS must match."
+            fps = self.fps
+            width = self.width
+            height = self.height
+        else:
+            fps = self.fps
+            width = self.width
+            height = self.height
+        # end if
+
+        # Open the video capture
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        width = int(cap.get(3))
-        height = int(cap.get(4))
-        out = cv2.VideoWriter(self.output_path, fourcc, fps, (width, height))
+        out = cv2.VideoWriter(self.output_video, fourcc, fps, (width, height))
 
         # Frame count
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        # Display the video
-        if self.display:
-            fig, ax = plt.subplots()
-        # end if
+        frame_count = self.frame_count
 
         # Process each frame of the video
         with tqdm(total=frame_count, desc="Processing video") as pbar:
-            # Get frame
-            ret, frame = cap.read()
+            # Frame number
+            frame_number = 0
+
+            # Get the first frame, or create a blank frame
+            if self.cap:
+                ret, frame = self.cap.read()
+            else:
+                ret = True
+                frame = np.zeros((height, width, 3), dtype=np.uint8)
+            # end if
+
+            # Initialize the effects
             self.init_effects()
 
             # Process each frame
-            frame_number = 0
-            while cap.isOpened() and ret:
+            while frame_number < frame_count and ret:
                 # Create canvas from frame
-                image_canva = ImageCanvas.from_numpy(frame, add_alpha=True)
+                if self.cap:
+                    image_canvas = ImageCanvas.from_numpy(frame, add_alpha=True)
+                else:
+                    image_canvas = ImageCanvas(width, height)
+                # end if
 
                 # Process the frame
-                image_canva = self.process_frame(
-                    image_canva,
-                    frame_number,
-                    frame_count
+                image_canvas = self.process_frame(
+                    image_canvas=image_canvas,
+                    t=frame_number / fps,
+                    frame_number=frame_number
                 )
 
                 # Keep the frame
                 if self.keep_frames:
-                    self.prev_frames.append(image_canva)
+                    self.prev_frames.append(image_canvas)
                     if len(self.prev_frames) > self.keep_frames:
                         self.prev_frames.pop(0)
                     # end if
                 # end if
 
                 # Compose final image
-                final_frame = RenderEngine.render(image_canva)
+                final_frame = RenderEngine.render(image_canvas)
 
                 # Save as RGB
-                out.write(final_frame[:, :, :3])
+                out.write(final_frame.data[:, :, :3])
 
-                # Display the frame
-                if self.display:
-                    plt.clf()  # Clear the current figure
-                    plt.imshow(cv2.cvtColor(final_frame[:, :, :3], cv2.COLOR_BGR2RGB))
-                    plt.axis('off')
-                    plt.pause(0.001)
-                    plt.draw()
+                # Save frames
+                if self.save_frames:
+                    frame_path = os.path.join(self.save_frames_path, f'frame_{frame_number}.png')
+                    final_frame.save(frame_path)
                 # end if
 
                 # Save debug layers
                 if frame_number in self.debug_frames:
-                    self.save_debug_layers(image_canva, frame_number)
+                    self.save_debug_layers(image_canvas, frame_number)
                 # end if
 
-                ret, frame = cap.read()
+                # Read next frame
+                if self.cap:
+                    ret, frame = self.cap.read()
+                # end if
+
                 pbar.update(1)
                 frame_number += 1
             # end while
         # end with
 
         # Release the video capture and writer
-        cap.release()
+        if self.cap: self.cap.release()
         out.release()
-
-        # Close the display
-        if self.display:
-            plt.ioff()
-            plt.show()
-        # end if
     # end compose_video
 
 # end Animation
