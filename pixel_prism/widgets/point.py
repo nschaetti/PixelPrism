@@ -2,15 +2,13 @@
 # Description: A simple point class that can be drawn to a cairo context.
 #
 
-import cairo
-from .base import Drawable
+from .widget import Widget
 
 
-class Point(Drawable):
+class Point(Widget):
 
-    def __init__(self, x, y, color=(1, 1, 1), radius=5):
-        self.x = x
-        self.y = y
+    def __init__(self, color=(1, 1, 1), radius=5):
+        super().__init__()
         self.color = color
         self.radius = radius
     # end __init__

@@ -3,7 +3,7 @@
 import numpy as np
 import cairo
 from pixel_prism import Animation
-from pixel_prism.base import Image, ImageCanvas
+from pixel_prism.base import Image, ImageCanvas, DrawableImage
 from pixel_prism.drawing import Space2D, Point, Line, Plot
 
 
@@ -36,9 +36,7 @@ class PointsLinesAnimation(Animation):
         """
         # Create a new transparent layer for drawing
         drawing_image = Image.fill(self.width, self.height, (0, 0, 0, 255.0))
-
-        # Get drawing context
-        surface, context = drawing_image.create_drawing_context()
+        drawing_layer = DrawableImage.transparent(self.width, self.height)
 
         # Draw point, line and plot
         space = Space2D()

@@ -4,6 +4,11 @@ import argparse
 import importlib.util
 
 from pixel_prism import VideoComposer
+from pixel_prism.utils import setup_logger
+
+
+# Setup logger
+logger = setup_logger(__name__)
 
 
 def load_class_from_file(
@@ -58,6 +63,9 @@ if __name__ == "__main__":
     parser.add_argument("--save-frames", type=bool_arg, help="Save the frames to disk.")
     parser.add_argument("--kwargs", nargs='*', help="Additional keyword arguments for the CustomAnimation class in key=value format")
     args = parser.parse_args()
+
+    # Show version
+    logger.info("PixelPrism v0.1.0")
 
     # Check that duration is provided if no input video is given
     if not args.input and not args.duration:

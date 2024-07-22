@@ -3,12 +3,13 @@
 #
 
 # Imports
-from .base import Drawable
+from pixel_prism.widgets import Widget
 
 
-class Space2D(Drawable):
+class Space2D(Widget):
 
     def __init__(self):
+        super().__init__()
         self.drawables = []
     # end __init__
 

@@ -3,13 +3,29 @@
 # Imports
 import cairo
 import numpy as np
-from .base import Drawable
+from pixel_prism.widgets import Widget
 
 
 # Plot class
-class Plot(Drawable):
+class Plot(Widget):
 
-    def __init__(self, function, x_range, color=(1, 1, 1), thickness=2):
+    def __init__(
+            self,
+            function,
+            x_range,
+            color=(1, 1, 1),
+            thickness=2
+    ):
+        """
+        Initialize the plot.
+
+        Args:
+            function (function): Function to plot
+            x_range (tuple): Range of x-values to plot
+            color (tuple): Color of the plot
+            thickness (int): Thickness of the plot
+        """
+        super().__init__()
         self.function = function
         self.x_range = x_range
         self.color = color
