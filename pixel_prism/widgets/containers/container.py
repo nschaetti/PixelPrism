@@ -1,6 +1,7 @@
 
-
 # Imports
+from typing import List
+import cairo
 from pixel_prism.widgets.widget import Widget
 
 
@@ -23,44 +24,65 @@ class Container(Widget):
         Add a widget to the container.
 
         Args:
-            widget (Widget): Widget to add to the container
-            x (int): X-coordinate of the widget
-            y (int): Y-coordinate of the widget
-            width (int): Width of the widget
-            height (int): Height of the widget
+            widget (Widget): The widget to add to the container.
+            kwargs: Additional arguments (not used in this implementation
         """
-        # Set the widget area based on the container logic
-        self.set_widget_area(widget, **kwargs)
-        self.widgets.append(widget)
+        # Add the widget to the container
+        self.widgets.append((widget, kwargs))
     # end add_widget
 
-    # This method should be overridden by subclasses
-    def set_widget_area(self, widget, **kwargs):
-        """
-        Set the area for a widget. This method should be overridden by subclasses.
-        """
-        raise NotImplementedError("set_widget_area must be implemented by subclasses")
-    # end set_widget_area
-
-    def draw(
+    # Add widgets
+    def add_widgets(
             self,
-            context
+            widgets: List[Widget]
     ):
         """
-        Draw the container and its widgets to the context.
+        Add multiple widgets to the container.
 
         Args:
-            context (cairo.Context): Context to draw the container to
+            widgets (list): List of widgets to add to the container.
         """
-        for widget in self.widgets:
-            # Create a new sub-context for each widget
-            widget_context = context.create()
-            widget_context.rectangle(widget.x, widget.y, widget.width, widget.height)
-            widget_context.clip()
-            widget_context.translate(widget.x, widget.y)
-            widget.draw(widget_context)
+        for widget in widgets:
+            self.add_widget(widget)
         # end for
-    # end draw
+    # end add_widgets
+
+    # Create sub-surface for a widget
+    def create_surface(
+            self,
+            widget: Widget,
+            **kwargs
+    ):
+        """
+        Create a sub-surface for a widget.
+
+        Args:
+            widget (Widget): The widget to create a surface for.
+            kwargs: Additional arguments (not used in this implementation)
+        """
+        raise NotImplementedError("create_surface() must be implemented in a subclass.")
+    # end create_surface
+
+    def render(
+            self,
+            surface: cairo.ImageSurface
+    ):
+        """
+        Render the container to the surface.
+
+        Args:
+            surface (cairo.ImageSurface): Surface to render the container to
+        """
+        # Super call
+        super().render(surface)
+
+        # For each widget and parameters
+        for widget, kwargs in self.widgets:
+            # Create a new sub-surface for the widget
+            widget_surface = self.create_surface(widget, **kwargs)
+            widget.render(widget_surface)
+        # end for
+    # end render
 
 # end Container
 

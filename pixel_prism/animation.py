@@ -15,6 +15,11 @@ import matplotlib.pyplot as plt
 # Locals
 from pixel_prism.base.imagecanvas import ImageCanvas
 from pixel_prism.render_engine import RenderEngine
+from pixel_prism.utils import setup_logger
+
+
+# Setup logger
+logger = setup_logger(__name__)
 
 
 class Animation:
@@ -51,37 +56,32 @@ class Animation:
             save_frames (bool): Whether to save the frames to disk
             kwarg: Additional keyword arguments
         """
+        # Input video given
+        if input_video:
+            self.cap = cv2.VideoCapture(input_video)
+            self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+            self.frame_count = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.duration = self.frame_count / self.fps if duration is None else duration
+        else:
+            self.cap = None
+            self.fps = fps
+            assert fps is not None, "FPS must be specified if input video is not given"
+            assert duration is not None, "Duration must be specified if input video is not given"
+            self.frame_count = int(fps * duration) if duration else None
+            self.width = width
+            self.height = height
+            self.duration = duration
+        # end if
+
         # Properties
         self.input_video = input_video
         self.output_video = output_video
-        self.duration = duration
-        self.fps = fps
-        self.frame_count = int(fps * duration) if duration else None
-        self.width = width
-        self.height = height
         self.time_info = None
         self.keep_frames = keep_frames
         self.debug_frames = debug_frames if debug_frames is not None else []
         self.debug_output_dir = "debug"
-
-        # Input video given
-        if input_video:
-            self.cap = cv2.VideoCapture(input_video)
-            self.input_fps = self.cap.get(cv2.CAP_PROP_FPS)
-            self.frame_count = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        else:
-            self.cap = None
-        # end if
-
-        # Output video writer
-        self.out = cv2.VideoWriter(
-            output_video,
-            cv2.VideoWriter_fourcc(*'mp4v'),
-            fps,
-            (self.width, self.height)
-        )
 
         # Extra keyword arguments
         self.extra_args = kwargs
@@ -91,6 +91,12 @@ class Animation:
 
         # Dictionary to store the effects
         self.effects = {}
+
+        # Objects
+        self.objects = {}
+
+        # Transitions
+        self.transitions = []
 
         # Create the debug output directory
         if self.debug_frames:
@@ -106,6 +112,9 @@ class Animation:
                 exist_ok=True
             )
         # end if
+
+        # Build the animation
+        self.build()
     # end __init__
 
     # region PROPERTIES
@@ -128,6 +137,16 @@ class Animation:
         """
         pass
     # end init_effects
+
+    # Build the animation
+    def build(
+            self
+    ):
+        """
+        Build the animation.
+        """
+        pass
+    # end build
 
     # Add an effect
     def add_effect(
@@ -162,6 +181,53 @@ class Animation:
         return self.effects.get(name)
     # end get_effect
 
+    # Add object
+    def add_object(
+            self,
+            name,
+            obj
+    ):
+        """
+        Add a widget to the animation.
+
+        Args:
+            name (str): Name of the widget
+            obj (object): Widget object
+        """
+        self.objects[name] = obj
+    # end add_object
+
+    # Get object
+    def get_object(
+            self,
+            name
+    ):
+        """
+        Get a widget from the animation.
+
+        Args:
+            name (str): Name of the widget
+
+        Returns:
+            object: Object
+        """
+        return self.objects.get(name)
+    # end get_object
+
+    # Get object
+    def obj(self, name):
+        """
+        Get a widget from the animation.
+
+        Args:
+            name (str): Name of the widget
+
+        Returns:
+            object: Object
+        """
+        return self.get_object(name)
+    # end get_object
+
     # Remove an effect
     def remove_effect(
             self,
@@ -175,6 +241,34 @@ class Animation:
         """
         self.effects.pop(name)
     # end remove_effect
+
+    def add_transition(
+            self,
+            transition
+    ):
+        """
+        Add a transition to the animation.
+
+        Args:
+            transition (Transition): Transition object
+        """
+        self.transitions.append(transition)
+    # end add_transition
+
+    def apply_transitions(
+            self,
+            t
+    ):
+        """
+        Apply transitions to the animation.
+
+        Args:
+            t (float): Time
+        """
+        for transition in self.transitions:
+            transition.update(t)
+        # end for
+    # end apply_transitions
 
     def process_frame(
             self,
@@ -254,20 +348,18 @@ class Animation:
         """
         Compose the final video by applying `process_frame` to each frame.
         """
-        if self.cap:
-            assert self.fps == self.input_fps, "Input and output FPS must match."
-            fps = self.fps
-            width = self.width
-            height = self.height
-        else:
-            fps = self.fps
-            width = self.width
-            height = self.height
-        # end if
+        fps = self.fps
+        width = self.width
+        height = self.height
 
         # Open the video capture
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
         out = cv2.VideoWriter(self.output_video, fourcc, fps, (width, height))
+        if not out.isOpened():
+            raise ValueError(f"Could not open the output video file for writing: {self.output_video}")
+        # end if
+        logger.info(f"Input video: {self.input_video}, FPS: {fps}, width: {width}, height: {height}")
+        logger.info(f"Output video: {self.output_video}, fourcc: {fourcc}, out: {out}")
 
         # Frame count
         frame_count = self.frame_count
@@ -297,6 +389,10 @@ class Animation:
                     image_canvas = ImageCanvas(width, height)
                 # end if
 
+                # Apply transitions
+                t = frame_number / fps
+                self.apply_transitions(t)
+
                 # Process the frame
                 image_canvas = self.process_frame(
                     image_canvas=image_canvas,
@@ -314,6 +410,10 @@ class Animation:
 
                 # Compose final image
                 final_frame = RenderEngine.render(image_canvas)
+
+                # Ensure the final frame is the correct size and type
+                assert final_frame.data.shape[:2] == (height, width), "Final frame size mismatch"
+                assert final_frame.data.dtype == np.uint8, "Final frame data type mismatch"
 
                 # Save as RGB
                 out.write(final_frame.data[:, :, :3])

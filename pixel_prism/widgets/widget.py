@@ -1,44 +1,73 @@
 #
-# This file contains the Widget class, which is the base class for all widgets in the Pixel Prism GUI library.
+# This file contains the Widget class, which is the base class for all widgets in the Pixel Prism library.
 #
 
 
+import cairo
+
+
 class Widget:
+    """
+    Base class for all widgets in the Pixel Prism library.
+    """
 
     def __init__(self):
         """
         Initialize the widget.
         """
-        self.height = None
-        self.width = None
-        self.y = None
-        self.x = None
+        self.surface = None
     # end __init__
 
-    def set_area(
+    # region PROPERTIES
+
+    @property
+    def width(self):
+        """
+        Get the width of the widget.
+        """
+        return self.surface.get_width()
+    # end width
+
+    @property
+    def height(self):
+        """
+        Get the height of the widget.
+        """
+        return self.surface.get_height()
+    # end height
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def render(
             self,
-            x,
-            y,
-            width,
-            height
+            surface: cairo.ImageSurface
     ):
         """
-        Set the area of the widget.
+        Render the widget to the surface.
 
         Args:
-            x (int): X-coordinate of the widget
-            y (int): Y-coordinate of the widget
-            width (int): Width of the widget
-            height (int): Height of the widget
+            surface (cairo.ImageSurface): Surface to render the widget to
         """
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-    # end set_area
+        self.surface = surface
+        context = cairo.Context(surface)
+        self.draw(context)
+    # end render
 
-    def draw(self, context):
-        raise NotImplementedError("Draw method must be implemented by subclasses")
+    def draw(
+            self,
+            context: cairo.Context
+    ):
+        """
+        Draw the widget to the context.
+
+        Args:
+            context (cairo.Context): Context to draw the widget to
+        """
+        pass
     # end draw
+
+    # endregion PUBLIC
 
 # end Widget

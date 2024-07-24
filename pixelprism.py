@@ -84,6 +84,15 @@ if __name__ == "__main__":
         # end for
     # end if
 
+    # Log additional parameters
+    logger.info(f"CustomAnimation class: {args.class_name}")
+    logger.info(f"Duration: {args.duration}")
+    logger.info(f"FPS: {args.fps}")
+    logger.info(f"Width: {args.width}")
+    logger.info(f"Height: {args.height}")
+    logger.info(f"Save frames: {args.save_frames}")
+    logger.info(f"Keyword arguments: {kwargs}")
+
     # Create video composer
     composer = VideoComposer(
         input_path=args.input,

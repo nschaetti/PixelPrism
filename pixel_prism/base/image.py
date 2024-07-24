@@ -232,8 +232,9 @@ class Image:
 
     # region STATIC
 
-    @staticmethod
+    @classmethod
     def from_numpy(
+            cls,
             image_array
     ):
         """
@@ -242,11 +243,14 @@ class Image:
         Args:
             image_array (np.ndarray): Image data as a NumPy array
         """
-        return Image(image_array)
+        return cls(image_array)
     # end from_numpy
 
-    @staticmethod
-    def from_file(file_path):
+    @classmethod
+    def from_file(
+            cls,
+            file_path
+    ):
         """
         Create an image from a file
 
@@ -260,11 +264,14 @@ class Image:
             raise ValueError(f"Unable to load image from file: {file_path}")
         # end if
 
-        return Image(image_array)
+        return cls(image_array)
     # end from_file
 
-    @staticmethod
-    def from_url(url):
+    @classmethod
+    def from_url(
+            cls,
+            url
+    ):
         """
         Create an image from a URL
 
@@ -274,12 +281,13 @@ class Image:
         response = requests.get(url)
         image_array = np.asarray(bytearray(response.content), dtype="uint8")
         image_array = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-        return Image(image_array)
+        return cls(image_array)
     # end from_url
 
     # Create transparent image
-    @staticmethod
+    @classmethod
     def transparent(
+            cls,
             width: int,
             height: int
     ):
@@ -290,12 +298,13 @@ class Image:
             width (int): Width of the image
             height (int): Height of the image
         """
-        return Image(np.zeros((height, width, 4), dtype=np.uint8))
+        return cls(np.zeros((height, width, 4), dtype=np.uint8))
     # end transparent
 
     # Create color image
-    @staticmethod
+    @classmethod
     def color(
+            cls,
             width: int,
             height: int,
             color: tuple
@@ -308,12 +317,13 @@ class Image:
             height (int): Height of the image
             color (tuple): Color of the image
         """
-        return Image(np.full((height, width, 4), color, dtype=np.uint8))
+        return cls(np.full((height, width, 4), color, dtype=np.uint8))
     # end color
 
     # Create color image
-    @staticmethod
+    @classmethod
     def fill(
+            cls,
             width: int,
             height: int,
             color: tuple
@@ -326,12 +336,13 @@ class Image:
             height (int): Height of the image
             color (tuple): Color of the image
         """
-        return Image.color(width, height, color)
+        return cls.color(width, height, color)
     # end fill
 
     # Create similar image with color
-    @staticmethod
+    @classmethod
     def fill_like(
+            cls,
             image: 'Image',
             color: tuple
     ):
@@ -342,7 +353,7 @@ class Image:
             image (Image): Image to copy
             color (tuple): Color of the image
         """
-        return Image.color(image.width, image.height, color)
+        return cls.color(image.width, image.height, color)
     # end fill_like
 
     # endregion Image

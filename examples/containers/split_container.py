@@ -8,7 +8,7 @@ from pixel_prism.base import DrawableImage, ImageCanvas
 
 
 # CustomAnimation class
-class PositionedContainerAnimation(Animation):
+class SplitContainerAnimation(Animation):
 
     def init_effects(self):
         pass
@@ -32,9 +32,10 @@ class PositionedContainerAnimation(Animation):
         drawing_layer = DrawableImage.transparent(self.width, self.height)
 
         # Create a PositionedContainer and add Widgets
-        split_container = SplitContainer(size=2, orientation='horizontal')
+        split_container = SplitContainer(size=3, orientation='horizontal')
         split_container.add_widget(Dummy((1, 0, 0)), position=0)
         split_container.add_widget(Dummy((0, 1, 0)), position=1)
+        split_container.add_widget(Dummy((0, 0, 1)), position=2)
 
         # Set the root container and render the drawing layer
         drawing_layer.set_root_container(split_container)
@@ -46,4 +47,5 @@ class PositionedContainerAnimation(Animation):
         return image_canvas
     # end process_frame
 
-# end PositionedContainerAnimation
+# end SplitContainerAnimation
+

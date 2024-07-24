@@ -20,11 +20,11 @@ class DrawableImage(Image):
             image_array (np.ndarray): Image data as a NumPy array
         """
         super().__init__(image_array)
-        self.surface, self.context = self.create_drawing_context()
+        self.surface = self.create_surface()
         self.root_container = None
     # end __init__
 
-    def create_drawing_context(self):
+    def create_surface(self):
         """
         Create a Cairo surface and context from the image data.
         """
@@ -34,15 +34,14 @@ class DrawableImage(Image):
             self.width,
             self.height
         )
-        context = cairo.Context(surface)
-        return surface, context
-    # end create_drawing_context
+        return surface
+    # end create_surface
 
     def get_context(self):
         """
         Get the Cairo context for drawing.
         """
-        return self.context
+        return cairo.Context(self.surface)
     # end get
 
     # Set root container
@@ -65,9 +64,7 @@ class DrawableImage(Image):
         Render the image to the context.
         """
         if self.root_container:
-            self.context.save()
-            self.root_container.draw(self.context)
-            self.context.restore()
+            self.root_container.render(self.surface)
         else:
             raise ValueError("Root container not set.")
         # end if

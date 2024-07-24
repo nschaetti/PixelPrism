@@ -4,16 +4,18 @@
 
 
 # Imports
+from typing import Tuple
 import cairo
-from pixel_prism.widgets import Widget
+
+from .element import Element
 
 
-class Line(Widget):
+class Line(Element):
 
     def __init__(
             self,
-            start_point,
-            end_point,
+            start: Tuple[int, int],
+            end: Tuple[int, int],
             color=(1, 1, 1),
             thickness=2
     ):
@@ -21,14 +23,14 @@ class Line(Widget):
         Initialize the line.
 
         Args:
-            start_point (tuple): Start point of the line
-            end_point (tuple): End point of the line
+            start (tuple): Start point of the line
+            end (tuple): End point of the line
             color (tuple): Color of the line
             thickness (int): Thickness of the line
         """
         super().__init__()
-        self.start_point = start_point
-        self.end_point = end_point
+        self.start = start
+        self.end = end
         self.color = color
         self.thickness = thickness
     # end __init__
@@ -45,8 +47,8 @@ class Line(Widget):
         """
         context.set_source_rgb(*self.color)
         context.set_line_width(self.thickness)
-        context.move_to(*self.start_point)
-        context.line_to(*self.end_point)
+        context.move_to(*self.start)
+        context.line_to(*self.end)
         context.stroke()
     # end draw
 

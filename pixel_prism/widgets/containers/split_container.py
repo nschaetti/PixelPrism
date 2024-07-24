@@ -11,34 +11,102 @@ class SplitContainer(Container):
 
     def __init__(
             self,
+            size: int,
             orientation='horizontal'
     ):
+        """
+        Initialize the split container.
+
+        Args:
+            size (int): Size of the container
+            orientation (str): Orientation of the container (horizontal or vertical)
+        """
         super().__init__()
+        self.size = size
         self.orientation = orientation
     # end __init__
 
-    def set_widget_area(self, widget, **kwargs):
+    # Create a surface for a widget
+    def create_surface(
+            self,
+            widget,
+            **kwargs
+    ):
         """
-        Set the area for widgets in a SplitContainer. Expects two widgets.
+        Create a sub-surface for a widget.
 
         Args:
-            widget (Widget): The widget to set the area for.
-            kwargs: Additional arguments (not used in this implementation).
+            widget (Widget): The widget to create a surface for.
+            kwargs: Additional arguments (not used in this implementation)
         """
-        if len(self.widgets) == 0:
-            if self.orientation == 'horizontal':
-                widget.set_area(0, 0, self.width // 2, self.height)
-            else:  # vertical
-                widget.set_area(0, 0, self.width, self.height // 2)
-        elif len(self.widgets) == 1:
-            if self.orientation == 'horizontal':
-                widget.set_area(self.width // 2, 0, self.width // 2, self.height)
-            else:  # vertical
-                widget.set_area(0, self.height // 2, self.width, self.height // 2)
+        # Get the widget's position and size
+        position = kwargs.get("position")
+        assert position is not None, "Position must be specified."
+
+        # Compute position and size according to orientation and position
+        if self.orientation == 'horizontal':
+            # Compute position and size according to position
+            x = (self.width // self.size) * position
+            y = 0
+            width = self.width // self.size
+            height = self.height
         else:
-            raise ValueError("SplitContainer can only contain two widgets.")
+            # vertical
+            x = 0
+            y = (self.height // self.size) * position
+            width = self.width
+            height = self.height // self.size
         # end if
-    # end set_widget_area
+
+        # Create a sub-surface for the widget
+        return self.surface.create_for_rectangle(
+            x,
+            y,
+            width,
+            height
+        )
+    # end create_surface
+
+    # Add a widget to the container
+    def add_widget(
+            self,
+            widget,
+            position: int
+    ):
+        """
+        Add a widget to the container.
+
+        Args:
+            widget (Widget): The widget to add to the container.
+            position (int): Zone of the widget
+        """
+        assert 0 <= position < self.size, f"Position must be between 0 and {self.size - 1}."
+        if self._check_zone(position):
+            raise ValueError(f"Position {position} is already occupied.")
+        else:
+            super().add_widget(widget, position=position)
+        # end if
+    # end add_widget
+
+    # region PRIVATE
+
+    # Check if there is already a widget in a zone
+    def _check_zone(self, position: int):
+        """
+        Check if there is already a widget in a zone.
+
+        Args:
+            position (int): Zone to check
+        """
+        for widget, kwargs in self.widgets:
+            if kwargs.get('position', 0) == position:
+                return True
+            # end if
+        # end for
+        return False
+    # end _check_zone
+
+    # endregion PRIVATE
 
 # end SplitContainer
 
