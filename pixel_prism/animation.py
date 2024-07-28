@@ -242,7 +242,7 @@ class Animation:
         self.effects.pop(name)
     # end remove_effect
 
-    def add_transition(
+    def animate(
             self,
             transition
     ):
@@ -253,7 +253,7 @@ class Animation:
             transition (Transition): Transition object
         """
         self.transitions.append(transition)
-    # end add_transition
+    # end animate
 
     def apply_transitions(
             self,

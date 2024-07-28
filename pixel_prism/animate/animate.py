@@ -2,6 +2,7 @@
 
 # Imports
 import numpy as np
+from .able import MovAble, FadeInAble
 from .interpolate import Interpolator, LinearInterpolator
 
 
@@ -12,6 +13,7 @@ class Animate:
 
     def __init__(
             self,
+            name,
             obj,
             start_time,
             end_time,
@@ -24,6 +26,7 @@ class Animate:
         Initialize the transition.
 
         Args:
+            name (str): Name of the transition
             obj (object): Object to transition
             property_name (str): Name of the property to transition
             start_time (float): Start time
@@ -33,6 +36,7 @@ class Animate:
             interpolator (Interpolator): Interpolator
             kwargs: Additional keyword arguments
         """
+        self.name = name
         self.obj = obj
         self.start_time = start_time
         self.end_time = end_time
@@ -40,7 +44,22 @@ class Animate:
         self.end_value = end_value
         self.interpolator = interpolator
         self.kwargs = kwargs
+        self.running = False
     # end __init__
+
+    def start(self):
+        """
+        Start the animation.
+        """
+        self.running = True
+    # end start
+
+    def stop(self):
+        """
+        Stop the animation.
+        """
+        self.running = False
+    # end stop
 
     def update(
             self,
@@ -65,10 +84,10 @@ class Move(Animate):
 
     def __init__(
             self,
+            name,
             obj,
             start_time,
             end_time,
-            start_value,
             end_value,
             interpolator=LinearInterpolator()
     ):
@@ -76,18 +95,20 @@ class Move(Animate):
         Initialize the move transition.
 
         Args:
-            obj (object): Object to move
+            name (str): Name of the transition
+            obj (any): Object to move
             start_time (float): Start time
             end_time (float): End time
-            start_value (any): Start position
             end_value (any): End position
             interpolator (Interpolator): Interpolator
         """
+        assert isinstance(obj, MovAble), "Object must be an instance of MovAble"
         super().__init__(
+            name,
             obj,
             start_time,
             end_time,
-            start_value,
+            None,
             end_value,
             interpolator
         )
@@ -104,24 +125,80 @@ class Move(Animate):
             t (float): Time
         """
         if t < self.start_time:
-            value = np.array(self.start_value)
+            self.stop()
+            return
         elif t > self.end_time:
-            value = np.array(self.end_value)
+            self.stop()
+            return
         else:
-            progress = (t - self.start_time) / (self.end_time - self.start_time)
-            value = self.interpolator.interpolate(
-                start_value=np.array(self.start_value),
-                end_value=np.array(self.end_value),
-                progress=progress
-            )
+            self.start()
+            relative_t = (t - self.start_time) / (self.end_time - self.start_time)
         # end if
 
-        print("Move.update")
-        print(self.obj)
-        print(self.obj.pos)
+        # if running
+        if self.running:
+            # Interpolate time
+            interpolated_t = self.interpolator.interpolate(0, 1, relative_t)
 
-        # Update the object position
-        self.obj.pos = value
+            # Perform the move animation
+            print(f"Transition {self.name}, Time {t}")
+            self.obj.animate_move(relative_t, self.end_time - self.start_time, interpolated_t, self.end_value)
+        # end if
     # end update
 
 # end Move
+
+
+# Fade in animation
+class FadeIn(Animate):
+    """
+    A transition that fades in an object over time.
+    """
+
+    def __init__(
+            self,
+            name,
+            obj,
+            start_time,
+            end_time,
+            interpolator=LinearInterpolator()
+    ):
+        """
+        Initialize the fade-in transition.
+
+        Args:
+            obj (any): Object to fade in
+            start_time (float): Start time
+            end_time (float): End time
+            interpolator (Interpolator): Interpolator
+        """
+        assert isinstance(obj, FadeInAble), "Object must be an instance of FadeInAble"
+        super().__init__(name, obj, start_time, end_time, 0, 1, interpolator)
+    # end __init__
+
+    def update(self, t):
+        """
+        Update the object opacity at time t.
+        """
+        if t < self.start_time:
+            self.stop()
+            return
+        elif t > self.end_time:
+            self.stop()
+            return
+        else:
+            self.start()
+            relative_t = (t - self.start_time) / (self.end_time - self.start_time)
+        # end if
+
+        # if running
+        if self.running:
+            # Interpolate time
+            interpolated_t = self.interpolator.interpolate(0, 1, relative_t)
+
+            # Perform the fade-in animation
+            self.obj.animate_fadein(relative_t, self.end_time - self.start_time, interpolated_t)
+        # end if
+    # end update
+
+# end FadeIn

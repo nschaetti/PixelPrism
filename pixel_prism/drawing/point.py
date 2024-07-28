@@ -3,10 +3,11 @@
 #
 
 import numpy as np
+from pixel_prism.animate.able import MovAble
 from .element import Element
 
 
-class Point(Element):
+class Point(Element, MovAble):
 
     def __init__(self, x, y, color=(1, 1, 1), radius=5):
         """
@@ -38,5 +39,19 @@ class Point(Element):
         context.arc(float(self.pos[0]), float(self.pos[1]), self.radius, 0, 2 * 3.14159)
         context.fill()
     # end draw
+
+    def animate_move(self, t, duration, interpolated_t, end_value):
+        """
+        Animate the movement of the point.
+
+        Args:
+            t (float): Relative time since the start of the animation
+            duration (float): Duration of the animation
+            interpolated_t (float): Time value adjusted by the interpolator
+            end_value (tuple): The end position of the point (x, y)
+        """
+        print(f"Time {t}, {duration}, {interpolated_t} {self.pos}, end_value: {end_value}")
+        self.pos = self.pos * (1 - interpolated_t) + np.array(end_value) * interpolated_t
+    # end animate_move
 
 # end Point
