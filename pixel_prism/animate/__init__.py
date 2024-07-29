@@ -14,7 +14,8 @@ from .interpolate import (
 from .animate import (
     Animate,
     Move,
-    FadeIn
+    FadeIn,
+    FadeOut
 )
 
 

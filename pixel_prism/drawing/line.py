@@ -4,21 +4,22 @@
 
 
 # Imports
-from typing import Tuple
+from typing import Tuple, Any
 import cairo
 
-from pixel_prism.animate.able import FadeInAble
+from pixel_prism.animate.able import FadeInAble, FadeOutAble
 from .element import Element
 
 
-class Line(Element, FadeInAble):
+class Line(Element, FadeInAble, FadeOutAble):
 
     def __init__(
             self,
             start: Tuple[int, int],
             end: Tuple[int, int],
             color=(1, 1, 1),
-            thickness=2
+            thickness=2,
+            opacity: float = 1.0
     ):
         """
         Initialize the line.
@@ -28,13 +29,14 @@ class Line(Element, FadeInAble):
             end (tuple): End point of the line
             color (tuple): Color of the line
             thickness (int): Thickness of the line
+            opacity (float): Opacity of the line
         """
         super().__init__()
         self.start = start
         self.end = end
         self.color = color
         self.thickness = thickness
-        self.opacity = 0
+        self.opacity = opacity
     # end __init__
 
     def draw(
@@ -53,18 +55,6 @@ class Line(Element, FadeInAble):
         context.line_to(float(self.end[0]), float(self.end[1]))
         context.stroke()
     # end draw
-
-    def animate_fadein(self, t, duration, interpolated_t):
-        """
-        Animate the fade-in effect.
-
-        Args:
-            t (float): Relative time since the start of the animation
-            duration (float): Duration of the animation
-            interpolated_t (float): Time value adjusted by the interpolator
-        """
-        self.opacity = interpolated_t
-    # end animate_fadein
 
 # end Line
 

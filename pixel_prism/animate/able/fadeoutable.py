@@ -4,9 +4,9 @@ from typing import Any
 from .able import Able
 
 
-class FadeInAble(Able):
+class FadeOutAble(Able):
     """
-    Interface class for fade-in animations
+    Interface class for fade-out animations
     """
 
     # Constructor
@@ -18,17 +18,17 @@ class FadeInAble(Able):
         self.opacity = None
     # end __init__
 
-    # Start fade-in animation
-    def start_fadein(self, start_value: Any):
+    # Start fade-out animation
+    def start_fadeout(self, start_value: Any):
         """
-        Start the fade-in animation.
+        Start the fade-out animation.
         """
         pass
-    # end start_fadein
+    # end start_fadeout
 
-    def animate_fadein(self, t, duration, interpolated_t, target_value):
+    def animate_fadeout(self, t, duration, interpolated_t, target_value):
         """
-        Animate the fade-in effect.
+        Animate the fade-out effect.
 
         Args:
             t (float): Relative time since the start of the animation
@@ -36,16 +36,16 @@ class FadeInAble(Able):
             interpolated_t (float): Time value adjusted by the interpolator
             target_value (any): The target value of the animation
         """
-        self.opacity = interpolated_t
-    # end animate_fadein
+        self.opacity = 1.0 - interpolated_t
+    # end animate_fadeout
 
-    def end_fadein(self, end_value: Any):
+    def end_fadeout(self, end_value: Any):
         """
-        End the fade-in animation.
+        End the fade-out animation.
         """
         pass
-    # end end_fadein
+    # end end_fadeout
 
-# end FadeInAble
+# end FadeOutAble
 
 

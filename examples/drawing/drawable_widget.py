@@ -5,7 +5,7 @@ from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas
 from pixel_prism.drawing import Point, Line
-from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn
+from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut
 
 
 # DrawableWidgetAnimation class
@@ -40,14 +40,25 @@ class DrawableWidgetAnimation(Animation):
         self.add_object("point1", point1)
         self.add_object("line", line)
 
+        # Fade in point 1
+        self.animate(
+            FadeIn(
+                "FadeInPoint1",
+                point1,
+                start_time=0,
+                end_time=1,
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
         # Add transitions for point1
         self.animate(
             Move(
                 "Move1",
                 point1,
-                start_time=0,
-                end_time=2,
-                end_value=(1870, 50),
+                start_time=1,
+                end_time=3,
+                target_value=(1870, 50),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -55,9 +66,9 @@ class DrawableWidgetAnimation(Animation):
             Move(
                 "Move2",
                 point1,
-                start_time=2,
-                end_time=4,
-                end_value=(1870, 1030),
+                start_time=3,
+                end_time=5,
+                target_value=(1870, 1030),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -65,9 +76,9 @@ class DrawableWidgetAnimation(Animation):
             Move(
                 "Move3",
                 point1,
-                start_time=4,
-                end_time=6,
-                end_value=(50, 1030),
+                start_time=5,
+                end_time=7,
+                target_value=(50, 1030),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -75,9 +86,18 @@ class DrawableWidgetAnimation(Animation):
             Move(
                 "Move4",
                 point1,
-                start_time=6,
-                end_time=8,
-                end_value=(50, 50),
+                start_time=7,
+                end_time=9,
+                target_value=(50, 50),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+        self.animate(
+            FadeOut(
+                "FadeOutPoint1",
+                point1,
+                start_time=9,
+                end_time=10,
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -89,6 +109,17 @@ class DrawableWidgetAnimation(Animation):
                 line,
                 start_time=0,
                 end_time=1,
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        # Add fade-out transition for line
+        self.animate(
+            FadeOut(
+                "FadeOut1",
+                line,
+                start_time=9,
+                end_time=10,
                 interpolator=EaseInOutInterpolator()
             )
         )

@@ -11,7 +11,8 @@ class Able:
             self,
             t,
             duration,
-            interpolated_t
+            interpolated_t,
+            end_value
     ):
         """
         Method to be implemented by subclasses to perform animation.
@@ -20,6 +21,7 @@ class Able:
             t (float): Relative time since the start of the animation
             duration (float): Duration of the animation
             interpolated_t (float): Time value adjusted by the interpolator
+            end_value (any): The target value of the animation
         """
         raise NotImplementedError("Subclasses should implement this method")
     # end animate
