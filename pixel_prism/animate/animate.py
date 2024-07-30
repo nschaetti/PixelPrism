@@ -3,7 +3,7 @@
 # Imports
 import numpy as np
 from enum import Enum
-from .able import MovAble, FadeInAble, FadeOutAble
+from .able import MovAble, FadeInAble, FadeOutAble, RangeAble
 from .interpolate import Interpolator, LinearInterpolator
 
 
@@ -24,13 +24,13 @@ class Animate:
 
     def __init__(
             self,
-            name,
             obj,
             start_time,
             end_time,
             start_value,
             target_value,
             interpolator=LinearInterpolator(),
+            name="",
             **kwargs
     ):
         """
@@ -144,12 +144,12 @@ class Move(Animate):
 
     def __init__(
             self,
-            name,
             obj,
             start_time,
             end_time,
             target_value,
-            interpolator=LinearInterpolator()
+            interpolator=LinearInterpolator(),
+            name=""
     ):
         """
         Initialize the move transition.
@@ -164,17 +164,57 @@ class Move(Animate):
         """
         assert isinstance(obj, MovAble), "Object must be an instance of MovAble"
         super().__init__(
-            name,
             obj,
             start_time,
             end_time,
             None,
             target_value,
+            name=name,
             interpolator=interpolator
         )
     # end __init__
 
 # end Move
+
+
+class Range(Animate):
+    """
+    A transition that changes a range of values over time.
+    """
+
+    def __init__(
+            self,
+            obj,
+            start_time,
+            end_time,
+            target_value,
+            interpolator=LinearInterpolator(),
+            name=""
+    ):
+        """
+        Initialize the range transition.
+
+        Args:
+            name (str): Name of the transition
+            obj (any): Object to range
+            start_time (float): Start time
+            end_time (float): End time
+            target_value (any): End value
+            interpolator (Interpolator): Interpolator
+        """
+        assert isinstance(obj, RangeAble), "Object must be an instance of RangeAble"
+        super().__init__(
+            obj,
+            start_time,
+            end_time,
+            None,
+            target_value,
+            interpolator=interpolator,
+            name=name
+        )
+    # end __init__
+
+# end Range
 
 
 # Fade in animation
@@ -185,11 +225,11 @@ class FadeIn(Animate):
 
     def __init__(
             self,
-            name,
             obj,
             start_time,
             end_time,
-            interpolator=LinearInterpolator()
+            interpolator=LinearInterpolator(),
+            name="",
     ):
         """
         Initialize the fade-in transition.
@@ -201,7 +241,7 @@ class FadeIn(Animate):
             interpolator (Interpolator): Interpolator
         """
         assert isinstance(obj, FadeInAble), "Object must be an instance of FadeInAble"
-        super().__init__(name, obj, start_time, end_time, 0, 1, interpolator)
+        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
     # end __init__
 
 # end FadeIn
@@ -215,11 +255,11 @@ class FadeOut(Animate):
 
     def __init__(
             self,
-            name,
             obj,
             start_time,
             end_time,
-            interpolator=LinearInterpolator()
+            interpolator=LinearInterpolator(),
+            name="",
     ):
         """
         Initialize the fade-out transition.
@@ -231,7 +271,7 @@ class FadeOut(Animate):
             interpolator (Interpolator): Interpolator
         """
         assert isinstance(obj, FadeOutAble), "Object must be an instance of FadeInAble"
-        super().__init__(name, obj, start_time, end_time, 0, 1, interpolator)
+        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
     # end __init__
 
 # end FadeOut

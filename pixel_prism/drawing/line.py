@@ -8,6 +8,7 @@ from typing import Tuple, Any
 import cairo
 
 from pixel_prism.animate.able import FadeInAble, FadeOutAble
+from pixel_prism.data import Point2D, Scalar
 from .element import Element
 
 
@@ -15,21 +16,21 @@ class Line(Element, FadeInAble, FadeOutAble):
 
     def __init__(
             self,
-            start: Tuple[int, int],
-            end: Tuple[int, int],
+            start: Point2D,
+            end: Point2D,
             color=(1, 1, 1),
-            thickness=2,
-            opacity: float = 1.0
+            thickness: Scalar = Scalar(2),
+            opacity: Scalar = Scalar(1.0)
     ):
         """
         Initialize the line.
 
         Args:
-            start (tuple): Start point of the line
-            end (tuple): End point of the line
+            start (Point2D): Start point of the line
+            end (Point2D): End point of the line
             color (tuple): Color of the line
-            thickness (int): Thickness of the line
-            opacity (float): Opacity of the line
+            thickness (Scalar): Thickness of the line
+            opacity (Scalar): Opacity of the line
         """
         super().__init__()
         self.start = start
@@ -49,10 +50,10 @@ class Line(Element, FadeInAble, FadeOutAble):
         Args:
             context (cairo.Context): Context to draw the line to
         """
-        context.set_source_rgba(*self.color, self.opacity)
-        context.set_line_width(self.thickness)
-        context.move_to(float(self.start[0]), float(self.start[1]))
-        context.line_to(float(self.end[0]), float(self.end[1]))
+        context.set_source_rgba(*self.color, self.opacity.value)
+        context.set_line_width(self.thickness.value)
+        context.move_to(float(self.start.x), float(self.start.y))
+        context.line_to(float(self.end.x), float(self.end.y))
         context.stroke()
     # end draw
 

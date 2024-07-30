@@ -15,7 +15,8 @@ from .animate import (
     Animate,
     Move,
     FadeIn,
-    FadeOut
+    FadeOut,
+    Range
 )
 
 

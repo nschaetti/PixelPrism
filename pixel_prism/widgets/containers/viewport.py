@@ -84,6 +84,9 @@ class Viewport(Widget):
         # Create context
         context = cairo.Context(surface)
 
+        # Anti-aliasing
+        context.set_antialias(cairo.Antialias.SUBPIXEL)
+
         # Draw the widgets
         self.draw(context)
     # end render
