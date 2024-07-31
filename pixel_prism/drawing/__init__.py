@@ -4,12 +4,14 @@
 
 # Imports
 from .element import Element
+from .latextex import MathTex
 from .line import Line
 from .point import Point
 
 # ALL
 __all__ = [
     "Element",
+    "MathTex",
     "Line",
     "Point"
 ]

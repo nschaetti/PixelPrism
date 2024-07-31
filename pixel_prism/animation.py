@@ -197,6 +197,22 @@ class Animation:
         self.objects[name] = obj
     # end add_object
 
+    # Add objets
+    def add(
+            self,
+            **kwargs
+    ):
+        """
+        Add objects to the animation.
+
+        Args:
+            **kwargs: Objects to add to the animation
+        """
+        for name, obj in kwargs.items():
+            self.add_object(name, obj)
+        # end for
+    # end add
+
     # Get object
     def get_object(
             self,
