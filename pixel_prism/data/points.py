@@ -9,7 +9,16 @@ from pixel_prism.animate.able import MovAble
 from .data import Data
 
 
-class Point2D(Data, MovAble):
+# A generic point
+class Point(Data, MovAble):
+    """
+    A generic point class.
+    """
+    pass
+# end Point
+
+
+class Point2D(Point):
     """
     A class to represent a point in 2D space.
     """
@@ -64,14 +73,16 @@ class Point2D(Data, MovAble):
         self.pos[1] = value
     # end y
 
-    def set(self, pos):
+    def set(self, x, y):
         """
         Set the coordinates of the point.
 
         Args:
-            pos (np.array): Tuple containing the X and Y coordinates of the point
+            x (float): X-coordinate of the point
+            y (float): Y-coordinate of the point
         """
-        self.pos = pos
+        self.pos[0] = x
+        self.pos[1] = y
     # end set
 
     def get(self):
@@ -81,14 +92,14 @@ class Point2D(Data, MovAble):
         Returns:
             np.array: Array containing the X and Y coordinates of the point
         """
-        return self.pos
+        return self.pos[0], self.pos[1]
     # end get
 
     def copy(self):
         """
         Return a copy of the point.
         """
-        return Point2D(x=self.x, y=self.y)
+        return Point2D(x=self.x, y=self.y, dtype=self.pos.dtype)
     # end copy
 
     # Return a string representation of the point.
@@ -110,7 +121,7 @@ class Point2D(Data, MovAble):
 # end Point2D
 
 
-class Point3D(Data, MovAble):
+class Point3D(Point):
     """
     A class to represent a point in 3D space.
     """

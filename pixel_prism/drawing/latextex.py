@@ -8,7 +8,7 @@ import cairo
 
 from pixel_prism.utils import render_latex_to_svg, draw_svg
 from pixel_prism.animate.able import FadeInAble, FadeOutAble
-from pixel_prism.data import Point2D, Scalar
+from pixel_prism.data import Point2D
 from .element import Element
 
 

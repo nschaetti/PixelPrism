@@ -3,7 +3,22 @@
 import cairo
 import numpy as np
 from lxml import etree
-from svgpathtools import svg2paths2, parse_path, Path, Line, CubicBezier, QuadraticBezier, Arc
+
+import svgpathtools as svg
+
+
+# Parse path
+def parse_path(
+        path_data
+):
+    """
+    Parse an SVG path and return the segments.
+
+    Args:
+        path_data (str): SVG path data
+    """
+    return svg.parse_path(path_data)
+# end parse_path
 
 
 # Parse SVG
@@ -26,7 +41,7 @@ def parse_svg(
     for element in root.findall('.//{http://www.w3.org/2000/svg}path'):
         path_id = element.attrib.get('id')
         path_data = element.attrib.get('d')
-        defs[path_id] = parse_path(path_data)
+        defs[path_id] = svg.parse_path(path_data)
     # end for
 
     # Elements
@@ -157,6 +172,7 @@ def draw_svg(
         # end if
 
         if element['type'] == 'path':
+            print(f"path: {element['data']}")
             # Get subpaths
             subpaths = element['data'].d().split('M')
 
@@ -165,6 +181,7 @@ def draw_svg(
 
             # For each subpaths
             for subpath in subpaths:
+                print(f"subpath: {subpath}")
                 if not subpath.strip():
                     continue
                 # end if
@@ -173,13 +190,14 @@ def draw_svg(
                 subpath = 'M' + subpath.strip()
 
                 # Parse the subpath
-                sub_path = parse_path(subpath)
+                sub_path = svg.parse_path(subpath)
 
                 # Draw the segments
                 for segment in sub_path:
+                    print(f"segment: {segment}")
                     if isinstance(segment, Line):
                         context.line_to(segment.end.real, segment.end.imag)
-                    elif isinstance(segment, CubicBezier):
+                    elif isinstance(segment, svg.CubicBezier):
                         context.curve_to(
                             segment.control1.real,
                             segment.control1.imag,
@@ -188,7 +206,7 @@ def draw_svg(
                             segment.end.real,
                             segment.end.imag
                         )
-                    elif isinstance(segment, QuadraticBezier):
+                    elif isinstance(segment, svg.QuadraticBezier):
                         context.curve_to(
                             segment.control.real,
                             segment.control.imag,
@@ -197,7 +215,7 @@ def draw_svg(
                             segment.end.real,
                             segment.end.imag
                         )
-                    elif isinstance(segment, Arc):
+                    elif isinstance(segment, svg.Arc):
                         context.arc(
                             segment.center.real,
                             segment.center.imag,
@@ -212,12 +230,14 @@ def draw_svg(
             # Fill the path
             context.fill()
         elif element['type'] == 'rect':
+            print(f"Rect: {element}")
             context.rectangle(0, 0, element['width'], element['height'])
             context.fill()
         # end if
 
         # Restore the context
         context.restore()
+        exit()
     # end for
 
     # Restore the context
