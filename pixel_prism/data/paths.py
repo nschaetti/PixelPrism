@@ -5,6 +5,7 @@ from typing import List
 from pixel_prism.animate.able import MovAble
 
 from .data import Data
+from .points import Point
 
 
 # A segment
@@ -75,14 +76,14 @@ class PathSegment(Data, MovAble):
         """
         Get the string representation of the path.
         """
-        return f"PathSegment(\n\t{self.elements}\n)"
+        return f"PathSegment(elements={self.elements})"
     # end __str__
 
     def __repr__(self):
         """
         Get the string representation of the path.
         """
-        return f"PathSegment(\n\t{self.elements}\n)"
+        return self.__str__()
     # end __repr__
 
     # Move
@@ -109,8 +110,10 @@ class Path(Data, MovAble):
 
     def __init__(
             self,
+            origin: Point = None,
             path: PathSegment = None,
-            subpaths: List[PathSegment] = None
+            subpaths: List[PathSegment] = None,
+            transform=None
     ):
         """
         Initialize the path with its segments.
@@ -127,8 +130,10 @@ class Path(Data, MovAble):
         # end if
 
         # Initialize the elements
+        self.origin = origin
         self.path = path
         self.subpaths = subpaths
+        self.transform = transform
     # end __init__
 
     # Add
@@ -218,7 +223,13 @@ class Path(Data, MovAble):
         """
         Get the string representation of the path.
         """
-        return f"Path(\n\t{self.path},\n\t{self.subpaths}\n)"
+        return (
+            f"Path("
+            f"path={self.path},"
+            f"subpaths={self.subpaths}"
+            f"transform={self.transform.__str__() if self.transform is not None else 'None'}"
+            f")"
+        )
     # end __str__
 
     # repr
@@ -226,7 +237,7 @@ class Path(Data, MovAble):
         """
         Get the string representation of the path.
         """
-        return f"Path(\n\t{self.path},\n\t{self.subpaths}\n)"
+        return self.__str__()
     # end __repr__
 
 # end Path

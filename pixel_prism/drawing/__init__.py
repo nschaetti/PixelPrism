@@ -3,14 +3,16 @@
 #
 
 # Imports
-from .element import Element
+from .circle import Circle
+from .drawable import Drawable
 from .latextex import MathTex
 from .line import Line
 from .point import Point
 
 # ALL
 __all__ = [
-    "Element",
+    "Circle",
+    "Drawable",
     "MathTex",
     "Line",
     "Point"

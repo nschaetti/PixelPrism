@@ -6,6 +6,10 @@ from .arcs import (
     Arc
 )
 
+from .colors import (
+    Color
+)
+
 from .curves import (
     CubicBezierCurve,
     QuadraticBezierCurve
@@ -32,6 +36,16 @@ from .rectangles import (
 
 from .scalar import Scalar
 
+from .transforms import (
+    Transform,
+    Translate2D,
+    Rotate2D,
+    Scale2D,
+    SkewX2D,
+    SkewY2D,
+    Matrix2D
+)
+
 from .vector_graphics import VectorGraphics
 
 # ALL
@@ -39,6 +53,8 @@ __all__ = [
     "Data",
     # Arcs
     "Arc",
+    # Colors
+    "Color",
     # Curves
     "CubicBezierCurve",
     "QuadraticBezierCurve",

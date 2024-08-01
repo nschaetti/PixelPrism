@@ -1,6 +1,6 @@
 
 
-class Element(object):
+class Drawable(object):
 
     def draw(
             self,

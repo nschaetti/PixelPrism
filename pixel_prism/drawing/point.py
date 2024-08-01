@@ -5,10 +5,10 @@
 from typing import Any
 import numpy as np
 from pixel_prism.animate.able import MovAble, FadeInAble, FadeOutAble
-from .element import Element
+from .drawable import Drawable
 
 
-class Point(Element, MovAble, FadeInAble, FadeOutAble):
+class Point(Drawable, MovAble, FadeInAble, FadeOutAble):
 
     def __init__(self, x, y, color=(1, 1, 1), radius=5, opacity=1.0):
         """

@@ -29,7 +29,7 @@ class MathTexAnimation(Animation):
 
         # Créer un widget LaTeX
         latex_widget = MathTex(
-            "\\frac{d}{dx}f(x)g(x)=f(x)\\frac{d}{dx}g(x) + g(x)\\frac{d}{dx}f(x)",
+            "g(x)",
             latex_position,
             color=(1.0, 1.0, 1.0)
         )

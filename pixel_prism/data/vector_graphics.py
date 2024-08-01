@@ -2,6 +2,7 @@
 
 # Imports
 import svgpathtools as svg
+import pprint
 from pixel_prism.utils import parse_svg, parse_path
 
 from .data import Data
@@ -12,6 +13,59 @@ from .arcs import Arc
 from .rectangles import Rectangle
 from .scalar import Scalar
 from .paths import Path, PathSegment
+from .transforms import *
+
+
+def create_transform(trans):
+    """
+    Apply an SVG transform to a Cairo context.
+
+    Args:
+        trans (str): SVG transform
+    """
+    # Translate
+    if trans is None:
+        return None
+    elif trans.startswith('translate'):
+        values = trans[10:-1].split(',')
+        tx = float(values[0])
+        ty = float(values[1]) if len(values) > 1 else 0.0
+        transform = Translate2D(tx, ty)
+    # Scale
+    elif trans.startswith('scale'):
+        values = trans[6:-1].split(',')
+        sx = float(values[0])
+        sy = float(values[1]) if len(values) > 1 else sx
+        transform = Scale2D(sx, sy)
+    # Rotate
+    elif trans.startswith('rotate'):
+        values = trans[7:-1].split(',')
+        angle = float(values[0])
+        cx = float(values[1]) if len(values) > 1 else 0.0
+        cy = float(values[2]) if len(values) > 2 else 0.0
+        transform = Rotate2D(cx, cy, angle)
+    elif trans.startswith('skewX'):
+        angle = np.radians(float(trans[6:-1]))
+        transform = SkewX2D(angle)
+    elif trans.startswith('skewY'):
+        angle = np.radians(float(trans[6:-1]))
+        transform = SkewY2D(angle)
+    elif trans.startswith('matrix'):
+        values = trans[7:-1].split(',')
+        transform = Matrix2D(
+            float(values[0]),
+            float(values[1]),
+            float(values[2]),
+            float(values[3]),
+            float(values[4]),
+            float(values[5])
+        )
+    else:
+        raise ValueError(f"Unknown transform: {trans}")
+    # end if
+
+    return transform
+# end create_transform
 
 
 # Load an SVG
@@ -31,16 +85,20 @@ def load_svg(
 
     # Draw the paths
     for el_i, element in enumerate(paths):
-        # Apply transformations
-        if element['transform']:
-            # apply_transform(context, element['transform'])
-            pass
-        # end if
+        # Get transformations
+        transform = create_transform(element['transform'])
+
+        # Element position
+        x = element['x']
+        y = element['y']
 
         # We have a path
         if element['type'] == 'path':
             # New path
-            path_data = Path()
+            path_data = Path(
+                origin=Point2D(x, y),
+                transform=transform
+            )
 
             # Get subpaths
             subpaths = element['data'].d().split('M')
@@ -179,16 +237,14 @@ class VectorGraphics(Data):
         """
         Get the string representation of the vector graphic.
         """
-        # Transform the elements to a string
-        elements_str = ',\n\t\t'.join([str(element) for element in self.elements])
-        return f"VectorGraphics(\n\telements=[\n\t\t{elements_str}\n)"
+        return f"VectorGraphics(elements={self.elements})"
     # end __str__
 
     def __repr__(self):
         """
         Get the string representation of the vector graphic.
         """
-        return f"VectorGraphics(\n\telements={self.elements}\n)"
+        return self.__str__()
     # end __repr__
 
     def __len__(self):

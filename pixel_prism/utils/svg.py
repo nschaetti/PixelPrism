@@ -172,7 +172,6 @@ def draw_svg(
         # end if
 
         if element['type'] == 'path':
-            print(f"path: {element['data']}")
             # Get subpaths
             subpaths = element['data'].d().split('M')
 
@@ -181,7 +180,6 @@ def draw_svg(
 
             # For each subpaths
             for subpath in subpaths:
-                print(f"subpath: {subpath}")
                 if not subpath.strip():
                     continue
                 # end if
@@ -194,8 +192,7 @@ def draw_svg(
 
                 # Draw the segments
                 for segment in sub_path:
-                    print(f"segment: {segment}")
-                    if isinstance(segment, Line):
+                    if isinstance(segment, svg.Line):
                         context.line_to(segment.end.real, segment.end.imag)
                     elif isinstance(segment, svg.CubicBezier):
                         context.curve_to(
@@ -230,14 +227,12 @@ def draw_svg(
             # Fill the path
             context.fill()
         elif element['type'] == 'rect':
-            print(f"Rect: {element}")
             context.rectangle(0, 0, element['width'], element['height'])
             context.fill()
         # end if
 
         # Restore the context
         context.restore()
-        exit()
     # end for
 
     # Restore the context
