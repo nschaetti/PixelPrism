@@ -3,7 +3,7 @@
 from .data import Data
 
 from .arcs import (
-    Arc
+    ArcData
 )
 
 from .colors import (
@@ -11,17 +11,17 @@ from .colors import (
 )
 
 from .curves import (
-    CubicBezierCurve,
-    QuadraticBezierCurve
+    CubicBezierCurveData,
+    QuadraticBezierCurveData
 )
 
 from .lines import (
-    Line
+    LineData
 )
 
 from .paths import (
-    Path,
-    PathSegment
+    PathData,
+    PathSegmentData
 )
 
 from .points import (
@@ -31,7 +31,7 @@ from .points import (
 )
 
 from .rectangles import (
-    Rectangle
+    RectangleData
 )
 
 from .scalar import Scalar
@@ -46,25 +46,25 @@ from .transforms import (
     Matrix2D
 )
 
-from .vector_graphics import VectorGraphics
+from .vector_graphics import VectorGraphicsData
 
 # ALL
 __all__ = [
     "Data",
     # Arcs
-    "Arc",
+    "ArcData",
     # Colors
     "Color",
     # Curves
-    "CubicBezierCurve",
-    "QuadraticBezierCurve",
+    "CubicBezierCurveData",
+    "QuadraticBezierCurveData",
     # Lines
-    "Line",
+    "LineData",
     # Rectangles
-    "Rectangle",
+    "RectangleData",
     # Paths
-    "Path",
-    "PathSegment",
+    "PathData",
+    "PathSegmentData",
     # Points
     "Point",
     "Point2D",
@@ -72,5 +72,5 @@ __all__ = [
     # Scalar
     "Scalar",
     # Vector Graphics
-    "VectorGraphics"
+    "VectorGraphicsData"
 ]

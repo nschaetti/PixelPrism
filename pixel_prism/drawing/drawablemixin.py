@@ -1,6 +1,6 @@
 
 
-class Drawable(object):
+class DrawableMixin(object):
 
     def draw(
             self,

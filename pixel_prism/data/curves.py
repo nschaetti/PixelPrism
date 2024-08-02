@@ -2,14 +2,17 @@
 
 # Imports
 import numpy as np
+
 from pixel_prism.animate.able import MovAble
+from pixel_prism.mixins import DrawableDataMixin
+
 from .data import Data
 from .points import Point, Point2D
 
 
 # A Cubic Bezier curve
 # CubicBezier(start=(3.716065-3.765878j), control1=(3.536737-4.134496j), control2=(3.247821-4.403487j), end=(2.799502-4.403487j))
-class CubicBezierCurve(Data, MovAble):
+class CubicBezierCurveData(Data, MovAble):
     """
     A class to represent a cubic Bezier curve in 2D space.
     """
@@ -85,6 +88,20 @@ class CubicBezierCurve(Data, MovAble):
         )
     # end __repr__
 
+    # Transform into a drawable element
+    def to_drawable(self):
+        """
+        Transform the path into a drawable element.
+        """
+        from pixel_prism.drawing import CubicBezierCurve
+        return CubicBezierCurve(
+            start=self.start,
+            control1=self.control1,
+            control2=self.control2,
+            end=self.end
+        )
+    # end to_drawable
+
     @classmethod
     def from_2d(
             cls,
@@ -113,7 +130,7 @@ class CubicBezierCurve(Data, MovAble):
 
 # A quadratic Bezier curve
 # QuadraticBezier(start=(4.313823-6.127024j), control=(3.536737-4.134496j), end=(2.799502-4.403487j))
-class QuadraticBezierCurve(Data, MovAble):
+class QuadraticBezierCurveData(Data, MovAble):
     """
     A class to represent a quadratic Bezier curve in 2D space.
     """
@@ -184,4 +201,4 @@ class QuadraticBezierCurve(Data, MovAble):
         )
     # end from_2d
 
-# end QuadraticBezierCurve
+# end QuadraticBezierCurveData

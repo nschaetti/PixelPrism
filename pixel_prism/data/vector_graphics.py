@@ -1,18 +1,15 @@
 
 
 # Imports
+from typing import List, Iterator
 import svgpathtools as svg
-import pprint
-from pixel_prism.utils import parse_svg, parse_path
+from pixel_prism.utils.svg import parse_svg, parse_path
 
-from .data import Data
-from .points import Point2D
-from .lines import Line
-from .curves import CubicBezierCurve, QuadraticBezierCurve
-from .arcs import Arc
-from .rectangles import Rectangle
-from .scalar import Scalar
-from .paths import Path, PathSegment
+from .lines import LineData
+from .curves import CubicBezierCurveData, QuadraticBezierCurveData
+from .arcs import ArcData
+from .rectangles import RectangleData
+from .paths import PathData, PathSegmentData
 from .transforms import *
 
 
@@ -24,7 +21,7 @@ def create_transform(trans):
         trans (str): SVG transform
     """
     # Translate
-    if trans is None:
+    if trans is None or trans == '':
         return None
     elif trans.startswith('translate'):
         values = trans[10:-1].split(',')
@@ -71,14 +68,14 @@ def create_transform(trans):
 # Load an SVG
 def load_svg(
         svg_path,
-        vector_graphics: 'VectorGraphics'
+        vector_graphics: 'VectorGraphicsData'
 ):
     """
     Load an SVG file and return the paths and transformations.
 
     Args:
         svg_path (str): Path to the SVG file
-        vector_graphics (VectorGraphics): Vector graphics object to load the SVG into
+        vector_graphics (VectorGraphicsData): Vector graphics object to load the SVG into
     """
     # Parse the SVG file
     paths = parse_svg(svg_path)
@@ -95,7 +92,7 @@ def load_svg(
         # We have a path
         if element['type'] == 'path':
             # New path
-            path_data = Path(
+            path_data = PathData(
                 origin=Point2D(x, y),
                 transform=transform
             )
@@ -104,7 +101,8 @@ def load_svg(
             subpaths = element['data'].d().split('M')
 
             # For each subpaths
-            for subpath_i, subpath in enumerate(subpaths):
+            subpath_i = 0
+            for subpath in subpaths:
                 if not subpath.strip():
                     continue
                 # end if
@@ -116,20 +114,20 @@ def load_svg(
                 sub_path = parse_path(subpath)
 
                 # New path
-                subpath_data = PathSegment()
+                subpath_data = PathSegmentData()
 
                 # Draw the segments
                 for segment in sub_path:
                     if isinstance(segment, svg.Line):
                         subpath_data.add(
-                            Line(
+                            LineData(
                                 start=Point2D(segment.start.real, segment.start.imag),
                                 end=Point2D(segment.end.real, segment.end.imag)
                             )
                         )
                     elif isinstance(segment, svg.CubicBezier):
                         subpath_data.add(
-                            CubicBezierCurve(
+                            CubicBezierCurveData(
                                 start=Point2D(segment.start.real, segment.start.imag),
                                 control1=Point2D(segment.control1.real, segment.control1.imag),
                                 control2=Point2D(segment.control2.real, segment.control2.imag),
@@ -138,7 +136,7 @@ def load_svg(
                         )
                     elif isinstance(segment, svg.QuadraticBezier):
                         subpath_data.add(
-                            QuadraticBezierCurve(
+                            QuadraticBezierCurveData(
                                 start=Point2D(segment.start.real, segment.start.imag),
                                 control=Point2D(segment.control.real, segment.control.imag),
                                 end=Point2D(segment.end.real, segment.end.imag)
@@ -146,7 +144,7 @@ def load_svg(
                         )
                     elif isinstance(segment, svg.Arc):
                         subpath_data.add(
-                            Arc(
+                            ArcData(
                                 center=Point2D(segment.center.real, segment.center.imag),
                                 radius=Scalar(segment.radius),
                                 start_angle=Scalar(segment.start_angle),
@@ -164,13 +162,16 @@ def load_svg(
                 else:
                     path_data.add_subpath(subpath_data)
                 # end if
+
+                # Increment the subpath index
+                subpath_i += 1
             # end for
 
             # Add the path to the vector graphics
             vector_graphics.add(path_data)
         elif element['type'] == 'rect':
             # Add a rectangle
-            rec = Rectangle(
+            rec = RectangleData(
                 upper_left=Point2D(element['x'], element['y']),
                 width=element['width'],
                 height=element['height']
@@ -182,7 +183,7 @@ def load_svg(
 
 
 # A class to represent a vector graphic in 2D space.
-class VectorGraphics(Data):
+class VectorGraphicsData(Data):
     """
     A class to represent a vector graphic in 2D space.
     """
@@ -198,6 +199,7 @@ class VectorGraphics(Data):
 
         # Initialize the elements
         self.elements = elements if elements is not None else []
+        self._index = 0  # Index for iteration
     # end __init__
 
     # Add
@@ -275,19 +277,41 @@ class VectorGraphics(Data):
         del self.elements[index]
     # end __delitem__
 
-    @staticmethod
-    def from_svg(svg_path):
+    def __iter__(self) -> Iterator:
+        """
+        Return an iterator object for the elements.
+        """
+        self._index = 0
+        return self
+    # end __iter__
+
+    def __next__(self):
+        """
+        Return the next element in the iteration.
+        """
+        if self._index < len(self.elements):
+            result = self.elements[self._index]
+            self._index += 1
+            return result
+        else:
+            raise StopIteration
+        # end if
+    # end __next__
+
+    @classmethod
+    def from_svg(cls, svg_path):
         """
         Create a vector graphic from an SVG string.
 
         Args:
+            cls (type): Class
             svg_path (str): SVG string
 
         Returns:
-            VectorGraphics: Vector graphic
+            VectorGraphicsData: Vector graphic
         """
         # Create a new vector graphic
-        vector_graphics = VectorGraphics()
+        vector_graphics = cls()
 
         # Parse the SVG string
         load_svg(svg_path, vector_graphics)

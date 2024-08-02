@@ -2,25 +2,35 @@
 
 # Imports
 from typing import List
+
+from pixel_prism.mixins import DrawableDataMixin
 from pixel_prism.animate.able import MovAble
 
 from .data import Data
-from .points import Point
+from .points import Point2D
 
 
 # A segment
-class PathSegment(Data, MovAble):
+class PathSegmentData(Data, DrawableDataMixin, MovAble):
     """
     A class to represent a path.
     """
 
     # Constructor
-    def __init__(self):
+    def __init__(self, elements=None):
         """
         Initialize the path with no elements.
+
+        Args:
+            elements (list): Elements of the path
         """
         super().__init__()
-        self.elements = []
+
+        if elements is None:
+            elements = []
+        # end if
+
+        self.elements = elements
     # end __init__
 
     # Add
@@ -57,18 +67,40 @@ class PathSegment(Data, MovAble):
     # end set
 
     def __len__(self):
+        """
+        Get the number of elements in the path.
+        """
         return len(self.elements)
     # end __len__
 
     def __getitem__(self, index):
+        """
+        Get the element at the given index in the path.
+
+        Args:
+            index (int): Index of the element to get
+        """
         return self.elements[index]
     # end __getitem__
 
     def __setitem__(self, index, value):
+        """
+        Set the element at the given index in the path."
+
+        Args:
+            index (int): Index of the element to set
+            value: Value to set the element
+        """
         self.elements[index] = value
     # end __setitem__
 
     def __delitem__(self, index):
+        """
+        Delete the element at the given index in the path.
+
+        Args:
+            index (int): Index of the element to delete
+        """
         del self.elements[index]
     # end __delitem__
 
@@ -86,6 +118,17 @@ class PathSegment(Data, MovAble):
         return self.__str__()
     # end __repr__
 
+    # Transform into a drawable element
+    def to_drawable(self):
+        """
+        Transform the path into a drawable element.
+        """
+        from pixel_prism.drawing import PathSegment
+        return PathSegment(
+            elements=self.elements
+        )
+    # end to_drawable
+
     # Move
     def move(self, dx: float, dy: float):
         """
@@ -99,20 +142,20 @@ class PathSegment(Data, MovAble):
             element.move(dx, dy)
     # end move
 
-# end PathSegment
+# end PathSegmentData
 
 
 # A path
-class Path(Data, MovAble):
+class PathData(Data, DrawableDataMixin, MovAble):
     """
     A class to represent a path in 2D space.
     """
 
     def __init__(
             self,
-            origin: Point = None,
-            path: PathSegment = None,
-            subpaths: List[PathSegment] = None,
+            origin: Point2D = None,
+            path: PathSegmentData = None,
+            subpaths: List[PathSegmentData] = None,
             transform=None
     ):
         """
@@ -148,7 +191,7 @@ class Path(Data, MovAble):
     # end add
 
     # Add subpath
-    def add_subpath(self, subpath: PathSegment):
+    def add_subpath(self, subpath: PathSegmentData):
         """
         Add a subpath to the path.
 
@@ -202,6 +245,20 @@ class Path(Data, MovAble):
         self.subpaths = subpaths
     # end set_subpaths
 
+    # Transform into a drawable element
+    def to_drawable(self):
+        """
+        Transform the path into a drawable element.
+        """
+        from pixel_prism.drawing import Path
+        return Path(
+            origin=self.origin,
+            path=self.path,
+            subpaths=self.subpaths,
+            transform=self.transform
+        )
+    # end to_drawable
+
     def __len__(self):
         return len(self.path)
     # end __len__
@@ -226,7 +283,7 @@ class Path(Data, MovAble):
         return (
             f"Path("
             f"path={self.path},"
-            f"subpaths={self.subpaths}"
+            f"subpaths={self.subpaths},"
             f"transform={self.transform.__str__() if self.transform is not None else 'None'}"
             f")"
         )
@@ -240,5 +297,5 @@ class Path(Data, MovAble):
         return self.__str__()
     # end __repr__
 
-# end Path
+# end PathData
 

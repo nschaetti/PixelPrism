@@ -10,7 +10,7 @@ from .scalar import Scalar
 
 
 # A 2D rectangle
-class Rectangle(Data, MovAble):
+class RectangleData(Data, MovAble):
     """
     A class to represent a rectangle in 2D space.
     """
@@ -132,7 +132,7 @@ class Rectangle(Data, MovAble):
             height (float): Height of the rectangle
 
         Returns:
-            Rectangle: Rectangle created from scalar values
+            RectangleData: Rectangle created from scalar values
         """
         return cls(
             Point2D(upper_left_x, upper_left_y),
@@ -141,5 +141,5 @@ class Rectangle(Data, MovAble):
         )
     # end from_scalar
 
-# end Rectangle
+# end RectangleData
 

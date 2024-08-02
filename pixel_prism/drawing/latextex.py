@@ -4,14 +4,14 @@
 
 # Imports
 import os
-from typing import Tuple, Any
 import cairo
 import tempfile
 
 from pixel_prism.utils import render_latex_to_svg, draw_svg
 from pixel_prism.animate.able import FadeInAble, FadeOutAble
-from pixel_prism.data import Point2D, VectorGraphics
-from .drawable import Drawable
+from pixel_prism.data import Point2D
+from .drawablemixin import DrawableMixin
+from .vector_graphics import VectorGraphics
 
 
 def generate_temp_svg_filename():
@@ -25,7 +25,7 @@ def generate_temp_svg_filename():
 # end generate_temp_svg_filename
 
 
-class MathTex(Drawable, FadeInAble, FadeOutAble):
+class MathTex(DrawableMixin, FadeInAble, FadeOutAble):
 
     def __init__(self, latex, position, color=(0, 0, 0), font_size=20):
         """
@@ -84,8 +84,19 @@ class MathTex(Drawable, FadeInAble, FadeOutAble):
         Args:
             context (cairo.Context): Context to draw the MathTex object to
         """
+        # Get the position
         x, y = self.position.get()
+
+        # Translate the context
+        context.save()
+        context.translate(x, y)
+
         # draw_svg(context, self.svg_path, x, y, color=self.color)
+        # Draw the vector graphics
+        self.math_graphics.draw(context)
+
+        # Restore the context
+        context.restore()
     # end draw
 
 # end MathTex

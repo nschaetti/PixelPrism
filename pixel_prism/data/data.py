@@ -8,7 +8,7 @@ class Data(object):
     A data class that holds data.
     """
 
-    def __init__(self, value=0):
+    def __init__(self):
         """
         Initialize the scalar value.
         """

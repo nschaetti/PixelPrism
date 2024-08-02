@@ -12,7 +12,7 @@ from .scalar import Scalar
 
 
 # An arc
-class Arc(Data, MovAble):
+class ArcData(Data, MovAble):
     """
     A class to represent a cubic Bezier curve in 2D space.
     """
@@ -134,7 +134,7 @@ class Arc(Data, MovAble):
             end_angle (float): End angle of the arc
 
         Returns:
-            Arc: Arc created from scalar values
+            ArcData: Arc created from scalar values
         """
         return cls(
             Point2D(center_x, center_y),
@@ -144,6 +144,6 @@ class Arc(Data, MovAble):
         )
     # end from_scalar
 
-# end Arc
+# end ArcData
 
 

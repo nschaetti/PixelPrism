@@ -8,12 +8,12 @@ from typing import Tuple, Any
 import cairo
 
 from pixel_prism.animate.able import FadeInAble, FadeOutAble
-from pixel_prism.data import Point2D, Scalar, Line as LineData, Color
+from pixel_prism.data import Point2D, Scalar, LineData as LineData, Color
 import pixel_prism.utils as utils
-from .drawable import Drawable
+from .drawablemixin import DrawableMixin
 
 
-class Line(Drawable, LineData, FadeInAble, FadeOutAble):
+class Line(DrawableMixin, LineData, FadeInAble, FadeOutAble):
 
     def __init__(
             self,
@@ -32,7 +32,7 @@ class Line(Drawable, LineData, FadeInAble, FadeOutAble):
             thickness (Scalar): Thickness of the line
         """
         # Constructors
-        Drawable.__init__(self)
+        DrawableMixin.__init__(self)
         LineData.__init__(self, start, end)
 
         # Properties

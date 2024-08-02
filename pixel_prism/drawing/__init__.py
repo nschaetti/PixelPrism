@@ -4,16 +4,19 @@
 
 # Imports
 from .circle import Circle
-from .drawable import Drawable
+from .drawablemixin import DrawableMixin
 from .latextex import MathTex
 from .line import Line
 from .point import Point
+from .vector_graphics import VectorGraphics
+from .paths import Path, PathSegment
 
 # ALL
 __all__ = [
     "Circle",
-    "Drawable",
+    "DrawableMixin",
     "MathTex",
     "Line",
-    "Point"
+    "Point",
+    "VectorGraphics"
 ]

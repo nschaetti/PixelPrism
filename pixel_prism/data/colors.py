@@ -3,6 +3,7 @@
 #
 
 # Imports
+import numpy as np
 from pixel_prism.animate.able import RangeAble
 
 from .data import Data
@@ -24,20 +25,48 @@ class Color(Data, RangeAble):
             alpha (int): Alpha value
         """
         super().__init__()
-        self.red = red
-        self.green = green
-        self.blue = blue
-        self.alpha = alpha
+        self.value = np.array([red, green, blue, alpha])
     # end __init__
 
     @property
-    def value(self):
-        return (
-            self.red,
-            self.green,
-            self.blue
-        )
-    # end value
+    def red(self):
+        return self.value[0]
+    # end red
+
+    @red.setter
+    def red(self, value):
+        self.value[0] = value
+    # end red
+
+    @property
+    def green(self):
+        return self.value[1]
+    # end green
+
+    @green.setter
+    def green(self, value):
+        self.value[1] = value
+    # end green
+
+    @property
+    def blue(self):
+        return self.value[2]
+    # end blue
+
+    @blue.setter
+    def blue(self, value):
+        self.value[2] = value
+    # end blue
+
+    @property
+    def alpha(self):
+        return self.value[3]
+    # end alpha
+
+    @alpha.setter
+    def alpha(self, value):
+        self.value[3] = value
+    # end alpha
 
     @property
     def opacity(self):
@@ -54,17 +83,14 @@ class Color(Data, RangeAble):
             blue (int): Blue value
             alpha (int): Alpha value
         """
-        self.red = red
-        self.green = green
-        self.blue = blue
-        self.alpha = alpha
+        self.value = np.array([red, green, blue, alpha])
     # end set
 
     def get(self):
         """
         Get the scalar value.
         """
-        return self.red, self.green, self.blue, self.alpha
+        return self.value[0], self.value[1], self.value[2], self.value[3]
     # end get
 
     def __str__(self):

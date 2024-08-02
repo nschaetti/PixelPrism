@@ -2,22 +2,23 @@
 # Imports
 import numpy as np
 from pixel_prism.animate.able import MovAble
+from pixel_prism.mixins import DrawableDataMixin
 
 from .data import Data
-from .points import Point
+from .points import Point2D
 
 
 # A line
 # Line(start=(4.313823-6.127024j), end=(3.716065-3.765878j))
-class Line(Data, MovAble):
+class LineData(Data, DrawableDataMixin, MovAble):
     """
     A class to represent a line in 2D space.
     """
 
     def __init__(
             self,
-            start: Point,
-            end: Point
+            start: Point2D,
+            end: Point2D
     ):
         """
         Initialize the line with its start and end points.
@@ -53,7 +54,7 @@ class Line(Data, MovAble):
     # end get
 
     # Set
-    def set(self, start: Point, end: Point):
+    def set(self, start: Point2D, end: Point2D):
         """
         Set the start and end points of the line.
 
@@ -87,5 +88,17 @@ class Line(Data, MovAble):
         return f"Line(start={self.start.pos}, end={self.end.pos})"
     # end __repr__
 
-# end Line
+    # Transform into a drawable element
+    def to_drawable(self):
+        """
+        Transform the path into a drawable element.
+        """
+        from pixel_prism.drawing import Line
+        return Line(
+            start=self.start,
+            end=self.end
+        )
+    # end to_drawable
+
+# end LineData
 
