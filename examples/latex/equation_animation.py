@@ -7,9 +7,8 @@ from pixel_prism.animation import Animation
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas
-from pixel_prism.drawing import Point, Line, MathTex
-from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut
-from pixel_prism.data import Point2D, Scalar
+from pixel_prism.drawing import MathTex
+from pixel_prism.data import Point2D
 
 
 # DrawableWidgetAnimation class
@@ -25,13 +24,13 @@ class MathTexAnimation(Animation):
         Build the animation.
         """
         # Create a Point2D for the position of the LaTeX widget
-        latex_position = Point2D(-800, 400)
+        latex_position = Point2D(10, 500)
 
         # Créer un widget LaTeX
         latex_widget = MathTex(
             "g(x)",
             latex_position,
-            color=(1.0, 1.0, 1.0)
+            scale=Point2D(10, 10),
         )
 
         # Ajouter le widget au viewport ou à un conteneur

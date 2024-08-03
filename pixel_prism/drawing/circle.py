@@ -3,7 +3,6 @@
 #
 
 # Imports
-from typing import Any
 import numpy as np
 from pixel_prism.animate.able import MovAble, FadeInAble, FadeOutAble
 from pixel_prism.data import Point2D, Scalar, Color
@@ -60,23 +59,35 @@ class Circle(DrawableMixin, Point2D, FadeInAble, FadeOutAble):
         Args:
             context (cairo.Context): Context to draw the point to
         """
+        # Save context
+        context.save()
+
         # Set the color and draw the circle
-        context.set_source_rgba(*self.fill_color.value, self.fill_color.opacity)
-        context.arc(float(self.pos[0]), float(self.pos[1]), self.radius.value, 0, 2 * 3.14159)
+        self.set_source_rgba(context, self.fill_color)
+        context.arc(
+            float(self.pos[0]),
+            float(self.pos[1]),
+            self.radius.value,
+            0,
+            2 * 3.14159
+        )
 
         # Fill the circle or draw the border
         if self.fill and self.border_width.value == 0:
             context.fill()
         elif self.fill:
             context.fill_preserve()
-            context.set_source_rgba(*self.border_color.value, self.border_color.opacity)
+            self.set_source_rgba(context, self.border_color)
             context.set_line_width(self.border_width.value)
             context.stroke()
         else:
-            context.set_source_rgba(*self.border_color.value, self.border_color.opacity)
+            self.set_source_rgba(context, self.border_color)
             context.set_line_width(self.border_width.value)
             context.stroke()
         # end if
+
+        # Restore context
+        context.restore()
     # end draw
 
 # end Circle

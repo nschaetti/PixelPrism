@@ -1,10 +1,10 @@
 
 
-from pixel_prism.data import VectorGraphicsData
+from pixel_prism.drawing import VectorGraphics
 
 
 # Create a vector graphic from svg
-icon = VectorGraphicsData.from_svg('examples/svg/latex2.svg')
+icon = VectorGraphics.from_svg('examples/svg/latex2.svg')
 
 # Print the vector graphics
 print(icon)

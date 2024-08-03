@@ -2,12 +2,10 @@
 
 # Imports
 import numpy as np
-from .data import Data
-from .points import Point2D
-from .scalar import Scalar
+from pixel_prism.data import Point2D, Scalar
 
 
-class Transform(Data):
+class Transform(object):
     """
     A class to represent a transform.
     """

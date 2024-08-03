@@ -14,7 +14,7 @@ class Color(Data, RangeAble):
     A class to represent a scalar value
     """
 
-    def __init__(self, red=0, green=0, blue=0, alpha=1):
+    def __init__(self, red=0, green=0, blue=0, alpha=1.0):
         """
         Initialize the scalar value.
 
@@ -92,6 +92,25 @@ class Color(Data, RangeAble):
         """
         return self.value[0], self.value[1], self.value[2], self.value[3]
     # end get
+
+    def copy(self):
+        """
+        Return a copy of the data.
+        """
+        return Color(self.red, self.green, self.blue, self.alpha)
+    # end copy
+
+    # Change alpha
+    def change_alpha(self, alpha):
+        """
+        Change the alpha value of the color.
+
+        Args:
+            alpha (int): Alpha value to change to
+        """
+        self.alpha = alpha
+        return self
+    # end change_alpha
 
     def __str__(self):
         """

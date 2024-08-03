@@ -9,7 +9,8 @@ import tempfile
 
 from pixel_prism.utils import render_latex_to_svg, draw_svg
 from pixel_prism.animate.able import FadeInAble, FadeOutAble
-from pixel_prism.data import Point2D
+from pixel_prism.data import Point2D, Color
+import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin
 from .vector_graphics import VectorGraphics
 
@@ -27,7 +28,14 @@ def generate_temp_svg_filename():
 
 class MathTex(DrawableMixin, FadeInAble, FadeOutAble):
 
-    def __init__(self, latex, position, color=(0, 0, 0), font_size=20):
+    def __init__(
+            self,
+            latex,
+            position,
+            scale: Point2D = Point2D(1, 1),
+            color: Color = utils.WHITE,
+            font_size=20
+    ):
         """
         Initialize the MathTex object.
 
@@ -40,6 +48,7 @@ class MathTex(DrawableMixin, FadeInAble, FadeOutAble):
         super().__init__()
         self.latex = latex
         self.position = position
+        self.scale = scale
         self.color = color
         self.font_size = font_size
         self.math_graphics = self.generate_vector_graphics()
@@ -59,7 +68,11 @@ class MathTex(DrawableMixin, FadeInAble, FadeOutAble):
         self.update_svg(random_svg_path)
 
         # Create the vector graphics object
-        vector_graphics = VectorGraphics.from_svg(random_svg_path)
+        vector_graphics = VectorGraphics.from_svg(
+            random_svg_path,
+            scale=self.scale,
+            color=self.color
+        )
 
         # Delete the temporary SVG file
         os.remove(random_svg_path)

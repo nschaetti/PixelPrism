@@ -3,20 +3,41 @@
 #
 
 # Imports
+from .arcs import Arc
 from .circle import Circle
+from .curves import CubicBezierCurve, QuadraticBezierCurve
 from .drawablemixin import DrawableMixin
-from .latextex import MathTex
-from .line import Line
-from .point import Point
-from .vector_graphics import VectorGraphics
+from .lines import Line
+from .mathtex import MathTex
 from .paths import Path, PathSegment
+from .rectangles import Rectangle
+from .transforms import (
+    Translate2D,
+    Scale2D,
+    Rotate2D,
+    SkewX2D,
+    SkewY2D,
+    Matrix2D
+)
+from .vector_graphics import VectorGraphics
 
 # ALL
 __all__ = [
+    "Arc",
     "Circle",
+    "CubicBezierCurve",
+    "QuadraticBezierCurve",
     "DrawableMixin",
-    "MathTex",
     "Line",
-    "Point",
+    "MathTex",
+    "Path",
+    "PathSegment",
+    "Rectangle",
+    "Translate2D",
+    "Scale2D",
+    "Rotate2D",
+    "SkewX2D",
+    "SkewY2D",
+    "Matrix2D",
     "VectorGraphics"
 ]
