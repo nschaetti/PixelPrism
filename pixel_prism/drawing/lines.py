@@ -44,6 +44,27 @@ class Line(DrawableMixin, MovAble):
         return np.linalg.norm(self.end.pos - self.start.pos)
     # end length
 
+    # Move
+    def translate(self, dx: float, dy: float):
+        """
+        Move the path by a given displacement.
+
+        Args:
+            dx (float): Displacement in the X-direction
+            dy (float): Displacement in the Y-direction
+        """
+        # Translate the start and end points
+        self.start.x += dx
+        self.start.y += dy
+        self.end.x += dx
+        self.end.y += dy
+
+        # Translate the bounding box
+        if self.bbox is not None:
+            self.bbox.translate(dx, dy)
+        # end if
+    # end translate
+
     # Draw the element
     def draw(self, context):
         """

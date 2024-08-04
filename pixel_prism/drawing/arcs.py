@@ -112,6 +112,22 @@ class Arc(DrawableMixin, MovAble):
         self.end_angle.set(angle)
     # end set_end_angle
 
+    # Move
+    def translate(self, dx: float, dy: float):
+        """
+        Move the rectangle by a delta.
+
+        Args:
+            dx (float): Delta X-coordinate
+            dy (float): Delta Y-coordinate
+        """
+        self.center.x += dx
+        self.center.y += dy
+        if self.bbox is not None:
+            self.bbox.translate(dx, dy)
+        # end if
+    # end translate
+
     # Draw the element
     def draw(self, context):
         """

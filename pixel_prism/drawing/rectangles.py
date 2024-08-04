@@ -75,14 +75,29 @@ class Rectangle(DrawableMixin, MovAble):
         return self.upper_left.y + self.height.value
     # end y2
 
-    # Bounding box
-    @property
-    def bbox(self):
+    def get_bbox(
+            self,
+            border_width: float = 1.0,
+            border_color: Color = utils.WHITE
+    ):
         """
         Get the bounding box of the rectangle.
+
+        Args:
+            border_width (float): Width of the border
+            border_color (Color): Color of the border
         """
-        return self.copy()
-    # end bbox
+        # Get the bounding box of the path
+        bbox = self.copy()
+
+        # Set fill, border color and witdth
+        bbox.fill = False
+        bbox.border_color = border_color
+        bbox.border_width.value = border_width
+
+        # Return the bounding box
+        return bbox
+    # end get_bbox
 
     def get_upper_left(self):
         """
@@ -141,6 +156,65 @@ class Rectangle(DrawableMixin, MovAble):
         )
     # end union
 
+    # Move
+    def translate(self, dx: float, dy: float):
+        """
+        Move the rectangle by a delta.
+
+        Args:
+            dx (float): Delta X-coordinate
+            dy (float): Delta Y-coordinate
+        """
+        self.upper_left.x = self.upper_left.x + dx
+        self.upper_left.y = self.upper_left.y + dy
+    # end translate
+
+    # Draw bounding box anchors
+    def draw_bounding_box_anchors(self, context):
+        """
+        Draw the bounding box anchors of the rectangle.
+
+        Args:
+            context: Context to draw the rectangle to
+        """
+        # Draw upper left position
+        upper_left = self.upper_left
+        context.rectangle(
+            upper_left.x - 0.25,
+            upper_left.y - 0.25,
+            0.5,
+            0.5
+        )
+        context.set_source_rgba(255, 255, 255, 1)
+        context.fill()
+
+        # Draw upper left position
+        context.rectangle(
+            self.x2 - 0.25,
+            self.y2 - 0.25,
+            0.5,
+            0.5
+        )
+        context.set_source_rgba(255, 255, 255, 1)
+        context.fill()
+
+        # Draw text upper left
+        context.set_font_size(0.6)
+        point_position = f"({self.x1:0.02f}, {self.y1:0.02f})"
+        extents = context.text_extents(point_position)
+        context.move_to(self.x1 - extents.width / 2, self.y1 - extents.height)
+        context.show_text(point_position)
+        context.fill()
+
+        # Draw text bottom right
+        context.set_font_size(0.6)
+        point_position = f"({self.x2:0.02f}, {self.y2:0.02f})"
+        extents = context.text_extents(point_position)
+        context.move_to(self.x2 - extents.width / 2, self.y2 + extents.height * 2)
+        context.show_text(point_position)
+        context.fill()
+    # end draw_bounding_box_anchors
+
     # Draw bounding box
     def draw_bounding_box(self, context):
         """
@@ -156,6 +230,28 @@ class Rectangle(DrawableMixin, MovAble):
         )
         context.set_line_width(0.12)
         context.stroke()
+
+        # Draw upper left
+        context.rectangle(
+            self.upper_left.x - 0.25,
+            self.upper_left.y - 0.25,
+            0.5,
+            0.5
+        )
+        context.set_source_rgba(255, 255, 255, 1)
+        context.fill()
+        context.close_path()
+
+        # Draw bottom right
+        context.rectangle(
+            self.x2 - 0.25,
+            self.y2 - 0.25,
+            0.5,
+            0.5
+        )
+        context.set_source_rgba(255, 255, 255, 1)
+        context.fill()
+        context.close_path()
     # end draw_bbox
 
     def draw(
@@ -171,9 +267,10 @@ class Rectangle(DrawableMixin, MovAble):
         # Save the context
         context.save()
 
-        # Set the color and draw the rectangle
+        # Fill color
         self.set_source_rgba(context, self.fill_color)
 
+        # Set the color and draw the rectangle
         context.rectangle(
             self.upper_left.x,
             self.upper_left.y,
@@ -183,6 +280,7 @@ class Rectangle(DrawableMixin, MovAble):
 
         # Fill the circle or draw the border
         if self.fill and self.border_width.value == 0:
+            context.set_line_width(self.border_width.value)
             context.fill()
         elif self.fill:
             context.fill_preserve()
@@ -238,14 +336,25 @@ class Rectangle(DrawableMixin, MovAble):
     @classmethod
     def from_bbox(
             cls,
-            bbox: Tuple[float, float, float, float]
+            bbox: Tuple[float, float, float, float],
+            translate: Tuple[float, float] = (0, 0)
     ):
         """
         Create a rectangle from a bounding box.
 
         Args:
             bbox (Tuple[float, float, float, float]): Bounding box of the rectangle
+            translate (Tuple[float, float]): Translation of the rectangle
         """
+        # Translate the bounding box
+        bbox = (
+            bbox[0] + translate[0],
+            bbox[1] + translate[0],
+            bbox[2] + translate[1],
+            bbox[3] + translate[1]
+        )
+
+        # Create the rectangle
         upper_left = Point2D(x=bbox[0], y=bbox[2])
         width = bbox[1] - bbox[0]
         height = bbox[3] - bbox[2]

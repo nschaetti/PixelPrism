@@ -64,6 +64,31 @@ class CubicBezierCurve(DrawableMixin, MovAble):
         return self.bbox.height
     # end height
 
+    # Move
+    def translate(self, dx: float, dy: float):
+        """
+        Move the path by a given displacement.
+
+        Args:
+            dx (float): Displacement in the X-direction
+            dy (float): Displacement in the Y-direction
+        """
+        # Translate the points
+        self.start.x += dx
+        self.start.y += dy
+        self.control1.x += dx
+        self.control1.y += dy
+        self.control2.x += dx
+        self.control2.y += dy
+        self.end.x += dx
+        self.end.y += dy
+
+        # Translate the bounding box
+        if self.bbox is not None:
+            self.bbox.translate(dx, dy)
+        # end
+    # end translate
+
     # Draw the element
     def draw(self, context):
         """
@@ -177,6 +202,29 @@ class QuadraticBezierCurve(DrawableMixin, MovAble):
         # end
         return self.bbox.height
     # end height
+
+    # Move
+    def translate(self, dx: float, dy: float):
+        """
+        Move the path by a given displacement.
+
+        Args:
+            dx (float): Displacement in the X-direction
+            dy (float): Displacement in the Y-direction
+        """
+        # Translate the points
+        self.start.x += dx
+        self.start.y += dy
+        self.control.x += dx
+        self.control.y += dy
+        self.end.x += dx
+        self.end.y += dy
+
+        # Translate the bounding box
+        if self.bbox is not None:
+            self.bbox.translate(dx, dy)
+        # end
+    # end translate
 
     # Draw the element
     def draw(self, context):

@@ -32,12 +32,20 @@ class PathSegment(DrawableMixin, MovAble):
         self.elements = elements
     # end __init__
 
-    @property
-    def bbox(self):
+    # Get bounding box
+    def get_bbox(
+            self,
+            border_width: float = 1.0,
+            border_color: Color = utils.WHITE.copy()
+    ):
         """
         Get the bounding box of the path segment.
+
+        Args:
+            border_width (float): Width of the border
+            border_color (Color): Color of the border
         """
-        # Get the bounding box of the first element
+        # Get the bounding box of the path segment
         bbox = self.elements[0].bbox
 
         # For each element in the path segment
@@ -46,9 +54,14 @@ class PathSegment(DrawableMixin, MovAble):
             bbox = bbox.union(element.bbox)
         # end for
 
+        # Set fill, border color and witdth
+        bbox.fill = False
+        bbox.border_color = border_color
+        bbox.border_width.value = border_width
+
         # Return the bounding box
         return bbox
-    # end bbox
+    # end get_bbox
 
     # Add
     def add(self, element):
@@ -60,6 +73,24 @@ class PathSegment(DrawableMixin, MovAble):
         """
         self.elements.append(element)
     # end add
+
+    # Move segments
+    def move(
+            self,
+            dx: float,
+            dy: float
+    ):
+        """
+        Move the path segment by a given displacement.
+
+        Args:
+            dx (float): Displacement in the X-direction
+            dy (float): Displacement in the Y-direction
+        """
+        for element in self.elements:
+            element.move(dx, dy)
+        # end for
+    # end move
 
     # Draw bounding box
     def draw_bounding_box(self, context):
@@ -91,7 +122,7 @@ class PathSegment(DrawableMixin, MovAble):
     # end draw
 
     # Move
-    def move(self, dx: float, dy: float):
+    def translate(self, dx: float, dy: float):
         """
         Move the path by a given displacement.
 
@@ -100,9 +131,9 @@ class PathSegment(DrawableMixin, MovAble):
             dy (float): Displacement in the Y-direction
         """
         for element in self.elements:
-            element.move(dx, dy)
+            element.translate(dx, dy)
         # end for
-    # end move
+    # end translate
 
     def __len__(self):
         """
@@ -229,28 +260,35 @@ class Path(DrawableMixin, MovAble):
         )
     # end __init__
 
-    @property
-    def bbox(self):
+    def get_bbox(
+            self,
+            border_width: float = 1.0,
+            border_color: Color = utils.WHITE.copy()
+    ):
         """
         Get the bounding box of the path.
+
+        Args:
+            border_width (float): Width of the border
+            border_color (Color): Color of the border
         """
         # Get the bounding box of the path
-        bbox = self.path.bbox
+        bbox = self.path.get_bbox()
 
         # For each subpath
         for subpath in self.subpaths:
             # Update the bounding box
-            bbox = bbox.union(subpath.bbox)
+            bbox = bbox.union(subpath.get_bbox())
         # end for
 
         # Set fill, border color and witdth
         bbox.fill = False
-        bbox.border_color = utils.GREEN.copy()
-        bbox.border_width.value = 0.12
+        bbox.border_color = border_color
+        bbox.border_width.value = border_width
 
         # Return the bounding box
         return bbox
-    # end bbox
+    # end get_bbox
 
     # Add
     def add(self, element):
@@ -296,14 +334,99 @@ class Path(DrawableMixin, MovAble):
         self.subpaths = subpaths
     # end set_subpaths
 
+    # Translate path
+    def translate(
+            self,
+            dx: float,
+            dy: float
+    ):
+        """
+        Translate the path by a given displacement.
+
+        Args:
+            dx (float): Displacement in the X-direction
+            dy (float): Displacement in the Y-direction
+        """
+        # Translate the path
+        self.origin.x += dx
+        self.origin.y += dy
+
+        # Move path
+        self.path.translate(dx, dy)
+
+        # Translate the subpaths
+        for subpath in self.subpaths:
+            # Translate the subpath
+            subpath.translate(dx, dy)
+        # end for
+    # end translate
+
+    # Draw bounding box anchors
+    def draw_bounding_box_anchors(
+            self,
+            context
+    ):
+        """
+        Draw the bounding box anchors of the path.
+
+        Args:
+            context (cairo.Context): Context to draw the bounding box anchors to
+        """
+        # Bounding box
+        path_bbox = self.get_bbox()
+
+        # Draw upper left position
+        upper_left = path_bbox.upper_left
+        context.rectangle(
+            upper_left.x - 0.25,
+            upper_left.y - 0.25,
+            0.5,
+            0.5
+        )
+        context.set_source_rgba(255, 255, 255, 1)
+        context.fill()
+
+        # Draw upper left position
+        context.rectangle(
+            path_bbox.x2 - 0.25,
+            path_bbox.y2 - 0.25,
+            0.5,
+            0.5
+        )
+        context.set_source_rgba(255, 255, 255, 1)
+        context.fill()
+
+        # Draw text upper left
+        context.set_font_size(0.6)
+        point_position = f"({path_bbox.x1:0.02f}, {path_bbox.y1:0.02f})"
+        extents = context.text_extents(point_position)
+        context.move_to(path_bbox.x1 - extents.width / 2, path_bbox.y1 - extents.height)
+        context.show_text(point_position)
+        context.fill()
+
+        # Draw text bottom right
+        context.set_font_size(0.6)
+        point_position = f"({path_bbox.x2:0.02f}, {path_bbox.y2:0.02f})"
+        extents = context.text_extents(point_position)
+        context.move_to(path_bbox.x2 - extents.width / 2, path_bbox.y2 + extents.height * 2)
+        context.show_text(point_position)
+        context.fill()
+    # end draw_bounding_box_anchors
+
     # Draw bounding boxes
-    def draw_bounding_box(self, context):
+    def draw_bounding_box(
+            self,
+            context
+    ):
         """
         Draw the bounding box of the path.
 
         Args:
             context (cairo.Context): Context to draw the bounding box to
         """
+        # Save context
+        context.save()
+
         # Draw bb of segments
         for subpath in self.subpaths:
             # Draw the bounding box of the subpath
@@ -316,21 +439,18 @@ class Path(DrawableMixin, MovAble):
         # Draw subpaths bounding box
         for subpath in self.subpaths:
             # Get the bounding box
-            path_bbox = subpath.bbox
-            path_bbox.fill = False
-            path_bbox.border_color = utils.YELLOW.copy()
-            path_bbox.border_width.value = 0.07
+            path_bbox = subpath.get_bbox(0.07, utils.YELLOW.copy())
 
             # Draw the bounding box
             path_bbox.draw(context)
         # end for
 
         # Draw path bounding box
-        path_bbox = self.bbox
-        path_bbox.fill = False
-        path_bbox.border_color = utils.GREEN.copy()
-        path_bbox.border_width.value = 0.12
+        path_bbox = self.get_bbox(0.12, utils.GREEN.copy())
         path_bbox.draw(context)
+
+        # Restore context
+        context.restore()
     # end draw_bounding_box
 
     def draw(self, context):
@@ -342,7 +462,7 @@ class Path(DrawableMixin, MovAble):
         """
         # Save context
         context.save()
-        context.translate(self.origin.x, self.origin.y)
+        # context.translate(self.origin.x, self.origin.y)
         context.set_fill_rule(cairo.FillRule.WINDING)
         # self.debug_circle.draw(context)
 
@@ -397,8 +517,9 @@ class Path(DrawableMixin, MovAble):
             context.stroke()
         # end if
 
-        # Draw the bounding box
+        # Draw the bounding box and anchors
         self.draw_bounding_box(context)
+        self.draw_bounding_box_anchors(context)
 
         # Restore the context
         context.restore()

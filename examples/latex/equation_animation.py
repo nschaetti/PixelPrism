@@ -24,13 +24,13 @@ class MathTexAnimation(Animation):
         Build the animation.
         """
         # Create a Point2D for the position of the LaTeX widget
-        latex_position = Point2D(300, 300)
+        latex_position = Point2D(960, 540)
 
         # Créer un widget LaTeX
         latex_widget = MathTex(
-            "g(x) = \\frac{1}{\\pi x}",
+            "g(x) = \\frac{\partial Q}{\partial t} = \\frac{\partial s}{\partial t}",
             latex_position,
-            scale=Point2D(30, 30),
+            scale=Point2D(15, 15),
         )
 
         # Ajouter le widget au viewport ou à un conteneur
