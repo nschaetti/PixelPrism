@@ -53,7 +53,7 @@ class DrawableMixin(object):
         Args:
             context (cairo.Context): Context to draw the point to
         """
-        raise NotImplementedError("draw method must be implemented in subclass.")
+        raise NotImplementedError(f"{self.__class__.__name__}.draw method must be implemented in subclass.")
     # end draw
 
 # end Element

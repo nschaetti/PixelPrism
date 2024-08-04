@@ -128,6 +128,7 @@ def load_svg(
             # For each subpaths
             subpath_i = 0
             for subpath in subpaths:
+                # Skip empty subpaths
                 if not subpath.strip():
                     continue
                 # end if
@@ -144,19 +145,20 @@ def load_svg(
                 # Draw the segments
                 for segment in sub_path:
                     if isinstance(segment, svg.Line):
-                        subpath_data.add(
-                            Line(
-                                start=Point2D(segment.start.real, segment.start.imag),
-                                end=Point2D(segment.end.real, segment.end.imag)
-                            )
+                        line = Line(
+                            start=Point2D(segment.start.real, segment.start.imag),
+                            end=Point2D(segment.end.real, segment.end.imag),
+                            bbox=Rectangle.from_bbox(segment.bbox())
                         )
+                        subpath_data.add(line)
                     elif isinstance(segment, svg.CubicBezier):
                         subpath_data.add(
                             CubicBezierCurve(
                                 start=Point2D(segment.start.real, segment.start.imag),
                                 control1=Point2D(segment.control1.real, segment.control1.imag),
                                 control2=Point2D(segment.control2.real, segment.control2.imag),
-                                end=Point2D(segment.end.real, segment.end.imag)
+                                end=Point2D(segment.end.real, segment.end.imag),
+                                bbox=Rectangle.from_bbox(segment.bbox())
                             )
                         )
                     elif isinstance(segment, svg.QuadraticBezier):
@@ -164,7 +166,8 @@ def load_svg(
                             QuadraticBezierCurve(
                                 start=Point2D(segment.start.real, segment.start.imag),
                                 control=Point2D(segment.control.real, segment.control.imag),
-                                end=Point2D(segment.end.real, segment.end.imag)
+                                end=Point2D(segment.end.real, segment.end.imag),
+                                bbox=Rectangle.from_bbox(segment.bbox())
                             )
                         )
                     elif isinstance(segment, svg.Arc):
@@ -173,7 +176,8 @@ def load_svg(
                                 center=Point2D(segment.center.real, segment.center.imag),
                                 radius=Scalar(segment.radius),
                                 start_angle=Scalar(segment.start_angle),
-                                end_angle=Scalar(segment.end_angle)
+                                end_angle=Scalar(segment.end_angle),
+                                bbox=Rectangle.from_bbox(segment.bbox())
                             )
                         )
                     else:
@@ -197,9 +201,13 @@ def load_svg(
         elif element['type'] == 'rect':
             # Add a rectangle
             rec = Rectangle(
-                upper_left=Point2D(element['x'], element['y']),
+                upper_left=Point2D(
+                    element['x'] - centered_x,
+                    element['y'] - centered_y
+                ),
                 width=element['width'],
-                height=element['height']
+                height=element['height'],
+                fill_color=color
             )
             vector_graphics.add(rec)
         # end if
@@ -234,11 +242,39 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
         self.debug_circle = Circle(
             0,
             0,
-            fill_color=utils.RED.copy().change_alpha(0.5),
-            radius=Scalar(5),
+            fill_color=utils.RED.copy().change_alpha(0.75),
+            radius=Scalar(0.4),
             border_width=Scalar(0)
         )
     # end __init__
+
+    # Bounding box
+    @property
+    def bbox(self):
+        """
+        Get the bounding box of the vector graphics.
+
+        Returns:
+            Rectangle: Bounding box of the vector graphics
+        """
+        # Get the min and max values
+        min_x = min([el.bbox.x1 for el in self.elements])
+        min_y = min([el.bbox.y1 for el in self.elements])
+        max_x = max([el.bbox.x2 for el in self.elements])
+        max_y = max([el.bbox.y2 for el in self.elements])
+        for el in self.elements:
+            print(f"Element {type(el)}: {el.bbox.y1}, {el.bbox.y2}")
+        # end for
+        print(f"Min: {min_y}, {max_y}")
+        return Rectangle(
+            upper_left=Point2D(min_x, min_y),
+            width=max_x - min_x,
+            height=max_y - min_y,
+            border_color=utils.RED.copy(),
+            border_width=Scalar(0.2),
+            fill=False
+        )
+    # end bbox
 
     # Add
     def add(self, element):
@@ -250,6 +286,15 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
         """
         self.elements.append(element)
     # end add
+
+    # Draw bounding box
+    def draw_bounding_box(self, context):
+        """
+        Draw the bounding box of the vector graphics.
+        """
+        # Set the color and draw the rectangle
+        self.bbox.draw(context)
+    # end draw_bbox
 
     def draw(
             self,
@@ -267,13 +312,24 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
         context.scale(self.scale.x, self.scale.y)
 
         # Draw a circle
-        # self.debug_circle.draw(context)
+        self.debug_circle.draw(context)
 
         # For each element in the vector graphics
         for element in self.elements:
             # Draw the rectangle
             element.draw(context)
         # end for
+
+        # Draw rectangle bounding box
+        for element in self.elements:
+            if type(element) is Rectangle:
+                # Draw the bounding box
+                element.draw_bounding_box(context)
+            # end if
+        # end for
+
+        # Draw VG bounding box
+        self.draw_bounding_box(context)
 
         # Restore the context
         context.restore()

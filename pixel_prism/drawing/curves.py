@@ -5,6 +5,8 @@ import numpy as np
 
 from pixel_prism.animate.able import MovAble
 from pixel_prism.data import Point2D
+
+from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
 
 
@@ -20,7 +22,8 @@ class CubicBezierCurve(DrawableMixin, MovAble):
             start: Point2D,
             control1: Point2D,
             control2: Point2D,
-            end: Point2D
+            end: Point2D,
+            bbox: Rectangle = None
     ):
         """
         Initialize the curve with its start, control1, control2, and end points.
@@ -36,7 +39,30 @@ class CubicBezierCurve(DrawableMixin, MovAble):
         self.control1 = control1
         self.control2 = control2
         self.end = end
+        self.bbox = bbox
     # end __init__
+
+    @property
+    def width(self):
+        """
+        Get the width of the curve.
+        """
+        if self.bbox is None:
+            return None
+        # end if
+        return self.bbox.width
+    # end width
+
+    @property
+    def height(self):
+        """
+        Get the height of the curve.
+        """
+        if self.bbox is None:
+            return None
+        # end
+        return self.bbox.height
+    # end height
 
     # Draw the element
     def draw(self, context):
@@ -111,7 +137,8 @@ class QuadraticBezierCurve(DrawableMixin, MovAble):
             self,
             start: Point2D,
             control: Point2D,
-            end: Point2D
+            end: Point2D,
+            bbox: Rectangle = None
     ):
         """
         Initialize the curve with its start, control1, control2, and end points.
@@ -120,12 +147,36 @@ class QuadraticBezierCurve(DrawableMixin, MovAble):
             start (Point2D): Start point of the curve
             control (Point2D): First control point of the curve
             end (Point2D): End point of the curve
+            bbox (Rectangle): Bounding box of the curve
         """
         super().__init__()
         self.start = start
         self.control = control
         self.end = end
+        self.bbox = bbox
     # end __init__
+
+    @property
+    def width(self):
+        """
+        Get the width of the curve.
+        """
+        if self.bbox is None:
+            return None
+        # end if
+        return self.bbox.width
+    # end width
+
+    @property
+    def height(self):
+        """
+        Get the height of the curve.
+        """
+        if self.bbox is None:
+            return None
+        # end
+        return self.bbox.height
+    # end height
 
     # Draw the element
     def draw(self, context):

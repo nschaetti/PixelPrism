@@ -5,6 +5,8 @@
 # Imports
 from pixel_prism.animate.able import MovAble
 from pixel_prism.data import Point2D, Scalar
+
+from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
 
 
@@ -19,7 +21,8 @@ class Arc(DrawableMixin, MovAble):
             center: Point2D,
             radius: Scalar,
             start_angle: Scalar,
-            end_angle: Scalar
+            end_angle: Scalar,
+            bbox: Rectangle = None
     ):
         """
         Initialize the arc with its center, radius, start angle, and end angle.
@@ -29,13 +32,39 @@ class Arc(DrawableMixin, MovAble):
             radius (Scalar): Radius of the arc
             start_angle (Scalar): Start angle of the arc
             end_angle (Scalar): End angle of the arc
+            bbox (Rectangle): Bounding box of the arc
         """
         super().__init__()
         self.center = center
         self.radius = radius
         self.start_angle = start_angle
         self.end_angle = end_angle
+        self.bbox = bbox
     # end __init__
+
+    # Get the width of the arc
+    @property
+    def width(self):
+        """
+        Get the width of the arc.
+        """
+        if self.bbox is None:
+            return None
+        # end if
+        return self.bbox.width
+    # end width
+
+    # Get the height of the arc
+    @property
+    def height(self):
+        """
+        Get the height of the arc.
+        """
+        if self.bbox is None:
+            return None
+        # end if
+        return self.bbox.height
+    # end height
 
     # Set center
     def set_center(self, x: float, y: float):

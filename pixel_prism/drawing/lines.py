@@ -4,6 +4,7 @@ import numpy as np
 from pixel_prism.animate.able import MovAble
 from pixel_prism.data import Point2D
 
+from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
 
 
@@ -18,6 +19,7 @@ class Line(DrawableMixin, MovAble):
             self,
             start: Point2D,
             end: Point2D,
+            bbox: Rectangle = None
     ):
         """
         Initialize the line with its start and end points.
@@ -29,6 +31,7 @@ class Line(DrawableMixin, MovAble):
         super().__init__()
         self.start = start
         self.end = end
+        self.bbox = bbox
     # end __init__
 
     def length(self):
@@ -58,7 +61,11 @@ class Line(DrawableMixin, MovAble):
         Returns:
             str: String representation of the line
         """
-        return f"Line(start={self.start.pos}, end={self.end.pos})"
+        if self.bbox is None:
+            return f"Line(start={self.start.pos}, end={self.end.pos})"
+        else:
+            return f"Line(start={self.start.pos}, end={self.end.pos}, bbox={self.bbox})"
+        # end if
     # end __str__
 
     # repr
@@ -69,8 +76,8 @@ class Line(DrawableMixin, MovAble):
         Returns:
             str: String representation of the line
         """
-        return f"Line(start={self.start.pos}, end={self.end.pos})"
+        return Line.__str__(self)
     # end __repr__
 
-# end LineData
+# end Line
 

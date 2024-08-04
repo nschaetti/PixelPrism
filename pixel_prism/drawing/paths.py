@@ -1,12 +1,11 @@
 
-
 from typing import List
 
 import cairo
 
 from pixel_prism.data import Point2D, Color, Scalar
 import pixel_prism.utils as utils
-from pixel_prism.drawing import Circle
+from pixel_prism.drawing import Circle, Line
 from pixel_prism.animate.able import MovAble
 from .drawablemixin import DrawableMixin
 
@@ -33,6 +32,24 @@ class PathSegment(DrawableMixin, MovAble):
         self.elements = elements
     # end __init__
 
+    @property
+    def bbox(self):
+        """
+        Get the bounding box of the path segment.
+        """
+        # Get the bounding box of the first element
+        bbox = self.elements[0].bbox
+
+        # For each element in the path segment
+        for element in self.elements[1:]:
+            # Update the bounding box
+            bbox = bbox.union(element.bbox)
+        # end for
+
+        # Return the bounding box
+        return bbox
+    # end bbox
+
     # Add
     def add(self, element):
         """
@@ -43,6 +60,25 @@ class PathSegment(DrawableMixin, MovAble):
         """
         self.elements.append(element)
     # end add
+
+    # Draw bounding box
+    def draw_bounding_box(self, context):
+        """
+        Draw the bounding box of the path segment.
+
+        Args:
+            context (cairo.Context): Context to draw the bounding box to
+        """
+        # Draw the bounding box of the elements
+        for element in self.elements:
+            # Draw path bounding box
+            path_bbox = element.bbox
+            path_bbox.fill = False
+            path_bbox.border_color = utils.BLUE.copy()
+            path_bbox.border_width.value = 0.03
+            path_bbox.draw(context)
+        # end for
+    # end draw_bounding_box
 
     def draw(self, context):
         """
@@ -193,6 +229,29 @@ class Path(DrawableMixin, MovAble):
         )
     # end __init__
 
+    @property
+    def bbox(self):
+        """
+        Get the bounding box of the path.
+        """
+        # Get the bounding box of the path
+        bbox = self.path.bbox
+
+        # For each subpath
+        for subpath in self.subpaths:
+            # Update the bounding box
+            bbox = bbox.union(subpath.bbox)
+        # end for
+
+        # Set fill, border color and witdth
+        bbox.fill = False
+        bbox.border_color = utils.GREEN.copy()
+        bbox.border_width.value = 0.12
+
+        # Return the bounding box
+        return bbox
+    # end bbox
+
     # Add
     def add(self, element):
         """
@@ -237,6 +296,43 @@ class Path(DrawableMixin, MovAble):
         self.subpaths = subpaths
     # end set_subpaths
 
+    # Draw bounding boxes
+    def draw_bounding_box(self, context):
+        """
+        Draw the bounding box of the path.
+
+        Args:
+            context (cairo.Context): Context to draw the bounding box to
+        """
+        # Draw bb of segments
+        for subpath in self.subpaths:
+            # Draw the bounding box of the subpath
+            subpath.draw_bounding_box(context)
+        # end for
+
+        # Draw segments bb of path
+        self.path.draw_bounding_box(context)
+
+        # Draw subpaths bounding box
+        for subpath in self.subpaths:
+            # Get the bounding box
+            path_bbox = subpath.bbox
+            path_bbox.fill = False
+            path_bbox.border_color = utils.YELLOW.copy()
+            path_bbox.border_width.value = 0.07
+
+            # Draw the bounding box
+            path_bbox.draw(context)
+        # end for
+
+        # Draw path bounding box
+        path_bbox = self.bbox
+        path_bbox.fill = False
+        path_bbox.border_color = utils.GREEN.copy()
+        path_bbox.border_width.value = 0.12
+        path_bbox.draw(context)
+    # end draw_bounding_box
+
     def draw(self, context):
         """
         Draw the path to the context.
@@ -259,15 +355,12 @@ class Path(DrawableMixin, MovAble):
 
         # For each path segments
         for segment in self.subpaths:
-            # New subpath
+            # New sub path
             context.new_sub_path()
 
-            # Draw the subpath
+            # Draw the sub path
             segment.draw(context)
         # end for
-
-        # Close the path
-        # context.close_path()
 
         # Fill if color is set
         if self.fill_color is not None:
@@ -303,6 +396,9 @@ class Path(DrawableMixin, MovAble):
             # Stroke
             context.stroke()
         # end if
+
+        # Draw the bounding box
+        self.draw_bounding_box(context)
 
         # Restore the context
         context.restore()
@@ -347,4 +443,3 @@ class Path(DrawableMixin, MovAble):
     # end __repr__
 
 # end Path
-
