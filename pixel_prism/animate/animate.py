@@ -3,7 +3,7 @@
 # Imports
 import numpy as np
 from enum import Enum
-from .able import MovAble, FadeInAble, FadeOutAble, RangeAble
+from .able import MovableMixin, FadeInableMixin, FadeOutableMixin, RangeableMixin
 from .interpolate import Interpolator, LinearInterpolator
 
 
@@ -162,7 +162,7 @@ class Move(Animate):
             target_value (any): End position
             interpolator (Interpolator): Interpolator
         """
-        assert isinstance(obj, MovAble), "Object must be an instance of MovAble"
+        assert isinstance(obj, MovableMixin), "Object must be an instance of MovAble"
         super().__init__(
             obj,
             start_time,
@@ -202,7 +202,7 @@ class Range(Animate):
             target_value (any): End value
             interpolator (Interpolator): Interpolator
         """
-        assert isinstance(obj, RangeAble), "Object must be an instance of RangeAble"
+        assert isinstance(obj, RangeableMixin), "Object must be an instance of RangeAble"
         super().__init__(
             obj,
             start_time,
@@ -240,7 +240,7 @@ class FadeIn(Animate):
             end_time (float): End time
             interpolator (Interpolator): Interpolator
         """
-        assert isinstance(obj, FadeInAble), "Object must be an instance of FadeInAble"
+        assert isinstance(obj, FadeInableMixin), "Object must be an instance of FadeInAble"
         super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
     # end __init__
 
@@ -270,7 +270,7 @@ class FadeOut(Animate):
             end_time (float): End time
             interpolator (Interpolator): Interpolator
         """
-        assert isinstance(obj, FadeOutAble), "Object must be an instance of FadeInAble"
+        assert isinstance(obj, FadeOutableMixin), "Object must be an instance of FadeInAble"
         super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
     # end __init__
 

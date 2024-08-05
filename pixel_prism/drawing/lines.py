@@ -1,8 +1,9 @@
 
 # Imports
 import numpy as np
-from pixel_prism.animate.able import MovAble
+from pixel_prism.animate.able import MovableMixin
 from pixel_prism.data import Point2D
+from pixel_prism.utils import random_color
 
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
@@ -10,7 +11,7 @@ from .drawablemixin import DrawableMixin
 
 # A line
 # Line(start=(4.313823-6.127024j), end=(3.716065-3.765878j))
-class Line(DrawableMixin, MovAble):
+class Line(DrawableMixin, MovableMixin):
     """
     A class to represent a line in 2D space.
     """
@@ -64,6 +65,37 @@ class Line(DrawableMixin, MovAble):
             self.bbox.translate(dx, dy)
         # end if
     # end translate
+
+    # Draw path (for debugging)
+    def draw_path(self, context):
+        """
+        Draw the path to the context.
+
+        Args:
+            context (cairo.Context): Context to draw the path to
+        """
+        # Select a random int
+        color = random_color()
+
+        # Save the context
+        context.save()
+
+        # Set the color
+        context.set_source_rgb(color.red, color.green, color.blue)
+
+        # Draw the path
+        context.move_to(self.start.x, self.start.y)
+        context.line_to(self.end.x, self.end.y)
+
+        # Set the line width
+        context.set_line_width(0.1)
+
+        # Stroke the path
+        context.stroke()
+
+        # Restore the context
+        context.restore()
+    # end draw_path
 
     # Draw the element
     def draw(self, context):

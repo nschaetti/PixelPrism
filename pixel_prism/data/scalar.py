@@ -3,12 +3,12 @@
 #
 
 # Imports
-from pixel_prism.animate.able import RangeAble
+from pixel_prism.animate.able import RangeableMixin
 
 from .data import Data
 
 
-class Scalar(Data, RangeAble):
+class Scalar(Data, RangeableMixin):
     """
     A class to represent a scalar value
     """

@@ -3,8 +3,9 @@
 # Imports
 import numpy as np
 
-from pixel_prism.animate.able import MovAble
+from pixel_prism.animate.able import MovableMixin
 from pixel_prism.data import Point2D
+from pixel_prism.utils import random_color
 
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
@@ -12,7 +13,7 @@ from .drawablemixin import DrawableMixin
 
 # A Cubic Bezier curve
 # CubicBezier(start=(3.716065-3.765878j), control1=(3.536737-4.134496j), control2=(3.247821-4.403487j), end=(2.799502-4.403487j))
-class CubicBezierCurve(DrawableMixin, MovAble):
+class CubicBezierCurve(DrawableMixin, MovableMixin):
     """
     A class to represent a cubic Bezier curve in 2D space.
     """
@@ -89,6 +90,41 @@ class CubicBezierCurve(DrawableMixin, MovAble):
         # end
     # end translate
 
+    # Draw path (for debugging)
+    def draw_path(self, context):
+        """
+        Draw the path to the context.
+        """
+        # Select a random int
+        color = random_color()
+
+        # Save the context
+        context.save()
+
+        # Set the color
+        context.set_source_rgb(color.red, color.green, color.blue)
+
+        # Draw the path
+        context.move_to(self.start.x, self.start.y)
+        context.curve_to(
+            self.control1.x,
+            self.control1.y,
+            self.control2.x,
+            self.control2.y,
+            self.end.x,
+            self.end.y
+        )
+
+        # Set the line width
+        context.set_line_width(0.1)
+
+        # Stroke the path
+        context.stroke()
+
+        # Restore the context
+        context.restore()
+    # end draw_path
+
     # Draw the element
     def draw(self, context):
         """
@@ -153,7 +189,7 @@ class CubicBezierCurve(DrawableMixin, MovAble):
 
 # A quadratic Bezier curve
 # QuadraticBezier(start=(4.313823-6.127024j), control=(3.536737-4.134496j), end=(2.799502-4.403487j))
-class QuadraticBezierCurve(DrawableMixin, MovAble):
+class QuadraticBezierCurve(DrawableMixin, MovableMixin):
     """
     A class to represent a quadratic Bezier curve in 2D space.
     """
@@ -225,6 +261,41 @@ class QuadraticBezierCurve(DrawableMixin, MovAble):
             self.bbox.translate(dx, dy)
         # end
     # end translate
+
+    # Draw path (for debugging)
+    def draw_path(self, context):
+        """
+        Draw the path to the context.
+        """
+        # Select a random int
+        color = random_color()
+
+        # Save the context
+        context.save()
+
+        # Set the color
+        context.set_source_rgb(color.red, color.green, color.blue)
+
+        # Draw the path
+        context.move_to(self.start.x, self.start.y)
+        context.curve_to(
+            self.control.x,
+            self.control.y,
+            self.control.x,
+            self.control.y,
+            self.end.x,
+            self.end.y
+        )
+
+        # Set the line width
+        context.set_line_width(0.1)
+
+        # Stroke the path
+        context.stroke()
+
+        # Restore the context
+        context.restore()
+    # end draw_path
 
     # Draw the element
     def draw(self, context):

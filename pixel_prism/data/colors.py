@@ -4,12 +4,12 @@
 
 # Imports
 import numpy as np
-from pixel_prism.animate.able import RangeAble
+from pixel_prism.animate.able import RangeableMixin
 
 from .data import Data
 
 
-class Color(Data, RangeAble):
+class Color(Data, RangeableMixin):
     """
     A class to represent a scalar value
     """

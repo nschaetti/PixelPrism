@@ -1,7 +1,7 @@
 
 
 # Able
-from .able import Able
-from .movable import MovAble, RangeAble
-from .fadeinable import FadeInAble
-from .fadeoutable import FadeOutAble
+from .animablemixin import AnimableMixin
+from .movablemixin import MovableMixin, RangeableMixin
+from .fadeinablemixin import FadeInableMixin
+from .fadeoutablemixin import FadeOutableMixin

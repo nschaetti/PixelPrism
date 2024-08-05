@@ -3,14 +3,14 @@
 # Imports
 from typing import Tuple, Any, Union
 from pixel_prism.data import Point2D, Scalar, Color
-from pixel_prism.animate.able import MovAble
+from pixel_prism.animate.able import MovableMixin
 import pixel_prism.utils as utils
 
 from .drawablemixin import DrawableMixin
 
 
 # A 2D rectangle
-class Rectangle(DrawableMixin, MovAble):
+class Rectangle(DrawableMixin, MovableMixin):
     """
     A class to represent a rectangle in 2D space.
     """
@@ -256,13 +256,17 @@ class Rectangle(DrawableMixin, MovAble):
 
     def draw(
             self,
-            context
+            context,
+            *args,
+            **kwargs
     ):
         """
         Draw the rectangle to the context.
 
         Args:
             context: Context to draw the rectangle to
+            *args: Arguments
+            **kwargs: Keyword arguments
         """
         # Save the context
         context.save()

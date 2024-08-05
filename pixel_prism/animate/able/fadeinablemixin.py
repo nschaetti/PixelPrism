@@ -1,10 +1,10 @@
 
 # Imports
 from typing import Any
-from .able import Able
+from .animablemixin import AnimableMixin
 
 
-class FadeInAble(Able):
+class FadeInableMixin(AnimableMixin):
     """
     Interface class for fade-in animations
     """

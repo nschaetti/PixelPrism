@@ -4,13 +4,13 @@
 
 # Imports
 import numpy as np
-from pixel_prism.animate.able import MovAble
+from pixel_prism.animate.able import MovableMixin
 
 from .data import Data
 
 
 # A generic point
-class Point(Data, MovAble):
+class Point(Data, MovableMixin):
     """
     A generic point class.
     """

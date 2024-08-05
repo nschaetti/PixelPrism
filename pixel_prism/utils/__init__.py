@@ -7,7 +7,9 @@ from .colors import (
     GREEN,
     RED,
     WHITE,
-    YELLOW
+    YELLOW,
+    colors,
+    random_color
 )
 
 # Imports
@@ -41,6 +43,8 @@ __all__ = [
     "RED",
     "WHITE",
     "YELLOW",
+    "colors",
+    "random_color",
     # Latex
     "render_latex_to_svg",
     "setup_logger",

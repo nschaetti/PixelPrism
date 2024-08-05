@@ -1,7 +1,7 @@
 
 
-from typing import Iterator
-from pixel_prism.animate.able import MovAble, FadeInAble, FadeOutAble
+from typing import Iterator, List, Optional, Any
+from pixel_prism.animate.able import MovableMixin, FadeInableMixin, FadeOutableMixin
 from pixel_prism.data import Point2D, Color
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path
@@ -77,7 +77,8 @@ def load_svg(
         svg_path,
         vector_graphics: 'VectorGraphics',
         color: Color = utils.WHITE,
-        anchor_point: Anchor = utils.Anchor.UPPER_LEFT
+        anchor_point: Anchor = utils.Anchor.UPPER_LEFT,
+        refs: Optional[List] = None
 ):
     """
     Load an SVG file and return the paths and transformations.
@@ -88,9 +89,12 @@ def load_svg(
         color (Color): Color of the SVG
         centered (bool): Whether to center the SVG
         anchor_point (int): Anchor point for the SVG
+        refs (list): List of references
     """
     # Parse the SVG file
     paths = parse_svg(svg_path)
+
+    assert refs is None or len(paths) == len(refs), "Number of paths and references must match"
 
     # Draw the paths
     for el_i, element in enumerate(paths):
@@ -163,7 +167,7 @@ def load_svg(
                     elif isinstance(segment, svg.Arc):
                         subpath_data.add(
                             Arc(
-                                enter=Point2D(segment.center.real + x, segment.center.imag + y),
+                                center=Point2D(segment.center.real + x, segment.center.imag + y),
                                 radius=Scalar(segment.radius),
                                 start_angle=Scalar(segment.start_angle),
                                 end_angle=Scalar(segment.end_angle),
@@ -187,7 +191,7 @@ def load_svg(
             # end for
 
             # Add the path to the vector graphics
-            vector_graphics.add(path_data)
+            vector_graphics.add(path_data, refs[el_i] if refs is not None else None)
         elif element['type'] == 'rect':
             # Add a rectangle
             rec = Rectangle(
@@ -200,7 +204,9 @@ def load_svg(
                 border_width=Scalar(0.0),
                 fill_color=color
             )
-            vector_graphics.add(rec)
+            vector_graphics.add(rec, refs[el_i] if refs is not None else None)
+        else:
+            raise ValueError(f"Unknown element type: {element['type']}")
         # end if
     # end for
 
@@ -232,7 +238,7 @@ def load_svg(
 # end load_svg
 
 
-class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
+class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin):
 
     def __init__(
             self,
@@ -253,15 +259,17 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
         self.position = position
         self.scale = scale
         self.elements = elements if elements is not None else []
+        self.references = {}
         self._index = 0 # Index of the current
 
         # Debugging circle
-        self.debug_circle = Circle(
+        self.reference_point = Circle(
             0,
             0,
             fill_color=utils.RED.copy().change_alpha(0.75),
-            radius=Scalar(0.4),
-            border_width=Scalar(0)
+            border_color=utils.WHITE.copy(),
+            radius=Scalar(0.5),
+            border_width=Scalar(0.05)
         )
     # end __init__
 
@@ -295,14 +303,19 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
     # end get_bbox
 
     # Add
-    def add(self, element):
+    def add(self, element, ref: str = None):
         """
         Add an element to the vector graphic.
 
         Args:
             element: Element to add to the vector graphic
+            ref (str): Reference of the element
         """
         self.elements.append(element)
+
+        if ref is not None:
+            self.references[ref] = element
+        # end if
     # end add
 
     # Draw bounding box anchors
@@ -365,13 +378,19 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
 
     def draw(
             self,
-            context
+            context,
+            draw_bboxes: bool = False,
+            draw_reference_point: bool = False,
+            draw_paths: bool = False
     ):
         """
         Draw the vector graphics to the context.
 
         Args:
             context (cairo.Context): Context to draw the vector graphics to
+            draw_bboxes (bool): Whether to draw the debug information
+            draw_reference_point (bool): Whether to draw the reference point
+            draw_paths (bool): Whether to draw the paths
         """
         # Move the context
         context.save()
@@ -379,29 +398,71 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
         context.scale(self.scale.x, self.scale.y)
 
         # Draw a circle
-        self.debug_circle.draw(context)
+        if draw_reference_point:
+            self.reference_point.draw(context)
+        # end if
 
         # For each element in the vector graphics
         for element in self.elements:
-            element.draw(context)
+            element.draw(
+                context,
+                draw_bboxes=draw_bboxes,
+                draw_reference_point=draw_reference_point
+            )
         # end for
 
         # Draw rectangle bounding box
-        for element in self.elements:
-            if type(element) is Rectangle:
-                # Draw the bounding box
-                element.draw_bounding_box(context)
-                element.draw_bounding_box_anchors(context)
-            # end if
-        # end for
+        if draw_bboxes:
+            for element in self.elements:
+                if type(element) is Rectangle:
+                    # Draw the bounding box
+                    element.draw_bounding_box(context)
+                    element.draw_bounding_box_anchors(context)
+                # end if
+            # end for
 
-        # Draw VG bounding box
-        self.draw_bounding_box(context)
-        self.draw_bounding_box_anchors(context)
+            # Draw VG bounding box
+            self.draw_bounding_box(context)
+            self.draw_bounding_box_anchors(context)
+        # end if
+
+        # Draw paths
+        if draw_paths:
+            for element in self.elements:
+                if type(element) is Path:
+                    element.draw_paths(context)
+                # end if
+            # end for
+        # end
 
         # Restore the context
         context.restore()
     # end draw
+
+    # region MOVABLE
+
+    # Start moving
+    def start_move(
+            self,
+            start_value: Any
+    ):
+        """
+        Start moving the vector graphic.
+        """
+        self.start_position = self.position.copy()
+    # end start_moving
+
+    # Animate move
+    def animate_move(self, t, duration, interpolated_t, env_value):
+        """
+        Animate moving the vector graphic.
+        """
+        # New x, y
+        self.position.x = self.start_position.x * (1 - interpolated_t) + env_value.x * interpolated_t
+        self.position.y = self.start_position.y * (1 - interpolated_t) + env_value.y * interpolated_t
+    # end animate_move
+
+    # endregion MOVABLE
 
     def __str__(self):
         """
@@ -428,7 +489,11 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
         """
         Get the element at the specified index.
         """
-        return self.elements[index]
+        if isinstance(index, str):
+            return self.references[index]
+        else:
+            return self.elements[index]
+        # end if
     # end __getitem__
 
     def __setitem__(self, index, value):
@@ -472,7 +537,8 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
             svg_path,
             position: Point2D = Point2D(0, 0),
             scale: Point2D = Point2D(1, 1),
-            color: Color = utils.WHITE
+            color: Color = utils.WHITE,
+            refs: Optional[List] = None,
     ):
         """
         Create a vector graphic from an SVG string.
@@ -483,6 +549,7 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
             position (Point2D): Position of the vector graphic
             scale (Point2D): Scale of the vector graphic
             color (Color): Color of the vector graphic
+            refs (list): List of references
 
         Returns:
             VectorGraphicsData: Vector graphic
@@ -498,7 +565,8 @@ class VectorGraphics(DrawableMixin, MovAble, FadeInAble, FadeOutAble):
             svg_path,
             vector_graphics,
             color=color,
-            anchor_point=utils.Anchor.MIDDLE_CENTER
+            anchor_point=utils.Anchor.MIDDLE_CENTER,
+            refs=refs
         )
 
         return vector_graphics

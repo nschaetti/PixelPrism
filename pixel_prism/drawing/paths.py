@@ -1,17 +1,25 @@
 
+# Imports
 from typing import List
-
 import cairo
-
+import numpy as np
 from pixel_prism.data import Point2D, Color, Scalar
 import pixel_prism.utils as utils
 from pixel_prism.drawing import Circle, Line
-from pixel_prism.animate.able import MovAble
+from pixel_prism.animate.able import MovableMixin
 from .drawablemixin import DrawableMixin
+from .transforms import (
+    Translate2D,
+    Rotate2D,
+    Scale2D,
+    SkewX2D,
+    SkewY2D,
+    Matrix2D
+)
 
 
 # Path segment
-class PathSegment(DrawableMixin, MovAble):
+class PathSegment(DrawableMixin, MovableMixin):
     """
     A class to represent a path segment.
     """
@@ -22,7 +30,7 @@ class PathSegment(DrawableMixin, MovAble):
         """
         # Constructors
         DrawableMixin.__init__(self)
-        MovAble.__init__(self)
+        MovableMixin.__init__(self)
 
         # Default elements
         if elements is None:
@@ -111,10 +119,30 @@ class PathSegment(DrawableMixin, MovAble):
         # end for
     # end draw_bounding_box
 
+    # Draw path
+    def draw_path(self, context):
+        """
+        Draw the path of the path segment.
+
+        Args:
+            context (cairo.Context): Context to draw the path to
+        """
+        # For each element in the segment
+        for element in self.elements:
+            element.draw_path(context)
+        # end for
+    # end draw_path
+
     def draw(self, context):
         """
         Draw the path segment.
         """
+        # Get first element
+        first_element = self.elements[0]
+
+        # Move to the first element
+        context.move_to(first_element.start.x, first_element.start.y)
+
         # For each element in the segment
         for element in self.elements:
             element.draw(context)
@@ -208,7 +236,7 @@ class PathSegment(DrawableMixin, MovAble):
 # end PathSegment
 
 
-class Path(DrawableMixin, MovAble):
+class Path(DrawableMixin, MovableMixin):
     """
     A simple path class that can be drawn to a cairo context.
     """
@@ -221,7 +249,7 @@ class Path(DrawableMixin, MovAble):
             fill_color: Color = None,
             path: PathSegment = None,
             subpaths: List[PathSegment] = None,
-            transform=None,
+            transform=None
     ):
         """
         Initialize the path.
@@ -234,7 +262,7 @@ class Path(DrawableMixin, MovAble):
         """
         # Constructors
         DrawableMixin.__init__(self)
-        MovAble.__init__(self)
+        MovableMixin.__init__(self)
 
         # Add the subpaths
         if subpaths is None:
@@ -255,8 +283,9 @@ class Path(DrawableMixin, MovAble):
             0,
             0,
             fill_color=utils.BLUE.copy(),
-            radius=Scalar(1),
-            border_width=Scalar(0)
+            border_color=utils.WHITE.copy(),
+            radius=Scalar(0.2),
+            border_width=Scalar(0.01)
         )
     # end __init__
 
@@ -436,7 +465,7 @@ class Path(DrawableMixin, MovAble):
         # Draw segments bb of path
         self.path.draw_bounding_box(context)
 
-        # Draw subpaths bounding box
+        # Draw subpathsbounding box
         for subpath in self.subpaths:
             # Get the bounding box
             path_bbox = subpath.get_bbox(0.07, utils.YELLOW.copy())
@@ -453,21 +482,105 @@ class Path(DrawableMixin, MovAble):
         context.restore()
     # end draw_bounding_box
 
-    def draw(self, context):
+    def apply_transform(
+            self,
+            context,
+            transform
+    ):
+        """
+        Apply an SVG transform to a Cairo context.
+
+        Args:
+            context (cairo.Context): Context to apply the transform to
+            transform (str): SVG transform
+        """
+        # Translate
+        if isinstance(transform, Translate2D):
+            context.translate(transform.translate.x, transform.translate.y)
+        # Scale
+        elif isinstance(transform, Scale2D):
+            context.scale(transform.scale.x, transform.scale.y)
+        # Rotate
+        elif isinstance(transform, Rotate2D):
+            context.translate(transform.center.x, transform.center.y)
+            context.rotate(np.radians(transform.angle.value))
+            context.translate(-transform.center.x, -transform.center.y)
+        elif isinstance(transform, SkewX2D):
+            angle = np.radians(float(transform.angle.value))
+            matrix = cairo.Matrix(1, np.tan(angle), 0, 1, 0, 0)
+            context.transform(matrix)
+        elif isinstance(transform, SkewY2D):
+            angle = np.radians(float(transform.angle.value))
+            matrix = cairo.Matrix(1, 0, np.tan(angle), 1, 0, 0)
+            context.transform(matrix)
+        elif isinstance(transform, Matrix2D):
+            matrix = cairo.Matrix(
+                float(transform.xx.value),
+                float(transform.yx.value),
+                float(transform.xy.value),
+                float(transform.yy.value),
+                float(transform.x0.value),
+                float(transform.y0.value)
+            )
+            context.transform(matrix)
+        else:
+            raise ValueError(f"Unknown transform: {transform}")
+        # end if
+    # end apply_transform
+
+    # Draw path components
+    def draw_paths(
+            self,
+            context
+    ):
+        """
+        Draw the path components to the context.
+
+        Args:
+            context (cairo.Context): Context to draw the path components to
+        """
+        # Save context
+        context.save()
+
+        # Draw path
+        self.path.draw_path(context)
+
+        # Draw subpaths
+        for subpath in self.subpaths:
+            subpath.draw_path(context)
+        # end for
+
+        # Restore context
+        context.restore()
+    # end draw_paths
+
+    def draw(
+            self, context,
+            draw_bboxes: bool = False,
+            draw_reference_point: bool = False
+    ):
         """
         Draw the path to the context.
 
         Args:
             context (cairo.Context): Context to draw the path to
+            draw_bboxes (bool): Whether to draw the bounding boxes
+            draw_reference_point (bool): Whether to draw the debug information
         """
         # Save context
         context.save()
         # context.translate(self.origin.x, self.origin.y)
         context.set_fill_rule(cairo.FillRule.WINDING)
-        # self.debug_circle.draw(context)
+
+        # Reference point
+        if draw_reference_point:
+            self.debug_circle.draw(context)
+        # end if
 
         # Apply transform
-        # ...
+        if self.transform is not None:
+            self.apply_transform(context, self.transform)
+        # end if
 
         # Draw path
         context.new_path()
@@ -518,8 +631,10 @@ class Path(DrawableMixin, MovAble):
         # end if
 
         # Draw the bounding box and anchors
-        self.draw_bounding_box(context)
-        self.draw_bounding_box_anchors(context)
+        if draw_bboxes:
+            self.draw_bounding_box(context)
+            self.draw_bounding_box_anchors(context)
+        # end if
 
         # Restore the context
         context.restore()

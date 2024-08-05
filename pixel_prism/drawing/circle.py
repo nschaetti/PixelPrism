@@ -4,13 +4,13 @@
 
 # Imports
 import numpy as np
-from pixel_prism.animate.able import MovAble, FadeInAble, FadeOutAble
+from pixel_prism.animate.able import MovableMixin, FadeInableMixin, FadeOutableMixin
 from pixel_prism.data import Point2D, Scalar, Color
 import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin
 
 
-class Circle(DrawableMixin, Point2D, FadeInAble, FadeOutAble):
+class Circle(DrawableMixin, Point2D, FadeInableMixin, FadeOutableMixin):
     """
     A simple circle class that can be drawn to a cairo context.
     """

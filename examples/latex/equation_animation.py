@@ -4,6 +4,7 @@
 
 # PixelPrism
 from pixel_prism.animation import Animation
+from pixel_prism.animate import Move, EaseInOutInterpolator
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas
@@ -24,13 +25,15 @@ class MathTexAnimation(Animation):
         Build the animation.
         """
         # Create a Point2D for the position of the LaTeX widget
-        latex_position = Point2D(960, 540)
+        latex_position = Point2D(1920 / 4.0, 1080 / 4.0)
 
         # Créer un widget LaTeX
         latex_widget = MathTex(
-            "g(x) = \\frac{\partial Q}{\partial t} = \\frac{\partial s}{\partial t}",
+            "g(x) = \\frac{\partial Q}{\partial t}",
             latex_position,
             scale=Point2D(15, 15),
+            refs=["g", "(", "x", ")", "=", "partial1", "Q", "bar", "partial2",  "t"],
+            debug=True
         )
 
         # Ajouter le widget au viewport ou à un conteneur
@@ -42,6 +45,27 @@ class MathTexAnimation(Animation):
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(latex_widget)
+
+        # Add transitions for point1
+        self.animate(
+            Move(
+                latex_widget,
+                start_time=1,
+                end_time=3,
+                target_value=Point2D(1920 / 4.0 * 3.0, 1080 / 4.0 * 3.0),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        self.animate(
+            Move(
+                latex_widget,
+                start_time=4,
+                end_time=6,
+                target_value=Point2D(1920 / 4.0, 1080 / 4.0),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
 
         # Add objects
         self.add(

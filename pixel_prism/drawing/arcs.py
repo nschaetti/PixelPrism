@@ -3,7 +3,7 @@
 #
 
 # Imports
-from pixel_prism.animate.able import MovAble
+from pixel_prism.animate.able import MovableMixin
 from pixel_prism.data import Point2D, Scalar
 
 from .rectangles import Rectangle
@@ -11,7 +11,7 @@ from .drawablemixin import DrawableMixin
 
 
 # An arc
-class Arc(DrawableMixin, MovAble):
+class Arc(DrawableMixin, MovableMixin):
     """
     A class to represent a cubic Bezier curve in 2D space.
     """

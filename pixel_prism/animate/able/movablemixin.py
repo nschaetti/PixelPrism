@@ -5,10 +5,10 @@
 # Imports
 from typing import Any
 import numpy as np
-from .able import Able
+from .animablemixin import AnimableMixin
 
 
-class MovAble(Able):
+class MovableMixin(AnimableMixin):
     """
     Interface class for movable objects
     """
@@ -81,7 +81,7 @@ class MovAble(Able):
 # end MovAble
 
 
-class RangeAble(Able):
+class RangeableMixin(AnimableMixin):
     """
     Interface class for ranging values
     """

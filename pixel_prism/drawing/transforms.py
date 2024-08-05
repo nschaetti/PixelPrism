@@ -203,20 +203,25 @@ class Matrix2D(Transform):
     A class to represent a matrix transform.
     """
 
-    def __init__(self, a=1, b=0, c=0, d=1, e=0, f=0):
+    def __init__(self, xx=1, yx=0, xy=0, yy=1, x0=0, y0=0):
         """
         Initialize the matrix transform with its matrix coefficients.
 
         Args:
-            a (float): Coefficient a
-            b (float): Coefficient b
-            c (float): Coefficient c
-            d (float): Coefficient d
-            e (float): Coefficient e
-            f (float): Coefficient f
+            xx (float): Coefficient xx
+            yx (float): Coefficient yx
+            xy (float): Coefficient xy
+            yy (float): Coefficient yy
+            x0 (float): Coefficient x0
+            y0 (float): Coefficient y0
         """
         super().__init__()
-        self.matrix = np.array([[a, b, e], [c, d, f], [0, 0, 1]])
+        self.xx = Scalar(xx)
+        self.yx = Scalar(yx)
+        self.xy = Scalar(xy)
+        self.yy = Scalar(yy)
+        self.x0 = Scalar(x0)
+        self.y0 = Scalar(y0)
     # end __init__
 
     # Get
@@ -227,23 +232,35 @@ class Matrix2D(Transform):
         Returns:
             np.ndarray: Matrix coefficients of the matrix transform
         """
-        return self.matrix
+        return (
+            self.xx.value,
+            self.yx.value,
+            self.xy.value,
+            self.yy.value,
+            self.x0.value,
+            self.y0.value
+        )
     # end get
 
     # Set
-    def set(self, a=1, b=0, c=0, d=1, e=0, f=0):
+    def set(self, xx=1, yx=0, xy=0, yy=1, x0=0, y0=0):
         """
         Set the matrix coefficients of the matrix transform.
 
         Args:
-            a (float): Coefficient a
-            b (float): Coefficient b
-            c (float): Coefficient c
-            d (float): Coefficient d
-            e (float): Coefficient e
-            f (float): Coefficient f
+            xx (float): Coefficient xx
+            yx (float): Coefficient yx
+            xy (float): Coefficient xy
+            yy (float): Coefficient yy
+            x0 (float): Coefficient x0
+            y0 (float): Coefficient y0
         """
-        self.matrix = np.array([[a, b, e], [c, d, f], [0, 0, 1]])
+        self.xx.value = xx
+        self.yx.value = yx
+        self.xy.value = xy
+        self.yy.value = yy
+        self.x0.value = x0
+        self.y0.value = y0
     # end set
 
 # end Matrix2D

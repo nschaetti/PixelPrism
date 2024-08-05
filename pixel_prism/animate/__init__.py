@@ -19,3 +19,16 @@ from .animate import (
     Range
 )
 
+
+# ALL
+__all__ = [
+    "Interpolator",
+    "LinearInterpolator",
+    "EaseInOutInterpolator",
+    "Animate",
+    "Move",
+    "FadeIn",
+    "FadeOut",
+    "Range"
+]
+

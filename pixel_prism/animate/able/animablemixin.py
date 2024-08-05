@@ -2,7 +2,7 @@
 # Description: This file contains the Able class, which is a subclass of the Drawable class.
 #
 
-class Able:
+class AnimableMixin:
     """
     Abstract class for animatable objects.
     """
