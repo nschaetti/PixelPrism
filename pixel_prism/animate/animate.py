@@ -3,7 +3,7 @@
 # Imports
 import numpy as np
 from enum import Enum
-from .able import MovableMixin, FadeInableMixin, FadeOutableMixin, RangeableMixin
+from .able import MovableMixin, FadeInableMixin, FadeOutableMixin, RangeableMixin, BuildableMixin
 from .interpolate import Interpolator, LinearInterpolator
 
 
@@ -275,4 +275,36 @@ class FadeOut(Animate):
     # end __init__
 
 # end FadeOut
+
+
+# Build animation
+class Build(Animate):
+    """
+    A transition that fades in an object over time.
+    """
+
+    def __init__(
+            self,
+            obj,
+            start_time,
+            end_time,
+            interpolator=LinearInterpolator(),
+            name="",
+    ):
+        """
+        Initialize the build transition.
+
+        Args:
+            obj (any): Object to fade in
+            start_time (float): Start time
+            end_time (float): End time
+            interpolator (Interpolator): Interpolator
+        """
+        assert isinstance(obj, BuildableMixin), "Object must be an instance of BuildableMixin"
+        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
+    # end __init__
+
+# end Build
+
+
 

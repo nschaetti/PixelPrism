@@ -4,7 +4,7 @@
 
 # PixelPrism
 from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut
+from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut, Build
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas
@@ -35,7 +35,6 @@ class MathTexAnimation(Animation):
             refs=["g", "(", "x", ")", "=", "partial1", "Q", "bar", "partial2",  "t"],
             debug=True
         )
-        latex_widget.set_alpha(0)
 
         # Ajouter le widget au viewport ou à un conteneur
         viewport = Viewport()
@@ -47,9 +46,9 @@ class MathTexAnimation(Animation):
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(latex_widget)
 
-        # Math fadein
+        # Build the math tex object
         self.animate(
-            FadeIn(
+            Build(
                 latex_widget,
                 start_time=0,
                 end_time=1,

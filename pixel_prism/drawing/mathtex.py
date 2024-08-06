@@ -9,7 +9,7 @@ import cairo
 import tempfile
 
 from pixel_prism.utils import render_latex_to_svg, draw_svg
-from pixel_prism.animate.able import FadeInableMixin, FadeOutableMixin, MovableMixin
+from pixel_prism.animate.able import FadeInableMixin, FadeOutableMixin, MovableMixin, BuildableMixin
 from pixel_prism.data import Point2D, Color
 import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin
@@ -28,14 +28,14 @@ def generate_temp_svg_filename():
 # end generate_temp_svg_filename
 
 
-class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin):
+class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin):
 
     def __init__(
             self,
             latex,
             position,
             scale: Point2D = Point2D(1, 1),
-            color: Color = utils.WHITE,
+            color: Color = utils.WHITE.copy(),
             refs: Optional[List] = None,
             keep_svg: bool = False,
             debug: bool = False
@@ -101,6 +101,14 @@ class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin):
         render_latex_to_svg(self.latex, svg_path)
     # end update_svg
 
+    # Set alpha
+    def set_alpha(self, alpha):
+        """
+        Set the alpha of the MathTex object.
+        """
+        self.math_graphics.set_alpha(alpha)
+    # end set_alpha
+
     def draw(self, context):
         """
         Draw the MathTex object to the context.
@@ -155,6 +163,70 @@ class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin):
     # end animate_move
 
     # endregion MOVABLE
+
+    # region FADE_IN
+
+    def start_fadein(self, start_value: Any):
+        """
+        Start fading in the MathTex object.
+        """
+        self.math_graphics.start_fadein(start_value)
+    # end start_fadein
+
+    def animate_fadein(self, t, duration, interpolated_t, end_value):
+        """
+        Animate fading in the MathTex object.
+        """
+        self.math_graphics.animate_fadein(t, duration, interpolated_t, end_value)
+    # end animate_fadein
+
+    # endregion FADE_IN
+
+    # region FADE_OUT
+
+    def start_fadeout(self, start_value: Any):
+        """
+        Start fading out the MathTex object.
+        """
+        self.math_graphics.start_fadeout(start_value)
+    # end start_fadeout
+
+    def animate_fadeout(self, t, duration, interpolated_t, end_value):
+        """
+        Animate fading out the MathTex object.
+        """
+        self.math_graphics.animate_fadeout(t, duration, interpolated_t, end_value)
+    # end animate_fadeout
+
+    # endregion FADE_OUT
+
+    # region BUILD
+
+    # Start building
+    def start_build(self, start_value: Any):
+        """
+        Start building the MathTex object.
+        """
+        self.math_graphics.start_build(start_value)
+    # end start_build
+
+    # End building
+    def end_build(self, end_value: Any):
+        """
+        End building the MathTex object.
+        """
+        self.math_graphics.end_build(end_value)
+    # end end_build
+
+    # Animate building
+    def animate_build(self, t, duration, interpolated_t, env_value):
+        """
+        Animate building the MathTex object.
+        """
+        self.math_graphics.animate_build(t, duration, interpolated_t, env_value)
+    # end animate_build
+
+    # endregion BUILD
 
     def __getitem__(self, index):
         """

@@ -1,12 +1,12 @@
 
 # Imports
-from typing import List
+from typing import List, Any
 import cairo
 import numpy as np
 from pixel_prism.data import Point2D, Color, Scalar
 import pixel_prism.utils as utils
 from pixel_prism.drawing import Circle, Line
-from pixel_prism.animate.able import MovableMixin
+from pixel_prism.animate.able import MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin
 from .drawablemixin import DrawableMixin
 from .transforms import (
     Translate2D,
@@ -19,7 +19,7 @@ from .transforms import (
 
 
 # Path segment
-class PathSegment(DrawableMixin, MovableMixin):
+class PathSegment(DrawableMixin, MovableMixin, BuildableMixin):
     """
     A class to represent a path segment.
     """
@@ -31,13 +31,18 @@ class PathSegment(DrawableMixin, MovableMixin):
         # Constructors
         DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
+        BuildableMixin.__init__(self)
 
         # Default elements
         if elements is None:
             elements = []
         # end if
 
+        # Initialize the elements
         self.elements = elements
+
+        # Compute length
+        self.length = sum([element.length for element in self.elements]) if len(self.elements) > 0 else 0
     # end __init__
 
     # Get bounding box
@@ -80,6 +85,7 @@ class PathSegment(DrawableMixin, MovableMixin):
             element: Element to add to the path
         """
         self.elements.append(element)
+        self.length += element.length
     # end add
 
     # Move segments
@@ -143,10 +149,30 @@ class PathSegment(DrawableMixin, MovableMixin):
         # Move to the first element
         context.move_to(first_element.start.x, first_element.start.y)
 
-        # For each element in the segment
-        for element in self.elements:
-            element.draw(context)
-        # end for
+        if self.is_built:
+            # For each element in the segment
+            for element in self.elements:
+                element.draw(context)
+            # end for
+        else:
+            # How many elements based on build ratio
+            num_elements = int(len(self.elements) * self.build_ratio)
+
+            # Share of time for each element
+            element_share = 1 / len(self.elements)
+
+            # For each element in the segment
+            for i in range(num_elements):
+                # Build ratio for this element
+                element_build_ratio = min((self.build_ratio - i * element_share) / element_share, 1.0)
+                element = self.elements[i]
+                element.draw(
+                    context=context,
+                    move_to=False,
+                    build_ratio=element_build_ratio
+                )
+            # end for
+        # end if
     # end draw
 
     # Move
@@ -162,6 +188,36 @@ class PathSegment(DrawableMixin, MovableMixin):
             element.translate(dx, dy)
         # end for
     # end translate
+
+    # region BUILD
+
+    # Start building
+    def start_build(self, start_value: Any):
+        """
+        Start building the vector graphic.
+        """
+        super().start_build(start_value)
+    # end start_build
+
+    # End building
+    def end_build(self, end_value: Any):
+        """
+        End building the vector graphic.
+        """
+        super().end_build(end_value)
+    # end end_build
+
+    # Animate building
+    def animate_build(self, t, duration, interpolated_t, env_value):
+        """
+        Animate building the vector graphic.
+        """
+        super().animate_build(t, duration, interpolated_t, env_value)
+    # end animate_build
+
+    # endregion BUILD
+
+    # region OVERRIDE
 
     def __len__(self):
         """
@@ -215,6 +271,8 @@ class PathSegment(DrawableMixin, MovableMixin):
         return self.__str__()
     # end __repr__
 
+    # endregion OVERRIDE
+
     @classmethod
     def from_data(
             cls,
@@ -236,7 +294,7 @@ class PathSegment(DrawableMixin, MovableMixin):
 # end PathSegment
 
 
-class Path(DrawableMixin, MovableMixin):
+class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin):
     """
     A simple path class that can be drawn to a cairo context.
     """
@@ -278,6 +336,12 @@ class Path(DrawableMixin, MovableMixin):
         self.subpaths = subpaths
         self.transform = transform
 
+        # Set length
+        self.length = self.compute_length()
+
+        # Build
+        self.build_last_animated_element = None
+
         # Debug circle
         self.debug_circle = Circle(
             0,
@@ -288,6 +352,37 @@ class Path(DrawableMixin, MovableMixin):
             border_width=Scalar(0.01)
         )
     # end __init__
+
+    # Compute length
+    def compute_length(self):
+        """
+        Compute the length of the path.
+        """
+        # Add path length
+        length = self.path.length if self.path is not None else 0
+
+        # Add length of subpaths
+        for subpath in self.subpaths:
+            length += subpath.length
+        # end for
+
+        return length
+    # end compute_length
+
+    # Set alpha
+    def set_alpha(
+            self,
+            alpha: float
+    ):
+        """
+        Set the alpha value of the path.
+
+        Args:
+            alpha (float): Alpha value to set
+        """
+        self.line_color.alpha = alpha
+        self.fill_color.alpha = alpha
+    # end set_alpha
 
     def get_bbox(
             self,
@@ -328,6 +423,7 @@ class Path(DrawableMixin, MovableMixin):
             element: Element to add to the path
         """
         self.path.add(element)
+        self.length = self.compute_length()
     # end add
 
     # Add subpath
@@ -339,6 +435,7 @@ class Path(DrawableMixin, MovableMixin):
             subpath (PathSegmentList): Subpath to add to the path
         """
         self.subpaths.append(subpath)
+        self.length = self.compute_length()
     # end add_subpath
 
     # Get subpaths
@@ -361,6 +458,7 @@ class Path(DrawableMixin, MovableMixin):
             subpaths (list): Subpaths of the path
         """
         self.subpaths = subpaths
+        self.length = self.compute_length()
     # end set_subpaths
 
     # Translate path
@@ -640,6 +738,151 @@ class Path(DrawableMixin, MovableMixin):
         context.restore()
     # end draw
 
+    # region FADE_IN
+
+    def start_fadein(self, start_value: Any):
+        """
+        Start fading in the path segment.
+
+        Args:
+            start_value (any): The start value of the path segment
+        """
+        self.set_alpha(0)
+    # end start_fadein
+
+    def end_fadein(self, end_value: Any):
+        """
+        End fading in the path segment.
+        """
+        self.set_alpha(1)
+    # end end
+
+    def animate_fadein(self, t, duration, interpolated_t, env_value):
+        """
+        Animate fading in the path segment.
+        """
+        self.set_alpha(interpolated_t)
+    # end animate_fadein
+
+    # endregion FADE_IN
+
+    # region FADE_OUT
+
+    def start_fadeout(self, start_value: Any):
+        """
+        Start fading out the path segment.
+        """
+        self.set_alpha(1)
+    # end start_fadeout
+
+    def end_fadeout(self, end_value: Any):
+        """
+        End fading out the path segment.
+        """
+        self.set_alpha(0)
+    # end end_fadeout
+
+    def animate_fadeout(self, t, duration, interpolated_t, target_value):
+        """
+        Animate fading out the path segment.
+        """
+        self.set_alpha(1 - interpolated_t)
+    # end animate_fadeout
+
+    # endregion FADE_OUT
+
+    # region BUILD
+
+    # Start building
+    def start_build(self, start_value: Any):
+        """
+        Start building the object.
+        """
+        super().start_build(start_value)
+        self.build_last_animated_element = None
+    # end start_build
+
+    # End building
+    def end_build(self, end_value: Any):
+        """
+        End building the object.
+        """
+        super().end_build(end_value)
+        self.build_last_animated_element = None
+
+        # End elements
+        self.path.end_build(end_value)
+        for subpath in self.subpaths:
+            subpath.end_build(end_value)
+        # end for
+    # end end_build
+
+    # Animate building
+    def animate_build(self, t, duration, interpolated_t, env_value):
+        """
+        Animate building the object.
+        """
+        # Animate building
+        super().animate_build(t, duration, interpolated_t, env_value)
+
+        # Share of time for path and subpaths based on length
+        path_length = self.path.length
+        subpath_lengths = [subpath.length for subpath in self.subpaths]
+        total_length = path_length + sum(subpath_lengths)
+
+        # Share of time for path and subpaths
+        path_share = path_length / total_length
+        subpath_shares = [subpath_length / total_length for subpath_length in subpath_lengths]
+
+        # Path times
+        path_times = [path_share] + [p_share + path_share for p_share in subpath_shares]
+
+        # Get on which path to animate
+        path_index = 0
+        for i, path_time in enumerate(path_times):
+            if interpolated_t < path_time:
+                path_index = i
+                break
+            # end if
+        # end for
+
+        # New animated element
+        if self.build_last_animated_element != path_index:
+            # Start building
+            if path_index == 0:
+                self.path.start_build(None)
+            else:
+                self.subpaths[path_index - 1].start_build(None)
+            # end if
+
+            # End building
+            if self.build_last_animated_element is not None:
+                if self.build_last_animated_element == 0:
+                    self.path.end_build(None)
+                else:
+                    self.subpaths[self.build_last_animated_element - 1].end_build(None)
+                # end if
+            # end if
+
+            # Set last animated element
+            self.build_last_animated_element = path_index
+        # end if
+
+        # Compute relative time for path
+        relative_t = (interpolated_t - path_times[path_index - 1]) / path_share if path_index > 0 else interpolated_t
+
+        # Animate path
+        if path_index == 0:
+            self.path.animate_build(t, duration, relative_t, env_value)
+        else:
+            self.subpaths[path_index - 1].animate_build(t, duration, relative_t, env_value)
+        # end if
+    # end animate_build
+
+    # endregion BUILD
+
+    # region OVERRIDE
+
     def __len__(self):
         return len(self.path)
     # end __len__
@@ -677,5 +920,7 @@ class Path(DrawableMixin, MovableMixin):
         """
         return self.__str__()
     # end __repr__
+
+    # endregion OVERRIDE
 
 # end Path

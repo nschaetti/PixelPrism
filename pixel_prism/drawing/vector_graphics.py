@@ -1,7 +1,7 @@
 
 
 from typing import Iterator, List, Optional, Any
-from pixel_prism.animate.able import MovableMixin, FadeInableMixin, FadeOutableMixin
+from pixel_prism.animate.able import MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin
 from pixel_prism.data import Point2D, Color
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path
@@ -113,7 +113,7 @@ def load_svg(
                 origin=Point2D(0, 0),
                 line_width=Scalar(0.0),
                 transform=transform,
-                fill_color=color
+                fill_color=color.copy()
             )
 
             # Get subpaths
@@ -202,7 +202,7 @@ def load_svg(
                 width=element['width'],
                 height=element['height'],
                 border_width=Scalar(0.0),
-                fill_color=color
+                fill_color=color.copy()
             )
             vector_graphics.add(rec, refs[el_i] if refs is not None else None)
         else:
@@ -238,7 +238,7 @@ def load_svg(
 # end load_svg
 
 
-class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin):
+class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin):
 
     def __init__(
             self,
@@ -262,6 +262,10 @@ class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMi
         self.references = {}
         self._index = 0 # Index of the current
 
+        # Fadein, fadeout
+        self.last_animated_element = None
+        self.build_animated_element = None
+
         # Debugging circle
         self.reference_point = Circle(
             0,
@@ -272,6 +276,19 @@ class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMi
             border_width=Scalar(0.05)
         )
     # end __init__
+
+    # Set alpha
+    def set_alpha(self, alpha: float):
+        """
+        Set the alpha of the vector graphics.
+
+        Args:
+            alpha (float): Alpha value
+        """
+        for element in self.elements:
+            element.set_alpha(alpha)
+        # end for
+    # end set_alpha
 
     # Get bounding box
     def get_bbox(
@@ -463,6 +480,147 @@ class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMi
     # end animate_move
 
     # endregion MOVABLE
+
+    # region FADE_IN
+
+    def start_fadein(self, start_value: Any):
+        """
+        Start fading in the vector graphic.
+        """
+        # Reset the last animated element
+        self.last_animated_element = -1
+    # end start_fadein
+
+    def animate_fadein(self, t, duration, interpolated_t, end_value):
+        """
+        Animate fading in the vector graphic.
+        """
+        # Time of animation divided by elements
+        t_per_element = duration / len(self.elements)
+
+        # Check on which element we are
+        i = min(int(interpolated_t * len(self.elements)), len(self.elements) - 1)
+
+        # Element time
+        element_t = (interpolated_t - i / len(self.elements)) * len(self.elements)
+
+        # Check if it is the first time
+        if i != self.last_animated_element:
+            self.last_animated_element = i
+            if i > 0: # Start the fadein animation
+                self.elements[i - 1].end_fadein(1)
+            # end if
+            self.elements[i].start_fadein(0)
+        else:
+            # Animate the element
+            self.elements[i].animate_fadein(
+                element_t,
+                t_per_element,
+                element_t,
+                end_value
+            )
+        # end if
+    # end animate_fadein
+
+    # endregion FADE_IN
+
+    # region FADE_OUT
+
+    def start_fadeout(self, start_value: Any):
+        """
+        Start fading out the vector graphic.
+        """
+        self.last_animated_element = -1
+    # end start_fadeout
+
+    def animate_fadeout(self, t, duration, interpolated_t, end_value):
+        """
+        Animate fading out the vector graphic.
+        """
+        # Time of animation divided by elements
+        t_per_element = duration / len(self.elements)
+
+        # Check on which element we are
+        i = min(int((1 - interpolated_t) * len(self.elements)), len(self.elements) - 1)
+
+        # Element time
+        element_t = (interpolated_t - i / len(self.elements)) * len(self.elements)
+
+        # Check if it is the first time
+        if i != self.last_animated_element:
+            self.last_animated_element = i
+            if i < len(self.elements) - 1:
+                self.elements[i + 1].end_fadeout(1)
+            # end if
+            self.elements[i].start_fadeout(0)
+        else:
+            # Animate the element
+            self.elements[i].animate_fadeout(
+                element_t,
+                t_per_element,
+                element_t,
+                end_value
+            )
+        # end if
+    # end animate_fadeout
+
+    # endregion FADE_OUT
+
+    # region BUILD
+
+    # Start building
+    def start_build(self, start_value: Any):
+        """
+        Start building the vector graphic.
+        """
+        super().start_build(start_value)
+        self.build_animated_element = None
+    # end start_build
+
+    # End building
+    def end_build(self, end_value: Any):
+        """
+        End building the vector graphic.
+        """
+        super().end_build(end_value)
+        self.build_animated_element = None
+    # end end_build
+
+    # Animate building
+    def animate_build(self, t, duration, interpolated_t, env_value):
+        """
+        Animate building the vector graphic.
+        """
+        # Time of animation divided by elements
+        t_per_element = duration / len(self.elements)
+
+        # Get which element we are
+        i = min(int(interpolated_t * len(self.elements)), len(self.elements) - 1)
+
+        # New element ?
+        if i != self.build_animated_element:
+            self.build_animated_element = i
+            if i > 0:
+                self.elements[i - 1].end_build(1)
+            # end if
+            self.elements[i].start_build(0)
+        # end if
+
+        # Check on which element we are
+        for e_i, element in enumerate(self.elements):
+            if e_i == i:
+                element.animate_build(
+                    t,
+                    t_per_element,
+                    (interpolated_t - i / len(self.elements)) * len(self.elements),
+                    env_value
+                )
+            # end if
+            # element.animate_build(t, duration, interpolated_t, env_value)
+        # end for
+    # end animate_build
+
+    # endregion BUILD
 
     def __str__(self):
         """

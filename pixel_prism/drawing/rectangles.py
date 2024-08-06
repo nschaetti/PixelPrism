@@ -3,14 +3,14 @@
 # Imports
 from typing import Tuple, Any, Union
 from pixel_prism.data import Point2D, Scalar, Color
-from pixel_prism.animate.able import MovableMixin
+from pixel_prism.animate.able import MovableMixin, BuildableMixin
 import pixel_prism.utils as utils
 
 from .drawablemixin import DrawableMixin
 
 
 # A 2D rectangle
-class Rectangle(DrawableMixin, MovableMixin):
+class Rectangle(DrawableMixin, MovableMixin, BuildableMixin):
     """
     A class to represent a rectangle in 2D space.
     """
@@ -98,6 +98,18 @@ class Rectangle(DrawableMixin, MovableMixin):
         # Return the bounding box
         return bbox
     # end get_bbox
+
+    # Set alpha
+    def set_alpha(self, alpha: float):
+        """
+        Set the alpha value of the rectangle.
+
+        Args:
+            alpha (float): Alpha value
+        """
+        self.fill_color.alpha = alpha
+        self.border_color.alpha = alpha
+    # end set_alpha
 
     def get_upper_left(self):
         """
@@ -274,13 +286,39 @@ class Rectangle(DrawableMixin, MovableMixin):
         # Fill color
         self.set_source_rgba(context, self.fill_color)
 
-        # Set the color and draw the rectangle
-        context.rectangle(
-            self.upper_left.x,
-            self.upper_left.y,
-            self.width.value,
-            self.height.value
-        )
+        # Its build
+        if self.is_built:
+            # Set the color and draw the rectangle
+            context.rectangle(
+                self.upper_left.x,
+                self.upper_left.y,
+                self.width.value,
+                self.height.value
+            )
+
+            # Fill the circle or draw the border
+            if self.fill and self.border_width.value == 0:
+                context.set_line_width(self.border_width.value)
+                context.fill()
+            elif self.fill:
+                context.fill_preserve()
+                self.set_source_rgba(context, self.border_color)
+                context.set_line_width(self.border_width.value)
+                context.stroke()
+            else:
+                self.set_source_rgba(context, self.border_color)
+                context.set_line_width(self.border_width.value)
+                context.stroke()
+            # end if
+        else:
+            # Set the color and draw the rectangle
+            context.rectangle(
+                self.upper_left.x + self.width.value * (1 - self.build_ratio) / 2,
+                self.upper_left.y,
+                self.width.value * self.build_ratio,
+                self.height.value
+            )
+        # end if
 
         # Fill the circle or draw the border
         if self.fill and self.border_width.value == 0:
@@ -313,6 +351,61 @@ class Rectangle(DrawableMixin, MovableMixin):
         )
     # end copy
 
+    # region FADE_IN
+
+    def start_fadein(self, start_value: Any):
+        """
+        Start fading in the path segment.
+
+        Args:
+            start_value (any): The start value of the path segment
+        """
+        self.set_alpha(0)
+    # end start_fadein
+
+    def end_fadein(self, end_value: Any):
+        """
+        End fading in the path segment.
+        """
+        self.set_alpha(1)
+    # end end_fadein
+
+    def animate_fadein(self, t, duration, interpolated_t, env_value):
+        """
+        Animate fading in the path segment.
+        """
+        self.set_alpha(interpolated_t)
+    # end animate_fadein
+
+    # endregion FADE_IN
+
+    # region FADE_OUT
+
+    def start_fadeout(self, start_value: Any):
+        """
+        Start fading out the path segment.
+        """
+        self.set_alpha(1)
+    # end start_fadeout
+
+    def end_fadeout(self, end_value: Any):
+        """
+        End fading out the path segment.
+        """
+        self.set_alpha(0)
+    # end end_fadeout
+
+    def animate_fadeout(self, t, duration, interpolated_t, target_value):
+        """
+        Animate fading out the path segment.
+        """
+        self.set_alpha(1 - interpolated_t)
+    # end animate_fadeout
+
+    # endregion FADE_OUT
+
+    # region OVERRIDE
+
     def __str__(self):
         """
         Return a string representation of the rectangle.
@@ -336,6 +429,10 @@ class Rectangle(DrawableMixin, MovableMixin):
         """
         return Rectangle.__str__(self)
     # end __repr__
+
+    # endregion OVERRIDE
+
+    # region STATIC
 
     @classmethod
     def from_bbox(
@@ -368,6 +465,8 @@ class Rectangle(DrawableMixin, MovableMixin):
             Scalar(height)
         )
     # end from_bbox
+
+    # endregion STATIC
 
 # end Rectangle
 

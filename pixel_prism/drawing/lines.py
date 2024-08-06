@@ -35,6 +35,7 @@ class Line(DrawableMixin, MovableMixin):
         self.bbox = bbox
     # end __init__
 
+    @property
     def length(self):
         """
         Get the length of the line.
@@ -98,12 +99,32 @@ class Line(DrawableMixin, MovableMixin):
     # end draw_path
 
     # Draw the element
-    def draw(self, context):
+    def draw(
+            self,
+            context,
+            move_to: bool = False,
+            build_ratio: float = 1.0
+    ):
         """
         Draw the line to the context.
+
+        Args:
+            context (cairo.Context): Context to draw the line to
+            move_to (bool): Move to the start point
+            build_ratio (float): Build ratio
         """
-        # context.move_to(self.start.x, self.start.y)
-        context.line_to(self.end.x, self.end.y)
+        if move_to:
+            context.move_to(self.start.x, self.start.y)
+        # end if
+
+        if build_ratio == 1.0:
+            context.line_to(self.end.x, self.end.y)
+        else:
+            context.line_to(
+                self.start.x + (self.end.x - self.start.x) * build_ratio,
+                self.start.y + (self.end.y - self.start.y) * build_ratio
+            )
+        # end if
     # end draw
 
     # str
