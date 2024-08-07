@@ -17,7 +17,8 @@ from .animate import (
     FadeIn,
     FadeOut,
     Range,
-    Build
+    Build,
+    Destroy
 )
 
 
@@ -31,6 +32,7 @@ __all__ = [
     "FadeIn",
     "FadeOut",
     "Range",
-    "Build"
+    "Build",
+    "Destroy"
 ]
 

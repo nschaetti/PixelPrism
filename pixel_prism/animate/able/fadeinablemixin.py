@@ -18,6 +18,14 @@ class FadeInableMixin(AnimableMixin):
         self.opacity = None
     # end __init__
 
+    # Initialize fade-in animation
+    def init_fadein(self):
+        """
+        Initialize the fade-in animation.
+        """
+        pass
+    # end init_fadein
+
     # Start fade-in animation
     def start_fadein(self, start_value: Any):
         """
@@ -45,6 +53,14 @@ class FadeInableMixin(AnimableMixin):
         """
         pass
     # end end_fadein
+
+    # Finish fade-in animation
+    def finish_fadein(self):
+        """
+        Finish the fade-in animation.
+        """
+        pass
+    # end finish_fadein
 
 # end FadeInAble
 

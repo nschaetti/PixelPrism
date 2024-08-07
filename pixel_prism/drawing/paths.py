@@ -6,7 +6,13 @@ import numpy as np
 from pixel_prism.data import Point2D, Color, Scalar
 import pixel_prism.utils as utils
 from pixel_prism.drawing import Circle, Line
-from pixel_prism.animate.able import MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin
+from pixel_prism.animate.able import (
+    MovableMixin,
+    FadeInableMixin,
+    FadeOutableMixin,
+    BuildableMixin,
+    DestroyableMixin
+)
 from .drawablemixin import DrawableMixin
 from .transforms import (
     Translate2D,
@@ -19,19 +25,29 @@ from .transforms import (
 
 
 # Path segment
-class PathSegment(DrawableMixin, MovableMixin, BuildableMixin):
+class PathSegment(
+    DrawableMixin,
+    MovableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
     """
     A class to represent a path segment.
     """
 
-    def __init__(self, elements=None):
+    def __init__(
+            self,
+            elements=None,
+            is_built: bool = True,
+            build_ratio: float = 1.0
+    ):
         """
         Initialize the path segment with no elements.
         """
         # Constructors
         DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
-        BuildableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
 
         # Default elements
         if elements is None:
@@ -217,6 +233,34 @@ class PathSegment(DrawableMixin, MovableMixin, BuildableMixin):
 
     # endregion BUILD
 
+    # region DESTROY
+
+    # Start building
+    def start_destroy(self, start_value: Any):
+        """
+        Start building the vector graphic.
+        """
+        super().start_destroy(start_value)
+    # end start_destroy
+
+    # End building
+    def end_destroy(self, end_value: Any):
+        """
+        End building the vector graphic.
+        """
+        super().end_destroy(end_value)
+    # end end_destroy
+
+    # Animate building
+    def animate_destroy(self, t, duration, interpolated_t, env_value):
+        """
+        Animate building the vector graphic.
+        """
+        super().animate_destroy(t, duration, interpolated_t, env_value)
+    # end animate_destroy
+
+    # endregion DESTROY
+
     # region OVERRIDE
 
     def __len__(self):
@@ -294,7 +338,14 @@ class PathSegment(DrawableMixin, MovableMixin, BuildableMixin):
 # end PathSegment
 
 
-class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin):
+class Path(
+    DrawableMixin,
+    MovableMixin,
+    FadeInableMixin,
+    FadeOutableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
     """
     A simple path class that can be drawn to a cairo context.
     """
@@ -307,7 +358,9 @@ class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Build
             fill_color: Color = None,
             path: PathSegment = None,
             subpaths: List[PathSegment] = None,
-            transform=None
+            transform=None,
+            is_built: bool = True,
+            build_ratio: float = 1.0
     ):
         """
         Initialize the path.
@@ -317,10 +370,15 @@ class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Build
             path (PathSegment): Path segment of the path
             subpaths (List[PathSegment]): Subpaths of the path
             transform: Transformation to apply to the path
+            is_built (bool): Is the path built
+            build_ratio (float): Build ratio of the path
         """
         # Constructors
         DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
+        FadeInableMixin.__init__(self)
+        FadeOutableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
 
         # Add the subpaths
         if subpaths is None:
@@ -338,9 +396,6 @@ class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Build
 
         # Set length
         self.length = self.compute_length()
-
-        # Build
-        self.build_last_animated_element = None
 
         # Debug circle
         self.debug_circle = Circle(
@@ -793,13 +848,29 @@ class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Build
 
     # region BUILD
 
+    # Initialize building
+    def init_build(self):
+        """
+        Initialize building the object.
+        """
+        print(f"Path init_build")
+        super().init_build()
+        self.path.init_build()
+        for subpath in self.subpaths:
+            subpath.init_build()
+        # end for
+    # end init_build
+
     # Start building
     def start_build(self, start_value: Any):
         """
         Start building the object.
         """
         super().start_build(start_value)
-        self.build_last_animated_element = None
+        self.path.start_build(start_value)
+        for subpath in self.subpaths:
+            subpath.start_build(start_value)
+        # end for
     # end start_build
 
     # End building
@@ -808,7 +879,6 @@ class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Build
         End building the object.
         """
         super().end_build(end_value)
-        self.build_last_animated_element = None
 
         # End elements
         self.path.end_build(end_value)
@@ -817,7 +887,6 @@ class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Build
         # end for
     # end end_build
 
-    # Animate building
     def animate_build(self, t, duration, interpolated_t, env_value):
         """
         Animate building the object.
@@ -825,61 +894,98 @@ class Path(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Build
         # Animate building
         super().animate_build(t, duration, interpolated_t, env_value)
 
-        # Share of time for path and subpaths based on length
-        path_length = self.path.length
-        subpath_lengths = [subpath.length for subpath in self.subpaths]
-        total_length = path_length + sum(subpath_lengths)
+        # Animate build for path
+        self.path.animate_build(t, duration, interpolated_t, env_value)
 
-        # Share of time for path and subpaths
-        path_share = path_length / total_length
-        subpath_shares = [subpath_length / total_length for subpath_length in subpath_lengths]
-
-        # Path times
-        path_times = [path_share] + [p_share + path_share for p_share in subpath_shares]
-
-        # Get on which path to animate
-        path_index = 0
-        for i, path_time in enumerate(path_times):
-            if interpolated_t < path_time:
-                path_index = i
-                break
-            # end if
+        # Animate build for each subpath
+        for subpath in self.subpaths:
+            subpath.animate_build(t, duration, interpolated_t, env_value)
         # end for
-
-        # New animated element
-        if self.build_last_animated_element != path_index:
-            # Start building
-            if path_index == 0:
-                self.path.start_build(None)
-            else:
-                self.subpaths[path_index - 1].start_build(None)
-            # end if
-
-            # End building
-            if self.build_last_animated_element is not None:
-                if self.build_last_animated_element == 0:
-                    self.path.end_build(None)
-                else:
-                    self.subpaths[self.build_last_animated_element - 1].end_build(None)
-                # end if
-            # end if
-
-            # Set last animated element
-            self.build_last_animated_element = path_index
-        # end if
-
-        # Compute relative time for path
-        relative_t = (interpolated_t - path_times[path_index - 1]) / path_share if path_index > 0 else interpolated_t
-
-        # Animate path
-        if path_index == 0:
-            self.path.animate_build(t, duration, relative_t, env_value)
-        else:
-            self.subpaths[path_index - 1].animate_build(t, duration, relative_t, env_value)
-        # end if
     # end animate_build
 
+    # Finish building
+    def finish_build(self):
+        """
+        Finish building the object.
+        """
+        super().finish_build()
+        self.path.finish_build()
+        for subpath in self.subpaths:
+            subpath.finish_build()
+        # end for
+    # end finish_build
+
     # endregion BUILD
+
+    # region DESTROY
+
+    # Initialize destroying
+    def init_destroy(self):
+        """
+        Initialize destroying the object.
+        """
+        super().init_destroy()
+        self.path.init_destroy()
+        for subpath in self.subpaths:
+            subpath.init_destroy()
+        # end for
+    # end init_destroy
+
+    # Start destroying
+    def start_destroy(self, start_value: Any):
+        """
+        Start building the object.
+        """
+        super().start_destroy(start_value)
+        self.path.start_destroy(start_value)
+        for subpath in self.subpaths:
+            subpath.start_destroy(start_value)
+        # end for
+    # end start_destroy
+
+    def animate_destroy(self, t, duration, interpolated_t, env_value):
+        """
+        Animate building the object.
+        """
+        # Animate building
+        super().animate_destroy(t, duration, interpolated_t, env_value)
+
+        # Animate build for path
+        self.path.animate_destroy(t, duration, interpolated_t, env_value)
+
+        # Animate build for each subpath
+        for subpath in self.subpaths:
+            subpath.animate_destroy(t, duration, interpolated_t, env_value)
+        # end for
+    # end animate_destroy
+
+    # End destroying
+    def end_destroy(self, end_value: Any):
+        """
+        End building the object.
+        """
+        super().end_destroy(end_value)
+
+        # End elements
+        self.path.end_destroy(end_value)
+        for subpath in self.subpaths:
+            subpath.end_destroy(end_value)
+        # end for
+    # end end_destroy
+
+    # Finish destroying
+    def finish_destroy(self):
+        """
+        Finish destroying the object.
+        """
+        super().finish_destroy()
+        self.path.finish_destroy()
+        for subpath in self.subpaths:
+            subpath.finish_destroy()
+        # end for
+    # end finish_destroy
+
+    # endregion DESTROY
 
     # region OVERRIDE
 

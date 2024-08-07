@@ -9,7 +9,13 @@ import cairo
 import tempfile
 
 from pixel_prism.utils import render_latex_to_svg, draw_svg
-from pixel_prism.animate.able import FadeInableMixin, FadeOutableMixin, MovableMixin, BuildableMixin
+from pixel_prism.animate.able import (
+    FadeInableMixin,
+    FadeOutableMixin,
+    MovableMixin,
+    BuildableMixin,
+    DestroyableMixin
+)
 from pixel_prism.data import Point2D, Color
 import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin
@@ -22,13 +28,19 @@ def generate_temp_svg_filename():
     """
     temp_file = tempfile.NamedTemporaryFile(suffix='.svg', delete=False)
     temp_filename = temp_file.name
-    print(temp_filename)
     temp_file.close()
     return temp_filename
 # end generate_temp_svg_filename
 
 
-class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin):
+class MathTex(
+    DrawableMixin,
+    MovableMixin,
+    FadeInableMixin,
+    FadeOutableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
 
     def __init__(
             self,
@@ -202,6 +214,14 @@ class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Bu
 
     # region BUILD
 
+    # Initialize building
+    def init_build(self):
+        """
+        Initialize building the MathTex object.
+        """
+        self.math_graphics.init_build()
+    # end init_build
+
     # Start building
     def start_build(self, start_value: Any):
         """
@@ -209,14 +229,6 @@ class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Bu
         """
         self.math_graphics.start_build(start_value)
     # end start_build
-
-    # End building
-    def end_build(self, end_value: Any):
-        """
-        End building the MathTex object.
-        """
-        self.math_graphics.end_build(end_value)
-    # end end_build
 
     # Animate building
     def animate_build(self, t, duration, interpolated_t, env_value):
@@ -226,7 +238,67 @@ class MathTex(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, Bu
         self.math_graphics.animate_build(t, duration, interpolated_t, env_value)
     # end animate_build
 
+    # End building
+    def end_build(self, end_value: Any):
+        """
+        End building the MathTex object.
+        """
+        self.math_graphics.end_build(end_value)
+    # end end_build
+
+    # Finish building
+    def finish_build(self):
+        """
+        Finish building the MathTex object.
+        """
+        self.math_graphics.finish_build()
+    # end finish_build
+
     # endregion BUILD
+
+    # region DESTROY
+
+    # Initialize destroying
+    def init_destroy(self):
+        """
+        Initialize destroying the MathTex object.
+        """
+        self.math_graphics.init_destroy()
+    # end init_destroy
+
+    # Start building
+    def start_destroy(self, start_value: Any):
+        """
+        Start destroying the MathTex object.
+        """
+        self.math_graphics.start_destroy(start_value)
+    # end start_destroy
+
+    # Animate building
+    def animate_destroy(self, t, duration, interpolated_t, env_value):
+        """
+        Animate destroying the MathTex object.
+        """
+        self.math_graphics.animate_destroy(t, duration, interpolated_t, env_value)
+    # end animate_destroy
+
+    # End building
+    def end_destroy(self, end_value: Any):
+        """
+        End destroying the MathTex object.
+        """
+        self.math_graphics.end_destroy(end_value)
+    # end end_destroy
+
+    # Finish building
+    def finish_destroy(self):
+        """
+        Finish destroying the MathTex object.
+        """
+        self.math_graphics.finish_destroy()
+    # end finish_destroy
+
+    # endregion DESTROY
 
     def __getitem__(self, index):
         """

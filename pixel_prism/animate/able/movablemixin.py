@@ -31,6 +31,14 @@ class MovableMixin(AnimableMixin):
         return self.pos
     # end get_position
 
+    # Initialize position
+    def init_move(self):
+        """
+        Initialize the move animation.
+        """
+        pass
+    # end init_move
+
     # Start animation
     def start_move(
             self,
@@ -44,20 +52,6 @@ class MovableMixin(AnimableMixin):
         """
         self.start_position = self.pos
     # end start_move
-
-    # Stop animation
-    def end_move(
-            self,
-            end_value: Any
-    ):
-        """
-        Stop the move animation.
-
-        Args:
-            end_value (any): The end position of the object
-        """
-        pass
-    # end end_move
 
     def animate_move(
             self,
@@ -78,6 +72,28 @@ class MovableMixin(AnimableMixin):
         self.pos = self.start_position * (1 - interpolated_t) + np.array(end_value) * interpolated_t
     # end animate_move
 
+    # Stop animation
+    def end_move(
+            self,
+            end_value: Any
+    ):
+        """
+        Stop the move animation.
+
+        Args:
+            end_value (any): The end position of the object
+        """
+        pass
+    # end end_move
+
+    # Finish animation
+    def finish_move(self):
+        """
+        Finish the move animation.
+        """
+        pass
+    # end finish_move
+
 # end MovAble
 
 
@@ -96,6 +112,14 @@ class RangeableMixin(AnimableMixin):
         self.start_position = None
     # end __init__
 
+    # Initialize animation
+    def init_range(self):
+        """
+        Initialize the range animation.
+        """
+        pass
+    # end init
+
     # Start animation
     def start_range(
             self,
@@ -109,20 +133,6 @@ class RangeableMixin(AnimableMixin):
         """
         self.start_position = self.value
     # end start_move
-
-    # Stop animation
-    def end_range(
-            self,
-            end_value: Any
-    ):
-        """
-        Stop the range animation.
-
-        Args:
-            end_value (any): The end value of the object
-        """
-        pass
-    # end end_range
 
     def animate_range(
             self,
@@ -142,5 +152,27 @@ class RangeableMixin(AnimableMixin):
         """
         self.value = self.start_position * (1 - interpolated_t) + end_value * interpolated_t
     # end animate_range
+
+    # Stop animation
+    def end_range(
+            self,
+            end_value: Any
+    ):
+        """
+        Stop the range animation.
+
+        Args:
+            end_value (any): The end value of the object
+        """
+        pass
+    # end end_range
+
+    # Finish animation
+    def finish_range(self):
+        """
+        Finish the range animation.
+        """
+        pass
+    # end finish_range
 
 # end RangeAble

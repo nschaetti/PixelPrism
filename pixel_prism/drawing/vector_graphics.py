@@ -1,7 +1,13 @@
 
 
 from typing import Iterator, List, Optional, Any
-from pixel_prism.animate.able import MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin
+from pixel_prism.animate.able import (
+    MovableMixin,
+    FadeInableMixin,
+    FadeOutableMixin,
+    BuildableMixin,
+    DestroyableMixin
+)
 from pixel_prism.data import Point2D, Color
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path
@@ -238,7 +244,14 @@ def load_svg(
 # end load_svg
 
 
-class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMixin, BuildableMixin):
+class VectorGraphics(
+    DrawableMixin,
+    MovableMixin,
+    FadeInableMixin,
+    FadeOutableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
 
     def __init__(
             self,
@@ -568,6 +581,17 @@ class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMi
 
     # region BUILD
 
+    # Initialize building
+    def init_build(self):
+        """
+        Initialize building the vector graphic.
+        """
+        super().init_build()
+        for element in self.elements:
+            element.init_build()
+        # end for
+    # end init_build
+
     # Start building
     def start_build(self, start_value: Any):
         """
@@ -576,15 +600,6 @@ class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMi
         super().start_build(start_value)
         self.build_animated_element = None
     # end start_build
-
-    # End building
-    def end_build(self, end_value: Any):
-        """
-        End building the vector graphic.
-        """
-        super().end_build(end_value)
-        self.build_animated_element = None
-    # end end_build
 
     # Animate building
     def animate_build(self, t, duration, interpolated_t, env_value):
@@ -620,7 +635,106 @@ class VectorGraphics(DrawableMixin, MovableMixin, FadeInableMixin, FadeOutableMi
         # end for
     # end animate_build
 
+    # End building
+    def end_build(self, end_value: Any):
+        """
+        End building the vector graphic.
+        """
+        super().end_build(end_value)
+        self.build_animated_element = None
+    # end end_build
+
+    # Finish
+    def finish_build(self):
+        """
+        Finish building the vector graphic.
+        """
+        super().finish_build()
+        for element in self.elements:
+            element.finish_build()
+        # end for
+    # end finish_build
+
     # endregion BUILD
+
+    # region DESTROY
+
+    # Initialize destroying
+    def init_destroy(self):
+        """
+        Initialize destroying the vector graphic.
+        """
+        super().init_destroy()
+        for element in self.elements:
+            element.init_destroy()
+        # end for
+    # end init_destroy
+
+    # Start destroying
+    def start_destroy(self, start_value: Any):
+        """
+        Start destroying the vector graphic.
+        """
+        super().start_destroy(start_value)
+        self.build_animated_element = None
+    # end start_destroy
+
+    # Animate destroying
+    def animate_destroy(self, t, duration, interpolated_t, env_value):
+        """
+        Animate destroying the vector graphic.
+        """
+        # Time of animation divided by elements
+        t_per_element = duration / len(self.elements)
+
+        # Get which element we are
+        i = min(int((1 - interpolated_t) * len(self.elements)), len(self.elements) - 1)
+
+        # New element ?
+        if i != self.build_animated_element:
+            self.build_animated_element = i
+            if i < len(self.elements) - 1:
+                self.elements[i + 1].end_destroy(0)
+            # end if
+            self.elements[i].start_destroy(0)
+        # end if
+
+        # Check on which element we are
+        for e_i, element in enumerate(self.elements):
+            if e_i == i:
+                new_interpolated_t = (interpolated_t - (len(self.elements) - i - 1) / len(self.elements)) * len(self.elements)
+                element.animate_destroy(
+                    t,
+                    t_per_element,
+                    # (interpolated_t - (len(self.elements) - i - 1) / len(self.elements)) * len(self.elements),
+                    new_interpolated_t,
+                    env_value
+                )
+            # end if
+        # end for
+    # end animate_destroy
+
+    # End destroying
+    def end_destroy(self, end_value: Any):
+        """
+        End destroying the vector graphic.
+        """
+        super().end_build(end_value)
+        self.build_animated_element = None
+    # end end_destroy
+
+    # Finish destroying
+    def finish_destroy(self):
+        """
+        Finish destroying the vector graphic.
+        """
+        super().finish_destroy()
+        for element in self.elements:
+            element.finish_destroy()
+        # end for
+    # end finish_destroy
+
+    # endregion DESTROY
 
     def __str__(self):
         """

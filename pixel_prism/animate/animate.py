@@ -3,7 +3,14 @@
 # Imports
 import numpy as np
 from enum import Enum
-from .able import MovableMixin, FadeInableMixin, FadeOutableMixin, RangeableMixin, BuildableMixin
+from .able import (
+    MovableMixin,
+    FadeInableMixin,
+    FadeOutableMixin,
+    RangeableMixin,
+    BuildableMixin,
+    DestroyableMixin
+)
 from .interpolate import Interpolator, LinearInterpolator
 
 
@@ -59,9 +66,11 @@ class Animate:
 
         # Animation
         animation_name = self.__class__.__name__.lower()
+        self.init_method = f"init_{animation_name}"
         self.start_method = f"start_{animation_name}"
         self.animate_method = f"animate_{animation_name}"
         self.end_method = f"end_{animation_name}"
+        self.finish_method = f"finish_{animation_name}"
     # end __init__
 
     def start(self):
@@ -71,6 +80,14 @@ class Animate:
         if self.state == AnimationState.WAITING_START:
             # Enter running state
             self.state = AnimationState.RUNNING
+
+            # Get the init method
+            if hasattr(self.obj, self.init_method):
+                init_method = getattr(self.obj, self.init_method)
+                init_method()
+            else:
+                raise NotImplementedError(f"{self.init_method} not implemented for {self.obj.__class__.__name__}")
+            # end if
 
             # Get the start method
             if hasattr(self.obj, self.start_method):
@@ -96,6 +113,14 @@ class Animate:
                 end_method(self.target_value)
             else:
                 raise NotImplementedError(f"{self.end_method} not implemented for {self.obj.__class__.__name__}")
+            # end if
+
+            # Get the finish method
+            if hasattr(self.obj, self.finish_method):
+                finish_method = getattr(self.obj, self.finish_method)
+                finish_method()
+            else:
+                raise NotImplementedError(f"{self.finish_method} not implemented for {self.obj.__class__.__name__}")
             # end if
         # end if
     # end stop
@@ -307,4 +332,32 @@ class Build(Animate):
 # end Build
 
 
+# Destroy animation
+class Destroy(Animate):
+    """
+    A transition that fades in an object over time.
+    """
+
+    def __init__(
+            self,
+            obj,
+            start_time,
+            end_time,
+            interpolator=LinearInterpolator(),
+            name="",
+    ):
+        """
+        Initialize the destroy transition.
+
+        Args:
+            obj (any): Object to fade in
+            start_time (float): Start time
+            end_time (float): End time
+            interpolator (Interpolator): Interpolator
+        """
+        assert isinstance(obj, DestroyableMixin), f"Object must be an instance of DestroyableMixin (type {type(obj)})"
+        super().__init__(obj, start_time, end_time, 1, 0, interpolator, name=name)
+    # end __init__
+
+# end Destroy
 

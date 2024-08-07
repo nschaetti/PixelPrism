@@ -3,14 +3,19 @@
 # Imports
 from typing import Tuple, Any, Union
 from pixel_prism.data import Point2D, Scalar, Color
-from pixel_prism.animate.able import MovableMixin, BuildableMixin
+from pixel_prism.animate.able import MovableMixin, BuildableMixin, DestroyableMixin
 import pixel_prism.utils as utils
 
 from .drawablemixin import DrawableMixin
 
 
 # A 2D rectangle
-class Rectangle(DrawableMixin, MovableMixin, BuildableMixin):
+class Rectangle(
+    DrawableMixin,
+    MovableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
     """
     A class to represent a rectangle in 2D space.
     """

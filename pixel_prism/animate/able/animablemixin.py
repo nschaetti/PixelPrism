@@ -23,7 +23,7 @@ class AnimableMixin:
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The target value of the animation
         """
-        raise NotImplementedError("Subclasses should implement this method")
+        raise NotImplementedError(f"{self.__class__.__name__} Subclasses should implement this method")
     # end animate
 
 # end Able
