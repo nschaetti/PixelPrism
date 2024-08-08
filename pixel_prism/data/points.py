@@ -23,7 +23,13 @@ class Point2D(Point):
     A class to represent a point in 2D space.
     """
 
-    def __init__(self, x=0, y=0, dtype=np.float32):
+    def __init__(
+            self,
+            x=0,
+            y=0,
+            on_change=None,
+            dtype=np.float32
+    ):
         """
         Initialize the point with its coordinates.
 
@@ -32,8 +38,32 @@ class Point2D(Point):
             y (float): Y-coordinate of the point
         """
         super().__init__()
-        self.pos = np.array([x, y], dtype=dtype)
+        self._pos = np.array([x, y], dtype=dtype)
+
+        # List of event listeners (per events)
+        self.event_listeners = {
+            "on_change": [] if on_change is None else [on_change]
+        }
     # end __init__
+
+    @property
+    def pos(self):
+        """
+        Get the position of the point.
+
+        Returns:
+            np.array: Position of the point
+        """
+        return self._pos
+    # end pos
+
+    @pos.setter
+    def pos(self, value: np.array):
+        """
+        Set the position of the point.
+        """
+        self.set(value[0], value[1])
+    # end pos
 
     @property
     def x(self):
@@ -43,7 +73,7 @@ class Point2D(Point):
         Returns:
             float: X-coordinate of the point
         """
-        return self.pos[0]
+        return self._pos[0]
     # end x
 
     @x.setter
@@ -51,7 +81,7 @@ class Point2D(Point):
         """
         Set the X-coordinate of the point.
         """
-        self.pos[0] = value
+        self.set(value, self.y)
     # end x
 
     @property
@@ -62,7 +92,7 @@ class Point2D(Point):
         Returns:
             float: Y-coordinate of the point
         """
-        return self.pos[1]
+        return self._pos[1]
     # end y
 
     @y.setter
@@ -70,7 +100,7 @@ class Point2D(Point):
         """
         Set the Y-coordinate of the point.
         """
-        self.pos[1] = value
+        self.set(self.x, value)
     # end y
 
     def set(self, x, y):
@@ -81,8 +111,9 @@ class Point2D(Point):
             x (float): X-coordinate of the point
             y (float): Y-coordinate of the point
         """
-        self.pos[0] = x
-        self.pos[1] = y
+        self._pos[0] = x
+        self._pos[1] = y
+        self.dispatch_event("on_change", x=self._pos[0], y=self._pos[1])
     # end set
 
     def get(self):
@@ -92,14 +123,14 @@ class Point2D(Point):
         Returns:
             np.array: Array containing the X and Y coordinates of the point
         """
-        return self.pos[0], self.pos[1]
+        return self._pos[0], self._pos[1]
     # end get
 
     def copy(self):
         """
         Return a copy of the point.
         """
-        return Point2D(x=self.x, y=self.y, dtype=self.pos.dtype)
+        return Point2D(x=self.x, y=self.y, dtype=self._pos.dtype)
     # end copy
 
     # Return a string representation of the point.

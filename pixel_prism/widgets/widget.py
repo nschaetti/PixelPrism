@@ -42,22 +42,33 @@ class Widget:
 
     def render(
             self,
-            surface: cairo.ImageSurface
+            surface: cairo.ImageSurface,
+            *args,
+            **kwargs
     ):
         """
         Render the widget to the surface.
 
         Args:
             surface (cairo.ImageSurface): Surface to render the widget to
+            draw_params (dict): Parameters for drawing the widget
         """
+        # Get surface and context
         self.surface = surface
         context = cairo.Context(surface)
-        self.draw(context)
+
+        # Get draw params
+        draw_params = kwargs.get("draw_params", {})
+
+        # Draw the widget
+        self.draw(context, **draw_params)
     # end render
 
     def draw(
             self,
-            context: cairo.Context
+            context: cairo.Context,
+            *args,
+            **kwargs
     ):
         """
         Draw the widget to the context.

@@ -44,7 +44,9 @@ class Viewport(Widget):
     # Draw
     def draw(
             self,
-            context: cairo.Context
+            context: cairo.Context,
+            *args,
+            **kwargs
     ):
         """
         Draw the viewport to the context.
@@ -63,20 +65,23 @@ class Viewport(Widget):
 
         # Draw the widgets
         for widget in self.widgets:
-            widget.draw(context)
+            widget.draw(context, *args, **kwargs)
         # end for
     # end draw
 
     # Render
     def render(
             self,
-            surface: cairo.ImageSurface
+            surface: cairo.ImageSurface,
+            *args,
+            **kwargs
     ):
         """
         Render the viewport to the surface.
 
         Args:
             surface (cairo.ImageSurface): Surface to render the viewport to
+            draw_params (dict): Parameters for drawing the viewport
         """
         # Set the surface
         self.surface = surface
@@ -87,8 +92,14 @@ class Viewport(Widget):
         # Anti-aliasing
         context.set_antialias(cairo.Antialias.SUBPIXEL)
 
+        # Get draw params
+        draw_params = kwargs.get("draw_params", {})
+
         # Draw the widgets
-        self.draw(context)
+        self.draw(
+            context,
+            **draw_params
+        )
     # end render
 
     # Create sub-surface for a widget

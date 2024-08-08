@@ -12,7 +12,6 @@ from .drawablemixin import DrawableMixin
 
 
 # A Cubic Bezier curve
-# CubicBezier(start=(3.716065-3.765878j), control1=(3.536737-4.134496j), control2=(3.247821-4.403487j), end=(2.799502-4.403487j))
 class CubicBezierCurve(DrawableMixin, MovableMixin):
     """
     A class to represent a cubic Bezier curve in 2D space.
@@ -24,7 +23,7 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             control1: Point2D,
             control2: Point2D,
             end: Point2D,
-            bbox: Rectangle = None
+            bounding_box: Rectangle = None
     ):
         """
         Initialize the curve with its start, control1, control2, and end points.
@@ -35,15 +34,26 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             control2 (Point2D): Second control point of the curve
             end (Point2D): End point of the curve
         """
-        super().__init__()
+        # Constructor
+        DrawableMixin.__init__(self, False)
+
+        # Properties
         self.start = start
         self.control1 = control1
         self.control2 = control2
         self.end = end
-        self.bbox = bbox
+
+        # Bounding box
+        if bounding_box is not None:
+            self.bbox = bounding_box
+            self.has_bbox = True
+        else:
+            self.bbox = None
+            self.has_bbox = False
+        # end if
 
         # Calculate the length of the curve
-        self.length = self.recursive_bezier_length(
+        self.length = self._recursive_bezier_length(
             np.array([start.x, start.y]),
             np.array([control1.x, control1.y]),
             np.array([control2.x, control2.y]),
@@ -51,6 +61,8 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             0
         )
     # end __init__
+
+    # region PROPERTIES
 
     @property
     def width(self):
@@ -74,67 +86,9 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
         return self.bbox.height
     # end height
 
-    def recursive_bezier_length(self, p0, p1, p2, p3, depth, tolerance=1e-5):
-        """
-        Calculate the length of a cubic Bezier curve defined by points p0, p1, p2, p3.
-        """
-        # Calculate midpoints
-        p01 = (p0 + p1) / 2
-        p12 = (p1 + p2) / 2
-        p23 = (p2 + p3) / 2
-        p012 = (p01 + p12) / 2
-        p123 = (p12 + p23) / 2
-        p0123 = (p012 + p123) / 2
+    # endregion PROPERTIES
 
-        # Calculate the lengths of the line segments
-        l1 = np.linalg.norm(p0 - p3)
-        l2 = np.linalg.norm(p0 - p1) + np.linalg.norm(p1 - p2) + np.linalg.norm(p2 - p3)
-
-        # Subdivide if necessary
-        if np.abs(l1 - l2) > tolerance:
-            return (
-                    self.recursive_bezier_length(p0, p01, p012, p0123, depth + 1, tolerance) +
-                    self.recursive_bezier_length(p0123, p123, p23, p3, depth + 1, tolerance)
-            )
-        # end if
-
-        return l2
-    # end recursive_bezier_length
-
-    def bezier_cubic_subdivide(
-            self,
-            t
-    ):
-        """
-        Subdivide a cubic Bezier curve at parameter t.
-
-        Args:
-            t (float): Parameter
-        """
-        # Points
-        p0 = np.array([self.start.x, self.start.y])
-        p1 = np.array([self.control1.x, self.control1.y])
-        p2 = np.array([self.control2.x, self.control2.y])
-        p3 = np.array([self.end.x, self.end.y])
-
-        # Calculate the points
-        p01 = (1 - t) * p0 + t * p1
-        p12 = (1 - t) * p1 + t * p2
-        p23 = (1 - t) * p2 + t * p3
-        p012 = (1 - t) * p01 + t * p12
-        p123 = (1 - t) * p12 + t * p23
-        p0123 = (1 - t) * p012 + t * p123
-
-        return (
-            Point2D(float(p0[0]), float(p0[1])),
-            Point2D(float(p01[0]), float(p01[1])),
-            Point2D(float(p012[0]), float(p012[1])),
-            Point2D(float(p0123[0]), float(p0123[1])),
-            Point2D(float(p123[0]), float(p123[1])),
-            Point2D(float(p23[0]), float(p23[1])),
-            Point2D(float(p3[0]), float(p3[1]))
-        )
-    # end bezier_cubic_subdivide
+    # region PUBLIC
 
     # Move
     def translate(self, dx: float, dy: float):
@@ -209,7 +163,7 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             t (float): Parameter
         """
         # Subdivide the curve at t
-        p0, p01, p012, p0123, p123, p23, p3 = self.bezier_cubic_subdivide(t)
+        p0, p01, p012, p0123, p123, p23, p3 = self._bezier_subdivide(t)
 
         # Draw the first part of the subdivided curve
         context.curve_to(
@@ -252,6 +206,77 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
         # end if
     # end draw
 
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _recursive_bezier_length(self, p0, p1, p2, p3, depth, tolerance=1e-5):
+        """
+        Calculate the length of a cubic Bezier curve defined by points p0, p1, p2, p3.
+        """
+        # Calculate midpoints
+        p01 = (p0 + p1) / 2
+        p12 = (p1 + p2) / 2
+        p23 = (p2 + p3) / 2
+        p012 = (p01 + p12) / 2
+        p123 = (p12 + p23) / 2
+        p0123 = (p012 + p123) / 2
+
+        # Calculate the lengths of the line segments
+        l1 = np.linalg.norm(p0 - p3)
+        l2 = np.linalg.norm(p0 - p1) + np.linalg.norm(p1 - p2) + np.linalg.norm(p2 - p3)
+
+        # Subdivide if necessary
+        if np.abs(l1 - l2) > tolerance:
+            return (
+                    self._recursive_bezier_length(p0, p01, p012, p0123, depth + 1, tolerance) +
+                    self._recursive_bezier_length(p0123, p123, p23, p3, depth + 1, tolerance)
+            )
+        # end if
+
+        return l2
+    # end _recursive_bezier_length
+
+    def _bezier_subdivide(
+            self,
+            t
+    ):
+        """
+        Subdivide a cubic Bezier curve at parameter t.
+
+        Args:
+
+            t (float): Parameter
+        """
+        # Points
+        p0 = np.array([self.start.x, self.start.y])
+        p1 = np.array([self.control1.x, self.control1.y])
+        p2 = np.array([self.control2.x, self.control2.y])
+        p3 = np.array([self.end.x, self.end.y])
+
+        # Calculate the points
+        p01 = (1 - t) * p0 + t * p1
+        p12 = (1 - t) * p1 + t * p2
+        p23 = (1 - t) * p2 + t * p3
+        p012 = (1 - t) * p01 + t * p12
+        p123 = (1 - t) * p12 + t * p23
+        p0123 = (1 - t) * p012 + t * p123
+
+        return (
+            Point2D(float(p0[0]), float(p0[1])),
+            Point2D(float(p01[0]), float(p01[1])),
+            Point2D(float(p012[0]), float(p012[1])),
+            Point2D(float(p0123[0]), float(p0123[1])),
+            Point2D(float(p123[0]), float(p123[1])),
+            Point2D(float(p23[0]), float(p23[1])),
+            Point2D(float(p3[0]), float(p3[1]))
+        )
+    # end _bezier_subdivide
+
+    # endregion PRIVATE
+
+    # region OVERRIDE
+
     # str
     def __str__(self):
         """
@@ -271,6 +296,10 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             f"CubicBezier(start={self.start},control1={self.control1},control2={self.control2},end={self.end})"
         )
     # end __repr__
+
+    # endregion OVERRIDE
+
+    # region CLASS_METHODS
 
     @classmethod
     def from_2d(
@@ -294,6 +323,8 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             Point2D(end_x, end_y)
         )
     # end from_2d
+
+    # endregion CLASS_METHODS
 
 # end CubicBezierCurve
 

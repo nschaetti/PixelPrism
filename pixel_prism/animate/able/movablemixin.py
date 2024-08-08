@@ -69,7 +69,7 @@ class MovableMixin(AnimableMixin):
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The end position of the object
         """
-        self.pos = self.start_position * (1 - interpolated_t) + np.array(end_value) * interpolated_t
+        self.pos = self.start_position * (1 - interpolated_t) + end_value.pos * interpolated_t
     # end animate_move
 
     # Stop animation
@@ -103,12 +103,15 @@ class RangeableMixin(AnimableMixin):
     """
 
     # Initialize
-    def __init__(self):
+    def __init__(
+            self,
+            rangeable_animated_attribute: str
+    ):
         """
         Initialize the movable object.
         """
         super().__init__()
-        self.value = None
+        self.rangeable_animated_attribute = rangeable_animated_attribute
         self.start_position = None
     # end __init__
 
@@ -131,7 +134,7 @@ class RangeableMixin(AnimableMixin):
         Args:
             start_value (any): The start position of the object
         """
-        self.start_position = self.value
+        self.start_position = getattr(self, self.rangeable_animated_attribute)
     # end start_move
 
     def animate_range(
@@ -150,7 +153,8 @@ class RangeableMixin(AnimableMixin):
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The end position of the object
         """
-        self.value = self.start_position * (1 - interpolated_t) + end_value * interpolated_t
+        new_value = self.start_position * (1 - interpolated_t) + end_value * interpolated_t
+        setattr(self, self.rangeable_animated_attribute, new_value)
     # end animate_range
 
     # Stop animation

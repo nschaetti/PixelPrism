@@ -59,12 +59,20 @@ class DrawableImage(Image):
     # end set_root_container
 
     # Render the image
-    def render(self):
+    def render(
+            self,
+            *args,
+            **kwargs
+    ):
         """
         Render the image to the context.
         """
         if self.root_container:
-            self.root_container.render(self.surface)
+            self.root_container.render(
+                self.surface,
+                *args,
+                **kwargs
+            )
         else:
             raise ValueError("Root container not set.")
         # end if

@@ -2,19 +2,21 @@
 # Animation of an equation.
 # Build and highlight
 #
+import math
 
+from pixel_prism import utils
 # PixelPrism
 from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, FadeOut, Build, Destroy
+from pixel_prism.animate import Move, EaseInOutInterpolator, Range
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas
-from pixel_prism.drawing import MathTex
-from pixel_prism.data import Point2D
+from pixel_prism.drawing import MathTex, Arc
+from pixel_prism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class
-class MathTexAnimation(Animation):
+class ShapesAnimation(Animation):
 
     # Init effects
     def init_effects(self):
@@ -25,18 +27,6 @@ class MathTexAnimation(Animation):
         """
         Build the animation.
         """
-        # Create a Point2D for the position of the LaTeX widget
-        latex_position = Point2D(1920 / 2.0, 1080 / 2.0)
-
-        # Create a LaTeX widget
-        latex_widget = MathTex(
-            "g(x) = \\frac{\\partial Q}{\\partial t}",
-            latex_position,
-            scale=Point2D(20, 20),
-            refs=["g", "(", "x", ")", "=", "partial1", "Q", "bar", "partial2",  "t"],
-            debug=True
-        )
-
         # Add the LaTeX widget to the viewport or a container
         viewport = Viewport()
 
@@ -44,34 +34,61 @@ class MathTexAnimation(Animation):
         drawable_widget = DrawableWidget()
         viewport.add_widget(drawable_widget)
 
-        # Add the LaTeX widget to the drawable widget
-        drawable_widget.add(latex_widget)
+        # Create an ARC on upper left
+        arc1 = Arc(
+            cx=250,
+            cy=1080 / 4.0,
+            radius=200,
+            start_angle=0.0,
+            end_angle=0.0,
+            line_color=utils.RED.copy(),
+            line_width=4.0,
+            fill_color=utils.GREEN.copy(),
+            bbox_border_width=2,
+            bbox_border_color=utils.BLUE.copy()
+        )
 
-        # Build the math tex object
+        # Animate end angle
         self.animate(
-            Build(
-                latex_widget,
+            Range(
+                arc1.start_angle,
                 start_time=0,
-                end_time=1,
+                end_time=7,
+                target_value=math.pi * 2,
                 interpolator=EaseInOutInterpolator()
             )
         )
 
-        # Destroy the math tex object
+        # Animate end angle
         self.animate(
-            Destroy(
-                latex_widget,
-                start_time=7,
-                end_time=8,
+            Range(
+                arc1.end_angle,
+                start_time=0,
+                end_time=4,
+                target_value=math.pi * 2,
                 interpolator=EaseInOutInterpolator()
             )
         )
+
+        # Move the Arc
+        self.animate(
+            Move(
+                arc1.center,
+                start_time=0,
+                end_time=7,
+                target_value=Point2D(1920 / 2.0 - 250, 1080 / 4.0),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        # Add the LaTeX widget to the drawable widget
+        drawable_widget.add(arc1)
 
         # Add objects
         self.add(
             viewport=viewport,
             drawable_widget=drawable_widget,
-            latex_widget=latex_widget
+            arc1=arc1
         )
     # end build
 
@@ -98,7 +115,9 @@ class MathTexAnimation(Animation):
 
         # Set the root container and render the drawing layer
         drawing_layer.set_root_container(viewport)
-        drawing_layer.render()
+        drawing_layer.render(
+            draw_params={'draw_bboxes': True}
+        )
 
         # Add the new drawing layer to the image canvas
         image_canvas.add_layer('drawing', drawing_layer)

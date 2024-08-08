@@ -1,6 +1,6 @@
 
 
-from typing import Iterator, List, Optional, Any
+from typing import Iterator, List, Optional, Any, Union
 from pixel_prism.animate.able import (
     MovableMixin,
     FadeInableMixin,
@@ -217,7 +217,7 @@ def load_svg(
     # end for
 
     # Compute the bounding box
-    bbox = vector_graphics.get_bbox()
+    bbox = vector_graphics.bounding_box
 
     # Put to anchor point
     for element in vector_graphics.elements:
@@ -257,23 +257,37 @@ class VectorGraphics(
             self,
             position: Point2D,
             scale: Point2D,
-            elements=None
+            elements=None,
+            is_built: bool = True,
+            build_ratio: float = 1.0,
+            bbox_border_width: float = 1.0,
+            bbox_border_color: Color = utils.GREEN.copy()
     ):
         """
         Initialize the vector graphics
 
         Args:
+            position (Point2D): Position of the vector graphics
+            scale (Point2D): Scale of the vector graphics
             elements (list): Elements of the vector graphics
+            is_built (bool): Whether the vector graphics is built
+            build_ratio (float): Build ratio
+            bbox_border_width (float): Width of the bounding box border
+            bbox_border_color (Color): Color of the bounding box border
         """
         # Init of VectorGraphicsData
-        super().__init__()
+        DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
+        MovableMixin.__init__(self)
+        FadeInableMixin.__init__(self)
+        FadeOutableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
 
         # Initialize the elements
         self.position = position
         self.scale = scale
         self.elements = elements if elements is not None else []
         self.references = {}
-        self._index = 0 # Index of the current
+        self._index = 0
 
         # Fadein, fadeout
         self.last_animated_element = None
@@ -290,6 +304,26 @@ class VectorGraphics(
         )
     # end __init__
 
+    # Update bounding box
+    def update_bbox(self):
+        """
+        Update the bounding box of the vector graphics.
+        """
+        if len(self.elements) > 0:
+            # Get the min and max values
+            min_x = min([el.bounding_box.x1 for el in self.elements])
+            min_y = min([el.bounding_box.y1 for el in self.elements])
+            max_x = max([el.bounding_box.x2 for el in self.elements])
+            max_y = max([el.bounding_box.y2 for el in self.elements])
+
+            # Update the bounding box
+            self._bounding_box.upper_left.x = min_x
+            self._bounding_box.upper_left.y = min_y
+            self._bounding_box.width = max_x - min_x
+            self._bounding_box.height = max_y - min_y
+        # end if
+    # end update_bbox
+
     # Set alpha
     def set_alpha(self, alpha: float):
         """
@@ -303,37 +337,12 @@ class VectorGraphics(
         # end for
     # end set_alpha
 
-    # Get bounding box
-    def get_bbox(
-            self,
-            border_width: float = 1.0,
-            border_color: Color = utils.WHITE
-    ):
-        """
-        Get the bounding box of the vector graphics.
-
-        Args:
-            border_width (float): Width of the border
-            border_color (Color): Color of the border
-        """
-        # Get the min and max values
-        min_x = min([el.get_bbox().x1 for el in self.elements])
-        min_y = min([el.get_bbox().y1 for el in self.elements])
-        max_x = max([el.get_bbox().x2 for el in self.elements])
-        max_y = max([el.get_bbox().y2 for el in self.elements])
-
-        return Rectangle(
-            upper_left=Point2D(min_x, min_y),
-            width=max_x - min_x,
-            height=max_y - min_y,
-            border_color=border_color,
-            border_width=border_width,
-            fill=False
-        )
-    # end get_bbox
-
     # Add
-    def add(self, element, ref: str = None):
+    def add(
+            self,
+            element: Union[List[Any], Any],
+            ref: str = None
+    ):
         """
         Add an element to the vector graphic.
 
@@ -341,11 +350,22 @@ class VectorGraphics(
             element: Element to add to the vector graphic
             ref (str): Reference of the element
         """
-        self.elements.append(element)
-
-        if ref is not None:
-            self.references[ref] = element
+        if isinstance(element, list):
+            for e_i, el in enumerate(element):
+                self.elements.append(el)
+                if ref is not None:
+                    self.references[ref[e_i]] = el
+                # end if
+            # end for
+        else:
+            self.elements.append(element)
+            if ref is not None:
+                self.references[ref] = element
+            # end if
         # end if
+
+        # Update the bounding box
+        self.update_bbox()
     # end add
 
     # Draw bounding box anchors
@@ -354,7 +374,7 @@ class VectorGraphics(
         Draw the bounding box anchors of the vector graphics.
         """
         # Bounding box
-        path_bbox = self.get_bbox()
+        path_bbox = self.bounding_box
 
         # Draw upper left position
         upper_left = path_bbox.upper_left
@@ -400,10 +420,7 @@ class VectorGraphics(
         Draw the bounding box of the vector graphics.
         """
         # Set the color and draw the rectangle
-        self.get_bbox(
-            border_width=0.12,
-            border_color=utils.RED.copy()
-        ).draw(context)
+        self.bounding_box.draw(context)
     # end draw_bbox
 
     def draw(
@@ -468,6 +485,51 @@ class VectorGraphics(
         # Restore the context
         context.restore()
     # end draw
+
+    # region PRIVATE
+
+    # Get bounding box
+    def _create_bbox(
+            self,
+            border_width: float = 1.0,
+            border_color: Color = utils.WHITE
+    ):
+        """
+        Get the bounding box of the vector graphics.
+
+        Args:
+            border_width (float): Width of the border
+            border_color (Color): Color of the border
+        """
+        if len(self.elements) > 0:
+            # Get the min and max values
+            min_x = min([el.bounding_box.x1 for el in self.elements])
+            min_y = min([el.bounding_box.y1 for el in self.elements])
+            max_x = max([el.bounding_box.x2 for el in self.elements])
+            max_y = max([el.bounding_box.y2 for el in self.elements])
+
+            return Rectangle(
+                upper_left=Point2D(min_x, min_y),
+                width=max_x - min_x,
+                height=max_y - min_y,
+                border_color=border_color,
+                border_width=border_width,
+                fill=False
+            )
+        # end if
+
+        # Empty bounding box
+        return Rectangle(
+            upper_left=Point2D(0, 0),
+            width=0,
+            height=0,
+            border_color=border_color,
+            border_width=border_width,
+            fill=False
+        )
+    # end _create_bbox
+
+    # endregion PRIVATE
 
     # region MOVABLE
 
@@ -736,6 +798,8 @@ class VectorGraphics(
 
     # endregion DESTROY
 
+    # region OVERRIDE
+
     def __str__(self):
         """
         Get the string representation of the vector graphic.
@@ -802,6 +866,8 @@ class VectorGraphics(
             raise StopIteration
         # end if
     # end __next__
+
+    # endregion OVERRIDE
 
     @classmethod
     def from_svg(

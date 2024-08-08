@@ -28,7 +28,12 @@ class Rectangle(
             fill_color: Color = utils.WHITE,
             border_color: Color = utils.WHITE,
             border_width: Union[Scalar, float] = Scalar(1),
-            fill: bool = True
+            fill: bool = True,
+            is_built: bool = True,
+            build_ratio: float = 1.0,
+            has_bbox: bool = True,
+            bbox_border_width: float = 1.0,
+            bbox_border_color: Color = utils.BLUE.copy()
     ):
         """
         Initialize the rectangle with its upper left corner, width, and height.
@@ -38,7 +43,7 @@ class Rectangle(
             width (Scalar): Width of the rectangle
             height (Scalar): Height of the rectangle
         """
-        super().__init__()
+        # Initialize the rectangle
         self.upper_left = upper_left
         self.width = width if isinstance(width, Scalar) else Scalar(width)
         self.height = height if isinstance(height, Scalar) else Scalar(height)
@@ -46,6 +51,10 @@ class Rectangle(
         self.border_color = border_color
         self.border_width = border_width if isinstance(border_width, Scalar) else Scalar(border_width)
         self.fill = fill
+
+        DrawableMixin.__init__(self, has_bbox, bbox_border_width, bbox_border_color)
+        MovableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
     # end __init__
 
     @property
@@ -80,30 +89,6 @@ class Rectangle(
         return self.upper_left.y + self.height.value
     # end y2
 
-    def get_bbox(
-            self,
-            border_width: float = 1.0,
-            border_color: Color = utils.WHITE
-    ):
-        """
-        Get the bounding box of the rectangle.
-
-        Args:
-            border_width (float): Width of the border
-            border_color (Color): Color of the border
-        """
-        # Get the bounding box of the path
-        bbox = self.copy()
-
-        # Set fill, border color and witdth
-        bbox.fill = False
-        bbox.border_color = border_color
-        bbox.border_width.value = border_width
-
-        # Return the bounding box
-        return bbox
-    # end get_bbox
-
     # Set alpha
     def set_alpha(self, alpha: float):
         """
@@ -132,6 +117,7 @@ class Rectangle(
             y (float): Y-coordinate of the upper left corner
         """
         self.upper_left.set(x, y)
+        self.update_bbox()
     # end set_upper_left
 
     def set_width(self, width: float):
@@ -142,6 +128,7 @@ class Rectangle(
             width (float): Width of the rectangle
         """
         self.width.set(width)
+        self.update_bbox()
     # end set_width
 
     def set_height(self, height: float):
@@ -152,7 +139,22 @@ class Rectangle(
             height (float): Height of the rectangle
         """
         self.height.set(height)
+        self.update_bbox()
     # end set_height
+
+    # Update bounding box
+    def update_bbox(
+            self
+    ):
+        """
+        Update the bounding box of the rectangle.
+        """
+        bbox = self._create_bbox()
+        bbox.upper_left.x = self.upper_left.x
+        bbox.upper_left.y = self.upper_left.y
+        bbox.width.value = self.width.value
+        bbox.height.value = self.height.value
+    # end update_bbox
 
     # Union
     def union(self, other: 'Rectangle'):
@@ -184,16 +186,30 @@ class Rectangle(
         """
         self.upper_left.x = self.upper_left.x + dx
         self.upper_left.y = self.upper_left.y + dy
+        self.update_bbox()
     # end translate
 
     # Draw bounding box anchors
-    def draw_bounding_box_anchors(self, context):
+    def draw_bbox_anchors(self, context):
+        """
+        Draw the bounding box anchors of the rectangle.
+        """
+        if self.bounding_box is not None:
+            self.bounding_box.draw_anchors(context)
+        # end if
+    # end draw_bbox_anchors
+
+    # Draw bounding box anchors
+    def draw_anchors(self, context):
         """
         Draw the bounding box anchors of the rectangle.
 
         Args:
             context: Context to draw the rectangle to
         """
+        # Save context
+        context.save()
+
         # Draw upper left position
         upper_left = self.upper_left
         context.rectangle(
@@ -230,6 +246,9 @@ class Rectangle(
         context.move_to(self.x2 - extents.width / 2, self.y2 + extents.height * 2)
         context.show_text(point_position)
         context.fill()
+
+        # Restore context
+        context.restore()
     # end draw_bounding_box_anchors
 
     # Draw bounding box
@@ -237,38 +256,9 @@ class Rectangle(
         """
         Draw the bounding box of the rectangle.
         """
-        # Set the color and draw the rectangle
-        self.set_source_rgba(context, utils.GREEN.copy())
-        context.rectangle(
-            self.upper_left.x,
-            self.upper_left.y,
-            self.width.value,
-            self.height.value
-        )
-        context.set_line_width(0.12)
-        context.stroke()
-
-        # Draw upper left
-        context.rectangle(
-            self.upper_left.x - 0.25,
-            self.upper_left.y - 0.25,
-            0.5,
-            0.5
-        )
-        context.set_source_rgba(255, 255, 255, 1)
-        context.fill()
-        context.close_path()
-
-        # Draw bottom right
-        context.rectangle(
-            self.x2 - 0.25,
-            self.y2 - 0.25,
-            0.5,
-            0.5
-        )
-        context.set_source_rgba(255, 255, 255, 1)
-        context.fill()
-        context.close_path()
+        if self.bounding_box is not None:
+            self.bounding_box.draw(context)
+        # end if
     # end draw_bbox
 
     def draw(
@@ -285,6 +275,7 @@ class Rectangle(
             *args: Arguments
             **kwargs: Keyword arguments
         """
+        # print(f"Rectangle.draw()")
         # Save the context
         context.save()
 
@@ -355,6 +346,39 @@ class Rectangle(
             self.height
         )
     # end copy
+
+    # region PRIVATE
+
+    def _create_bbox(
+            self,
+            border_width: float = 1.0,
+            border_color: Color = utils.WHITE
+    ):
+        """
+        Get the bounding box of the rectangle.
+
+        Args:
+            border_width (float): Width of the border
+            border_color (Color): Color of the border
+        """
+        # Get the bounding box of the path
+        bbox = Rectangle(
+            self.upper_left.copy(),
+            self.width,
+            self.height,
+            has_bbox=False
+        )
+
+        # Set fill, border color and witdth
+        bbox.fill = False
+        bbox.border_color = border_color
+        bbox.border_width.value = border_width
+
+        # Return the bounding box
+        return bbox
+    # end _create_bbox
+
+    # endregion PRIVATE
 
     # region FADE_IN
 

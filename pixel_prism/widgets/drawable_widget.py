@@ -3,6 +3,7 @@
 # Imports
 import cairo
 from .widget import Widget
+from ..drawing import DrawableMixin
 
 
 class DrawableWidget(Widget):
@@ -21,7 +22,9 @@ class DrawableWidget(Widget):
     # Draw the widget
     def draw(
             self,
-            context
+            context,
+            *args,
+            **kwargs
     ):
         """
         Draw the widget to the context.
@@ -37,7 +40,8 @@ class DrawableWidget(Widget):
 
         # For each primitive, draw it
         for primitive in self.primitives:
-            primitive.draw(context)
+            assert isinstance(primitive, DrawableMixin)
+            primitive.draw(context, *args, **kwargs)
         # end for
 
         # Restore context

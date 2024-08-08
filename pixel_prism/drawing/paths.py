@@ -39,13 +39,15 @@ class PathSegment(
             self,
             elements=None,
             is_built: bool = True,
-            build_ratio: float = 1.0
+            build_ratio: float = 1.0,
+            bbox_border_width: float = 0.07,
+            bbox_border_color: Color = utils.YELLOW.copy()
     ):
         """
         Initialize the path segment with no elements.
         """
         # Constructors
-        DrawableMixin.__init__(self)
+        DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
         MovableMixin.__init__(self)
         BuildableMixin.__init__(self, is_built, build_ratio)
 
@@ -61,36 +63,20 @@ class PathSegment(
         self.length = sum([element.length for element in self.elements]) if len(self.elements) > 0 else 0
     # end __init__
 
-    # Get bounding box
-    def get_bbox(
-            self,
-            border_width: float = 1.0,
-            border_color: Color = utils.WHITE.copy()
-    ):
+    # region PUBLIC
+
+    # Update bounding box
+    def update_bbox(self):
         """
-        Get the bounding box of the path segment.
-
-        Args:
-            border_width (float): Width of the border
-            border_color (Color): Color of the border
+        Update the bounding box of the path segment.
         """
-        # Get the bounding box of the path segment
-        bbox = self.elements[0].bbox
-
-        # For each element in the path segment
-        for element in self.elements[1:]:
-            # Update the bounding box
-            bbox = bbox.union(element.bbox)
-        # end for
-
-        # Set fill, border color and witdth
-        bbox.fill = False
-        bbox.border_color = border_color
-        bbox.border_width.value = border_width
-
-        # Return the bounding box
-        return bbox
-    # end get_bbox
+        # Create bounding box
+        bbox = self._create_bbox()
+        self._bounding_box.upper_left.x = bbox.upper_left.x
+        self._bounding_box.upper_left.y = bbox.upper_left.y
+        self._bounding_box.width = bbox.width
+        self._bounding_box.height = bbox.height
+    # end update_bbox
 
     # Add
     def add(self, element):
@@ -102,6 +88,7 @@ class PathSegment(
         """
         self.elements.append(element)
         self.length += element.length
+        self.update_bbox()
     # end add
 
     # Move segments
@@ -120,6 +107,7 @@ class PathSegment(
         for element in self.elements:
             element.move(dx, dy)
         # end for
+        self.update_bbox()
     # end move
 
     # Draw bounding box
@@ -203,7 +191,47 @@ class PathSegment(
         for element in self.elements:
             element.translate(dx, dy)
         # end for
+
+        # Update bounding box
+        self.update_bbox()
     # end translate
+
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    # Get bounding box
+    def _create_bbox(
+            self,
+            border_width: float = 1.0,
+            border_color: Color = utils.WHITE.copy()
+    ):
+        """
+        Get the bounding box of the path segment.
+
+        Args:
+            border_width (float): Width of the border
+            border_color (Color): Color of the border
+        """
+        # Get the bounding box of the path segment
+        bbox = self.elements[0].bbox
+
+        # For each element in the path segment
+        for element in self.elements[1:]:
+            # Update the bounding box
+            bbox = bbox.union(element.bbox)
+        # end for
+
+        # Set fill, border color and witdth
+        bbox.fill = False
+        bbox.border_color = border_color
+        bbox.border_width.value = border_width
+
+        # Return the bounding box
+        return bbox
+    # end _create_bbox
+
+    # endregion PRIVATE
 
     # region BUILD
 
@@ -317,6 +345,8 @@ class PathSegment(
 
     # endregion OVERRIDE
 
+    # region CLASS_METHODS
+
     @classmethod
     def from_data(
             cls,
@@ -334,6 +364,8 @@ class PathSegment(
             elements=path_segment_data.elements
         )
     # end
+
+    # endregion CLASS_METHODS
 
 # end PathSegment
 
@@ -360,7 +392,9 @@ class Path(
             subpaths: List[PathSegment] = None,
             transform=None,
             is_built: bool = True,
-            build_ratio: float = 1.0
+            build_ratio: float = 1.0,
+            bbox_border_width: float = 0.5,
+            bbox_border_color: Color = utils.RED.copy()
     ):
         """
         Initialize the path.
@@ -374,7 +408,7 @@ class Path(
             build_ratio (float): Build ratio of the path
         """
         # Constructors
-        DrawableMixin.__init__(self)
+        DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
         MovableMixin.__init__(self)
         FadeInableMixin.__init__(self)
         FadeOutableMixin.__init__(self)
@@ -408,6 +442,21 @@ class Path(
         )
     # end __init__
 
+    # region PUBLIC
+
+    # Update bounding box
+    def update_bbox(self):
+        """
+        Update the bounding box of the path.
+        """
+        # Create bounding box
+        bbox = self._create_bbox()
+        self._bounding_box.upper_left.x = bbox.upper_left.x
+        self._bounding_box.upper_left.y = bbox.upper_left.y
+        self._bounding_box.width = bbox.width
+        self._bounding_box.height = bbox.height
+    # end update_bbox
+
     # Compute length
     def compute_length(self):
         """
@@ -439,36 +488,6 @@ class Path(
         self.fill_color.alpha = alpha
     # end set_alpha
 
-    def get_bbox(
-            self,
-            border_width: float = 1.0,
-            border_color: Color = utils.WHITE.copy()
-    ):
-        """
-        Get the bounding box of the path.
-
-        Args:
-            border_width (float): Width of the border
-            border_color (Color): Color of the border
-        """
-        # Get the bounding box of the path
-        bbox = self.path.get_bbox()
-
-        # For each subpath
-        for subpath in self.subpaths:
-            # Update the bounding box
-            bbox = bbox.union(subpath.get_bbox())
-        # end for
-
-        # Set fill, border color and witdth
-        bbox.fill = False
-        bbox.border_color = border_color
-        bbox.border_width.value = border_width
-
-        # Return the bounding box
-        return bbox
-    # end get_bbox
-
     # Add
     def add(self, element):
         """
@@ -479,6 +498,9 @@ class Path(
         """
         self.path.add(element)
         self.length = self.compute_length()
+
+        # Update bounding box
+        self.update_bbox()
     # end add
 
     # Add subpath
@@ -491,6 +513,7 @@ class Path(
         """
         self.subpaths.append(subpath)
         self.length = self.compute_length()
+        self.update_bbox()
     # end add_subpath
 
     # Get subpaths
@@ -541,10 +564,13 @@ class Path(
             # Translate the subpath
             subpath.translate(dx, dy)
         # end for
+
+        # Update bounding box
+        self.update_bbox()
     # end translate
 
     # Draw bounding box anchors
-    def draw_bounding_box_anchors(
+    def draw_bbox_anchors(
             self,
             context
     ):
@@ -555,7 +581,7 @@ class Path(
             context (cairo.Context): Context to draw the bounding box anchors to
         """
         # Bounding box
-        path_bbox = self.get_bbox()
+        path_bbox = self.bounding_box
 
         # Draw upper left position
         upper_left = path_bbox.upper_left
@@ -593,10 +619,10 @@ class Path(
         context.move_to(path_bbox.x2 - extents.width / 2, path_bbox.y2 + extents.height * 2)
         context.show_text(point_position)
         context.fill()
-    # end draw_bounding_box_anchors
+    # end draw_bbox_anchors
 
     # Draw bounding boxes
-    def draw_bounding_box(
+    def draw_bbox(
             self,
             context
     ):
@@ -621,19 +647,19 @@ class Path(
         # Draw subpathsbounding box
         for subpath in self.subpaths:
             # Get the bounding box
-            path_bbox = subpath.get_bbox(0.07, utils.YELLOW.copy())
+            path_bbox = subpath.bounding_box
 
             # Draw the bounding box
             path_bbox.draw(context)
         # end for
 
         # Draw path bounding box
-        path_bbox = self.get_bbox(0.12, utils.GREEN.copy())
+        path_bbox = self.bounding_box
         path_bbox.draw(context)
 
         # Restore context
         context.restore()
-    # end draw_bounding_box
+    # end draw_bbox
 
     def apply_transform(
             self,
@@ -793,6 +819,42 @@ class Path(
         context.restore()
     # end draw
 
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _create_bbox(
+            self,
+            border_width: float = 1.0,
+            border_color: Color = utils.WHITE.copy()
+    ):
+        """
+        Get the bounding box of the path.
+
+        Args:
+            border_width (float): Width of the border
+            border_color (Color): Color of the border
+        """
+        # Get the bounding box of the path
+        bbox = self.path.bounding_box
+
+        # For each subpath
+        for subpath in self.subpaths:
+            # Update the bounding box
+            bbox = bbox.union(subpath.bounding_box)
+        # end for
+
+        # Set fill, border color and witdth
+        bbox.fill = False
+        bbox.border_color = border_color
+        bbox.border_width.value = border_width
+
+        # Return the bounding box
+        return bbox
+    # end _create_bbox
+
+    # endregion PRIVATE
+
     # region FADE_IN
 
     def start_fadein(self, start_value: Any):
@@ -853,7 +915,6 @@ class Path(
         """
         Initialize building the object.
         """
-        print(f"Path init_build")
         super().init_build()
         self.path.init_build()
         for subpath in self.subpaths:
