@@ -56,6 +56,9 @@ class Scalar(Data, RangeableMixin):
         Args:
             value (any): Value to set
         """
+        if isinstance(value, Scalar):
+            value = value.get()
+        # end if
         self._value = value
         self.dispatch_event("on_change", value)
     # end set
@@ -66,6 +69,15 @@ class Scalar(Data, RangeableMixin):
         """
         return self._value
     # end get
+
+    def copy(self):
+        """
+        Return a copy of the data.
+        """
+        return Scalar(self._value)
+    # end copy
+
+    # region OVERRIDE
 
     def __str__(self):
         """
@@ -80,5 +92,124 @@ class Scalar(Data, RangeableMixin):
         """
         return f"Scalar(value={self._value})"
     # end __repr__
+
+    # Operator overloading
+    def __add__(self, other):
+        """
+        Add the scalar value to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to add
+        """
+        if isinstance(other, Scalar):
+            return Scalar(self._value + other._value)
+        # end if
+        return Scalar(self._value + other)
+    # end __add__
+
+    def __radd__(self, other):
+        """
+        Add the scalar value to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to add
+        """
+        return self.__add__(other)
+    # end __radd__
+
+    def __sub__(self, other):
+        if isinstance(other, Scalar):
+            return Scalar(self._value - other._value)
+        return Scalar(self._value - other)
+
+    # end __sub__
+
+    def __rsub__(self, other):
+        """
+        Subtract the scalar value from another scalar or value.
+
+        Args:
+            other (any): Scalar or value to subtract
+        """
+        if isinstance(other, Scalar):
+            return Scalar(other._value - self._value)
+        # end if
+        return Scalar(other - self._value)
+    # end __rsub__
+
+    def __mul__(self, other):
+        """
+        Multiply the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to multiply
+        """
+        if isinstance(other, Scalar):
+            return Scalar(self._value * other._value)
+        # end if
+        return Scalar(self._value * other)
+    # end __mul__
+
+    def __rmul__(self, other):
+        """
+        Multiply the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to multiply
+        """
+        return self.__mul__(other)
+    # end __rmul__
+
+    def __truediv__(self, other):
+        """
+        Divide the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to divide by
+        """
+        if isinstance(other, Scalar):
+            return Scalar(self._value / other._value)
+        # end if
+        return Scalar(self._value / other)
+
+    # end __truediv__
+
+    def __rtruediv__(self, other):
+        """
+        Divide the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to divide by
+        """
+        if isinstance(other, Scalar):
+            return Scalar(other / self._value)
+        # end if
+        return Scalar(other / self._value)
+    # end __rtruediv__
+
+    def __eq__(self, other):
+        """
+        Check if the scalar value is equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self._value == other._value
+        # end if
+        return self._value == other
+    # end __eq__
+
+    def __ne__(self, other):
+        """
+        Check if the scalar value is not equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        return not self.__eq__(other)
+    # end __ne__
+
+    # endregion OVERRIDE
 
 # end Scalar

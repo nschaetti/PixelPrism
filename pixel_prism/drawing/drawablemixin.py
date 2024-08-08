@@ -1,5 +1,10 @@
+#
+#
+#
+
+# Imports
 from pixel_prism import utils
-from pixel_prism.data import Color
+from pixel_prism.data import Color, Scalar
 
 
 class DrawableMixin(object):
@@ -7,14 +12,27 @@ class DrawableMixin(object):
     # Constructor
     def __init__(
             self,
+            scale: float = 1.0,
+            rotation: float = 0.0,
             has_bbox: bool = True,
             bbox_border_width: float = 1.0,
             bbox_border_color: Color = utils.WHITE
     ):
         """
         Initialize the drawable mixin.
+
+        Args:
+            scale (float): Scale of the drawable
+            rotation (float): Rotation of the drawable
+            has_bbox (bool): Whether the drawable has a bounding box
+            bbox_border_width (float): Width of the bounding box border
+            bbox_border_color (Color): Color of the bounding box border
         """
         super().__init__()
+
+        # Scale and rotation
+        self._scale = Scalar(scale)
+        self._rotation = Scalar(rotation)
 
         # Bounding box
         if has_bbox:
@@ -26,6 +44,10 @@ class DrawableMixin(object):
             self._bounding_box = None
         # end if
         self.has_bbox = has_bbox
+
+        # Event listeners
+        self._scale.add_event_listener("on_change", self._on_scale_changed)
+        self._rotation.add_event_listener("on_change", self._on_rotation_changed)
     # end __init__
 
     # region PROPERTIES
@@ -36,9 +58,53 @@ class DrawableMixin(object):
         return self._bounding_box
     # end bounding_box
 
+    # Scale
+    @property
+    def scale(self):
+        """
+        Get the scale of the drawable.
+        """
+        return self._scale
+    # end scale
+
+    @scale.setter
+    def scale(self, scale):
+        """
+        Set the scale of the drawable.
+        """
+        self._scale.set(scale)
+    # end scale
+
+    # Rotation
+    @property
+    def rotation(self):
+        """
+        Get the rotation of the drawable.
+        """
+        return self._rotation
+    # end rotation
+
+    @rotation.setter
+    def rotation(self, rotation):
+        """
+        Set the rotation of the drawable.
+        """
+        self._rotation.set(rotation)
+    # end rotation
+
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    # Update object data
+    def update_data(
+            self
+    ):
+        """
+        Update the data of the drawable.
+        """
+        raise NotImplementedError(f"{self.__class__.__name__}.update_data method must be implemented in subclass.")
+    # end update_data
 
     # Update bounding box
     def update_bbox(
@@ -91,94 +157,43 @@ class DrawableMixin(object):
         )
     # end set_source_rgb
 
-    # Translate object (to override)
-    def _translate_object(
-            self,
-            dx: float,
-            dy: float
-    ):
-        """
-        Translate the object.
-
-        Args:
-            dx (float): Delta x
-            dy (float): Delta y
-        """
-        raise NotImplementedError(f"{self.__class__.__name__}._translate_object method must be implemented in subclass.")
-    # _translate_object
-
     # Translate object
-    def translate(
+    def translating(
             self,
-            dx: float,
-            dy: float
+            *args,
+            **kwargs
     ):
         """
         Translate the object.
 
         Args:
-            dx (float): Delta x
-            dy (float): Delta y
+            *args: Arguments
+            **kwargs: Keyword arguments
         """
-        self._translate_object(dx, dy)
-        if self.bounding_box is not None:
-            self.bounding_box.translate(dx, dy)
-        # end if
+        self._translate_object(*args, **kwargs)
     # end translate
 
-    # Scale object (to override)
-    def _scale_object(
-            self,
-            sx: float,
-            sy: float
-    ):
-        """
-        Scale the object.
-
-        Args:
-            sx (float): Scale x
-            sy (float): Scale y
-        """
-        raise NotImplementedError(f"{self.__class__.__name__}._scale_object method must be implemented in subclass.")
-    # end _scale_object
-
     # Scale object
-    def scale(
+    def scaling(
             self,
-            sx: float,
-            sy: float
+            *args,
+            **kwargs
     ):
         """
         Scale the object.
 
         Args:
-            sx (float): Scale x
-            sy (float): Scale y
+            *args: Arguments
+            **kwargs: Keyword arguments
         """
-        self._scale_object(sx, sy)
-        if self.bounding_box is not None:
-            self.bounding_box.scale(sx, sy)
-        # end if
+        self._scale_object(*args, **kwargs)
     # end scale
 
-    # Rotate object (to override)
-    def _rotate_object(
-            self,
-            angle: float
-    ):
-        """
-        Rotate the object.
-
-        Args:
-            angle (float): Angle to rotate
-        """
-        raise NotImplementedError(f"{self.__class__.__name__}._rotate_object method must be implemented in subclass.")
-    # end _rotate_object
-
     # Rotate object
-    def rotate(
+    def rotating(
             self,
-            angle: float
+            *args,
+            **kwargs
     ):
         """
         Rotate the object.
@@ -186,10 +201,7 @@ class DrawableMixin(object):
         Args:
             angle (float): Angle to rotate
         """
-        self._rotate_object(angle)
-        if self.bounding_box is not None:
-            self.bounding_box.rotate(angle)
-        # end if
+        self._rotate_object(*args, **kwargs)
     # end rotate
 
     # Draw bounding box anchors
@@ -257,7 +269,80 @@ class DrawableMixin(object):
 
     # endregion PUBLIC
 
+    # region EVENTS
+
+    # On scale changed
+    def _on_scale_changed(
+            self,
+            scale
+    ):
+        """
+        Handle scale changed event.
+
+        Args:
+            scale (float): New scale
+        """
+        self.update_data()
+    # end _on_scale_changed
+
+    # On rotation changed
+    def _on_rotation_changed(
+            self,
+            rotation
+    ):
+        """
+        Handle rotation changed event.
+
+        Args:
+            rotation (float): New rotation
+        """
+        self.update_data()
+    # end _on_rotation_changed
+
+    # endregion EVENTS
+
     # region PRIVATE
+
+    # Scale object (to override)
+    def _scale_object(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Scale the object.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__}._scale_object method must be implemented in subclass."
+        )
+    # end _scale_object
+
+    # Translate object (to override)
+    def _translate_object(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Translate the object.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__}._translate_object method must be implemented in subclass."
+        )
+    # _translate_object
+
+    # Rotate object (to override)
+    def _rotate_object(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Rotate the object.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__}._rotate_object method must be implemented in subclass.")
+    # end _rotate_object
 
     # Create bounding box
     def _create_bbox(

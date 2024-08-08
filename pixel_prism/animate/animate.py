@@ -73,6 +73,8 @@ class Animate:
         self.finish_method = f"finish_{animation_name}"
     # end __init__
 
+    # region PUBLIC
+
     def start(self):
         """
         Start the animation.
@@ -159,6 +161,32 @@ class Animate:
         # end if
     # end update
 
+    # endregion PUBLIC
+
+    # region OVERRIDE
+
+    def __str__(self):
+        """
+        Return a string representation of the transition.
+        """
+        return (
+            f"{self.__class__.__name__}(name={self.name}, obj={self.obj}, "
+            f"start_time={self.start_time}, end_time={self.end_time}, start_value={self.start_value}, "
+            f"target_value={self.target_value}, interpolator={self.interpolator})"
+        )
+    # end __str__
+
+    def __repr__(self):
+        """
+        Return a string representation of the transition.
+        """
+        return (
+            f"{self.__class__.__name__}(name={self.name}, obj={self.obj}, start_time={self.start_time}, "
+            f"end_time={self.end_time}, start_value={self.start_value}, target_value={self.target_value}, "
+            f"interpolator={self.interpolator})"
+        )
+    # end __repr__
+
 # end Animate
 
 
@@ -198,6 +226,40 @@ class Move(Animate):
             interpolator=interpolator
         )
     # end __init__
+
+    def update(
+            self,
+            t
+    ):
+        """
+        Update the object property at time t.
+
+        Args:
+            t (float): Time
+        """
+        if self.state == AnimationState.WAITING_START and t >= self.start_time:
+            self.start()
+        elif self.state == AnimationState.RUNNING and t > self.end_time:
+            self.stop()
+            return
+        elif self.state in [AnimationState.WAITING_START, AnimationState.FINISHED]:
+            return
+        # end if
+
+        # Relative time
+        relative_t = (t - self.start_time) / (self.end_time - self.start_time)
+
+        # Interpolate time
+        interpolated_t = self.interpolator.interpolate(0, 1, relative_t)
+
+        # Get the animate method
+        if hasattr(self.obj, self.animate_method):
+            animate_method = getattr(self.obj, self.animate_method)
+            animate_method(relative_t, self.end_time - self.start_time, interpolated_t, self.target_value)
+        else:
+            raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
+        # end if
+    # end update
 
 # end Move
 

@@ -1,5 +1,8 @@
 
 
+# Array data
+from .array_data import ArrayData
+
 # Data
 from .data import Data
 
@@ -20,6 +23,9 @@ from .scalar import Scalar
 
 # ALL
 __all__ = [
+    # Array data
+    "ArrayData",
+    # Data
     "Data",
     # Colors
     "Color",

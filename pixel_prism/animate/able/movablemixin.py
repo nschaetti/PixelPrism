@@ -50,7 +50,7 @@ class MovableMixin(AnimableMixin):
         Args:
             start_value (any): The start position of the object
         """
-        self.start_position = self.pos
+        self.start_position = self.pos.copy()
     # end start_move
 
     def animate_move(

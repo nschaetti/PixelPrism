@@ -25,6 +25,8 @@ class Arc(DrawableMixin, MovableMixin):
             radius: float,
             start_angle: float,
             end_angle: float,
+            scale: float = 1.0,
+            rotation: float = 0.0,
             line_width: float = 0.0,
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
@@ -35,23 +37,46 @@ class Arc(DrawableMixin, MovableMixin):
         Initialize the arc with its center, radius, start angle, and end angle.
 
         Args:
-            center (Point2D): Center of the arc
-            radius (Scalar): Radius of the arc
-            start_angle (Scalar): Start angle of the arc
-            end_angle (Scalar): End angle of the arc
+            cx (float): X-coordinate of the center
+            cy (float): Y-coordinate of the center
+            radius (float): Radius of the arc
+            start_angle (float): Start angle of the arc
+            end_angle (float): End angle of the arc
+            scale (float): Scale of the arc
+            rotation (float): Rotation of the arc
+            line_width (float): Width of the line
+            line_color (Color): Color of the line
+            fill_color (Color): Color to fill the arc
+            bbox_border_width (float): Width of the bounding box border
+            bbox_border_color (Color): Color of the bounding box border
         """
         # Properties
         self._center = Point2D(cx, cy)
         self._radius = Scalar(radius)
         self._start_angle = Scalar(start_angle)
         self._end_angle = Scalar(end_angle)
-        self.line_width = Scalar(line_width)
-        self.line_color = line_color
-        self.fill_color = fill_color
+        self._line_width = Scalar(line_width)
+        self._line_color = line_color
+        self._fill_color = fill_color
+
+        # Beginning, end, and control points
+        self._start_point = Point2D(0, 0)
+        self._end_point = Point2D(0, 0)
+        self._middle_point = Point2D(0, 0)
 
         # Init
-        DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
+        DrawableMixin.__init__(
+            self,
+            scale=scale,
+            rotation=rotation,
+            has_bbox=True,
+            bbox_border_width=bbox_border_width,
+            bbox_border_color=bbox_border_color
+        )
         MovableMixin.__init__(self)
+
+        # Update points
+        self.update_points()
 
         # Set events
         self._center.add_event_listener("on_change", self._on_center_changed)
@@ -71,6 +96,38 @@ class Arc(DrawableMixin, MovableMixin):
         return self._center
     # end center
 
+    @property
+    def cx(self):
+        """
+        Get the X-coordinate of the center.
+        """
+        return self._center.x
+    # end cx
+
+    @cx.setter
+    def cx(self, value):
+        """
+        Set the X-coordinate of the center.
+        """
+        self._center.x = value
+    # end cx
+
+    @property
+    def cy(self):
+        """
+        Get the Y-coordinate of the center.
+        """
+        return self._center.y
+    # end cy
+
+    @cy.setter
+    def cy(self, value):
+        """
+        Set the Y-coordinate of the center.
+        """
+        self._center.y = value
+    # end cy
+
     # Get radius
     @property
     def radius(self):
@@ -78,6 +135,14 @@ class Arc(DrawableMixin, MovableMixin):
         Get the radius of the arc.
         """
         return self._radius
+    # end radius
+
+    @radius.setter
+    def radius(self, value):
+        """
+        Set the radius of the arc.
+        """
+        self._radius.set(value)
     # end radius
 
     # Get start angle
@@ -89,6 +154,14 @@ class Arc(DrawableMixin, MovableMixin):
         return self._start_angle
     # end start_angle
 
+    @start_angle.setter
+    def start_angle(self, value):
+        """
+        Set the start angle of the arc.
+        """
+        self._start_angle.set(value)
+    # end start_angle
+
     # Get end angle
     @property
     def end_angle(self):
@@ -96,6 +169,14 @@ class Arc(DrawableMixin, MovableMixin):
         Get the end angle of the arc.
         """
         return self._end_angle
+    # end end_angle
+
+    @end_angle.setter
+    def end_angle(self, value):
+        """
+        Set the end angle of the arc.
+        """
+        self._end_angle.set(value)
     # end end_angle
 
     # Get the width of the arc
@@ -122,6 +203,60 @@ class Arc(DrawableMixin, MovableMixin):
         return self.bounding_box.height
     # end height
 
+    # Start point
+    @property
+    def start_point(self):
+        """
+        Get the start point of the arc.
+        """
+        return self._start_point
+    # end start_point
+
+    # End point
+    @property
+    def end_point(self):
+        """
+        Get the end point of the arc.
+        """
+        return self._end_point
+    # end end_point
+
+    # Middle point
+    @property
+    def middle_point(self):
+        """
+        Get the middle point of the arc.
+        """
+        return self._middle_point
+    # end middle_point
+
+    # Line width
+    @property
+    def line_width(self):
+        """
+        Get the line width of the arc.
+        """
+        return self._line_width
+    # end line_width
+
+    # Line color
+    @property
+    def line_color(self):
+        """
+        Get the line color of the arc.
+        """
+        return self._line_color
+    # end line_color
+
+    # Fill color
+    @property
+    def fill_color(self):
+        """
+        Get the fill color of the arc.
+        """
+        return self._fill_color
+    # end fill_color
+
     # endregion PROPERTIES
 
     # region PUBLIC
@@ -135,8 +270,8 @@ class Arc(DrawableMixin, MovableMixin):
             x (float): X-coordinate of the center
             y (float): Y-coordinate of the center
         """
-        self.center.x = x
-        self.center.y = y
+        self._center.x = x
+        self._center.y = y
     # end set_center
 
     # Set radius
@@ -147,7 +282,7 @@ class Arc(DrawableMixin, MovableMixin):
         Args:
             radius (float): Radius of the arc
         """
-        self.radius.set(radius)
+        self._radius.set(radius)
     # end set_radius
 
     # Set start angle
@@ -158,7 +293,7 @@ class Arc(DrawableMixin, MovableMixin):
         Args:
             angle (float): Start angle of the arc
         """
-        self.start_angle.set(angle)
+        self._start_angle.set(angle)
     # end set_start_angle
 
     # Set end angle
@@ -169,21 +304,49 @@ class Arc(DrawableMixin, MovableMixin):
         Args:
             angle (float): End angle of the arc
         """
-        self.end_angle.set(angle)
+        self._end_angle.set(angle)
     # end set_end_angle
 
-    # Move
-    def translate(self, dx: float, dy: float):
+    # Translating
+    def translating(self, dp: Point2D):
         """
         Move the rectangle by a delta.
 
         Args:
-            dx (float): Delta X-coordinate
-            dy (float): Delta Y-coordinate
+            dp (Point2D): Delta to move the rectangle by
         """
-        self.center.x += dx
-        self.center.y += dy
+        self._center.x += dp.x
+        self._center.y += dp.y
     # end translate
+
+    # Update data
+    def update_data(
+            self
+    ):
+        """
+        Update the data of the arc.
+        """
+        self.update_points()
+        self.update_bbox()
+    # end update_data
+
+    # Update points
+    def update_points(
+            self
+    ):
+        """
+        Update the start, end, and middle points.
+        """
+        # Update points
+        self._start_point.x = self.center.x + self.radius.value * self.scale.value * math.cos(self.start_angle.value)
+        self._start_point.y = self.center.y + self.radius.value * self.scale.value * math.sin(self.start_angle.value)
+        self._end_point.x = self.center.x + self.radius.value * self.scale.value * math.cos(self.end_angle.value)
+        self._end_point.y = self.center.y + self.radius.value * self.scale.value * math.sin(self.end_angle.value)
+        self._middle_point.x = self.center.x + self.radius.value * self.scale.value * math.cos(
+            self.start_angle.value + (self.end_angle.value - self.start_angle.value) / 2.0)
+        self._middle_point.y = self.center.y + self.radius.value * self.scale.value * math.sin(
+            self.start_angle.value + (self.end_angle.value - self.start_angle.value) / 2.0)
+    # end update_points
 
     # Update bounding box
     def update_bbox(
@@ -210,11 +373,75 @@ class Arc(DrawableMixin, MovableMixin):
         context.arc(
             self.center.x,
             self.center.y,
-            self.radius.value,
+            self.radius.value * self.scale.value,
             self.start_angle.value,
             self.end_angle.value
         )
     # end realize
+
+    # Draw points
+    def draw_points(
+            self,
+            context
+    ):
+        """
+        Draw the points of the arc.
+
+        Args:
+            context (cairo.Context): Context to draw the points to
+        """
+        # Save context
+        context.save()
+
+        # Set fill color
+        self.set_source_rgba(
+            context,
+            utils.RED
+        )
+
+        # Draw starting point
+        context.arc(
+            self._start_point.x,
+            self._start_point.y,
+            10,
+            0,
+            2 * math.pi
+        )
+        context.stroke()
+
+        # Draw ending point
+        context.arc(
+            self._end_point.x,
+            self._end_point.y,
+            10,
+            0,
+            2 * math.pi
+        )
+        context.stroke()
+
+        # Draw middle point
+        context.arc(
+            self._middle_point.x,
+            self._middle_point.y,
+            10,
+            0,
+            2 * math.pi
+        )
+        context.stroke()
+
+        # Draw center
+        context.arc(
+            self.center.x,
+            self.center.y,
+            10,
+            0,
+            2 * math.pi
+        )
+        context.stroke()
+
+        # Restore context
+        context.restore()
+    # end draw_points
 
     # Draw the element
     def draw(
@@ -222,13 +449,13 @@ class Arc(DrawableMixin, MovableMixin):
             context,
             draw_bboxes: bool = False,
             draw_reference_point: bool = False,
+            draw_points: bool = False,
             *args,
             **kwargs
     ):
         """
         Draw the arc to the context.
         """
-        # print(f"Draw bounding box: {draw_bboxes}")
         # Save context
         context.save()
 
@@ -274,6 +501,11 @@ class Arc(DrawableMixin, MovableMixin):
             self.draw_bbox_anchors(context)
         # end if
 
+        # Draw points
+        if draw_points:
+            self.draw_points(context)
+        # end if
+
         # Restore context
         context.restore()
     # end draw
@@ -291,7 +523,7 @@ class Arc(DrawableMixin, MovableMixin):
         """
         Event handler for the center changing.
         """
-        self.update_bbox()
+        self.update_data()
     # end _on_center_changed
 
     # Radius changed
@@ -302,7 +534,7 @@ class Arc(DrawableMixin, MovableMixin):
         """
         Event handler for the radius changing.
         """
-        self.update_bbox()
+        self.update_data()
     # end _on_radius_changed
 
     # Start angle changed
@@ -313,7 +545,7 @@ class Arc(DrawableMixin, MovableMixin):
         """
         Event handler for the start angle changing.
         """
-        self.update_bbox()
+        self.update_data()
     # end _on_start_angle_changed
 
     # End angle changed
@@ -324,12 +556,55 @@ class Arc(DrawableMixin, MovableMixin):
         """
         Event handler for the end angle changing.
         """
-        self.update_bbox()
+        self.update_data()
     # end _on_end_angle_changed
 
     # endregion EVENTS
 
     # region PRIVATE
+
+    # Scale object
+    def _scale_object(
+            self,
+            m: float
+    ):
+        """
+        Scale the object.
+
+        Args:
+            m (float): Scale of the object
+        """
+        self._scale.value *= m
+    # end _scale_object
+
+    # Translate object
+    def _translate_object(
+            self,
+            dp: Point2D
+    ):
+        """
+        Translate the object.
+
+        Args:
+            dp (Point2D): Displacement to move the object by
+        """
+        self._center.x += dp.x
+        self._center.y += dp.y
+    # end _translate_object
+
+    # Rotate object
+    def _rotate_object(
+            self,
+            angle: float
+    ):
+        """
+        Rotate the object.
+
+        Args:
+            angle (float): Angle to rotate the object by
+        """
+        self._rotation.value += angle
+    # end _rotate_object
 
     # Create bounding box
     def _create_bbox(
@@ -350,10 +625,10 @@ class Arc(DrawableMixin, MovableMixin):
         # end if
 
         # Calculate the points at the start and end angles
-        start_x = self.center.x + self.radius.value * math.cos(start_angle)
-        start_y = self.center.y + self.radius.value * math.sin(start_angle)
-        end_x = self.center.x + self.radius.value * math.cos(end_angle)
-        end_y = self.center.y + self.radius.value * math.sin(end_angle)
+        start_x = self.center.x + self.radius.value * self.scale.value * math.cos(start_angle)
+        start_y = self.center.y + self.radius.value * self.scale.value * math.sin(start_angle)
+        end_x = self.center.x + self.radius.value * self.scale.value * math.cos(end_angle)
+        end_y = self.center.y + self.radius.value * self.scale.value * math.sin(end_angle)
 
         # Initialize the bounding box with the start and end points
         xmin = min(start_x, end_x)
@@ -397,7 +672,7 @@ class Arc(DrawableMixin, MovableMixin):
             xmin, xmax, ymin, ymax = check_extrema(
                 self.center.x,
                 self.center.y,
-                self.radius.value,
+                self.radius.value * self.scale.value,
                 angle,
                 xmin,
                 xmax,
@@ -405,7 +680,7 @@ class Arc(DrawableMixin, MovableMixin):
                 ymax
             )
         # end for
-        # print(f"Bounding box: {xmin}, {ymin}, {xmax}, {ymax}")
+
         return Rectangle(
             upper_left=Point2D(xmin, ymin),
             width=xmax - xmin,
@@ -426,10 +701,17 @@ class Arc(DrawableMixin, MovableMixin):
         Get the string representation of the arc.
         """
         return (
-            f"Arc(center={self.center}, "
+            f"Arc("
+            f"center={self.center}, "
             f"radius={self.radius}, "
             f"start_angle={self.start_angle}, "
-            f"end_angle={self.end_angle})"
+            f"end_angle={self.end_angle}"
+            f"line_width={self.line_width}, "
+            f"line_color={self.line_color}, "
+            f"fill_color={self.fill_color}, "
+            f"scale={self.scale}, "
+            f"rotation={self.rotation}, "
+            f")"
         )
     # end __str__
 

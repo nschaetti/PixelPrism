@@ -52,7 +52,14 @@ class Rectangle(
         self.border_width = border_width if isinstance(border_width, Scalar) else Scalar(border_width)
         self.fill = fill
 
-        DrawableMixin.__init__(self, has_bbox, bbox_border_width, bbox_border_color)
+        DrawableMixin.__init__(
+            self,
+            scale=1.0,
+            rotation=0.0,
+            has_bbox=has_bbox,
+            bbox_border_width=bbox_border_width,
+            bbox_border_color=bbox_border_color
+        )
         MovableMixin.__init__(self)
         BuildableMixin.__init__(self, is_built, build_ratio)
     # end __init__
@@ -213,35 +220,35 @@ class Rectangle(
         # Draw upper left position
         upper_left = self.upper_left
         context.rectangle(
-            upper_left.x - 0.25,
-            upper_left.y - 0.25,
-            0.5,
-            0.5
+            upper_left.x - 5,
+            upper_left.y - 5,
+            10,
+            10
         )
         context.set_source_rgba(255, 255, 255, 1)
         context.fill()
 
         # Draw upper left position
         context.rectangle(
-            self.x2 - 0.25,
-            self.y2 - 0.25,
-            0.5,
-            0.5
+            self.x2 - 5,
+            self.y2 - 5,
+            10,
+            10
         )
         context.set_source_rgba(255, 255, 255, 1)
         context.fill()
 
         # Draw text upper left
-        context.set_font_size(0.6)
-        point_position = f"({self.x1:0.02f}, {self.y1:0.02f})"
+        context.set_font_size(20)
+        point_position = f"({self.x1:0.01f}, {self.y1:0.01f})"
         extents = context.text_extents(point_position)
         context.move_to(self.x1 - extents.width / 2, self.y1 - extents.height)
         context.show_text(point_position)
         context.fill()
 
         # Draw text bottom right
-        context.set_font_size(0.6)
-        point_position = f"({self.x2:0.02f}, {self.y2:0.02f})"
+        context.set_font_size(20)
+        point_position = f"({self.x2:0.01f}, {self.y2:0.01f})"
         extents = context.text_extents(point_position)
         context.move_to(self.x2 - extents.width / 2, self.y2 + extents.height * 2)
         context.show_text(point_position)
