@@ -54,8 +54,6 @@ class Rectangle(
 
         DrawableMixin.__init__(
             self,
-            scale=1.0,
-            rotation=0.0,
             has_bbox=has_bbox,
             bbox_border_width=bbox_border_width,
             bbox_border_color=bbox_border_color

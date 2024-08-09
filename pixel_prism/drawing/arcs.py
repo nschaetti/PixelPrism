@@ -20,7 +20,7 @@ import math
 
 # Imports
 from pixel_prism.animate.able import MovableMixin
-from pixel_prism.data import Point2D, Scalar, Color
+from pixel_prism.data import Point2D, Scalar, Color, EventMixin
 
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
@@ -28,7 +28,7 @@ from .. import utils
 
 
 # An arc
-class Arc(DrawableMixin, MovableMixin):
+class Arc(DrawableMixin, EventMixin, MovableMixin):
     """
     A class to represent a cubic Bezier curve in 2D space.
     """
@@ -40,13 +40,12 @@ class Arc(DrawableMixin, MovableMixin):
             radius: float,
             start_angle: float,
             end_angle: float,
-            scale: float = 1.0,
-            rotation: float = 0.0,
             line_width: float = 0.0,
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
             bbox_border_width: float = 0.5,
-            bbox_border_color: Color = utils.RED.copy()
+            bbox_border_color: Color = utils.RED.copy(),
+            on_change=None
     ):
         """
         Initialize the arc with its center, radius, start angle, and end angle.
@@ -57,13 +56,12 @@ class Arc(DrawableMixin, MovableMixin):
             radius (float): Radius of the arc
             start_angle (float): Start angle of the arc
             end_angle (float): End angle of the arc
-            scale (float): Scale of the arc
-            rotation (float): Rotation of the arc
             line_width (float): Width of the line
             line_color (Color): Color of the line
             fill_color (Color): Color to fill the arc
             bbox_border_width (float): Width of the bounding box border
             bbox_border_color (Color): Color of the bounding box border
+            on_change (callable): Function to call when the arc
         """
         # Properties
         self._center = Point2D(cx, cy)
@@ -82,8 +80,6 @@ class Arc(DrawableMixin, MovableMixin):
         # Init
         DrawableMixin.__init__(
             self,
-            scale=scale,
-            rotation=rotation,
             has_bbox=True,
             bbox_border_width=bbox_border_width,
             bbox_border_color=bbox_border_color
@@ -98,6 +94,11 @@ class Arc(DrawableMixin, MovableMixin):
         self._radius.add_event_listener("on_change", self._on_radius_changed)
         self._start_angle.add_event_listener("on_change", self._on_start_angle_changed)
         self._end_angle.add_event_listener("on_change", self._on_end_angle_changed)
+
+        # List of event listeners (per events)
+        self.event_listeners = {
+            "on_change": [] if on_change is None else [on_change]
+        }
     # end __init__
 
     # region PROPERTIES
@@ -322,18 +323,6 @@ class Arc(DrawableMixin, MovableMixin):
         self._end_angle.set(angle)
     # end set_end_angle
 
-    # Translating
-    def translating(self, dp: Point2D):
-        """
-        Move the rectangle by a delta.
-
-        Args:
-            dp (Point2D): Delta to move the rectangle by
-        """
-        self._center.x += dp.x
-        self._center.y += dp.y
-    # end translate
-
     # Update data
     def update_data(
             self
@@ -541,6 +530,7 @@ class Arc(DrawableMixin, MovableMixin):
         Event handler for the center changing.
         """
         self.update_data()
+        self.dispatch_event("on_change", self)
     # end _on_center_changed
 
     # Radius changed
@@ -552,6 +542,7 @@ class Arc(DrawableMixin, MovableMixin):
         Event handler for the radius changing.
         """
         self.update_data()
+        self.dispatch_event("on_change", self)
     # end _on_radius_changed
 
     # Start angle changed
@@ -563,6 +554,7 @@ class Arc(DrawableMixin, MovableMixin):
         Event handler for the start angle changing.
         """
         self.update_data()
+        self.dispatch_event("on_change", self)
     # end _on_start_angle_changed
 
     # End angle changed
@@ -574,6 +566,7 @@ class Arc(DrawableMixin, MovableMixin):
         Event handler for the end angle changing.
         """
         self.update_data()
+        self.dispatch_event("on_change", self)
     # end _on_end_angle_changed
 
     # endregion EVENTS

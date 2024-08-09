@@ -12,8 +12,6 @@ class DrawableMixin(object):
     # Constructor
     def __init__(
             self,
-            scale: float = 1.0,
-            rotation: float = 0.0,
             has_bbox: bool = True,
             bbox_border_width: float = 1.0,
             bbox_border_color: Color = utils.WHITE

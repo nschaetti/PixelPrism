@@ -6,9 +6,10 @@
 from pixel_prism.animate.able import RangeableMixin
 
 from .data import Data
+from .eventmixin import EventMixin
 
 
-class Scalar(Data, RangeableMixin):
+class Scalar(Data, EventMixin, RangeableMixin):
     """
     A class to represent a scalar value
     """

@@ -23,9 +23,10 @@
 import numpy as np
 from pixel_prism.animate.able import RangeableMixin
 from .data import Data
+from .eventmixin import EventMixin
 
 
-class Color(Data, RangeableMixin):
+class Color(Data, EventMixin, RangeableMixin):
     """
     A class to represent a scalar value
     """

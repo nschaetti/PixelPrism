@@ -7,10 +7,11 @@ import numpy as np
 from pixel_prism.animate.able import MovableMixin
 
 from .data import Data
+from .eventmixin import EventMixin
 
 
 # A generic point
-class Point(Data, MovableMixin):
+class Point(Data, EventMixin, MovableMixin):
     """
     A generic point class.
     """

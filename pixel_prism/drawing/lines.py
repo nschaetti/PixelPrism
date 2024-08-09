@@ -2,25 +2,30 @@
 # Imports
 import numpy as np
 from pixel_prism.animate.able import MovableMixin
-from pixel_prism.data import Point2D
+from pixel_prism.data import Point2D, Color, Scalar, EventMixin
 from pixel_prism.utils import random_color
 
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
+from .. import utils
 
 
 # A line
-# Line(start=(4.313823-6.127024j), end=(3.716065-3.765878j))
-class Line(DrawableMixin, MovableMixin):
+class Line(DrawableMixin, EventMixin, MovableMixin):
     """
     A class to represent a line in 2D space.
     """
 
     def __init__(
             self,
-            start: Point2D,
-            end: Point2D,
-            bbox: Rectangle = None
+            sx: float = 0.0,
+            sy: float = 0.0,
+            ex: float = 0.0,
+            ey: float = 0.0,
+            line_width: float = 1.0,
+            line_color: Color = utils.WHITE,
+            bbox_border_width: float = 0.5,
+            bbox_border_color: Color = utils.RED.copy()
     ):
         """
         Initialize the line with its start and end points.
@@ -29,11 +34,114 @@ class Line(DrawableMixin, MovableMixin):
             start (Point2D): Start point of the line
             end (Point2D): End point of the line
         """
-        super().__init__()
-        self.start = start
-        self.end = end
-        self.bbox = bbox
+        # Start and end points
+        self._start = Point2D(x=sx, y=sy)
+        self._end = Point2D(x=ex, y=ey)
+        self._line_width = Scalar(line_width)
+        self._line_color = line_color
+
+        # Middle point
+        self._middle_point = Point2D(0, 0)
+
+        # Init
+        DrawableMixin.__init__(
+            self,
+            has_bbox=True,
+            bbox_border_width=bbox_border_width,
+            bbox_border_color=bbox_border_color
+        )
+        MovableMixin.__init__(self)
+
+        # Update points
+        self.update_points()
+
+        # Set events
+        self._start.add_event_listener("on_change", self._start_changed)
+        self._end.add_event_listener("on_change", self._end_changed)
     # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def start(self):
+        """
+        Get the start point of the line.
+
+        Returns:
+            Point2D: Start point of the line
+        """
+        return self._start
+    # end start
+
+    @property
+    def end(self):
+        """
+        Get the end point of the line.
+
+        Returns:
+            Point2D: End point of the line
+        """
+        return self._end
+    # end end
+
+    @property
+    def sx(self):
+        """
+        Get the X-coordinate of the start point.
+        """
+        return self._start.x
+    # end sx
+
+    @sx.setter
+    def sx(self, value):
+        """
+        Set the X-coordinate of the start point.
+        """
+        self._start.x = value
+    # end sx
+
+    @property
+    def sy(self):
+        """
+        Get the Y-coordinate of the start point.
+        """
+        return self._start.y
+    # end sy
+
+    @sy.setter
+    def sy(self, value):
+        """
+        Set the Y-coordinate of the start point.
+        """
+        self._start.y = value
+    # end sy
+
+    @property
+    def ex(self):
+        """
+        Get the X-coordinate of the end point.
+        """
+        return self._end.x
+    # end ex
+
+    @ex.setter
+    def ex(self, value):
+        """
+        Set the X-coordinate of the end point.
+        """
+        self._end.x = value
+    # end ex
+
+    @property
+    def middle_point(self):
+        """
+        Get the middle point of the line.
+
+        Returns:
+            Point2D: Middle point of the line
+        """
+        return self._middle_point
+    # end middle_point
 
     @property
     def length(self):
@@ -43,8 +151,31 @@ class Line(DrawableMixin, MovableMixin):
         Returns:
             float: Length of the line
         """
-        return np.linalg.norm(self.end.pos - self.start.pos)
+        return np.linalg.norm(self._end.pos - self._start.pos)
     # end length
+
+    # Line width
+    @property
+    def line_width(self):
+        """
+        Get the line width of the arc.
+        """
+        return self._line_width
+
+    # end line_width
+
+    # Line color
+    @property
+    def line_color(self):
+        """
+        Get the line color of the arc.
+        """
+        return self._line_color
+    # end line_color
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     # Move
     def translate(self, dx: float, dy: float):
@@ -56,16 +187,88 @@ class Line(DrawableMixin, MovableMixin):
             dy (float): Displacement in the Y-direction
         """
         # Translate the start and end points
-        self.start.x += dx
-        self.start.y += dy
-        self.end.x += dx
-        self.end.y += dy
+        self._start.x += dx
+        self._start.y += dy
+        self._end.x += dx
+        self._end.y += dy
 
         # Translate the bounding box
-        if self.bbox is not None:
-            self.bbox.translate(dx, dy)
+        if self._bounding_box is not None:
+            self._bounding_box.translate(dx, dy)
         # end if
     # end translate
+
+    # Update data
+    def update_data(
+            self
+    ):
+        """
+        Update the data of the line.
+        """
+        self.update_points()
+        self.update_bbox()
+    # end update_data
+
+    # Update points
+    def update_points(
+            self
+    ):
+        """
+        Update the points of the line.
+        """
+        # Update the middle point
+        self._middle_point.set(
+            (self._start.x + self._end.x) / 2,
+            (self._start.y + self._end.y) / 2
+        )
+    # end update_points
+
+    # Update bounding box
+    def update_bbox(
+            self
+    ):
+        """
+        Update the bounding box of the line.
+        """
+        # Get bounding box
+        bbox = self._create_bbox()
+
+        # Update bounding box
+        self._bounding_box.upper_left.x = bbox.upper_left.x
+        self._bounding_box.upper_left.y = bbox.upper_left.y
+        self._bounding_box.width = bbox.width
+        self._bounding_box.height = bbox.height
+    # end update_bbox
+
+    # Realize
+    def realize(
+            self,
+            context,
+            move_to: bool = False,
+            build_ratio: float = 1.0
+    ):
+        """
+        Realize the line to the context.
+
+        Args:
+            context (cairo.Context): Context to realize the line to
+            move_to (bool): Move to the start point
+            build_ratio (float): Build ratio
+        """
+        if move_to:
+            context.move_to(self.start.x, self.start.y)
+        # end if
+
+        # Realize the line
+        if build_ratio == 1.0:
+            context.line_to(self.end.x, self.end.y)
+        else:
+            context.line_to(
+                self.start.x + (self.end.x - self.start.x) * build_ratio,
+                self.start.y + (self.end.y - self.start.y) * build_ratio
+            )
+        # end if
+    # end realize
 
     # Draw path (for debugging)
     def draw_path(self, context):
@@ -98,12 +301,51 @@ class Line(DrawableMixin, MovableMixin):
         context.restore()
     # end draw_path
 
+    # Draw points
+    def draw_points(
+            self,
+            context
+    ):
+        """
+        Draw the points of the line.
+
+        Args:
+            context (cairo.Context): Context to draw the points to
+        """
+        # Save the context
+        context.save()
+
+        # Set fill color
+        self.set_source_rgba(
+            context,
+            utils.RED
+        )
+
+        # Draw the start point
+        context.arc(
+            self.middle_point.x,
+            self.middle_point.y,
+            10,
+            0.0,
+            2 * np.pi
+        )
+        context.stroke()
+
+        # Restore the context
+        context.restore()
+    # end draw_points
+
     # Draw the element
     def draw(
             self,
             context,
             move_to: bool = False,
-            build_ratio: float = 1.0
+            build_ratio: float = 1.0,
+            draw_bboxes: bool = False,
+            draw_reference_point: bool = False,
+            draw_points: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Draw the line to the context.
@@ -112,20 +354,102 @@ class Line(DrawableMixin, MovableMixin):
             context (cairo.Context): Context to draw the line to
             move_to (bool): Move to the start point
             build_ratio (float): Build ratio
+            draw_bboxes (bool): Draw bounding boxes
+            draw_reference_point (bool): Draw reference point
+            draw_points (bool): Draw points
         """
-        if move_to:
-            context.move_to(self.start.x, self.start.y)
+        # Save context
+        context.save()
+
+        # Realize the line
+        self.realize(context, move_to=True, build_ratio=1.0)
+
+        # Set line color
+        print(f"Line color: {self.line_color}")
+        self.set_source_rgba(
+            context,
+            self.line_color
+        )
+
+        # Set line width
+        print(f"Line width: {self.line_width.value}")
+        context.set_line_width(self.line_width.value)
+        context.stroke()
+
+        # Draw bounding box
+        if draw_bboxes:
+            self.bounding_box.draw(context)
         # end if
 
-        if build_ratio == 1.0:
-            context.line_to(self.end.x, self.end.y)
-        else:
-            context.line_to(
-                self.start.x + (self.end.x - self.start.x) * build_ratio,
-                self.start.y + (self.end.y - self.start.y) * build_ratio
-            )
+        # Draw reference point
+        if draw_reference_point:
+            self.draw_bbox_anchors(context)
         # end if
+
+        # Draw points
+        if draw_points:
+            self.draw_points(context)
+        # end if
+
+        # Restore
+        context.restore()
     # end draw
+
+    # endregion PUBLIC
+
+    # region EVENTS
+
+    # Start changed
+    def _start_changed(
+            self,
+            x: float,
+            y: float
+    ):
+        """
+        Start point changed event.
+        """
+        self.update_data()
+    # end _start_changed
+
+    # End changed
+    def _end_changed(
+            self,
+            x: float,
+            y: float
+    ):
+        """
+        End point changed event.
+        """
+        self.update_data()
+    # end _end_changed
+
+    # endregion EVENTS
+
+    # region PRIVATE
+
+    # Create bounding box
+    def _create_bbox(
+            self,
+            border_width: float = 0.0,
+            border_color: Color = utils.WHITE.copy()
+    ):
+        """
+        Create the bounding box.
+        """
+        return Rectangle(
+            upper_left=Point2D(
+                min(self.start.x, self.end.x),
+                min(self.start.y, self.end.y)
+            ),
+            width=abs(self.end.x - self.start.x),
+            height=abs(self.end.y - self.start.y),
+            border_width=border_width,
+            border_color=border_color,
+            fill=False
+        )
+    # end _create_bbox
+
+    # endregion PRIVATE
 
     # str
     def __str__(self):
@@ -135,11 +459,7 @@ class Line(DrawableMixin, MovableMixin):
         Returns:
             str: String representation of the line
         """
-        if self.bbox is None:
-            return f"Line(start={self.start.pos}, end={self.end.pos})"
-        else:
-            return f"Line(start={self.start.pos}, end={self.end.pos}, bbox={self.bbox})"
-        # end if
+        return f"Line(start={self.start.pos}, end={self.end.pos})"
     # end __str__
 
     # repr
