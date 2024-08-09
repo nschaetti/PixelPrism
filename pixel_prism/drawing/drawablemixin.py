@@ -30,10 +30,6 @@ class DrawableMixin(object):
         """
         super().__init__()
 
-        # Scale and rotation
-        self._scale = Scalar(scale)
-        self._rotation = Scalar(rotation)
-
         # Bounding box
         if has_bbox:
             self._bounding_box = self._create_bbox(
@@ -44,10 +40,6 @@ class DrawableMixin(object):
             self._bounding_box = None
         # end if
         self.has_bbox = has_bbox
-
-        # Event listeners
-        self._scale.add_event_listener("on_change", self._on_scale_changed)
-        self._rotation.add_event_listener("on_change", self._on_rotation_changed)
     # end __init__
 
     # region PROPERTIES
@@ -57,40 +49,6 @@ class DrawableMixin(object):
     def bounding_box(self):
         return self._bounding_box
     # end bounding_box
-
-    # Scale
-    @property
-    def scale(self):
-        """
-        Get the scale of the drawable.
-        """
-        return self._scale
-    # end scale
-
-    @scale.setter
-    def scale(self, scale):
-        """
-        Set the scale of the drawable.
-        """
-        self._scale.set(scale)
-    # end scale
-
-    # Rotation
-    @property
-    def rotation(self):
-        """
-        Get the rotation of the drawable.
-        """
-        return self._rotation
-    # end rotation
-
-    @rotation.setter
-    def rotation(self, rotation):
-        """
-        Set the rotation of the drawable.
-        """
-        self._rotation.set(rotation)
-    # end rotation
 
     # endregion PROPERTIES
 
@@ -158,7 +116,7 @@ class DrawableMixin(object):
     # end set_source_rgb
 
     # Translate object
-    def translating(
+    def translate(
             self,
             *args,
             **kwargs
@@ -174,7 +132,7 @@ class DrawableMixin(object):
     # end translate
 
     # Scale object
-    def scaling(
+    def scale(
             self,
             *args,
             **kwargs
@@ -190,7 +148,7 @@ class DrawableMixin(object):
     # end scale
 
     # Rotate object
-    def rotating(
+    def rotate(
             self,
             *args,
             **kwargs

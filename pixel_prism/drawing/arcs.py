@@ -1,6 +1,21 @@
 #
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
 #
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
 #
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+# Imports
 import math
 
 # Imports
@@ -338,14 +353,16 @@ class Arc(DrawableMixin, MovableMixin):
         Update the start, end, and middle points.
         """
         # Update points
-        self._start_point.x = self.center.x + self.radius.value * self.scale.value * math.cos(self.start_angle.value)
-        self._start_point.y = self.center.y + self.radius.value * self.scale.value * math.sin(self.start_angle.value)
-        self._end_point.x = self.center.x + self.radius.value * self.scale.value * math.cos(self.end_angle.value)
-        self._end_point.y = self.center.y + self.radius.value * self.scale.value * math.sin(self.end_angle.value)
-        self._middle_point.x = self.center.x + self.radius.value * self.scale.value * math.cos(
-            self.start_angle.value + (self.end_angle.value - self.start_angle.value) / 2.0)
-        self._middle_point.y = self.center.y + self.radius.value * self.scale.value * math.sin(
-            self.start_angle.value + (self.end_angle.value - self.start_angle.value) / 2.0)
+        self._start_point.x = self.center.x + self.radius.value * math.cos(self.start_angle.value)
+        self._start_point.y = self.center.y + self.radius.value * math.sin(self.start_angle.value)
+        self._end_point.x = self.center.x + self.radius.value * math.cos(self.end_angle.value)
+        self._end_point.y = self.center.y + self.radius.value * math.sin(self.end_angle.value)
+        self._middle_point.x = self.center.x + self.radius.value * math.cos(
+            self.start_angle.value + (self.end_angle.value - self.start_angle.value) / 2.0
+        )
+        self._middle_point.y = self.center.y + self.radius.value * math.sin(
+            self.start_angle.value + (self.end_angle.value - self.start_angle.value) / 2.0
+        )
     # end update_points
 
     # Update bounding box
@@ -373,7 +390,7 @@ class Arc(DrawableMixin, MovableMixin):
         context.arc(
             self.center.x,
             self.center.y,
-            self.radius.value * self.scale.value,
+            self.radius.value,
             self.start_angle.value,
             self.end_angle.value
         )
@@ -574,7 +591,7 @@ class Arc(DrawableMixin, MovableMixin):
         Args:
             m (float): Scale of the object
         """
-        self._scale.value *= m
+        self.radius.value *= m
     # end _scale_object
 
     # Translate object
@@ -603,7 +620,8 @@ class Arc(DrawableMixin, MovableMixin):
         Args:
             angle (float): Angle to rotate the object by
         """
-        self._rotation.value += angle
+        self._start_angle.value += angle
+        self._end_angle.value += angle
     # end _rotate_object
 
     # Create bounding box
@@ -625,10 +643,10 @@ class Arc(DrawableMixin, MovableMixin):
         # end if
 
         # Calculate the points at the start and end angles
-        start_x = self.center.x + self.radius.value * self.scale.value * math.cos(start_angle)
-        start_y = self.center.y + self.radius.value * self.scale.value * math.sin(start_angle)
-        end_x = self.center.x + self.radius.value * self.scale.value * math.cos(end_angle)
-        end_y = self.center.y + self.radius.value * self.scale.value * math.sin(end_angle)
+        start_x = self.center.x + self.radius.value * math.cos(start_angle)
+        start_y = self.center.y + self.radius.value * math.sin(start_angle)
+        end_x = self.center.x + self.radius.value * math.cos(end_angle)
+        end_y = self.center.y + self.radius.value * math.sin(end_angle)
 
         # Initialize the bounding box with the start and end points
         xmin = min(start_x, end_x)
@@ -672,7 +690,7 @@ class Arc(DrawableMixin, MovableMixin):
             xmin, xmax, ymin, ymax = check_extrema(
                 self.center.x,
                 self.center.y,
-                self.radius.value * self.scale.value,
+                self.radius.value,
                 angle,
                 xmin,
                 xmax,
@@ -705,12 +723,10 @@ class Arc(DrawableMixin, MovableMixin):
             f"center={self.center}, "
             f"radius={self.radius}, "
             f"start_angle={self.start_angle}, "
-            f"end_angle={self.end_angle}"
+            f"end_angle={self.end_angle}, "
             f"line_width={self.line_width}, "
             f"line_color={self.line_color}, "
-            f"fill_color={self.fill_color}, "
-            f"scale={self.scale}, "
-            f"rotation={self.rotation}, "
+            f"fill_color={self.fill_color}"
             f")"
         )
     # end __str__
