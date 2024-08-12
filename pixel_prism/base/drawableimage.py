@@ -1,8 +1,10 @@
 
 
 # Imports
-from .image import Image
 import cairo
+from .context import Context
+from .image import Image
+from .coordsystem import CoordSystem
 
 
 # DrawableImage class
@@ -11,37 +13,59 @@ class DrawableImage(Image):
     # Constructor
     def __init__(
             self,
-            image_array
+            image_array,
+            coord_system: CoordSystem
     ):
         """
         Initialize the image data with an image array
 
         Args:
             image_array (np.ndarray): Image data as a NumPy array
+            context_size (int): Size of the context
         """
         super().__init__(image_array)
-        self.surface = self.create_surface()
-        self.root_container = None
+        self._context = self.create_context(coord_system)
+        self._root_container = None
+        self._coord_system = coord_system
     # end __init__
 
-    def create_surface(self):
+    @property
+    def root_container(self):
+        """
+        Get the root container for the image.
+        """
+        return self._root_container
+    # end root_container
+
+    @property
+    def context(self):
+        """
+        Get the Cairo context for drawing.
+        """
+        return self._context
+    # end context
+
+    def create_context(
+            self,
+            coord_system: CoordSystem
+    ):
         """
         Create a Cairo surface and context from the image data.
+
+        Args:
+            coord_system (CoordSystem): Coordinate system
         """
-        surface = cairo.ImageSurface.create_for_data(
-            self.data,
-            cairo.FORMAT_ARGB32,
-            self.width,
-            self.height
+        return Context.from_image(
+            image=self,
+            coord_system=coord_system
         )
-        return surface
-    # end create_surface
+    # end create_context
 
     def get_context(self):
         """
         Get the Cairo context for drawing.
         """
-        return cairo.Context(self.surface)
+        return self._context
     # end get
 
     # Set root container
@@ -55,7 +79,7 @@ class DrawableImage(Image):
         Args:
             container (Container): Root container
         """
-        self.root_container = container
+        self._root_container = container
     # end set_root_container
 
     # Render the image
@@ -68,8 +92,12 @@ class DrawableImage(Image):
         Render the image to the context.
         """
         if self.root_container:
+            # Setup coordinate system
+            self.context.setup_context()
+
+            # Render the root container
             self.root_container.render(
-                self.surface,
+                self.context,
                 *args,
                 **kwargs
             )
@@ -89,7 +117,7 @@ class DrawableImage(Image):
         Args:
             file_path (str): Path to the file
         """
-        self.surface.write_to_png(file_path)
+        self._context.surface.write_to_png(file_path)
     # end save
 
 # end DrawableImage

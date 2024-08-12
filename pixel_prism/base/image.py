@@ -39,20 +39,68 @@ class Image:
         # end if
 
         # Set image data
-        self.data = image_array
-        self.height, self.width, self.channels = image_array.shape
-        self.has_alpha = self.channels == 4
-        self.mode = self.get_mode()
+        self._data = image_array
+        self._height, self._width, self._channels = image_array.shape
+        self._has_alpha = self._channels == 4
+        self._mode = self.get_mode()
     # end __init__
 
     # region PROPERTIES
+
+    @property
+    def data(self):
+        """
+        Get the image data
+        """
+        return self._data
+    # end data
+
+    @property
+    def height(self):
+        """
+        Get the height of the image
+        """
+        return self._height
+    # end height
+
+    @property
+    def width(self):
+        """
+        Get the width of the image
+        """
+        return self._width
+    # end width
+
+    @property
+    def channels(self):
+        """
+        Get the number of channels in the image
+        """
+        return self._channels
+    # end channels
+
+    @property
+    def has_alpha(self):
+        """
+        Get whether the image has an alpha channel
+        """
+        return self._has_alpha
+    # end has_alpha
+
+    @property
+    def mode(self):
+        """
+        Get the mode of the image
+        """
+        return self._mode
+    # end mode
 
     @property
     def shape(self):
         """
         Get the number of channels in the image
         """
-        return self.data.shape
+        return self._data.shape
     # end shape
 
     # endregion PROPERTIES
@@ -63,14 +111,14 @@ class Image:
         """
         Get image node
         """
-        if self.channels == 1:
+        if self._channels == 1:
             return ImageMode.GRAY
-        elif self.channels == 3:
+        elif self._channels == 3:
             return ImageMode.RGB
-        elif self.channels == 4:
+        elif self._channels == 4:
             return ImageMode.RGBA
         else:
-            raise ValueError(f"Unknown image mode: {self.channels} channels.")
+            raise ValueError(f"Unknown image mode: {self._channels} channels.")
         # end if
     # end get_mode
 
@@ -79,49 +127,49 @@ class Image:
         """
         Get the specified channel of the image
         """
-        return self.data[:, :, channel:channel + 1]
+        return self._data[:, :, channel:channel + 1]
     # end get_channel
 
     def get_image(self):
         """
         Get the image data as a NumPy array
         """
-        return self.data
+        return self._data
     # end get_image
 
     def get_height(self):
         """
         Get the height of the image
         """
-        return self.height
+        return self._height
     # end get_height
 
     def get_width(self):
         """
         Get the width of the image
         """
-        return self.width
+        return self._width
     # end get_width
 
     def get_shape(self):
         """
         Get the shape of the image
         """
-        return self.data.shape
+        return self._data.shape
     # end get_shape
 
     def get_size(self):
         """
         Get the size of the image
         """
-        return self.data.size
+        return self._data.size
     # end get_size
 
     def get_dtype(self):
         """
         Get the data type of the image
         """
-        return self.data.dtype
+        return self._data.dtype
     # end get_dtype
 
     def get_alpha(self):
@@ -129,7 +177,7 @@ class Image:
         Get the alpha channel of the image
         """
         if self.has_alpha:
-            return self.data[:, :, 3]
+            return self._data[:, :, 3]
         # end if
         return None
     # end get_alpha
@@ -138,7 +186,7 @@ class Image:
         """
         Get the RGB channels of the image
         """
-        return self.data[:, :, :3]
+        return self._data[:, :, :3]
     # end get_rgb
 
     # Add alpha channel
@@ -146,15 +194,15 @@ class Image:
         """
         Add an alpha channel to the image
         """
-        if not self.has_alpha:
+        if not self._has_alpha:
             alpha_channel = np.full(
-                (self.height, self.width, 1),
+                (self._height, self._width, 1),
                 255,
-                dtype=self.data.dtype
+                dtype=self._data.dtype
             )
-            self.data = np.concatenate([self.data, alpha_channel], axis=2)
-            self.channels = self.data.shape[2]
-            self.has_alpha = True
+            self._data = np.concatenate([self._data, alpha_channel], axis=2)
+            self._channels = self._data.shape[2]
+            self._has_alpha = True
         # end if
     # end add_alpha_channel
 
@@ -164,22 +212,22 @@ class Image:
         Split the image into channels
         """
         # Alpha
-        if self.mode == ImageMode.RGBA:
-            r, g, b, a = cv2.split(self.data)
+        if self._mode == ImageMode.RGBA:
+            r, g, b, a = cv2.split(self._data)
             return (
                 Image.from_numpy(r),
                 Image.from_numpy(g),
                 Image.from_numpy(b),
                 Image.from_numpy(a)
             )
-        elif self.mode == ImageMode.RGB:
-            r, g, b = cv2.split(self.data)
+        elif self._mode == ImageMode.RGB:
+            r, g, b = cv2.split(self._data)
             return (
                 Image.from_numpy(r),
                 Image.from_numpy(g),
                 Image.from_numpy(b)
             )
-        elif self.mode == ImageMode.GRAY:
+        elif self._mode == ImageMode.GRAY:
             return self
         # end if
     # end split
@@ -190,10 +238,10 @@ class Image:
         Create a Cairo surface from the image
         """
         surface = cairo.ImageSurface.create_for_data(
-            self.data,
+            self._data,
             cairo.FORMAT_ARGB32,
-            self.width,
-            self.height
+            self._width,
+            self._height
         )
 
         # Create context
@@ -213,7 +261,7 @@ class Image:
         Args:
             file_path (str): Path to the file
         """
-        cv2.imwrite(file_path, self.data)
+        cv2.imwrite(file_path, self._data)
     # end save
 
     # endregion PUBLIC
@@ -225,7 +273,7 @@ class Image:
         """
         Represent the image as a string
         """
-        return f"Image({self.data.shape}, {self.data.dtype}, {self.mode})"
+        return f"Image({self._data.shape}, {self._data.dtype}, {self._mode})"
     # end __repr__
 
     # endregion OVERRIDE
@@ -289,7 +337,9 @@ class Image:
     def transparent(
             cls,
             width: int,
-            height: int
+            height: int,
+            *args,
+            **kwargs
     ):
         """
         Create a transparent image
@@ -298,7 +348,7 @@ class Image:
             width (int): Width of the image
             height (int): Height of the image
         """
-        return cls(np.zeros((height, width, 4), dtype=np.uint8))
+        return cls(np.zeros((height, width, 4), dtype=np.uint8), *args, **kwargs)
     # end transparent
 
     # Create color image
@@ -353,7 +403,7 @@ class Image:
             image (Image): Image to copy
             color (tuple): Color of the image
         """
-        return cls.color(image.width, image.height, color)
+        return cls.color(image._width, image._height, color)
     # end fill_like
 
     # endregion Image

@@ -1,3 +1,4 @@
+from typing import Union
 
 # Imports
 import numpy as np
@@ -8,6 +9,7 @@ from pixel_prism.utils import random_color
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
 from .. import utils
+from ..base import Context
 
 
 # A line
@@ -178,25 +180,78 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
     # region PUBLIC
 
     # Move
-    def translate(self, dx: float, dy: float):
+    def _translate_object(
+            self,
+            dp: Point2D
+    ):
         """
         Move the path by a given displacement.
 
         Args:
-            dx (float): Displacement in the X-direction
-            dy (float): Displacement in the Y-direction
+            dp (Point2D): Displacement to move the object by
         """
         # Translate the start and end points
-        self._start.x += dx
-        self._start.y += dy
-        self._end.x += dx
-        self._end.y += dy
+        self._start.x += dp.x
+        self._start.y += dp.y
+        self._end.x += dp.x
+        self._end.y += dp.y
 
         # Translate the bounding box
-        if self._bounding_box is not None:
-            self._bounding_box.translate(dx, dy)
-        # end if
+        """if self._bounding_box is not None:
+            self._bounding_box.translate(dp.x, dp.y)
+        # end if"""
     # end translate
+
+    # Scale object
+    def _scale_object(
+            self,
+            m: Scalar
+    ):
+        """
+        Scale the object.
+
+        Args:
+            m (Scalar): Scale of the object
+        """
+        self._end.x = self._start.x + (self._end.x - self._start.x) * m.value
+        self._end.y = self._start.y + (self._end.y - self._start.y) * m.value
+    # end _scale_object
+
+    # Rotate object
+    def _rotate_object(
+            self,
+            angle: Union[float, Scalar],
+            center: Point2D = None
+    ):
+        """
+        Rotate the object.
+
+        Args:
+            angle (float): Angle to rotate the object by
+        """
+        if center is None:
+            center = self.middle_point.copy()
+        # end if
+
+        # Temporary points
+        start = self.start.copy()
+        end = self.end.copy()
+
+        # Angle value
+        angle = angle.value if isinstance(angle, Scalar) else angle
+
+        # Center around "center"
+        start.x -= center.x
+        start.y -= center.y
+        end.x -= center.x
+        end.y -= center.y
+
+        # Rotate the start and end points
+        self._start.x = start.x * np.cos(angle) - start.y * np.sin(angle) + center.x
+        self._start.y = start.x * np.sin(angle) + start.y * np.cos(angle) + center.y
+        self._end.x = end.x * np.cos(angle) - end.y * np.sin(angle) + center.x
+        self._end.y = end.x * np.sin(angle) + end.y * np.cos(angle) + center.y
+    # end _rotate_object
 
     # Update data
     def update_data(
@@ -315,13 +370,30 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
         # Save the context
         context.save()
 
-        # Set fill color
-        self.set_source_rgba(
-            context,
-            utils.RED
+        # Draw the start point
+        self.set_source_rgba(context, utils.GREEN)
+        context.arc(
+            self.start.x,
+            self.start.y,
+            10,
+            0.0,
+            2 * np.pi
         )
+        context.stroke()
 
         # Draw the start point
+        self.set_source_rgba(context, utils.YELLOW)
+        context.arc(
+            self.end.x,
+            self.end.y,
+            10,
+            0.0,
+            2 * np.pi
+        )
+        context.stroke()
+
+        # Draw the middle point
+        self.set_source_rgba(context, utils.RED)
         context.arc(
             self.middle_point.x,
             self.middle_point.y,
@@ -338,7 +410,7 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
     # Draw the element
     def draw(
             self,
-            context,
+            context: Context,
             move_to: bool = False,
             build_ratio: float = 1.0,
             draw_bboxes: bool = False,
@@ -351,7 +423,7 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
         Draw the line to the context.
 
         Args:
-            context (cairo.Context): Context to draw the line to
+            context (Context): Context to draw the line to
             move_to (bool): Move to the start point
             build_ratio (float): Build ratio
             draw_bboxes (bool): Draw bounding boxes
@@ -365,14 +437,11 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
         self.realize(context, move_to=True, build_ratio=1.0)
 
         # Set line color
-        print(f"Line color: {self.line_color}")
-        self.set_source_rgba(
-            context,
+        context.set_source_rgba(
             self.line_color
         )
 
         # Set line width
-        print(f"Line width: {self.line_width.value}")
         context.set_line_width(self.line_width.value)
         context.stroke()
 

@@ -4,6 +4,7 @@
 
 # Imports
 from pixel_prism import utils
+from pixel_prism.base import Context
 from pixel_prism.data import Color, Scalar
 
 
@@ -72,47 +73,6 @@ class DrawableMixin(object):
         raise NotImplementedError(f"{self.__class__.__name__}.update_bbox method must be implemented in subclass.")
     # end update_bbox
 
-    # Set source RGBA
-    def set_source_rgba(
-            self,
-            context,
-            color
-    ):
-        """
-        Set the source RGBA of the context.
-
-        Args:
-            context (cairo.Context): Context to set the source RGBA of
-            color (Color): Color to set
-        """
-        context.set_source_rgba(
-            color.red,
-            color.green,
-            color.blue,
-            color.alpha
-        )
-    # end set_source_rgba
-
-    # Set source RGB
-    def set_source_rgb(
-            self,
-            context,
-            color
-    ):
-        """
-        Set the source RGB of the context.
-
-        Args:
-            context (cairo.Context): Context to set the source RGB of
-            color (Color): Color to set
-        """
-        context.set_source_rgb(
-            color.red,
-            color.green,
-            color.blue
-        )
-    # end set_source_rgb
-
     # Translate object
     def translate(
             self,
@@ -163,7 +123,7 @@ class DrawableMixin(object):
     # Draw bounding box anchors
     def draw_bbox_anchors(
             self,
-            context
+            context: Context
     ):
         """
         Draw the bounding box anchors to the context.
@@ -179,7 +139,7 @@ class DrawableMixin(object):
     # Draw bounding box
     def draw_bbox(
             self,
-            context
+            context: Context
     ):
         """
         Draw the bounding box to the context.

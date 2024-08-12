@@ -3,6 +3,7 @@
 from typing import Tuple
 import cairo
 from pixel_prism.widgets.widget import Widget
+from pixel_prism.base import Context
 
 
 # Viewport class, container for a scalable and scrollable area
@@ -44,7 +45,7 @@ class Viewport(Widget):
     # Draw
     def draw(
             self,
-            context: cairo.Context,
+            context: Context,
             *args,
             **kwargs
     ):
@@ -72,7 +73,7 @@ class Viewport(Widget):
     # Render
     def render(
             self,
-            surface: cairo.ImageSurface,
+            context: Context,
             *args,
             **kwargs
     ):
@@ -80,18 +81,8 @@ class Viewport(Widget):
         Render the viewport to the surface.
 
         Args:
-            surface (cairo.ImageSurface): Surface to render the viewport to
-            draw_params (dict): Parameters for drawing the viewport
+            context (Context): Context to render the viewport to
         """
-        # Set the surface
-        self.surface = surface
-
-        # Create context
-        context = cairo.Context(surface)
-
-        # Anti-aliasing
-        context.set_antialias(cairo.Antialias.SUBPIXEL)
-
         # Get draw params
         draw_params = kwargs.get("draw_params", {})
 

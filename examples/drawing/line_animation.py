@@ -49,10 +49,10 @@ class LineAnimation(Animation):
         """
         # Create an ARC on upper left
         line1 = Line(
-            sx=1920 / 4.0 - 100,
-            sy=1080 / 4.0 - 100,
-            ex=1920 / 4.0 + 100,
-            ey=1080 / 4.0 + 100,
+            sx=1920 / 4.0 - 300,
+            sy=1080 / 4.0 - 200,
+            ex=1920 / 4.0 + 300,
+            ey=1080 / 4.0 + 200,
             line_color=utils.RED.copy(),
             line_width=4.0,
             bbox_border_width=2,
@@ -65,7 +65,7 @@ class LineAnimation(Animation):
                 line1.start,
                 start_time=0,
                 end_time=3,
-                target_value=Point2D(1920 / 4.0 - 100, 1080 / 4.0 + 100),
+                target_value=Point2D(1920 / 4.0 - 300, 1080 / 4.0 + 200),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -76,13 +76,106 @@ class LineAnimation(Animation):
                 line1.start,
                 start_time=3,
                 end_time=6,
-                target_value=Point2D(1920 / 4.0 - 100, 1080 / 4.0 - 100),
+                target_value=Point2D(1920 / 4.0 - 300, 1080 / 4.0 - 200),
                 interpolator=EaseInOutInterpolator()
             )
         )
 
         return line1
     # end build_first_arc
+
+    # Build second line
+    def build_second_line(
+            self
+    ):
+        """
+        Build the second line.
+        """
+        # Create an ARC on upper left
+        line2 = Line(
+            sx=1920 / 4.0 * 3 - 300,
+            sy=1080 / 4.0 - 200,
+            ex=1920 / 4.0 * 3,
+            ey=1080 / 4.0,
+            line_color=utils.RED.copy(),
+            line_width=4.0,
+            bbox_border_width=2,
+            bbox_border_color=utils.BLUE.copy(),
+        )
+
+        # Change value of scale
+        self.animate(
+            Call(
+                line2.scale,
+                times=[2, 4, 6],
+                values=[[Scalar(0.5)], [Scalar(2.0)], [Scalar(1.5)]],
+            )
+        )
+
+        return line2
+    # end build_second_line
+
+    # Build three lines
+    def build_three_lines(
+            self
+    ):
+        """
+        Build the three lines.
+        """
+        # Create an ARC on upper left
+        line3 = Line(
+            sx=1920 / 4.0 - 150,
+            sy=1080 / 4.0 * 3 - 150,
+            ex=1920 / 4.0 + 150,
+            ey=1080 / 4.0 * 3 + 150,
+            line_color=utils.RED.copy(),
+            line_width=4.0,
+            bbox_border_width=2,
+            bbox_border_color=utils.BLUE.copy(),
+        )
+
+        # Change value of scale
+        self.animate(
+            Call(
+                line3.rotate,
+                times=[2, 4, 6],
+                values=[[Scalar(math.pi / 2.0)], [Scalar(math.pi / 2.0)], [Scalar(math.pi / 2.0)]],
+            )
+        )
+
+        return line3
+    # end build_three_lines
+
+    # Build fourth line
+    def build_fourth_line(
+            self
+    ):
+        """
+        Build the fourth line.
+        """
+        # Create an ARC on upper left
+        line4 = Line(
+            sx=1920 / 4.0 * 3 - 150,
+            sy=1080 / 4.0 * 3 - 150,
+            ex=1920 / 4.0 * 3 + 150,
+            ey=1080 / 4.0 * 3 + 150,
+            line_color=utils.RED.copy(),
+            line_width=4.0,
+            bbox_border_width=2,
+            bbox_border_color=utils.BLUE.copy(),
+        )
+
+        # Change value of scale
+        self.animate(
+            Call(
+                line4.translate,
+                times=[2, 4, 6],
+                values=[[Point2D(10, 10)], [Point2D(10, 10)], [Point2D(10, 10)]],
+            )
+        )
+
+        return line4
+    # end build_fourth_line
 
     def build(self):
         """
@@ -95,17 +188,26 @@ class LineAnimation(Animation):
         drawable_widget = DrawableWidget()
         viewport.add_widget(drawable_widget)
 
-        # Create arcs
+        # Create lines
         line1 = self.build_first_arc()
+        line2 = self.build_second_line()
+        line3 = self.build_three_lines()
+        line4 = self.build_fourth_line()
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(line1)
+        drawable_widget.add(line2)
+        drawable_widget.add(line3)
+        drawable_widget.add(line4)
 
         # Add objects
         self.add(
             viewport=viewport,
             drawable_widget=drawable_widget,
-            line1=line1
+            line1=line1,
+            line2=line2,
+            line3=line3,
+            line4=line4
         )
     # end build
 

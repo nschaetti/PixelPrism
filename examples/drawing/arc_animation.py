@@ -27,7 +27,7 @@ from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas
+from pixel_prism.base import DrawableImage, ImageCanvas, Context, CoordSystem
 from pixel_prism.drawing import MathTex, Arc
 from pixel_prism.data import Point2D, Scalar
 
@@ -42,24 +42,23 @@ class ShapesAnimation(Animation):
 
     # Build first arc
     def build_first_arc(
-            self
+            self,
+            coord_system: CoordSystem
     ):
         """
         Build the first arc.
         """
         # Create an ARC on upper left
-        arc1 = Arc(
-            cx=1920 / 4.0,
-            cy=1080 / 4.0,
-            radius=200,
-            start_angle=0.0,
-            end_angle=0.0,
+        arc1 = Arc.from_objects(
+            center=coord_system.upper_left_square,
+            radius=Scalar(1),
+            start_angle=Scalar(0.0),
+            end_angle=Scalar(0.0),
             line_color=utils.RED.copy(),
-            line_width=4.0,
+            line_width=Scalar(0.02),
             fill_color=utils.GREEN.copy(),
             bbox_border_width=2,
             bbox_border_color=utils.BLUE.copy(),
-
         )
 
         # Animate end angle
@@ -67,7 +66,7 @@ class ShapesAnimation(Animation):
             Range(
                 arc1.start_angle,
                 start_time=0,
-                end_time=7,
+                end_time=8,
                 target_value=math.pi * 2,
                 interpolator=EaseInOutInterpolator()
             )
@@ -89,20 +88,20 @@ class ShapesAnimation(Animation):
 
     # Create second arc
     def build_second_arc(
-            self
+            self,
+            coord_system: CoordSystem
     ):
         """
         Build the second arc.
         """
         # Create an ARC on upper left
-        arc2 = Arc(
-            cx=1920 / 2.0 + 250,
-            cy=1080 / 4.0,
-            radius=200,
-            start_angle=0.0,
-            end_angle=math.pi,
+        arc2 = Arc.from_objects(
+            center=coord_system.upper_right_square - Point2D(1.0, 0.0),
+            radius=Scalar(1),
+            start_angle=Scalar(0.0),
+            end_angle=Scalar(math.pi),
             line_color=utils.RED.copy(),
-            line_width=4.0,
+            line_width=Scalar(0.02),
             fill_color=utils.GREEN.copy(),
             bbox_border_width=2,
             bbox_border_color=utils.BLUE.copy()
@@ -113,8 +112,8 @@ class ShapesAnimation(Animation):
             Move(
                 arc2.center,
                 start_time=0,
-                end_time=3,
-                target_value=Point2D(1920 - 250, 1080 / 4.0),
+                end_time=4,
+                target_value=coord_system.upper_right_square + Point2D(1.0, 0.0),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -123,9 +122,9 @@ class ShapesAnimation(Animation):
         self.animate(
             Move(
                 arc2.center,
-                start_time=3,
-                end_time=6,
-                target_value=Point2D(1920 / 2.0 + 250, 1080 / 4.0),
+                start_time=4,
+                end_time=8,
+                target_value=coord_system.upper_right_square - Point2D(1.0, 0.0),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -135,20 +134,20 @@ class ShapesAnimation(Animation):
 
     # Create third arc
     def build_third_arc(
-            self
+            self,
+            coord_system: CoordSystem
     ):
         """
         Build the third arc.
         """
         # Create an ARC on upper left
-        arc3 = Arc(
-            cx=1920 / 4.0,
-            cy=1080 / 4.0 * 3.0,
-            radius=100,
-            start_angle=0.0,
-            end_angle=math.pi * 1.5,
+        arc3 = Arc.from_objects(
+            center=coord_system.lower_left_square,
+            radius=Scalar(0.4),
+            start_angle=Scalar(0.0),
+            end_angle=Scalar(math.pi * 1.5),
             line_color=utils.RED.copy(),
-            line_width=4.0,
+            line_width=Scalar(0.02),
             fill_color=utils.GREEN.copy(),
             bbox_border_width=2,
             bbox_border_color=utils.BLUE.copy()
@@ -168,15 +167,16 @@ class ShapesAnimation(Animation):
 
     # Build fourth arc
     def build_fourth_arc(
-            self
+            self,
+            coord_system: CoordSystem
     ):
         """
         Build the fourth arc.
         """
         # Create an ARC on upper left
-        arc4 = Arc(
-            cx=1920 / 4.0 * 3.0,
-            cy=1080 / 4.0 * 3.0,
+        arc4 = Arc.from_scalar(
+            center_x=1920 / 4.0 * 3.0,
+            center_y=1080 / 4.0 * 3.0,
             radius=200,
             start_angle=0.0,
             end_angle=math.pi,
@@ -203,6 +203,13 @@ class ShapesAnimation(Animation):
         """
         Build the animation.
         """
+        # Coordinate system
+        coord_system = CoordSystem(
+            image_width=self.width,
+            image_height=self.height,
+            size=10
+        )
+
         # Add the LaTeX widget to the viewport or a container
         viewport = Viewport()
 
@@ -211,23 +218,25 @@ class ShapesAnimation(Animation):
         viewport.add_widget(drawable_widget)
 
         # Create arcs
-        arc1 = self.build_first_arc()
-        arc2 = self.build_second_arc()
-        arc3 = self.build_third_arc()
-        arc4 = self.build_fourth_arc()
+        arc1 = self.build_first_arc(coord_system)
+        arc2 = self.build_second_arc(coord_system)
+        arc3 = self.build_third_arc(coord_system)
+        # arc4 = self.build_fourth_arc(coord_system)
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(arc1)
         drawable_widget.add(arc2)
         drawable_widget.add(arc3)
-        drawable_widget.add(arc4)
+        # drawable_widget.add(arc4)
 
         # Add objects
         self.add(
+            coord_system=coord_system,
             viewport=viewport,
             drawable_widget=drawable_widget,
             arc1=arc1,
-            arc2=arc2
+            arc2=arc2,
+            arc3=arc3
         )
     # end build
 
@@ -247,7 +256,11 @@ class ShapesAnimation(Animation):
             frame_number (int): Frame number
         """
         # Create a DrawableImage
-        drawing_layer = DrawableImage.transparent(self.width, self.height)
+        drawing_layer = DrawableImage.transparent(
+            self.width,
+            self.height,
+            coord_system=self.obj("coord_system")
+        )
 
         # Get the viewport and drawable widget
         viewport = self.obj("viewport")
@@ -256,8 +269,8 @@ class ShapesAnimation(Animation):
         drawing_layer.set_root_container(viewport)
         drawing_layer.render(
             draw_params={
-                'draw_bboxes': True,
-                'draw_reference_point': True,
+                # 'draw_bboxes': True,
+                # 'draw_reference_point': True,
                 'draw_points': True
             }
         )

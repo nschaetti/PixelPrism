@@ -51,7 +51,7 @@ class DrawableWidget(Widget):
         context.save()
 
         # Antialiasing
-        context.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+        # context.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
 
         # For each primitive, draw it
         for primitive in self.primitives:

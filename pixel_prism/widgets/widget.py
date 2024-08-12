@@ -5,6 +5,8 @@
 
 import cairo
 
+from pixel_prism.base import Context
+
 
 class Widget:
     """
@@ -15,7 +17,7 @@ class Widget:
         """
         Initialize the widget.
         """
-        self.surface = None
+        self.context = None
     # end __init__
 
     # region PROPERTIES
@@ -25,7 +27,7 @@ class Widget:
         """
         Get the width of the widget.
         """
-        return self.surface.get_width()
+        return self.context.width
     # end width
 
     @property
@@ -33,7 +35,7 @@ class Widget:
         """
         Get the height of the widget.
         """
-        return self.surface.get_height()
+        return self.context.height
     # end height
 
     # endregion PROPERTIES
@@ -42,7 +44,7 @@ class Widget:
 
     def render(
             self,
-            surface: cairo.ImageSurface,
+            context: Context,
             *args,
             **kwargs
     ):
@@ -50,12 +52,10 @@ class Widget:
         Render the widget to the surface.
 
         Args:
-            surface (cairo.ImageSurface): Surface to render the widget to
-            draw_params (dict): Parameters for drawing the widget
+            context (Context): Context to render the widget to
         """
         # Get surface and context
-        self.surface = surface
-        context = cairo.Context(surface)
+        self.context = context
 
         # Get draw params
         draw_params = kwargs.get("draw_params", {})
@@ -66,7 +66,7 @@ class Widget:
 
     def draw(
             self,
-            context: cairo.Context,
+            context: Context,
             *args,
             **kwargs
     ):
@@ -74,7 +74,7 @@ class Widget:
         Draw the widget to the context.
 
         Args:
-            context (cairo.Context): Context to draw the widget to
+            context (Context): Context to draw the widget to
         """
         pass
     # end draw

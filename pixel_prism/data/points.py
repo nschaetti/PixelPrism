@@ -7,6 +7,7 @@ import numpy as np
 from pixel_prism.animate.able import MovableMixin
 
 from .data import Data
+from .scalar import Scalar
 from .eventmixin import EventMixin
 
 
@@ -109,11 +110,11 @@ class Point2D(Point):
         Set the coordinates of the point.
 
         Args:
-            x (float): X-coordinate of the point
-            y (float): Y-coordinate of the point
+            x (float or Scalar): X-coordinate of the point
+            y (float or Scalar): Y-coordinate of the point
         """
-        self._pos[0] = x
-        self._pos[1] = y
+        self._pos[0] = x.value if type(x) is Scalar else x
+        self._pos[1] = y.value if type(y) is Scalar else y
         self.dispatch_event("on_change", x=self._pos[0], y=self._pos[1])
     # end set
 

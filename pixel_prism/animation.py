@@ -370,7 +370,12 @@ class Animation:
 
         # Open the video capture
         fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-        out = cv2.VideoWriter(self.output_video, fourcc, fps, (width, height))
+        out = cv2.VideoWriter(
+            self.output_video,
+            fourcc,
+            fps,
+            (width, height)
+        )
         if not out.isOpened():
             raise ValueError(f"Could not open the output video file for writing: {self.output_video}")
         # end if

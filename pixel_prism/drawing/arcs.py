@@ -25,6 +25,7 @@ from pixel_prism.data import Point2D, Scalar, Color, EventMixin
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
 from .. import utils
+from ..base import Context
 
 
 # An arc
@@ -35,12 +36,11 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
 
     def __init__(
             self,
-            cx: float,
-            cy: float,
-            radius: float,
-            start_angle: float,
-            end_angle: float,
-            line_width: float = 0.0,
+            center: Point2D,
+            radius: Scalar,
+            start_angle: Scalar,
+            end_angle: Scalar,
+            line_width: Scalar = Scalar(0.0),
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
             bbox_border_width: float = 0.5,
@@ -64,11 +64,11 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             on_change (callable): Function to call when the arc
         """
         # Properties
-        self._center = Point2D(cx, cy)
-        self._radius = Scalar(radius)
-        self._start_angle = Scalar(start_angle)
-        self._end_angle = Scalar(end_angle)
-        self._line_width = Scalar(line_width)
+        self._center = center
+        self._radius = radius
+        self._start_angle = start_angle
+        self._end_angle = end_angle
+        self._line_width = line_width
         self._line_color = line_color
         self._fill_color = fill_color
 
@@ -388,7 +388,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
     # Draw points
     def draw_points(
             self,
-            context
+            context: Context
     ):
         """
         Draw the points of the arc.
@@ -400,16 +400,18 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         context.save()
 
         # Set fill color
-        self.set_source_rgba(
-            context,
+        context.set_source_rgba(
             utils.RED
         )
+
+        # Radius
+        radius = 0.01
 
         # Draw starting point
         context.arc(
             self._start_point.x,
             self._start_point.y,
-            10,
+            radius,
             0,
             2 * math.pi
         )
@@ -419,7 +421,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         context.arc(
             self._end_point.x,
             self._end_point.y,
-            10,
+            radius,
             0,
             2 * math.pi
         )
@@ -429,7 +431,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         context.arc(
             self._middle_point.x,
             self._middle_point.y,
-            10,
+            radius,
             0,
             2 * math.pi
         )
@@ -439,7 +441,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         context.arc(
             self.center.x,
             self.center.y,
-            10,
+            radius,
             0,
             2 * math.pi
         )
@@ -452,7 +454,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
     # Draw the element
     def draw(
             self,
-            context,
+            context: Context,
             draw_bboxes: bool = False,
             draw_reference_point: bool = False,
             draw_points: bool = False,
@@ -471,8 +473,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         # Fill color is set
         if self.fill_color is not None:
             # Set fill color
-            self.set_source_rgba(
-                context,
+            context.set_source_rgba(
                 self.fill_color
             )
 
@@ -487,8 +488,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         # Stroke
         if self.line_width.value > 0:
             # Set line color
-            self.set_source_rgba(
-                context,
+            context.set_source_rgba(
                 self.line_color
             )
 
@@ -748,7 +748,8 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
             bbox_border_width: float = 0.5,
-            bbox_border_color: Color = utils.RED.copy()
+            bbox_border_color: Color = utils.RED.copy(),
+            on_change=None
     ):
         """
         Create an arc from scalar values.
@@ -764,13 +765,59 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             fill_color (Color): Color to fill the arc
             bbox_border_width (float): Width of the bounding box border
             bbox_border_color (Color): Color of the bounding box border
+            on_change (callable): Function to call when the arc
 
         Returns:
             ArcData: Arc created from scalar values
         """
         return cls(
-            cx=center_x,
-            cy=center_y,
+            center=Point2D(center_x, center_y),
+            radius=Scalar(radius),
+            start_angle=Scalar(start_angle),
+            end_angle=Scalar(end_angle),
+            line_width=Scalar(line_width),
+            line_color=line_color,
+            fill_color=fill_color,
+            bbox_border_width=bbox_border_width,
+            bbox_border_color=bbox_border_color,
+            on_change=on_change
+        )
+    # end from_scalar
+
+    @classmethod
+    def from_objects(
+            cls,
+            center: Point2D,
+            radius: Scalar,
+            start_angle: Scalar,
+            end_angle: Scalar,
+            line_width: Scalar = Scalar(0.0),
+            line_color: Color = utils.WHITE,
+            fill_color: Color = None,
+            bbox_border_width: float = 0.5,
+            bbox_border_color: Color = utils.RED.copy(),
+            on_change=None
+    ):
+        """
+        Create an arc from scalar values.
+
+        Args:
+            center (Point2D): Center of the arc
+            radius (float): Radius of the arc
+            start_angle (float): Start angle of the arc
+            end_angle (float): End angle of the arc
+            line_width (float): Width of the line
+            line_color (Color): Color of the line
+            fill_color (Color): Color to fill the arc
+            bbox_border_width (float): Width of the bounding box border
+            bbox_border_color (Color): Color of the bounding box border
+            on_change (callable): Function to call when the arc
+
+        Returns:
+            ArcData: Arc created from scalar values
+        """
+        return cls(
+            center=center,
             radius=radius,
             start_angle=start_angle,
             end_angle=end_angle,
@@ -778,7 +825,8 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_color=line_color,
             fill_color=fill_color,
             bbox_border_width=bbox_border_width,
-            bbox_border_color=bbox_border_color
+            bbox_border_color=bbox_border_color,
+            on_change=on_change
         )
     # end from_scalar
 

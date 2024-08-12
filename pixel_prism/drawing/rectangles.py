@@ -223,7 +223,7 @@ class Rectangle(
             10,
             10
         )
-        context.set_source_rgba(255, 255, 255, 1)
+        context.set_source_rgba(Color(255, 255, 255, 1))
         context.fill()
 
         # Draw upper left position
@@ -233,24 +233,25 @@ class Rectangle(
             10,
             10
         )
-        context.set_source_rgba(255, 255, 255, 1)
+        context.set_source_rgba(Color(255, 255, 255, 1))
         context.fill()
 
         # Draw text upper left
-        context.set_font_size(20)
+        """context.set_font_size(0.02)
         point_position = f"({self.x1:0.01f}, {self.y1:0.01f})"
+        print(f"{point_position}")
         extents = context.text_extents(point_position)
         context.move_to(self.x1 - extents.width / 2, self.y1 - extents.height)
         context.show_text(point_position)
-        context.fill()
+        context.fill()"""
 
         # Draw text bottom right
-        context.set_font_size(20)
+        """context.set_font_size(20)
         point_position = f"({self.x2:0.01f}, {self.y2:0.01f})"
         extents = context.text_extents(point_position)
         context.move_to(self.x2 - extents.width / 2, self.y2 + extents.height * 2)
         context.show_text(point_position)
-        context.fill()
+        context.fill()"""
 
         # Restore context
         context.restore()
@@ -285,7 +286,7 @@ class Rectangle(
         context.save()
 
         # Fill color
-        self.set_source_rgba(context, self.fill_color)
+        context.set_source_rgba(self.fill_color)
 
         # Its build
         if self.is_built:
@@ -303,11 +304,11 @@ class Rectangle(
                 context.fill()
             elif self.fill:
                 context.fill_preserve()
-                self.set_source_rgba(context, self.border_color)
+                context.set_source_rgba(self.border_color)
                 context.set_line_width(self.border_width.value)
                 context.stroke()
             else:
-                self.set_source_rgba(context, self.border_color)
+                context.set_source_rgba(self.border_color)
                 context.set_line_width(self.border_width.value)
                 context.stroke()
             # end if
@@ -327,11 +328,11 @@ class Rectangle(
             context.fill()
         elif self.fill:
             context.fill_preserve()
-            self.set_source_rgba(context, self.border_color)
+            context.set_source_rgba(self.border_color)
             context.set_line_width(self.border_width.value)
             context.stroke()
         else:
-            self.set_source_rgba(context, self.border_color)
+            context.set_source_rgba(self.border_color)
             context.set_line_width(self.border_width.value)
             context.stroke()
         # end if
