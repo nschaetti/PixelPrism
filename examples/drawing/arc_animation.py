@@ -35,6 +35,10 @@ from pixel_prism.data import Point2D, Scalar
 # DrawableWidgetAnimation class
 class ShapesAnimation(Animation):
 
+    ARC_LINE_WIDTH = 0.02
+    ARC_RADIUS = 1.0
+    BBOX_BORDER_WIDTH = 0.01
+
     # Init effects
     def init_effects(self):
         pass
@@ -51,13 +55,13 @@ class ShapesAnimation(Animation):
         # Create an ARC on upper left
         arc1 = Arc.from_objects(
             center=coord_system.upper_left_square,
-            radius=Scalar(1),
+            radius=Scalar(self.ARC_RADIUS),
             start_angle=Scalar(0.0),
             end_angle=Scalar(0.0),
             line_color=utils.RED.copy(),
-            line_width=Scalar(0.02),
+            line_width=Scalar(self.ARC_LINE_WIDTH),
             fill_color=utils.GREEN.copy(),
-            bbox_border_width=2,
+            bbox_border_width=self.BBOX_BORDER_WIDTH,
             bbox_border_color=utils.BLUE.copy(),
         )
 
@@ -97,13 +101,13 @@ class ShapesAnimation(Animation):
         # Create an ARC on upper left
         arc2 = Arc.from_objects(
             center=coord_system.upper_right_square - Point2D(1.0, 0.0),
-            radius=Scalar(1),
+            radius=Scalar(self.ARC_RADIUS),
             start_angle=Scalar(0.0),
             end_angle=Scalar(math.pi),
             line_color=utils.RED.copy(),
-            line_width=Scalar(0.02),
+            line_width=Scalar(self.ARC_LINE_WIDTH),
             fill_color=utils.GREEN.copy(),
-            bbox_border_width=2,
+            bbox_border_width=self.BBOX_BORDER_WIDTH,
             bbox_border_color=utils.BLUE.copy()
         )
 
@@ -143,13 +147,13 @@ class ShapesAnimation(Animation):
         # Create an ARC on upper left
         arc3 = Arc.from_objects(
             center=coord_system.lower_left_square,
-            radius=Scalar(0.4),
+            radius=Scalar(self.ARC_RADIUS / 2.0),
             start_angle=Scalar(0.0),
             end_angle=Scalar(math.pi * 1.5),
             line_color=utils.RED.copy(),
-            line_width=Scalar(0.02),
+            line_width=Scalar(self.ARC_LINE_WIDTH),
             fill_color=utils.GREEN.copy(),
-            bbox_border_width=2,
+            bbox_border_width=self.BBOX_BORDER_WIDTH,
             bbox_border_color=utils.BLUE.copy()
         )
 
@@ -174,16 +178,15 @@ class ShapesAnimation(Animation):
         Build the fourth arc.
         """
         # Create an ARC on upper left
-        arc4 = Arc.from_scalar(
-            center_x=1920 / 4.0 * 3.0,
-            center_y=1080 / 4.0 * 3.0,
-            radius=200,
-            start_angle=0.0,
-            end_angle=math.pi,
+        arc4 = Arc.from_objects(
+            center=coord_system.lower_right_square,
+            radius=Scalar(self.ARC_RADIUS),
+            start_angle=Scalar(0.0),
+            end_angle=Scalar(math.pi),
             line_color=utils.RED.copy(),
-            line_width=4.0,
+            line_width=Scalar(self.ARC_LINE_WIDTH),
             fill_color=utils.GREEN.copy(),
-            bbox_border_width=2,
+            bbox_border_width=self.BBOX_BORDER_WIDTH,
             bbox_border_color=utils.BLUE.copy()
         )
 
@@ -221,13 +224,13 @@ class ShapesAnimation(Animation):
         arc1 = self.build_first_arc(coord_system)
         arc2 = self.build_second_arc(coord_system)
         arc3 = self.build_third_arc(coord_system)
-        # arc4 = self.build_fourth_arc(coord_system)
+        arc4 = self.build_fourth_arc(coord_system)
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(arc1)
         drawable_widget.add(arc2)
         drawable_widget.add(arc3)
-        # drawable_widget.add(arc4)
+        drawable_widget.add(arc4)
 
         # Add objects
         self.add(
@@ -236,7 +239,8 @@ class ShapesAnimation(Animation):
             drawable_widget=drawable_widget,
             arc1=arc1,
             arc2=arc2,
-            arc3=arc3
+            arc3=arc3,
+            arc4=arc4
         )
     # end build
 
@@ -269,8 +273,8 @@ class ShapesAnimation(Animation):
         drawing_layer.set_root_container(viewport)
         drawing_layer.render(
             draw_params={
-                # 'draw_bboxes': True,
-                # 'draw_reference_point': True,
+                'draw_bboxes': True,
+                'draw_reference_point': True,
                 'draw_points': True
             }
         )

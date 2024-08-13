@@ -1,11 +1,11 @@
 
 # Imports
-from typing import List, Any
+from typing import List, Any, Tuple
 import cairo
 import numpy as np
 from pixel_prism.data import Point2D, Color, Scalar
 import pixel_prism.utils as utils
-from pixel_prism.drawing import Circle, Line
+from pixel_prism.drawing import Circle
 from pixel_prism.animate.able import (
     MovableMixin,
     FadeInableMixin,
@@ -13,6 +13,7 @@ from pixel_prism.animate.able import (
     BuildableMixin,
     DestroyableMixin
 )
+from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
 from .transforms import (
     Translate2D,
@@ -22,6 +23,616 @@ from .transforms import (
     SkewY2D,
     Matrix2D
 )
+
+
+# Path line
+class PathLine(
+    MovableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
+    """
+    A simple line class as an element of a path.
+    """
+
+    # Constructor
+    def __init__(
+            self,
+            start: Point2D,
+            end: Point2D,
+            is_built: bool = True,
+            build_ratio: float = 1.0
+    ):
+        """
+        Initialize the line.
+
+        Args:
+            start (Point2D): Start point of the line
+            end (Point2D): End point of the line
+            is_built (bool): Is the line built
+            build_ratio (float): Build ratio of the line
+        """
+        # Constructors
+        MovableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
+        DestroyableMixin.__init__(self)
+
+        # Initialize the line
+        self._start = start
+        self._end = end
+        self._length = np.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2)
+        self._bounding_box = Rectangle(
+            upper_left=Point2D(min(start.x, end.x), min(start.y, end.y)),
+            width=abs(end.x - start.x),
+            height=abs(end.y - start.y)
+        )
+
+        # Listen ot start and end points
+        self._start.add_event_listener("on_change", self._on_point_changed)
+        self._end.add_event_listener("on_change", self._on_point_changed)
+    # end __init__
+
+    # Start point
+    @property
+    def start(self):
+        """
+        Get the start point of the line.
+        """
+        return self._start
+    # end start
+
+    @property
+    def end(self):
+        """
+        Get the end point of the line.
+        """
+        return self._end
+    # end end
+
+    # Length
+    @property
+    def length(self):
+        """
+        Get the length of the line.
+        """
+        return self._length
+    # end length
+
+    # Bounding box
+    @property
+    def bounding_box(self):
+        """
+        Get the bounding box of the line.
+        """
+        return self._bounding_box
+    # end bounding_box
+
+    # Start changed
+    def _on_point_changed(self, x, y):
+        """
+        Handle the start point changing.
+
+        Args:
+            x (float): X-coordinate of the start point
+            y (float): Y-coordinate of the start point
+        """
+        # Point cannot be changed, exception
+        raise ValueError("Start/end point of a line cannot be changed.")
+    # end on_start_changed
+
+    # Draw path
+    def draw(self, context):
+        """
+        Draw the path of the line.
+
+        Args:
+            context (cairo.Context): Context to draw the path to
+        """
+        # Line to end
+        context.line_to(self.end.x, self.end.y)
+    # end draw
+
+    # region CLASS_METHODS
+
+    @classmethod
+    def from_objects(
+            cls,
+            start: Point2D,
+            end: Point2D
+    ):
+        """
+        Create a line from objects.
+
+        Args:
+            start (Point2D): Start point of the line
+            end (Point2D): End point of the line
+        """
+        return PathLine(
+            start=start,
+            end=end
+        )
+    # end from_objects
+
+# end PathLine
+
+
+
+# Path bezier cubic curve
+class PathBezierCubic(
+    MovableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
+    """
+    A simple cubic bezier curve class as an element of a path.
+    """
+
+    # Constructor
+    def __init__(
+            self,
+            start: Point2D,
+            control1: Point2D,
+            control2: Point2D,
+            end: Point2D,
+            bounding_box: Rectangle,
+            is_built: bool = True,
+            build_ratio: float = 1.0
+    ):
+        """
+        Initialize the cubic bezier curve.
+
+        Args:
+            start (Point2D): Start point of the curve
+            control1 (Point2D): First control point of the curve
+            control2 (Point2D): Second control point of the curve
+            end (Point2D): End point of the curve
+            bounding_box (Tuple[Point2D, Point2D]): Bounding box of the curve
+            is_built (bool): Is the curve built
+            build_ratio (float): Build ratio of the curve
+        """
+        # Constructors
+        MovableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
+        DestroyableMixin.__init__(self)
+
+        # Initialize the curve
+        self._start = start
+        self._control1 = control1
+        self._control2 = control2
+        self._end = end
+        self._bounding_box = bounding_box
+        self._length = 0
+
+        # Listen to start, control1, control2 and end points
+        self._start.add_event_listener("on_change", self._on_point_changed)
+        self._control1.add_event_listener("on_change", self._on_point_changed)
+        self._control2.add_event_listener("on_change", self._on_point_changed)
+        self._end.add_event_listener("on_change", self._on_point_changed)
+    # end __init__
+
+    # Start point
+    @property
+    def start(self):
+        """
+        Get the start point of the curve.
+        """
+        return self._start
+    # end start
+
+    # Control1 point
+    @property
+    def control1(self):
+        """
+        Get the first control point of the curve.
+        """
+        return self._control1
+    # end control1
+
+    # Control2 point
+    @property
+    def control2(self):
+        """
+        Get the second control point of the curve.
+        """
+        return self._control2
+    # end control2
+
+    # End point
+    @property
+    def end(self):
+        """
+        Get the end point of the curve.
+        """
+        return self._end
+    # end end
+
+    # Length
+    @property
+    def length(self):
+        """
+        Get the length of the curve.
+        """
+        return self._length
+    # end length
+
+    # Bounding box
+    @property
+    def bounding_box(self):
+        """
+        Get the bounding box of the curve.
+        """
+        return self._bounding_box
+    # end bounding_box
+
+    # Draw path
+    def draw(self, context):
+        """
+        Draw the path of the curve.
+
+        Args:
+            context (cairo.Context): Context to draw the path to
+        """
+        # Curve to end
+        context.curve_to(
+            self.control1.x, self.control1.y,
+            self.control2.x, self.control2.y,
+            self.end.x, self.end.y
+        )
+    # end draw
+
+    # Start changed
+    def _on_point_changed(self, x, y):
+        """
+        Handle the start point changing.
+
+        Args:
+            x (float): X-coordinate of the start point
+            y (float): Y-coordinate of the start point
+        """
+        # Point cannot be changed, exception
+        raise ValueError("Start/end point of a bezier curve cannot be changed.")
+    # end on_start_changed
+
+    # region CLASS_METHODS
+
+    @classmethod
+    def from_objects(
+            cls,
+            start: Point2D,
+            control1: Point2D,
+            control2: Point2D,
+            end: Point2D,
+            bounding_box: Tuple[Point2D, Point2D]
+    ):
+        """
+        Create a cubic bezier curve from objects.
+
+        Args:
+            start (Point2D): Start point of the curve
+            control1 (Point2D): First control point of the curve
+            control2 (Point2D): Second control point of the curve
+            end (Point2D): End point of the curve
+            bounding_box (Tuple[Point2D, Point2D]): Bounding box of the curve
+        """
+        return PathBezierCubic(
+            start=start,
+            control1=control1,
+            control2=control2,
+            end=end,
+            bounding_box=bounding_box
+        )
+    # end from_objects
+
+    # endregion CLASS_METHODS
+
+# end PathBezierCubic
+
+
+# Path bezier quadratic curve
+class PathBezierQuadratic(
+    MovableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
+    """
+    A simple quadratic bezier curve class as an element of a path.
+    """
+
+    # Constructor
+    def __init__(
+            self,
+            start: Point2D,
+            control: Point2D,
+            end: Point2D,
+            bounding_box: Rectangle,
+            is_built: bool = True,
+            build_ratio: float = 1.0
+    ):
+        """
+        Initialize the quadratic bezier curve.
+
+        Args:
+            start (Point2D): Start point of the curve
+            control (Point2D): Control point of the curve
+            end (Point2D): End point of the curve
+            bounding_box (Rectangle): Bounding box of the curve
+            is_built (bool): Is the curve built
+            build_ratio (float): Build ratio of the curve
+        """
+        # Constructors
+        MovableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
+        DestroyableMixin.__init__(self)
+
+        # Initialize the curve
+        self._start = start
+        self._control = control
+        self._end = end
+        self._bounding_box = bounding_box
+
+        # Listen to start, control and end points
+        self._start.add_event_listener("on_change", self._on_point_changed)
+        self._control.add_event_listener("on_change", self._on_point_changed)
+        self._end.add_event_listener("on_change", self._on_point_changed)
+    # end __init__
+
+    # Start point
+    @property
+    def start(self):
+        """
+        Get the start point of the curve.
+        """
+        return self._start
+    # end start
+
+    # Control point
+    @property
+    def control(self):
+        """
+        Get the control point of the curve.
+        """
+        return self._control
+    # end control
+
+    # End point
+    @property
+    def end(self):
+        """
+        Get the end point of the curve.
+        """
+        return self._end
+    # end end
+
+    # Bounding box
+    @property
+    def bounding_box(self):
+        """
+        Get the bounding box of the curve.
+        """
+        return self._bounding_box
+    # end bounding_box
+
+    # Draw path
+    def draw(self, context):
+        """
+        Draw the path of the curve.
+
+        Args:
+            context (cairo.Context): Context to draw the path to
+        """
+        # Curve to end
+        context.curve_to(
+            self.control.x, self.control.y,
+            self.control.x, self.control.y,
+            self.end.x, self.end.y
+        )
+    # end draw
+
+    # Start changed
+    def _on_point_changed(self, x, y):
+        """
+        Handle the start point changing.
+
+        Args:
+            x (float): X
+            y (float): Y
+        """
+        # Point cannot be changed, exception
+        raise ValueError("Start/end point of a bezier curve cannot be changed.")
+    # end on_start_changed
+
+    # region CLASS_METHODS
+
+    @classmethod
+    def from_objects(
+            cls,
+            start: Point2D,
+            control: Point2D,
+            end: Point2D,
+            bounding_box: Rectangle
+    ):
+        """
+        Create a quadratic bezier curve from objects.
+
+        Args:
+            start (Point2D): Start point of the curve
+            control (Point2D): Control point of the curve
+            end (Point2D): End point of the curve
+            bounding_box (Tuple[Point2D, Point2D]): Bounding box of the curve
+        """
+        return PathBezierQuadratic(
+            start=start,
+            control=control,
+            end=end,
+            bounding_box=bounding_box
+        )
+    # end from_objects
+
+    # endregion CLASS_METHODS
+
+# end PathBezierQuadratic
+
+
+# Path arc
+class PathArc(
+    MovableMixin,
+    BuildableMixin,
+    DestroyableMixin
+):
+    """
+    A simple arc class as an element of a path.
+    """
+
+    def __init__(
+            self,
+            center: Point2D,
+            radius: Scalar,
+            start_angle: Scalar,
+            end_angle: Scalar,
+            bounding_box: Rectangle,
+            is_built: bool = True,
+            build_ratio: float = 1.0
+    ):
+        """
+        Initialize the arc.
+
+        Args:
+            center (Point2D): Center of the arc
+            radius (Scalar): Radius of the arc
+            start_angle (Scalar): Start angle of the arc
+            end_angle (Scalar): End angle of the arc
+            bounding_box (Rectangle): Bounding box of the arc
+            is_built (bool): Is the arc built
+            build_ratio (float): Build ratio of the arc
+        """
+        # Constructors
+        MovableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
+        DestroyableMixin.__init__(self)
+
+        # Initialize the arc
+        self._center = center
+        self._radius = radius
+        self._start_angle = start_angle
+        self._end_angle = end_angle
+        self._bounding_box = bounding_box
+
+        # Listen to start and radius points
+        self._center.add_event_listener("on_change", self._on_point_changed)
+        self._radius.add_event_listener("on_change", self._on_point_changed)
+        self._start_angle.add_event_listener("on_change", self._on_point_changed)
+        self._end_angle.add_event_listener("on_change", self._on_point_changed)
+    # end __init__
+
+    # Center
+    @property
+    def center(self):
+        """
+        Get the center of the arc.
+        """
+        return self._center
+    # end center
+
+    # Radius
+    @property
+    def radius(self):
+        """
+        Get the radius of the arc.
+        """
+        return self._radius
+    # end radius
+
+    # Start angle
+    @property
+    def start_angle(self):
+        """
+        Get the start angle of the arc.
+        """
+        return self._start_angle
+    # end start_angle
+
+    # End angle
+    @property
+    def end_angle(self):
+        """
+        Get the end angle of the arc.
+        """
+        return self._end_angle
+    # end end_angle
+
+    # Bounding box
+    @property
+    def bounding_box(self):
+        """
+        Get the bounding box of the arc.
+        """
+        return self._bounding_box
+    # end bounding_box
+
+    # Draw path
+    def draw(self, context):
+        """
+        Draw the path of the arc.
+
+        Args:
+            context (cairo.Context): Context to draw the path to
+        """
+        # Arc to end
+        context.arc(
+            self.center.x,
+            self.center.y,
+            self.radius.value,
+            self.start_angle.value,
+            self.end_angle.value
+        )
+    # end draw
+
+    # Start changed
+    def _on_point_changed(self, x, y):
+        """
+        Handle the start point changing.
+
+        Args:
+            x (float): X-coordinate of the start point
+            y (float): Y-coordinate of the start point
+        """
+        # Point cannot be changed, exception
+        raise ValueError("Start point of an arc cannot be changed.")
+    # end on_start_changed
+
+    # region CLASS_METHODS
+
+    @classmethod
+    def from_objects(
+            cls,
+            center: Point2D,
+            radius: Scalar,
+            start_angle: Scalar,
+            end_angle: Scalar,
+            bounding_box: Rectangle
+    ):
+        """
+        Create an arc from objects.
+
+        Args:
+            center (Point2D): Center of the arc
+            radius (Scalar): Radius of the arc
+            start_angle (Scalar): Start angle of the arc
+            end_angle (Scalar): End angle of the arc
+            bounding_box (Tuple[Point2D, Point2D]): Bounding box of the arc
+        """
+        return PathArc(
+            center=center,
+            radius=radius,
+            start_angle=start_angle,
+            end_angle=end_angle,
+            bounding_box=bounding_box
+        )
+    # end from_objects
+
+    # endregion CLASS_METHODS
+
+# end PathArc
 
 
 # Path segment
@@ -37,7 +648,7 @@ class PathSegment(
 
     def __init__(
             self,
-            elements=None,
+            elements,
             is_built: bool = True,
             build_ratio: float = 1.0,
             bbox_border_width: float = 0.07,
@@ -46,22 +657,37 @@ class PathSegment(
         """
         Initialize the path segment with no elements.
         """
+        # Initialize the elements
+        self._elements = elements
+
         # Constructors
         DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
         MovableMixin.__init__(self)
         BuildableMixin.__init__(self, is_built, build_ratio)
 
-        # Default elements
-        if elements is None:
-            elements = []
-        # end if
-
-        # Initialize the elements
-        self.elements = elements
-
         # Compute length
-        self.length = sum([element.length for element in self.elements]) if len(self.elements) > 0 else 0
+        self._length = sum([element.length for element in self._elements]) if len(self._elements) > 0 else 0
     # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def elements(self):
+        """
+        Get the elements of the path segment.
+        """
+        return self._elements
+    # end elements
+
+    @property
+    def length(self):
+        """
+        Get the length of the path segment.
+        """
+        return self._length
+    # end length
+
+    # endregion PROPERTIES
 
     # region PUBLIC
 
@@ -87,7 +713,7 @@ class PathSegment(
             element: Element to add to the path
         """
         self.elements.append(element)
-        self.length += element.length
+        self._length += element.length
         self.update_bbox()
     # end add
 
@@ -123,7 +749,7 @@ class PathSegment(
             # Draw path bounding box
             path_bbox = element.bbox
             path_bbox.fill = False
-            path_bbox.border_color = utils.BLUE.copy()
+            path_bbox._border_color = utils.BLUE.copy()
             path_bbox.border_width.value = 0.03
             path_bbox.draw(context)
         # end for
@@ -214,17 +840,29 @@ class PathSegment(
             border_color (Color): Color of the border
         """
         # Get the bounding box of the path segment
-        bbox = self.elements[0].bbox
+        if len(self.elements) > 0:
+            # First bounding box
+            bbox = self.elements[0].bounding_box
 
-        # For each element in the path segment
-        for element in self.elements[1:]:
-            # Update the bounding box
-            bbox = bbox.union(element.bbox)
-        # end for
+            # For each element in the path segment
+            for element in self.elements[1:]:
+                # Update the bounding box
+                bbox = bbox.union(element.bounding_box)
+            # end for
+        else:
+            # Create a dummy bounding box
+            bbox = Rectangle(
+                upper_left=Point2D(0, 0),
+                width=0,
+                height=0,
+                border_width=border_width,
+                border_color=border_color
+            )
+        # end if
 
         # Set fill, border color and witdth
         bbox.fill = False
-        bbox.border_color = border_color
+        bbox._border_color = border_color
         bbox.border_width.value = border_width
 
         # Return the bounding box
@@ -385,11 +1023,11 @@ class Path(
     def __init__(
             self,
             origin: Point2D,
+            path: PathSegment,
+            subpaths: List[PathSegment],
             line_width: Scalar,
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            path: PathSegment = None,
-            subpaths: List[PathSegment] = None,
             transform=None,
             is_built: bool = True,
             build_ratio: float = 1.0,
@@ -407,6 +1045,15 @@ class Path(
             is_built (bool): Is the path built
             build_ratio (float): Build ratio of the path
         """
+        # Initialize the elements
+        self._origin = origin
+        self._line_width = line_width
+        self._line_color = line_color
+        self._fill_color = fill_color
+        self._path = path
+        self._subpaths = [] if subpaths is None else subpaths
+        self._transform = transform
+
         # Constructors
         DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
         MovableMixin.__init__(self)
@@ -414,32 +1061,18 @@ class Path(
         FadeOutableMixin.__init__(self)
         BuildableMixin.__init__(self, is_built, build_ratio)
 
-        # Add the subpaths
-        if subpaths is None:
-            subpaths = []
-        # end if
-
-        # Initialize the elements
-        self.origin = origin
-        self.line_width = line_width
-        self.line_color = line_color
-        self.fill_color = fill_color
-        self.path = path
-        self.subpaths = subpaths
-        self.transform = transform
-
         # Set length
-        self.length = self.compute_length()
+        self._length = self.compute_length()
 
         # Debug circle
-        self.debug_circle = Circle(
+        """self.debug_circle = Circle(
             0,
             0,
             fill_color=utils.BLUE.copy(),
             border_color=utils.WHITE.copy(),
             radius=Scalar(0.2),
             border_width=Scalar(0.01)
-        )
+        )"""
     # end __init__
 
     # region PUBLIC
@@ -463,10 +1096,10 @@ class Path(
         Compute the length of the path.
         """
         # Add path length
-        length = self.path.length if self.path is not None else 0
+        length = self._path.length if self._path is not None else 0
 
         # Add length of subpaths
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             length += subpath.length
         # end for
 
@@ -484,8 +1117,8 @@ class Path(
         Args:
             alpha (float): Alpha value to set
         """
-        self.line_color.alpha = alpha
-        self.fill_color.alpha = alpha
+        self._line_color.alpha = alpha
+        self._fill_color.alpha = alpha
     # end set_alpha
 
     # Add
@@ -496,7 +1129,7 @@ class Path(
         Args:
             element: Element to add to the path
         """
-        self.path.add(element)
+        self._path.add(element)
         self.length = self.compute_length()
 
         # Update bounding box
@@ -511,7 +1144,7 @@ class Path(
         Args:
             subpath (PathSegmentList): Subpath to add to the path
         """
-        self.subpaths.append(subpath)
+        self._subpaths.append(subpath)
         self.length = self.compute_length()
         self.update_bbox()
     # end add_subpath
@@ -524,7 +1157,7 @@ class Path(
         Returns:
             list: Subpaths of the path
         """
-        return self.subpaths
+        return self._subpaths
     # end get_subpaths
 
     # Set subpaths
@@ -535,7 +1168,7 @@ class Path(
         Args:
             subpaths (list): Subpaths of the path
         """
-        self.subpaths = subpaths
+        self._subpaths = subpaths
         self.length = self.compute_length()
     # end set_subpaths
 
@@ -553,14 +1186,14 @@ class Path(
             dy (float): Displacement in the Y-direction
         """
         # Translate the path
-        self.origin.x += dx
-        self.origin.y += dy
+        self._origin.x += dx
+        self._origin.y += dy
 
         # Move path
-        self.path.translate(dx, dy)
+        self._path.translate(dx, dy)
 
         # Translate the subpaths
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             # Translate the subpath
             subpath.translate(dx, dy)
         # end for
@@ -636,16 +1269,16 @@ class Path(
         context.save()
 
         # Draw bb of segments
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             # Draw the bounding box of the subpath
             subpath.draw_bounding_box(context)
         # end for
 
         # Draw segments bb of path
-        self.path.draw_bounding_box(context)
+        self._path.draw_bounding_box(context)
 
         # Draw subpathsbounding box
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             # Get the bounding box
             path_bbox = subpath.bounding_box
 
@@ -722,10 +1355,10 @@ class Path(
         context.save()
 
         # Draw path
-        self.path.draw_path(context)
+        self._path.draw_path(context)
 
         # Draw subpaths
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             subpath.draw_path(context)
         # end for
 
@@ -752,21 +1385,21 @@ class Path(
         context.set_fill_rule(cairo.FillRule.WINDING)
 
         # Reference point
-        if draw_reference_point:
+        """if draw_reference_point:
             self.debug_circle.draw(context)
-        # end if
+        # end if"""
 
         # Apply transform
-        if self.transform is not None:
-            self.apply_transform(context, self.transform)
+        if self._transform is not None:
+            self.apply_transform(context, self._transform)
         # end if
 
         # Draw path
         context.new_path()
-        self.path.draw(context)
+        self._path.draw(context)
 
         # For each path segments
-        for segment in self.subpaths:
+        for segment in self._subpaths:
             # New sub path
             context.new_sub_path()
 
@@ -775,17 +1408,17 @@ class Path(
         # end for
 
         # Fill if color is set
-        if self.fill_color is not None:
+        if self._fill_color is not None:
             # Set color
             context.set_source_rgba(
-                self.fill_color.red,
-                self.fill_color.green,
-                self.fill_color.blue,
-                self.fill_color.opacity
+                self._fill_color.red,
+                self._fill_color.green,
+                self._fill_color.blue,
+                self._fill_color.opacity
             )
 
             # If stroke or not
-            if self.line_width.value == 0:
+            if self._line_width.value == 0:
                 context.fill()
             else:
                 context.fill_preserve()
@@ -793,16 +1426,16 @@ class Path(
         # end if
 
         # Stroke
-        if self.line_width.value > 0:
+        if self._line_width.value > 0:
             # Set line color and width
-            context.set_line_width(self.line_width.value)
+            context.set_line_width(self._line_width.value)
 
             # Set color
             context.set_source_rgba(
-                self.line_color.red,
-                self.line_color.green,
-                self.line_color.blue,
-                self.line_color.opacity
+                self._line_color.red,
+                self._line_color.green,
+                self._line_color.blue,
+                self._line_color.opacity
             )
 
             # Stroke
@@ -810,10 +1443,10 @@ class Path(
         # end if
 
         # Draw the bounding box and anchors
-        if draw_bboxes:
+        """if draw_bboxes:
             self.draw_bounding_box(context)
             self.draw_bounding_box_anchors(context)
-        # end if
+        # end if"""
 
         # Restore the context
         context.restore()
@@ -836,17 +1469,17 @@ class Path(
             border_color (Color): Color of the border
         """
         # Get the bounding box of the path
-        bbox = self.path.bounding_box
+        bbox = self._path.bounding_box
 
         # For each subpath
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             # Update the bounding box
             bbox = bbox.union(subpath.bounding_box)
         # end for
 
         # Set fill, border color and witdth
         bbox.fill = False
-        bbox.border_color = border_color
+        bbox._border_color = border_color
         bbox.border_width.value = border_width
 
         # Return the bounding box
@@ -916,8 +1549,8 @@ class Path(
         Initialize building the object.
         """
         super().init_build()
-        self.path.init_build()
-        for subpath in self.subpaths:
+        self._path.init_build()
+        for subpath in self._subpaths:
             subpath.init_build()
         # end for
     # end init_build
@@ -928,8 +1561,8 @@ class Path(
         Start building the object.
         """
         super().start_build(start_value)
-        self.path.start_build(start_value)
-        for subpath in self.subpaths:
+        self._path.start_build(start_value)
+        for subpath in self._subpaths:
             subpath.start_build(start_value)
         # end for
     # end start_build
@@ -942,8 +1575,8 @@ class Path(
         super().end_build(end_value)
 
         # End elements
-        self.path.end_build(end_value)
-        for subpath in self.subpaths:
+        self._path.end_build(end_value)
+        for subpath in self._subpaths:
             subpath.end_build(end_value)
         # end for
     # end end_build
@@ -956,10 +1589,10 @@ class Path(
         super().animate_build(t, duration, interpolated_t, env_value)
 
         # Animate build for path
-        self.path.animate_build(t, duration, interpolated_t, env_value)
+        self._path.animate_build(t, duration, interpolated_t, env_value)
 
         # Animate build for each subpath
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             subpath.animate_build(t, duration, interpolated_t, env_value)
         # end for
     # end animate_build
@@ -970,8 +1603,8 @@ class Path(
         Finish building the object.
         """
         super().finish_build()
-        self.path.finish_build()
-        for subpath in self.subpaths:
+        self._path.finish_build()
+        for subpath in self._subpaths:
             subpath.finish_build()
         # end for
     # end finish_build
@@ -986,8 +1619,8 @@ class Path(
         Initialize destroying the object.
         """
         super().init_destroy()
-        self.path.init_destroy()
-        for subpath in self.subpaths:
+        self._path.init_destroy()
+        for subpath in self._subpaths:
             subpath.init_destroy()
         # end for
     # end init_destroy
@@ -998,8 +1631,8 @@ class Path(
         Start building the object.
         """
         super().start_destroy(start_value)
-        self.path.start_destroy(start_value)
-        for subpath in self.subpaths:
+        self._path.start_destroy(start_value)
+        for subpath in self._subpaths:
             subpath.start_destroy(start_value)
         # end for
     # end start_destroy
@@ -1012,10 +1645,10 @@ class Path(
         super().animate_destroy(t, duration, interpolated_t, env_value)
 
         # Animate build for path
-        self.path.animate_destroy(t, duration, interpolated_t, env_value)
+        self._path.animate_destroy(t, duration, interpolated_t, env_value)
 
         # Animate build for each subpath
-        for subpath in self.subpaths:
+        for subpath in self._subpaths:
             subpath.animate_destroy(t, duration, interpolated_t, env_value)
         # end for
     # end animate_destroy
@@ -1028,8 +1661,8 @@ class Path(
         super().end_destroy(end_value)
 
         # End elements
-        self.path.end_destroy(end_value)
-        for subpath in self.subpaths:
+        self._path.end_destroy(end_value)
+        for subpath in self._subpaths:
             subpath.end_destroy(end_value)
         # end for
     # end end_destroy
@@ -1040,8 +1673,8 @@ class Path(
         Finish destroying the object.
         """
         super().finish_destroy()
-        self.path.finish_destroy()
-        for subpath in self.subpaths:
+        self._path.finish_destroy()
+        for subpath in self._subpaths:
             subpath.finish_destroy()
         # end for
     # end finish_destroy
@@ -1051,19 +1684,19 @@ class Path(
     # region OVERRIDE
 
     def __len__(self):
-        return len(self.path)
+        return len(self._path)
     # end __len__
 
     def __getitem__(self, index):
-        return self.path[index]
+        return self._path[index]
     # end __getitem__
 
     def __setitem__(self, index, value):
-        self.path[index] = value
+        self._path[index] = value
     # end __setitem__
 
     def __delitem__(self, index):
-        del self.path[index]
+        del self._path[index]
     # end __delitem__
 
     # str
@@ -1073,9 +1706,9 @@ class Path(
         """
         return (
             f"Path("
-            f"path={self.path},"
-            f"subpaths={self.subpaths},"
-            f"transform={self.transform.__str__() if self.transform is not None else 'None'}"
+            f"path={self._path},"
+            f"subpaths={self._subpaths},"
+            f"transform={self._transform.__str__() if self._transform is not None else 'None'}"
             f")"
         )
     # end __str__

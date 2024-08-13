@@ -404,8 +404,11 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             utils.RED
         )
 
+        # Line width
+        context.set_line_width(0.02)
+
         # Radius
-        radius = 0.01
+        radius = 0.05
 
         # Draw starting point
         context.arc(
@@ -676,7 +679,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         # end check_extrema
 
         # Critical angles to check
-        critical_angles = [0, math.pi / 2, math.pi, 3 * math.pi / 2]
+        critical_angles = [0, math.pi / 2, math.pi, 3 * math.pi / 2, 2 * math.pi]
 
         # Check the critical angles
         for angle in critical_angles:

@@ -31,11 +31,15 @@ from pixel_prism.utils import Anchor
 from pixel_prism.drawing import Circle
 import svgpathtools as svg
 
-from .lines import Line
-from .curves import CubicBezierCurve, QuadraticBezierCurve
-from .arcs import Arc
 from .rectangles import Rectangle
-from .paths import Path, PathSegment
+from .paths import (
+    Path,
+    PathSegment,
+    PathLine,
+    PathBezierQuadratic,
+    PathBezierCubic,
+    PathArc
+)
 from .transforms import *
 from .drawablemixin import DrawableMixin
 
@@ -129,21 +133,16 @@ def load_svg(
 
         # We have a path
         if element['type'] == 'path':
-            # New path
-            path_data = Path(
-                # origin=Point2D(x, y),
-                origin=Point2D(0, 0),
-                line_width=Scalar(0.0),
-                transform=transform,
-                fill_color=color.copy()
-            )
+            # Main & subpaths
+            main_path = None
+            sub_paths = list()
 
             # Get subpaths
-            subpaths = element['data'].d().split('M')
+            subpaths_parsed = element['data'].d().split('M')
 
             # For each subpaths
             subpath_i = 0
-            for subpath in subpaths:
+            for subpath in subpaths_parsed:
                 # Skip empty subpaths
                 if not subpath.strip():
                     continue
@@ -155,45 +154,69 @@ def load_svg(
                 # Parse the subpath
                 sub_path = parse_path(subpath)
 
-                # New path
-                subpath_data = PathSegment()
+                # Segment elements
+                segment_elements = list()
 
                 # Draw the segments
                 for segment in sub_path:
+                    # Bounding box
+                    segment_bbox = segment.bbox()
+
+                    # Add the segment
                     if isinstance(segment, svg.Line):
-                        line = Line(
+                        line = PathLine.from_objects(
                             start=Point2D(segment.start.real + x, segment.start.imag + y),
-                            end=Point2D(segment.end.real + x, segment.end.imag + y),
-                            bbox=Rectangle.from_bbox(segment.bbox(), translate=(x, y))
+                            end=Point2D(segment.end.real + x, segment.end.imag + y)
                         )
-                        subpath_data.add(line)
+                        segment_elements.append(line)
                     elif isinstance(segment, svg.CubicBezier):
-                        subpath_data.add(
-                            CubicBezierCurve(
+                        segment_elements.append(
+                            PathBezierCubic.from_objects(
                                 start=Point2D(segment.start.real + x, segment.start.imag + y),
                                 control1=Point2D(segment.control1.real + x, segment.control1.imag + y),
                                 control2=Point2D(segment.control2.real + x, segment.control2.imag + y),
                                 end=Point2D(segment.end.real + x, segment.end.imag + y),
-                                bbox=Rectangle.from_bbox(segment.bbox(), translate=(x, y))
+                                bounding_box=Rectangle.from_bbox(
+                                    bbox=(
+                                        segment_bbox[0] + x,
+                                        segment_bbox[1] + x,
+                                        segment_bbox[2] + y,
+                                        segment_bbox[3] + y
+                                    )
+                                )
                             )
                         )
                     elif isinstance(segment, svg.QuadraticBezier):
-                        subpath_data.add(
-                            QuadraticBezierCurve(
+                        segment_elements.append(
+                            PathBezierQuadratic.from_objects(
                                 start=Point2D(segment.start.real + x, segment.start.imag + y),
                                 control=Point2D(segment.control.real + x, segment.control.imag + y),
                                 end=Point2D(segment.end.real + x, segment.end.imag + y),
-                                bbox=Rectangle.from_bbox(segment.bbox(), translate=(x, y))
+                                bounding_box=Rectangle.from_bbox(
+                                    bbox=(
+                                        segment_bbox[0] + x,
+                                        segment_bbox[1] + x,
+                                        segment_bbox[2] + y,
+                                        segment_bbox[3] + y
+                                    )
+                                )
                             )
                         )
                     elif isinstance(segment, svg.Arc):
-                        subpath_data.add(
-                            Arc(
+                        segment_elements.append(
+                            PathArc.from_objects(
                                 center=Point2D(segment.center.real + x, segment.center.imag + y),
                                 radius=Scalar(segment.radius),
                                 start_angle=Scalar(segment.start_angle),
                                 end_angle=Scalar(segment.end_angle),
-                                bbox=Rectangle.from_bbox(segment.bbox(), translate=(x, y))
+                                bounding_box=Rectangle.from_bbox(
+                                    bbox=(
+                                        segment_bbox[0] + x,
+                                        segment_bbox[1] + x,
+                                        segment_bbox[2] + y,
+                                        segment_bbox[3] + y
+                                    )
+                                )
                             )
                         )
                     else:
@@ -201,16 +224,29 @@ def load_svg(
                     # end if
                 # end for
 
+                # New path
+                path_segment = PathSegment(segment_elements)
+
                 # Add the subpath to the path
                 if subpath_i == 0:
-                    path_data.path = subpath_data
+                    main_path = path_segment
                 else:
-                    path_data.add_subpath(subpath_data)
+                    sub_paths.append(path_segment)
                 # end if
 
                 # Increment the subpath index
                 subpath_i += 1
             # end for
+
+            # New path
+            path_data = Path(
+                origin=Point2D(0, 0),
+                path=main_path,
+                subpaths=sub_paths,
+                line_width=Scalar(0.0),
+                transform=transform,
+                fill_color=color.copy()
+            )
 
             # Add the path to the vector graphics
             vector_graphics.add(path_data, refs[el_i] if refs is not None else None)
@@ -234,7 +270,8 @@ def load_svg(
 
     # Compute the bounding box
     bbox = vector_graphics.bounding_box
-
+    print(f"Bounding box: {bbox}")
+    print(type(bbox.width))
     # Put to anchor point
     for element in vector_graphics.elements:
         if anchor_point == utils.Anchor.UPPER_LEFT:
@@ -291,13 +328,6 @@ class VectorGraphics(
             bbox_border_width (float): Width of the bounding box border
             bbox_border_color (Color): Color of the bounding box border
         """
-        # Init of VectorGraphicsData
-        DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
-        MovableMixin.__init__(self)
-        FadeInableMixin.__init__(self)
-        FadeOutableMixin.__init__(self)
-        BuildableMixin.__init__(self, is_built, build_ratio)
-
         # Initialize the elements
         self.position = position
         self.scale = scale
@@ -305,19 +335,26 @@ class VectorGraphics(
         self.references = {}
         self._index = 0
 
+        # Init of VectorGraphicsData
+        DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
+        MovableMixin.__init__(self)
+        FadeInableMixin.__init__(self)
+        FadeOutableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
+
         # Fadein, fadeout
         self.last_animated_element = None
         self.build_animated_element = None
 
         # Debugging circle
-        self.reference_point = Circle(
+        """self.reference_point = Circle(
             0,
             0,
             fill_color=utils.RED.copy().change_alpha(0.75),
             border_color=utils.WHITE.copy(),
             radius=Scalar(0.5),
             border_width=Scalar(0.05)
-        )
+        )"""
     # end __init__
 
     # Update bounding box
@@ -461,9 +498,9 @@ class VectorGraphics(
         context.scale(self.scale.x, self.scale.y)
 
         # Draw a circle
-        if draw_reference_point:
+        """if draw_reference_point:
             self.reference_point.draw(context)
-        # end if
+        # end if"""
 
         # For each element in the vector graphics
         for element in self.elements:
@@ -524,23 +561,23 @@ class VectorGraphics(
             max_x = max([el.bounding_box.x2 for el in self.elements])
             max_y = max([el.bounding_box.y2 for el in self.elements])
 
-            return Rectangle(
+            return Rectangle.from_objects(
                 upper_left=Point2D(min_x, min_y),
-                width=max_x - min_x,
-                height=max_y - min_y,
+                width=Scalar(max_x - min_x),
+                height=Scalar(max_y - min_y),
                 border_color=border_color,
-                border_width=border_width,
+                border_width=Scalar(border_width),
                 fill=False
             )
         # end if
 
         # Empty bounding box
-        return Rectangle(
+        return Rectangle.from_objects(
             upper_left=Point2D(0, 0),
-            width=0,
-            height=0,
+            width=Scalar(0),
+            height=Scalar(0),
             border_color=border_color,
-            border_width=border_width,
+            border_width=Scalar(border_width),
             fill=False
         )
     # end _create_bbox

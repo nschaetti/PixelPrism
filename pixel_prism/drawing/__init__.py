@@ -9,7 +9,14 @@ from .curves import CubicBezierCurve, QuadraticBezierCurve
 from .drawablemixin import DrawableMixin
 from .lines import Line
 from .mathtex import MathTex
-from .paths import Path, PathSegment
+from .paths import (
+    Path,
+    PathSegment,
+    PathLine,
+    PathBezierCubic,
+    PathBezierQuadratic,
+    PathArc
+)
 from .rectangles import Rectangle
 from .transforms import (
     Translate2D,
@@ -30,8 +37,14 @@ __all__ = [
     "DrawableMixin",
     "Line",
     "MathTex",
+    # Path
+    "PathLine",
     "Path",
     "PathSegment",
+    "PathBezierCubic",
+    "PathBezierQuadratic",
+    "PathArc",
+    # Rectangle
     "Rectangle",
     "Translate2D",
     "Scale2D",

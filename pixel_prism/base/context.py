@@ -337,8 +337,7 @@ class Context:
         Args:
             size (float): Font size
         """
-        scale = self.image_width / self.width
-        self.context.set_font_size(size * scale)
+        self.context.set_font_matrix(cairo.Matrix(size, 0, 0, -size, 0, 0))
     # end set_font_size
 
     def set_line_width(self, width: float) -> None:

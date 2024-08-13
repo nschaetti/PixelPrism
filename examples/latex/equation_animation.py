@@ -1,4 +1,20 @@
 #
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#
 # Animation of an equation.
 #
 
@@ -7,7 +23,7 @@ from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas
+from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixel_prism.drawing import MathTex
 from pixel_prism.data import Point2D
 
@@ -20,22 +36,35 @@ class MathTexAnimation(Animation):
         pass
     # end init_effects
 
-    def build(self):
+    def build_math_text(self, coord_system):
         """
-        Build the animation.
+        Build the math text.
         """
         # Create a Point2D for the position of the LaTeX widget
-        latex_position = Point2D(1920 / 4.0, 1080 / 4.0)
+        latex_position = coord_system.center
 
         # Créer un widget LaTeX
         latex_widget = MathTex(
             "g(x) = \\frac{\partial Q}{\partial t}",
             latex_position,
-            scale=Point2D(15, 15),
-            refs=["g", "(", "x", ")", "=", "partial1", "Q", "bar", "partial2",  "t"],
+            scale=Point2D(1, 1),
+            refs=["g", "(", "x", ")", "=", "partial1", "Q", "bar", "partial2", "t"],
             debug=True
         )
-        latex_widget.set_alpha(0)
+
+        return latex_widget
+    # end build_math_text
+
+    def build(self):
+        """
+        Build the animation.
+        """
+        # Coordinate system
+        coord_system = CoordSystem(
+            image_width=self.width,
+            image_height=self.height,
+            size=10
+        )
 
         # Ajouter le widget au viewport ou à un conteneur
         viewport = Viewport()
@@ -44,13 +73,16 @@ class MathTexAnimation(Animation):
         drawable_widget = DrawableWidget()
         viewport.add_widget(drawable_widget)
 
+        # Create latex expression
+        math_text = self.build_math_text(coord_system)
+
         # Add the LaTeX widget to the drawable widget
-        drawable_widget.add(latex_widget)
+        drawable_widget.add(math_text)
 
         # Math fadein
-        self.animate(
+        """self.animate(
             FadeIn(
-                latex_widget,
+                math_text,
                 start_time=0,
                 end_time=1,
                 interpolator=EaseInOutInterpolator()
@@ -60,7 +92,7 @@ class MathTexAnimation(Animation):
         # Add transitions for point1
         self.animate(
             Move(
-                latex_widget,
+                math_text,
                 start_time=1,
                 end_time=3,
                 target_value=Point2D(1920 / 4.0 * 3.0, 1080 / 4.0 * 3.0),
@@ -70,7 +102,7 @@ class MathTexAnimation(Animation):
 
         self.animate(
             Move(
-                latex_widget,
+                math_text,
                 start_time=4,
                 end_time=6,
                 target_value=Point2D(1920 / 4.0, 1080 / 4.0),
@@ -81,18 +113,18 @@ class MathTexAnimation(Animation):
         # Math FadeOut
         self.animate(
             FadeOut(
-                latex_widget,
+                math_text,
                 start_time=6,
                 end_time=7,
                 interpolator=EaseInOutInterpolator()
             )
-        )
+        )"""
 
         # Add objects
         self.add(
             viewport=viewport,
             drawable_widget=drawable_widget,
-            latex_widget=latex_widget
+            latex_widget=math_text
         )
     # end build
 

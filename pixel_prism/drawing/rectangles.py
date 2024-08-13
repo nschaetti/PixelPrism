@@ -2,6 +2,9 @@
 
 # Imports
 from typing import Tuple, Any, Union
+
+import cairo
+
 from pixel_prism.data import Point2D, Scalar, Color
 from pixel_prism.animate.able import MovableMixin, BuildableMixin, DestroyableMixin
 import pixel_prism.utils as utils
@@ -23,11 +26,11 @@ class Rectangle(
     def __init__(
             self,
             upper_left: Point2D,
-            width: Union[Scalar, float],
-            height: Union[Scalar, float],
+            width: Scalar,
+            height: Scalar,
             fill_color: Color = utils.WHITE,
             border_color: Color = utils.WHITE,
-            border_width: Union[Scalar, float] = Scalar(1),
+            border_width: Scalar = Scalar(1),
             fill: bool = True,
             is_built: bool = True,
             build_ratio: float = 1.0,
@@ -35,32 +38,67 @@ class Rectangle(
             bbox_border_width: float = 1.0,
             bbox_border_color: Color = utils.BLUE.copy()
     ):
-        """
-        Initialize the rectangle with its upper left corner, width, and height.
+            """
+            Initialize the rectangle with its upper left corner, width, and height.
 
-        Args:
-            upper_left (Point2D): Upper left corner of the rectangle
-            width (Scalar): Width of the rectangle
-            height (Scalar): Height of the rectangle
-        """
-        # Initialize the rectangle
-        self.upper_left = upper_left
-        self.width = width if isinstance(width, Scalar) else Scalar(width)
-        self.height = height if isinstance(height, Scalar) else Scalar(height)
-        self.fill_color = fill_color
-        self.border_color = border_color
-        self.border_width = border_width if isinstance(border_width, Scalar) else Scalar(border_width)
-        self.fill = fill
+            Args:
+                upper_left (Point2D): Upper left corner of the rectangle
+                width (Scalar): Width of the rectangle
+                height (Scalar): Height of the rectangle
+            """
+            # Initialize the rectangle
+            self._upper_left = upper_left
+            self._width = width if isinstance(width, Scalar) else Scalar(width)
+            self._height = height if isinstance(height, Scalar) else Scalar(height)
+            self._fill_color = fill_color
+            self._border_color = border_color
+            self._border_width = border_width if isinstance(border_width, Scalar) else Scalar(border_width)
+            self.fill = fill
 
-        DrawableMixin.__init__(
-            self,
-            has_bbox=has_bbox,
-            bbox_border_width=bbox_border_width,
-            bbox_border_color=bbox_border_color
-        )
-        MovableMixin.__init__(self)
-        BuildableMixin.__init__(self, is_built, build_ratio)
+            DrawableMixin.__init__(
+                self,
+                has_bbox=has_bbox,
+                bbox_border_width=bbox_border_width,
+                bbox_border_color=bbox_border_color
+            )
+            MovableMixin.__init__(self)
+            BuildableMixin.__init__(self, is_built, build_ratio)
     # end __init__
+
+    @property
+    def upper_left(self):
+        """
+        Get the upper left corner.
+        """
+        return self._upper_left
+    # end upper_left
+
+    @upper_left.setter
+    def upper_left(self, value):
+        """
+        Set the upper left corner.
+        """
+        self._upper_left.x = value.x
+        self._upper_left.y = value.y
+        self.update_data()
+    # end upper_left
+
+    @property
+    def width(self):
+        """
+        Get the width.
+        """
+        return self._width
+    # end width
+
+    @width.setter
+    def width(self, value):
+        """
+        Set the width.
+        """
+        self._width.value = value
+        self.update_data()
+    # end width
 
     @property
     def x1(self):
@@ -83,7 +121,7 @@ class Rectangle(
         """
         Get the X-coordinate of the lower right corner.
         """
-        return self.upper_left.x + self.width.value
+        return self.upper_left.x + self._width.value
     # end x2
 
     @property
@@ -91,8 +129,24 @@ class Rectangle(
         """
         Get the Y-coordinate of the lower right corner.
         """
-        return self.upper_left.y + self.height.value
+        return self.upper_left.y + self._height.value
     # end y2
+
+    @property
+    def border_width(self):
+        """
+        Get the border width.
+        """
+        return self._border_width
+    # end border_width
+
+    @border_width.setter
+    def border_width(self, value):
+        """
+        Set the border width.
+        """
+        self._border_width.value = value
+    # end border_width
 
     # Set alpha
     def set_alpha(self, alpha: float):
@@ -102,8 +156,8 @@ class Rectangle(
         Args:
             alpha (float): Alpha value
         """
-        self.fill_color.alpha = alpha
-        self.border_color.alpha = alpha
+        self._fill_color.alpha = alpha
+        self._border_color.alpha = alpha
     # end set_alpha
 
     def get_upper_left(self):
@@ -132,7 +186,7 @@ class Rectangle(
         Args:
             width (float): Width of the rectangle
         """
-        self.width.set(width)
+        self._width.set(width)
         self.update_bbox()
     # end set_width
 
@@ -143,7 +197,7 @@ class Rectangle(
         Args:
             height (float): Height of the rectangle
         """
-        self.height.set(height)
+        self._height.set(height)
         self.update_bbox()
     # end set_height
 
@@ -155,10 +209,10 @@ class Rectangle(
         Update the bounding box of the rectangle.
         """
         bbox = self._create_bbox()
-        bbox.upper_left.x = self.upper_left.x
-        bbox.upper_left.y = self.upper_left.y
-        bbox.width.value = self.width.value
-        bbox.height.value = self.height.value
+        bbox.upper_left.x = self._upper_left.x
+        bbox.upper_left.y = self._upper_left.y
+        bbox.width.value = self._width.value
+        bbox.height.value = self._height.value
     # end update_bbox
 
     # Union
@@ -189,8 +243,8 @@ class Rectangle(
             dx (float): Delta X-coordinate
             dy (float): Delta Y-coordinate
         """
-        self.upper_left.x = self.upper_left.x + dx
-        self.upper_left.y = self.upper_left.y + dy
+        self._upper_left.x = self._upper_left.x + dx
+        self._upper_left.y = self._upper_left.y + dy
         self.update_bbox()
     # end translate
 
@@ -215,43 +269,46 @@ class Rectangle(
         # Save context
         context.save()
 
+        # Point size
+        point_size = 0.08
+        font_size = 0.1
+
         # Draw upper left position
-        upper_left = self.upper_left
+        upper_left = self._upper_left
         context.rectangle(
-            upper_left.x - 5,
-            upper_left.y - 5,
-            10,
-            10
+            upper_left.x - point_size / 2.0,
+            upper_left.y - point_size / 2.0,
+            point_size,
+            point_size
         )
         context.set_source_rgba(Color(255, 255, 255, 1))
         context.fill()
 
         # Draw upper left position
         context.rectangle(
-            self.x2 - 5,
-            self.y2 - 5,
-            10,
-            10
+            self.x2 - point_size / 2.0,
+            self.y2 - point_size / 2.0,
+            point_size,
+            point_size
         )
         context.set_source_rgba(Color(255, 255, 255, 1))
         context.fill()
 
         # Draw text upper left
-        """context.set_font_size(0.02)
+        context.set_font_size(font_size)
         point_position = f"({self.x1:0.01f}, {self.y1:0.01f})"
-        print(f"{point_position}")
         extents = context.text_extents(point_position)
-        context.move_to(self.x1 - extents.width / 2, self.y1 - extents.height)
+        context.move_to(self.x1 - extents.width / 2, self.y1 - extents.height * 2)
         context.show_text(point_position)
-        context.fill()"""
+        context.fill()
 
         # Draw text bottom right
-        """context.set_font_size(20)
+        context.set_font_size(font_size)
         point_position = f"({self.x2:0.01f}, {self.y2:0.01f})"
         extents = context.text_extents(point_position)
         context.move_to(self.x2 - extents.width / 2, self.y2 + extents.height * 2)
         context.show_text(point_position)
-        context.fill()"""
+        context.fill()
 
         # Restore context
         context.restore()
@@ -286,7 +343,7 @@ class Rectangle(
         context.save()
 
         # Fill color
-        context.set_source_rgba(self.fill_color)
+        context.set_source_rgba(self._fill_color)
 
         # Its build
         if self.is_built:
@@ -304,11 +361,11 @@ class Rectangle(
                 context.fill()
             elif self.fill:
                 context.fill_preserve()
-                context.set_source_rgba(self.border_color)
+                context.set_source_rgba(self._border_color)
                 context.set_line_width(self.border_width.value)
                 context.stroke()
             else:
-                context.set_source_rgba(self.border_color)
+                context.set_source_rgba(self._border_color)
                 context.set_line_width(self.border_width.value)
                 context.stroke()
             # end if
@@ -328,11 +385,11 @@ class Rectangle(
             context.fill()
         elif self.fill:
             context.fill_preserve()
-            context.set_source_rgba(self.border_color)
+            context.set_source_rgba(self._border_color)
             context.set_line_width(self.border_width.value)
             context.stroke()
         else:
-            context.set_source_rgba(self.border_color)
+            context.set_source_rgba(self._border_color)
             context.set_line_width(self.border_width.value)
             context.stroke()
         # end if
@@ -342,15 +399,35 @@ class Rectangle(
     # end draw
 
     # Copy
-    def copy(self):
+    def copy(self, deep: bool = False):
         """
         Return a copy of the rectangle.
+
+        Args:
+            deep (bool): Whether to perform a deep copy
         """
-        return Rectangle(
-            self.upper_left,
-            self.width,
-            self.height
-        )
+        if deep:
+            return Rectangle(
+                self.upper_left.copy(),
+                self.width.copy(),
+                self.height.copy(),
+                self._fill_color.copy(),
+                self._border_color.copy(),
+                self.border_width.copy(),
+                self.fill,
+                self.is_built,
+                self.build_ratio,
+                self.has_bbox,
+                self.bbox_border_width,
+                self.bbox_border_color.copy()
+            )
+        else:
+            return Rectangle.from_objects(
+                self.upper_left,
+                Scalar(self._width),
+                Scalar(self._height)
+            )
+        # end if
     # end copy
 
     # region PRIVATE
@@ -368,16 +445,16 @@ class Rectangle(
             border_color (Color): Color of the border
         """
         # Get the bounding box of the path
-        bbox = Rectangle(
+        bbox = Rectangle.from_objects(
             self.upper_left.copy(),
-            self.width,
-            self.height,
+            Scalar(self._width),
+            Scalar(self._height),
             has_bbox=False
         )
 
         # Set fill, border color and witdth
         bbox.fill = False
-        bbox.border_color = border_color
+        bbox._border_color = border_color
         bbox.border_width.value = border_width
 
         # Return the bounding box
@@ -450,8 +527,8 @@ class Rectangle(
             f"\tupper_left={self.upper_left},\n"
             f"\twidth={self.width},\n"
             f"\theight={self.height}\n"
-            f"\tfill_color={self.fill_color},\n"
-            f"\tborder_color={self.border_color},\n"
+            f"\tfill_color={self._fill_color},\n"
+            f"\tborder_color={self._border_color},\n"
             f"\tborder_width={self.border_width},\n"
             f"\tfill={self.fill}\n"
             f")"
@@ -468,6 +545,55 @@ class Rectangle(
     # endregion OVERRIDE
 
     # region STATIC
+
+    @classmethod
+    def from_objects(
+            cls,
+            upper_left: Point2D,
+            width: Scalar,
+            height: Scalar,
+            fill_color: Color = utils.WHITE,
+            border_color: Color = utils.WHITE,
+            border_width: Scalar = Scalar(1),
+            fill: bool = True,
+            is_built: bool = True,
+            build_ratio: float = 1.0,
+            has_bbox: bool = True,
+            bbox_border_width: float = 1.0,
+            bbox_border_color: Color = utils.BLUE.copy()
+    ):
+        """
+        Create a rectangle from its objects.
+
+        Args:
+            upper_left (Point2D): Upper left corner of the rectangle
+            width (Scalar): Width of the rectangle
+            height (Scalar): Height of the rectangle
+            fill_color (Color): Fill color of the rectangle
+            border_color (Color): Border color of the rectangle
+            border_width (Scalar): Border width of the rectangle
+            fill (bool): Whether to fill the rectangle
+            is_built (bool): Whether the rectangle is built
+            build_ratio (float): Build ratio of the rectangle
+            has_bbox (bool): Whether the rectangle has a bounding box
+            bbox_border_width (float): Width of the bounding box border
+            bbox_border_color (Color): Color of the bounding box border
+        """
+        return cls(
+            upper_left,
+            width,
+            height,
+            fill_color,
+            border_color,
+            border_width,
+            fill,
+            is_built,
+            build_ratio,
+            has_bbox,
+            bbox_border_width,
+            bbox_border_color
+        )
+    # end from_objects
 
     @classmethod
     def from_bbox(
@@ -494,10 +620,10 @@ class Rectangle(
         upper_left = Point2D(x=bbox[0], y=bbox[2])
         width = bbox[1] - bbox[0]
         height = bbox[3] - bbox[2]
-        return cls(
-            upper_left,
-            Scalar(width),
-            Scalar(height)
+        return cls.from_objects(
+            upper_left=upper_left,
+            width=Scalar(width),
+            height=Scalar(height)
         )
     # end from_bbox
 

@@ -148,6 +148,36 @@ class MathTex(
         context.restore()
     # end draw
 
+    # region OVERRIDE
+
+    def _create_bbox(
+            self,
+            border_width: float = 0.0,
+            border_color: Color = utils.WHITE.copy()
+    ):
+        """
+        Create the bounding box.
+        """
+        return None
+    # end _create_bbox
+
+    def __getitem__(self, index):
+        """
+        Get the element at the specified index.
+        """
+        return self.math_graphics[index]
+
+    # end __getitem__
+
+    def __setitem__(self, index, value):
+        """
+        Set the element at the specified index.
+        """
+        self.math_graphics[index] = value
+    # end __setitem__
+
+    # endregion OVERRIDE
+
     # region MOVABLE
 
     # Start moving
@@ -299,19 +329,5 @@ class MathTex(
     # end finish_destroy
 
     # endregion DESTROY
-
-    def __getitem__(self, index):
-        """
-        Get the element at the specified index.
-        """
-        return self.math_graphics[index]
-    # end __getitem__
-
-    def __setitem__(self, index, value):
-        """
-        Set the element at the specified index.
-        """
-        self.math_graphics[index] = value
-    # end __setitem__
 
 # end MathTex
