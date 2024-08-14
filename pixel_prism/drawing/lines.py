@@ -5,6 +5,7 @@ import numpy as np
 from pixel_prism.animate.able import MovableMixin
 from pixel_prism.data import Point2D, Color, Scalar, EventMixin
 from pixel_prism.utils import random_color
+from . import BoundingBoxMixin, BoundingBox
 
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
@@ -13,21 +14,22 @@ from ..base import Context
 
 
 # A line
-class Line(DrawableMixin, EventMixin, MovableMixin):
+class Line(
+    DrawableMixin,
+    BoundingBoxMixin,
+    EventMixin,
+    MovableMixin
+):
     """
     A class to represent a line in 2D space.
     """
 
     def __init__(
             self,
-            sx: float = 0.0,
-            sy: float = 0.0,
-            ex: float = 0.0,
-            ey: float = 0.0,
-            line_width: float = 1.0,
-            line_color: Color = utils.WHITE,
-            bbox_border_width: float = 0.5,
-            bbox_border_color: Color = utils.RED.copy()
+            start: Point2D,
+            end: Point2D,
+            line_width: Scalar = Scalar(1.0),
+            line_color: Color = utils.WHITE
     ):
         """
         Initialize the line with its start and end points.
@@ -35,24 +37,24 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
         Args:
             start (Point2D): Start point of the line
             end (Point2D): End point of the line
+            line_width (float): Width of the line
+            line_color (Color): Color of the line
         """
+        # Init
+        DrawableMixin.__init__(self)
+        MovableMixin.__init__(self)
+
         # Start and end points
-        self._start = Point2D(x=sx, y=sy)
-        self._end = Point2D(x=ex, y=ey)
-        self._line_width = Scalar(line_width)
+        self._start = start
+        self._end = end
+        self._line_width = line_width
         self._line_color = line_color
 
         # Middle point
         self._middle_point = Point2D(0, 0)
 
-        # Init
-        DrawableMixin.__init__(
-            self,
-            has_bbox=True,
-            bbox_border_width=bbox_border_width,
-            bbox_border_color=bbox_border_color
-        )
-        MovableMixin.__init__(self)
+        # Bounding box
+        BoundingBoxMixin.__init__(self)
 
         # Update points
         self.update_points()
@@ -179,80 +181,6 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
 
     # region PUBLIC
 
-    # Move
-    def _translate_object(
-            self,
-            dp: Point2D
-    ):
-        """
-        Move the path by a given displacement.
-
-        Args:
-            dp (Point2D): Displacement to move the object by
-        """
-        # Translate the start and end points
-        self._start.x += dp.x
-        self._start.y += dp.y
-        self._end.x += dp.x
-        self._end.y += dp.y
-
-        # Translate the bounding box
-        """if self._bounding_box is not None:
-            self._bounding_box.translate(dp.x, dp.y)
-        # end if"""
-    # end translate
-
-    # Scale object
-    def _scale_object(
-            self,
-            m: Scalar
-    ):
-        """
-        Scale the object.
-
-        Args:
-            m (Scalar): Scale of the object
-        """
-        self._end.x = self._start.x + (self._end.x - self._start.x) * m.value
-        self._end.y = self._start.y + (self._end.y - self._start.y) * m.value
-    # end _scale_object
-
-    # Rotate object
-    def _rotate_object(
-            self,
-            angle: Union[float, Scalar],
-            center: Point2D = None
-    ):
-        """
-        Rotate the object.
-
-        Args:
-            angle (float): Angle to rotate the object by
-        """
-        if center is None:
-            center = self.middle_point.copy()
-        # end if
-
-        # Temporary points
-        start = self.start.copy()
-        end = self.end.copy()
-
-        # Angle value
-        angle = angle.value if isinstance(angle, Scalar) else angle
-
-        # Center around "center"
-        start.x -= center.x
-        start.y -= center.y
-        end.x -= center.x
-        end.y -= center.y
-
-        # Rotate the start and end points
-        self._start.x = start.x * np.cos(angle) - start.y * np.sin(angle) + center.x
-        self._start.y = start.x * np.sin(angle) + start.y * np.cos(angle) + center.y
-        self._end.x = end.x * np.cos(angle) - end.y * np.sin(angle) + center.x
-        self._end.y = end.x * np.sin(angle) + end.y * np.cos(angle) + center.y
-    # end _rotate_object
-
     # Update data
     def update_data(
             self
@@ -326,7 +254,10 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
     # end realize
 
     # Draw path (for debugging)
-    def draw_path(self, context):
+    def draw_path(
+            self,
+            context: Context
+    ):
         """
         Draw the path to the context.
 
@@ -340,7 +271,7 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
         context.save()
 
         # Set the color
-        context.set_source_rgb(color.red, color.green, color.blue)
+        context.set_source_rgb(color)
 
         # Draw the path
         context.move_to(self.start.x, self.start.y)
@@ -359,45 +290,47 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
     # Draw points
     def draw_points(
             self,
-            context
+            context: Context,
+            point_radius: float = 0.05
     ):
         """
         Draw the points of the line.
 
         Args:
             context (cairo.Context): Context to draw the points to
+            point_radius (float): Radius of the points
         """
         # Save the context
         context.save()
 
         # Draw the start point
-        self.set_source_rgba(context, utils.GREEN)
+        context.set_source_rgba(utils.GREEN)
         context.arc(
             self.start.x,
             self.start.y,
-            10,
+            point_radius,
             0.0,
             2 * np.pi
         )
         context.stroke()
 
         # Draw the start point
-        self.set_source_rgba(context, utils.YELLOW)
+        context.set_source_rgba(utils.YELLOW)
         context.arc(
             self.end.x,
             self.end.y,
-            10,
+            point_radius,
             0.0,
             2 * np.pi
         )
         context.stroke()
 
         # Draw the middle point
-        self.set_source_rgba(context, utils.RED)
+        context.set_source_rgba(utils.RED)
         context.arc(
             self.middle_point.x,
             self.middle_point.y,
-            10,
+            point_radius,
             0.0,
             2 * np.pi
         )
@@ -497,28 +430,94 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
     # region PRIVATE
 
     # Create bounding box
-    def _create_bbox(
-            self,
-            border_width: float = 0.0,
-            border_color: Color = utils.WHITE.copy()
-    ):
+    def _create_bbox(self):
         """
         Create the bounding box.
         """
-        return Rectangle(
+        return BoundingBox.from_objects(
             upper_left=Point2D(
                 min(self.start.x, self.end.x),
                 min(self.start.y, self.end.y)
             ),
-            width=abs(self.end.x - self.start.x),
-            height=abs(self.end.y - self.start.y),
-            border_width=border_width,
-            border_color=border_color,
-            fill=False
+            width=Scalar(abs(self.end.x - self.start.x)),
+            height=Scalar(abs(self.end.y - self.start.y))
         )
     # end _create_bbox
 
+    # Move
+    def _translate_object(
+            self,
+            dp: Point2D
+    ):
+        """
+        Move the path by a given displacement.
+
+        Args:
+            dp (Point2D): Displacement to move the object by
+        """
+        # Translate the start and end points
+        self._start.x += dp.x
+        self._start.y += dp.y
+        self._end.x += dp.x
+        self._end.y += dp.y
+
+    # end translate
+
+    # Scale object
+    def _scale_object(
+            self,
+            m: Scalar
+    ):
+        """
+        Scale the object.
+
+        Args:
+            m (Scalar): Scale of the object
+        """
+        self._end.x = self._start.x + (self._end.x - self._start.x) * m.value
+        self._end.y = self._start.y + (self._end.y - self._start.y) * m.value
+
+    # end _scale_object
+
+    # Rotate object
+    def _rotate_object(
+            self,
+            angle: Union[float, Scalar],
+            center: Point2D = None
+    ):
+        """
+        Rotate the object.
+
+        Args:
+            angle (float): Angle to rotate the object by
+        """
+        if center is None:
+            center = self.middle_point.copy()
+        # end if
+
+        # Temporary points
+        start = self.start.copy()
+        end = self.end.copy()
+
+        # Angle value
+        angle = angle.value if isinstance(angle, Scalar) else angle
+
+        # Center around "center"
+        start.x -= center.x
+        start.y -= center.y
+        end.x -= center.x
+        end.y -= center.y
+
+        # Rotate the start and end points
+        self._start.x = start.x * np.cos(angle) - start.y * np.sin(angle) + center.x
+        self._start.y = start.x * np.sin(angle) + start.y * np.cos(angle) + center.y
+        self._end.x = end.x * np.cos(angle) - end.y * np.sin(angle) + center.x
+        self._end.y = end.x * np.sin(angle) + end.y * np.cos(angle) + center.y
+    # end _rotate_object
+
     # endregion PRIVATE
+
+    # region OVERRIDE
 
     # str
     def __str__(self):
@@ -541,6 +540,38 @@ class Line(DrawableMixin, EventMixin, MovableMixin):
         """
         return Line.__str__(self)
     # end __repr__
+
+     # endregion OVERRIDE
+
+    # region CLASS_METHODS
+
+    # From objects
+    @classmethod
+    def from_objects(
+            cls,
+            start: Point2D,
+            end: Point2D,
+            line_width: Scalar = Scalar(1.0),
+            line_color: Color = utils.WHITE
+    ):
+        """
+        Create a line from two points.
+
+        Args:
+            start (Point2D): Start point of the line
+            end (Point2D): End point of the line
+            line_width (float): Width of the line
+            line_color (Color): Color of the line
+        """
+        return cls(
+            start,
+            end,
+            line_width,
+            line_color
+        )
+    # end from_objects
+
+    # endregion CLASS_METHODS
 
 # end Line
 

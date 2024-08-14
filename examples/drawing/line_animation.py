@@ -21,19 +21,23 @@
 #
 import math
 
+from torch.mps.profiler import start
+
 from pixel_prism import utils
 # PixelPrism
 from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas
+from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixel_prism.drawing import MathTex, Line
 from pixel_prism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class
 class LineAnimation(Animation):
+
+    LINE_WIDTH = 0.02
 
     # Init effects
     def init_effects(self):
@@ -42,21 +46,18 @@ class LineAnimation(Animation):
 
     # Build first arc
     def build_first_arc(
-            self
+            self,
+            coord_system
     ):
         """
         Build the first arc.
         """
         # Create an ARC on upper left
-        line1 = Line(
-            sx=1920 / 4.0 - 300,
-            sy=1080 / 4.0 - 200,
-            ex=1920 / 4.0 + 300,
-            ey=1080 / 4.0 + 200,
+        line1 = Line.from_objects(
+            start=coord_system.upper_left_square - Point2D(1.5, 1),
+            end=coord_system.upper_left_square + Point2D(1.5, 1),
             line_color=utils.RED.copy(),
-            line_width=4.0,
-            bbox_border_width=2,
-            bbox_border_color=utils.BLUE.copy(),
+            line_width=Scalar(self.LINE_WIDTH)
         )
 
         # Animate end angle
@@ -65,7 +66,7 @@ class LineAnimation(Animation):
                 line1.start,
                 start_time=0,
                 end_time=3,
-                target_value=Point2D(1920 / 4.0 - 300, 1080 / 4.0 + 200),
+                target_value=coord_system.upper_left_square + Point2D(-1.5, 1),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -76,7 +77,7 @@ class LineAnimation(Animation):
                 line1.start,
                 start_time=3,
                 end_time=6,
-                target_value=Point2D(1920 / 4.0 - 300, 1080 / 4.0 - 200),
+                target_value=coord_system.upper_left_square - Point2D(1.5, 1),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -86,21 +87,18 @@ class LineAnimation(Animation):
 
     # Build second line
     def build_second_line(
-            self
+            self,
+            coord_system
     ):
         """
         Build the second line.
         """
         # Create an ARC on upper left
-        line2 = Line(
-            sx=1920 / 4.0 * 3 - 300,
-            sy=1080 / 4.0 - 200,
-            ex=1920 / 4.0 * 3,
-            ey=1080 / 4.0,
+        line2 = Line.from_objects(
+            start=coord_system.upper_right_square - Point2D(1.5, 1),
+            end=coord_system.upper_right_square,
             line_color=utils.RED.copy(),
-            line_width=4.0,
-            bbox_border_width=2,
-            bbox_border_color=utils.BLUE.copy(),
+            line_width=Scalar(self.LINE_WIDTH)
         )
 
         # Change value of scale
@@ -117,21 +115,18 @@ class LineAnimation(Animation):
 
     # Build three lines
     def build_three_lines(
-            self
+            self,
+            coord_system
     ):
         """
         Build the three lines.
         """
         # Create an ARC on upper left
         line3 = Line(
-            sx=1920 / 4.0 - 150,
-            sy=1080 / 4.0 * 3 - 150,
-            ex=1920 / 4.0 + 150,
-            ey=1080 / 4.0 * 3 + 150,
+            start=coord_system.lower_left_square - Point2D(0.75, 0.75),
+            end=coord_system.lower_left_square + Point2D(0.75, 0.75),
             line_color=utils.RED.copy(),
-            line_width=4.0,
-            bbox_border_width=2,
-            bbox_border_color=utils.BLUE.copy(),
+            line_width=Scalar(self.LINE_WIDTH)
         )
 
         # Change value of scale
@@ -148,21 +143,18 @@ class LineAnimation(Animation):
 
     # Build fourth line
     def build_fourth_line(
-            self
+            self,
+            coord_system
     ):
         """
         Build the fourth line.
         """
         # Create an ARC on upper left
-        line4 = Line(
-            sx=1920 / 4.0 * 3 - 150,
-            sy=1080 / 4.0 * 3 - 150,
-            ex=1920 / 4.0 * 3 + 150,
-            ey=1080 / 4.0 * 3 + 150,
+        line4 = Line.from_objects(
+            start=coord_system.lower_right_square - Point2D(0.75, 0.75),
+            end=coord_system.lower_right_square + Point2D(0.75, 0.75),
             line_color=utils.RED.copy(),
-            line_width=4.0,
-            bbox_border_width=2,
-            bbox_border_color=utils.BLUE.copy(),
+            line_width=Scalar(self.LINE_WIDTH)
         )
 
         # Change value of scale
@@ -170,7 +162,7 @@ class LineAnimation(Animation):
             Call(
                 line4.translate,
                 times=[2, 4, 6],
-                values=[[Point2D(10, 10)], [Point2D(10, 10)], [Point2D(10, 10)]],
+                values=[[Point2D(0.1, 0.1)], [Point2D(0.1, 0.1)], [Point2D(0.1, 0.1)]],
             )
         )
 
@@ -181,6 +173,13 @@ class LineAnimation(Animation):
         """
         Build the animation.
         """
+        # Coordinate system
+        coord_system = CoordSystem(
+            image_width=self.width,
+            image_height=self.height,
+            size=10
+        )
+
         # Add the LaTeX widget to the viewport or a container
         viewport = Viewport()
 
@@ -189,10 +188,10 @@ class LineAnimation(Animation):
         viewport.add_widget(drawable_widget)
 
         # Create lines
-        line1 = self.build_first_arc()
-        line2 = self.build_second_line()
-        line3 = self.build_three_lines()
-        line4 = self.build_fourth_line()
+        line1 = self.build_first_arc(coord_system)
+        line2 = self.build_second_line(coord_system)
+        line3 = self.build_three_lines(coord_system)
+        line4 = self.build_fourth_line(coord_system)
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(line1)
@@ -202,6 +201,7 @@ class LineAnimation(Animation):
 
         # Add objects
         self.add(
+            coord_system=coord_system,
             viewport=viewport,
             drawable_widget=drawable_widget,
             line1=line1,
@@ -227,7 +227,11 @@ class LineAnimation(Animation):
             frame_number (int): Frame number
         """
         # Create a DrawableImage
-        drawing_layer = DrawableImage.transparent(self.width, self.height)
+        drawing_layer = DrawableImage.transparent(
+            self.width,
+            self.height,
+            coord_system=self.obj("coord_system")
+        )
 
         # Get the viewport and drawable widget
         viewport = self.obj("viewport")

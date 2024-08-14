@@ -17,8 +17,8 @@
 
 # Imports
 import cairo
+from pixel_prism.drawing import DrawableMixin
 from .widget import Widget
-from ..drawing import DrawableMixin
 
 
 class DrawableWidget(Widget):

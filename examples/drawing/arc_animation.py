@@ -22,12 +22,11 @@
 import math
 
 from pixel_prism import utils
-# PixelPrism
 from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas, Context, CoordSystem
+from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixel_prism.drawing import MathTex, Arc
 from pixel_prism.data import Point2D, Scalar
 
@@ -37,7 +36,6 @@ class ShapesAnimation(Animation):
 
     ARC_LINE_WIDTH = 0.02
     ARC_RADIUS = 1.0
-    BBOX_BORDER_WIDTH = 0.01
 
     # Init effects
     def init_effects(self):
@@ -60,9 +58,7 @@ class ShapesAnimation(Animation):
             end_angle=Scalar(0.0),
             line_color=utils.RED.copy(),
             line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy(),
-            bbox_border_width=self.BBOX_BORDER_WIDTH,
-            bbox_border_color=utils.BLUE.copy(),
+            fill_color=utils.GREEN.copy()
         )
 
         # Animate end angle
@@ -106,9 +102,7 @@ class ShapesAnimation(Animation):
             end_angle=Scalar(math.pi),
             line_color=utils.RED.copy(),
             line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy(),
-            bbox_border_width=self.BBOX_BORDER_WIDTH,
-            bbox_border_color=utils.BLUE.copy()
+            fill_color=utils.GREEN.copy()
         )
 
         # Move the Arc
@@ -152,9 +146,7 @@ class ShapesAnimation(Animation):
             end_angle=Scalar(math.pi * 1.5),
             line_color=utils.RED.copy(),
             line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy(),
-            bbox_border_width=self.BBOX_BORDER_WIDTH,
-            bbox_border_color=utils.BLUE.copy()
+            fill_color=utils.GREEN.copy()
         )
 
         # Change value of scale
@@ -185,9 +177,7 @@ class ShapesAnimation(Animation):
             end_angle=Scalar(math.pi),
             line_color=utils.RED.copy(),
             line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy(),
-            bbox_border_width=self.BBOX_BORDER_WIDTH,
-            bbox_border_color=utils.BLUE.copy()
+            fill_color=utils.GREEN.copy()
         )
 
         # Change value of scale

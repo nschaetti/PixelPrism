@@ -31,6 +31,7 @@ class VideoComposer:
             animation_class,
             debug_frames=False,
             save_frames: bool = False,
+            viewer: bool = True,
             **kwargs
     ):
         """
@@ -46,6 +47,7 @@ class VideoComposer:
             animation_class: Class of the animation to compose
             debug_frames (bool): Whether to display the layers while processing
             save_frames (bool): Whether to save the frames to disk
+            viewer (bool): Whether to display the video after creation
             kwarg: Additional keyword
         """
         self.animation = animation_class(
@@ -57,18 +59,23 @@ class VideoComposer:
             height=height,
             debug_frames=debug_frames,
             save_frames=save_frames,
+            viewer=viewer,
             **kwargs
         )
 
         # AnimationVideo object
-        self.viewer = AnimationViewer(self.animation)
+        self.viewer = AnimationViewer(self.animation) if viewer else None
     # end __init__
 
     def create_video(self):
         """
         Create the video by composing the animation.
         """
-        self.viewer.run()
+        if self.viewer is not None:
+            self.viewer.run()
+        else:
+            self.animation.compose_video()
+        # end if
     # end create_video
 
 # end VideoComposer

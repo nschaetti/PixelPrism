@@ -104,6 +104,7 @@ if __name__ == "__main__":
         animation_class=CustomAnimationClass,
         debug_frames=args.debug_frames,
         save_frames=args.save_frames,
+        viewer=args.display,
         **kwargs
     )
 

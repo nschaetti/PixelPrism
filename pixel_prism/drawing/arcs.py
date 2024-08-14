@@ -17,19 +17,22 @@
 
 # Imports
 import math
-
-# Imports
 from pixel_prism.animate.able import MovableMixin
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin
-
-from .rectangles import Rectangle
+from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
-from .. import utils
+from .boundingboxmixin import BoundingBoxMixin
+import pixel_prism.utils as utils
 from ..base import Context
 
 
 # An arc
-class Arc(DrawableMixin, EventMixin, MovableMixin):
+class Arc(
+    DrawableMixin,
+    BoundingBoxMixin,
+    EventMixin,
+    MovableMixin
+):
     """
     A class to represent a cubic Bezier curve in 2D space.
     """
@@ -43,26 +46,25 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_width: Scalar = Scalar(0.0),
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            bbox_border_width: float = 0.5,
-            bbox_border_color: Color = utils.RED.copy(),
             on_change=None
     ):
         """
         Initialize the arc with its center, radius, start angle, and end angle.
 
         Args:
-            cx (float): X-coordinate of the center
-            cy (float): Y-coordinate of the center
-            radius (float): Radius of the arc
-            start_angle (float): Start angle of the arc
-            end_angle (float): End angle of the arc
-            line_width (float): Width of the line
+            center (Point2D): Center of the arc
+            radius (Scalar): Radius of the arc
+            start_angle (Scalar): Start angle of the arc
+            end_angle (Scalar): End angle of the arc
+            line_width (Scalar): Width of the line
             line_color (Color): Color of the line
             fill_color (Color): Color to fill the arc
-            bbox_border_width (float): Width of the bounding box border
-            bbox_border_color (Color): Color of the bounding box border
             on_change (callable): Function to call when the arc
         """
+        # Init
+        DrawableMixin.__init__(self)
+        MovableMixin.__init__(self)
+
         # Properties
         self._center = center
         self._radius = radius
@@ -78,13 +80,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         self._middle_point = Point2D(0, 0)
 
         # Init
-        DrawableMixin.__init__(
-            self,
-            has_bbox=True,
-            bbox_border_width=bbox_border_width,
-            bbox_border_color=bbox_border_color
-        )
-        MovableMixin.__init__(self)
+        BoundingBoxMixin.__init__(self)
 
         # Update points
         self.update_points()
@@ -388,13 +384,17 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
     # Draw points
     def draw_points(
             self,
-            context: Context
+            context: Context,
+            line_width: float = 0.02,
+            radius: float = 0.05
     ):
         """
         Draw the points of the arc.
 
         Args:
             context (cairo.Context): Context to draw the points to
+            line_width (float): Width of the line
+            radius (float): Radius of the points
         """
         # Save context
         context.save()
@@ -405,10 +405,7 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
         )
 
         # Line width
-        context.set_line_width(0.02)
-
-        # Radius
-        radius = 0.05
+        context.set_line_width(line_width)
 
         # Draw starting point
         context.arc(
@@ -695,13 +692,10 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             )
         # end for
 
-        return Rectangle(
+        return BoundingBox.from_objects(
             upper_left=Point2D(xmin, ymin),
-            width=xmax - xmin,
-            height=ymax - ymin,
-            border_width=border_width,
-            border_color=border_color,
-            fill=False
+            width=Scalar(xmax - xmin),
+            height=Scalar(ymax - ymin)
         )
     # end _create_bbox
 
@@ -750,8 +744,6 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_width: float = 0.0,
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            bbox_border_width: float = 0.5,
-            bbox_border_color: Color = utils.RED.copy(),
             on_change=None
     ):
         """
@@ -766,8 +758,6 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_width (float): Width of the line
             line_color (Color): Color of the line
             fill_color (Color): Color to fill the arc
-            bbox_border_width (float): Width of the bounding box border
-            bbox_border_color (Color): Color of the bounding box border
             on_change (callable): Function to call when the arc
 
         Returns:
@@ -781,8 +771,6 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_width=Scalar(line_width),
             line_color=line_color,
             fill_color=fill_color,
-            bbox_border_width=bbox_border_width,
-            bbox_border_color=bbox_border_color,
             on_change=on_change
         )
     # end from_scalar
@@ -797,8 +785,6 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_width: Scalar = Scalar(0.0),
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            bbox_border_width: float = 0.5,
-            bbox_border_color: Color = utils.RED.copy(),
             on_change=None
     ):
         """
@@ -812,8 +798,6 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_width (float): Width of the line
             line_color (Color): Color of the line
             fill_color (Color): Color to fill the arc
-            bbox_border_width (float): Width of the bounding box border
-            bbox_border_color (Color): Color of the bounding box border
             on_change (callable): Function to call when the arc
 
         Returns:
@@ -827,8 +811,6 @@ class Arc(DrawableMixin, EventMixin, MovableMixin):
             line_width=line_width,
             line_color=line_color,
             fill_color=fill_color,
-            bbox_border_width=bbox_border_width,
-            bbox_border_color=bbox_border_color,
             on_change=on_change
         )
     # end from_scalar

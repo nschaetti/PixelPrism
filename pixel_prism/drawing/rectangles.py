@@ -1,20 +1,35 @@
-
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
 # Imports
-from typing import Tuple, Any, Union
-
-import cairo
-
+from typing import Tuple, Any
 from pixel_prism.data import Point2D, Scalar, Color
 from pixel_prism.animate.able import MovableMixin, BuildableMixin, DestroyableMixin
 import pixel_prism.utils as utils
+from .bounding_box import BoundingBox
 
 from .drawablemixin import DrawableMixin
+from .boundingboxmixin import BoundingBoxMixin
 
 
 # A 2D rectangle
 class Rectangle(
     DrawableMixin,
+    BoundingBoxMixin,
     MovableMixin,
     BuildableMixin,
     DestroyableMixin
@@ -33,36 +48,31 @@ class Rectangle(
             border_width: Scalar = Scalar(1),
             fill: bool = True,
             is_built: bool = True,
-            build_ratio: float = 1.0,
-            has_bbox: bool = True,
-            bbox_border_width: float = 1.0,
-            bbox_border_color: Color = utils.BLUE.copy()
+            build_ratio: float = 1.0
     ):
-            """
-            Initialize the rectangle with its upper left corner, width, and height.
+        """
+        Initialize the rectangle with its upper left corner, width, and height.
 
-            Args:
-                upper_left (Point2D): Upper left corner of the rectangle
-                width (Scalar): Width of the rectangle
-                height (Scalar): Height of the rectangle
-            """
-            # Initialize the rectangle
-            self._upper_left = upper_left
-            self._width = width if isinstance(width, Scalar) else Scalar(width)
-            self._height = height if isinstance(height, Scalar) else Scalar(height)
-            self._fill_color = fill_color
-            self._border_color = border_color
-            self._border_width = border_width if isinstance(border_width, Scalar) else Scalar(border_width)
-            self.fill = fill
+        Args:
+            upper_left (Point2D): Upper left corner of the rectangle
+            width (Scalar): Width of the rectangle
+            height (Scalar): Height of the rectangle
+        """
+        DrawableMixin.__init__(self)
+        MovableMixin.__init__(self)
+        BuildableMixin.__init__(self, is_built, build_ratio)
 
-            DrawableMixin.__init__(
-                self,
-                has_bbox=has_bbox,
-                bbox_border_width=bbox_border_width,
-                bbox_border_color=bbox_border_color
-            )
-            MovableMixin.__init__(self)
-            BuildableMixin.__init__(self, is_built, build_ratio)
+        # Initialize the rectangle
+        self._upper_left = upper_left
+        self._width = width if isinstance(width, Scalar) else Scalar(width)
+        self._height = height if isinstance(height, Scalar) else Scalar(height)
+        self._fill_color = fill_color
+        self._border_color = border_color
+        self._border_width = border_width if isinstance(border_width, Scalar) else Scalar(border_width)
+        self.fill = fill
+
+        # Bounding box
+        BoundingBoxMixin.__init__(self)
     # end __init__
 
     @property
@@ -331,16 +341,6 @@ class Rectangle(
         context.restore()
     # end draw_bounding_box_anchors
 
-    # Draw bounding box
-    def draw_bounding_box(self, context):
-        """
-        Draw the bounding box of the rectangle.
-        """
-        if self.bounding_box is not None:
-            self.bounding_box.draw(context)
-        # end if
-    # end draw_bbox
-
     def draw(
             self,
             context,
@@ -433,10 +433,7 @@ class Rectangle(
                 self.border_width.copy(),
                 self.fill,
                 self.is_built,
-                self.build_ratio,
-                self.has_bbox,
-                self.bbox_border_width,
-                self.bbox_border_color.copy()
+                self.build_ratio
             )
         else:
             return Rectangle.from_objects(
@@ -462,17 +459,11 @@ class Rectangle(
             border_color (Color): Color of the border
         """
         # Get the bounding box of the path
-        bbox = Rectangle.from_objects(
+        bbox = BoundingBox.from_objects(
             self.upper_left.copy(),
             Scalar(self._width),
-            Scalar(self._height),
-            has_bbox=False
+            Scalar(self._height)
         )
-
-        # Set fill, border color and witdth
-        bbox.fill = False
-        bbox._border_color = border_color
-        bbox.border_width.value = border_width
 
         # Return the bounding box
         return bbox
@@ -574,10 +565,7 @@ class Rectangle(
             border_width: Scalar = Scalar(1),
             fill: bool = True,
             is_built: bool = True,
-            build_ratio: float = 1.0,
-            has_bbox: bool = True,
-            bbox_border_width: float = 1.0,
-            bbox_border_color: Color = utils.BLUE.copy()
+            build_ratio: float = 1.0
     ):
         """
         Create a rectangle from its objects.
@@ -592,9 +580,6 @@ class Rectangle(
             fill (bool): Whether to fill the rectangle
             is_built (bool): Whether the rectangle is built
             build_ratio (float): Build ratio of the rectangle
-            has_bbox (bool): Whether the rectangle has a bounding box
-            bbox_border_width (float): Width of the bounding box border
-            bbox_border_color (Color): Color of the bounding box border
         """
         return cls(
             upper_left,
@@ -605,10 +590,7 @@ class Rectangle(
             border_width,
             fill,
             is_built,
-            build_ratio,
-            has_bbox,
-            bbox_border_width,
-            bbox_border_color
+            build_ratio
         )
     # end from_objects
 

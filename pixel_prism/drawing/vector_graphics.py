@@ -28,7 +28,6 @@ from pixel_prism.data import Point2D, Color
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path
 from pixel_prism.utils import Anchor
-from pixel_prism.drawing import Circle
 import svgpathtools as svg
 
 from .rectangles import Rectangle

@@ -8,48 +8,7 @@ from pixel_prism.base import Context
 from pixel_prism.data import Color, Scalar
 
 
-class DrawableMixin(object):
-
-    # Constructor
-    def __init__(
-            self,
-            has_bbox: bool = True,
-            bbox_border_width: float = 1.0,
-            bbox_border_color: Color = utils.WHITE
-    ):
-        """
-        Initialize the drawable mixin.
-
-        Args:
-            scale (float): Scale of the drawable
-            rotation (float): Rotation of the drawable
-            has_bbox (bool): Whether the drawable has a bounding box
-            bbox_border_width (float): Width of the bounding box border
-            bbox_border_color (Color): Color of the bounding box border
-        """
-        super().__init__()
-
-        # Bounding box
-        if has_bbox:
-            self._bounding_box = self._create_bbox(
-                border_width=bbox_border_width,
-                border_color=bbox_border_color
-            )
-        else:
-            self._bounding_box = None
-        # end if
-        self.has_bbox = has_bbox
-    # end __init__
-
-    # region PROPERTIES
-
-    # Bounding box
-    @property
-    def bounding_box(self):
-        return self._bounding_box
-    # end bounding_box
-
-    # endregion PROPERTIES
+class DrawableMixin:
 
     # region PUBLIC
 
@@ -62,16 +21,6 @@ class DrawableMixin(object):
         """
         raise NotImplementedError(f"{self.__class__.__name__}.update_data method must be implemented in subclass.")
     # end update_data
-
-    # Update bounding box
-    def update_bbox(
-            self
-    ):
-        """
-        Update the bounding box of the drawable.
-        """
-        raise NotImplementedError(f"{self.__class__.__name__}.update_bbox method must be implemented in subclass.")
-    # end update_bbox
 
     # Translate object
     def translate(
@@ -119,38 +68,6 @@ class DrawableMixin(object):
         """
         self._rotate_object(*args, **kwargs)
     # end rotate
-
-    # Draw bounding box anchors
-    def draw_bbox_anchors(
-            self,
-            context: Context
-    ):
-        """
-        Draw the bounding box anchors to the context.
-
-        Args:
-            context (cairo.Context): Context to draw the bounding box anchors to
-        """
-        if self.bounding_box is not None:
-            self.bounding_box.draw_anchors(context)
-        # end if
-    # end draw_bbox_anchors
-
-    # Draw bounding box
-    def draw_bbox(
-            self,
-            context: Context
-    ):
-        """
-        Draw the bounding box to the context.
-
-        Args:
-            context (cairo.Context): Context to draw the bounding box to
-        """
-        if self.bounding_box is not None:
-            self.bounding_box.draw(context)
-        # end if
-    # end draw_bbox
 
     # Realize
     def realize(
@@ -259,20 +176,6 @@ class DrawableMixin(object):
         raise NotImplementedError(
             f"{self.__class__.__name__}._rotate_object method must be implemented in subclass.")
     # end _rotate_object
-
-    # Create bounding box
-    def _create_bbox(
-            self,
-            border_width: float = 0.0,
-            border_color: Color = utils.WHITE.copy()
-    ):
-        """
-        Create the bounding box.
-        """
-        raise NotImplementedError(
-            f"{self.__class__.__name__} must implement _create_bbox method."
-        )
-    # end _create_bbox
 
     # endregion PRIVATE
 
