@@ -1,5 +1,22 @@
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
 # Imports
+from .animation import AnimationViewer
 
 
 class VideoComposer:
@@ -42,13 +59,16 @@ class VideoComposer:
             save_frames=save_frames,
             **kwargs
         )
+
+        # AnimationVideo object
+        self.viewer = AnimationViewer(self.animation)
     # end __init__
 
     def create_video(self):
         """
         Create the video by composing the animation.
         """
-        self.animation.compose_video()
+        self.viewer.run()
     # end create_video
 
 # end VideoComposer

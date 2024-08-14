@@ -6,10 +6,15 @@
 # Imports
 from typing import Optional
 import os
+import threading
 import cv2
+import subprocess
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
+import tkinter as tk
+from tkinter import ttk
+from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 
 # Locals
@@ -20,6 +25,112 @@ from pixel_prism.utils import setup_logger
 
 # Setup logger
 logger = setup_logger(__name__)
+
+
+class AnimationViewer(tk.Tk):
+    """
+    A simple viewer for animations.
+    """
+
+    def __init__(self, animation):
+        """
+        Initialize the animation viewer.
+        """
+        super().__init__()
+
+        # Set the animation
+        self.animation = animation
+        self.title("Animation Viewer")
+        self.geometry(f"{self.animation.width}x{self.animation.height+50}")  # Adjust height for button
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        # Frame for the control elements (button and progress bar)
+        self.control_frame = tk.Frame(self)
+        self.control_frame.pack(fill=tk.X)
+
+        # Button to stop the animation (left side)
+        self.stop_button = tk.Button(self.control_frame, text="Arrêter", command=self.stop_animation)
+        self.stop_button.pack(side=tk.LEFT, padx=10, pady=10)
+
+        # Progress bar (right side)
+        self.progress = ttk.Progressbar(self.control_frame, orient=tk.HORIZONTAL, length=300, mode='determinate')
+        self.progress.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=10, expand=True)
+
+        # Canvas for displaying images
+        self.canvas = tk.Canvas(self, width=self.animation.width, height=self.animation.height)
+        self.canvas.pack()
+
+        # Initialize buffer
+        self.buffer = None
+        self.img = None
+
+        # Image
+        self.stop = False
+        self.thread = None  # To hold the animation thread
+    # end __init__
+
+    def stop_animation(self):
+        """
+        Stop the animation.
+        """
+        self.stop = True
+    # end stop_animation
+
+    def on_close(self):
+        """
+        Close the animation viewer.
+        """
+        self.stop = True
+        self.destroy()
+
+        # Wait for the thread to finish if it exists
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=1.0)
+        # end if
+    # end on_close
+
+    def update_image(self, image):
+        """
+        Update the image on the canvas.
+        """
+        # Convert BGR image to RGB for Tkinter
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        img = ImageTk.PhotoImage(image=Image.fromarray(image_rgb))
+
+        # Use the buffer to reduce flickering
+        if self.buffer is None:
+            self.buffer = self.canvas.create_image(0, 0, anchor=tk.NW, image=img)
+        else:
+            self.canvas.itemconfig(self.buffer, image=img)
+        # end if
+
+        # Keep a reference to the image to prevent garbage collection
+        self.img = img
+    # end update_image
+
+    def update_progress(self, value):
+        """
+        Update the progress bar.
+        """
+        self.progress['value'] = value
+        self.update_idletasks()  # Refresh the GUI
+    # end update_progress
+
+    def run(self):
+        """
+        Run the animation viewer.
+        """
+        self.thread = threading.Thread(target=self.animation.compose_video, args=(self,))
+        self.thread.start()
+        self.mainloop()
+
+        # Ensure the thread is finished before exiting
+        if self.thread.is_alive():
+            self.thread.join()
+        # end if
+    # end run
+
+# end AnimationViewer
 
 
 class Animation:
@@ -359,10 +470,14 @@ class Animation:
     # end save_debug_layers
 
     def compose_video(
-            self
+            self,
+            viewer=None
     ):
         """
         Compose the final video by applying `process_frame` to each frame.
+
+        Args:
+            viewer (AnimationViewer): Animation viewer
         """
         fps = self.fps
         width = self.width
@@ -385,84 +500,110 @@ class Animation:
         # Frame count
         frame_count = self.frame_count
 
-        # Process each frame of the video
-        with tqdm(total=frame_count, desc="Processing video") as pbar:
-            # Frame number
-            frame_number = 0
+        try:
+            # Process each frame of the video
+            with tqdm(total=frame_count, desc="Processing video") as pbar:
+                # Frame number
+                frame_number = 0
 
-            # Get the first frame, or create a blank frame
-            if self.cap:
-                ret, frame = self.cap.read()
-            else:
-                ret = True
-                frame = np.zeros((height, width, 3), dtype=np.uint8)
-            # end if
-
-            # Initialize the effects
-            self.init_effects()
-
-            # Process each frame
-            while frame_number < frame_count and ret:
-                # Create canvas from frame
-                if self.cap:
-                    image_canvas = ImageCanvas.from_numpy(frame, add_alpha=True)
-                else:
-                    image_canvas = ImageCanvas(width, height)
-                # end if
-
-                # Apply transitions
-                t = frame_number / fps
-                self.apply_transitions(t)
-
-                # Process the frame
-                image_canvas = self.process_frame(
-                    image_canvas=image_canvas,
-                    t=frame_number / fps,
-                    frame_number=frame_number
-                )
-
-                # Keep the frame
-                if self.keep_frames:
-                    self.prev_frames.append(image_canvas)
-                    if len(self.prev_frames) > self.keep_frames:
-                        self.prev_frames.pop(0)
-                    # end if
-                # end if
-
-                # Compose final image
-                final_frame = RenderEngine.render(image_canvas)
-
-                # Ensure the final frame is the correct size and type
-                assert final_frame.data.shape[:2] == (height, width), "Final frame size mismatch"
-                assert final_frame.data.dtype == np.uint8, "Final frame data type mismatch"
-
-                # Save as RGB
-                out.write(final_frame.data[:, :, :3])
-
-                # Save frames
-                if self.save_frames:
-                    frame_path = os.path.join(self.save_frames_path, f'frame_{frame_number}.png')
-                    final_frame.save(frame_path)
-                # end if
-
-                # Save debug layers
-                if frame_number in self.debug_frames:
-                    self.save_debug_layers(image_canvas, frame_number)
-                # end if
-
-                # Read next frame
+                # Get the first frame, or create a blank frame
                 if self.cap:
                     ret, frame = self.cap.read()
+                else:
+                    ret = True
+                    frame = np.zeros((height, width, 3), dtype=np.uint8)
                 # end if
 
-                pbar.update(1)
-                frame_number += 1
-            # end while
-        # end with
+                # Initialize the effects
+                self.init_effects()
 
-        # Release the video capture and writer
-        if self.cap: self.cap.release()
-        out.release()
+                # Process each frame
+                while frame_number < frame_count and ret:
+                    # Check if the viewer has stopped
+                    if viewer and viewer.stop:
+                        break
+                    # end if
+
+                    # Create canvas from frame
+                    if self.cap:
+                        image_canvas = ImageCanvas.from_numpy(frame, add_alpha=True)
+                    else:
+                        image_canvas = ImageCanvas(width, height)
+                    # end if
+
+                    # Apply transitions
+                    t = frame_number / fps
+                    self.apply_transitions(t)
+
+                    # Process the frame
+                    image_canvas = self.process_frame(
+                        image_canvas=image_canvas,
+                        t=frame_number / fps,
+                        frame_number=frame_number
+                    )
+
+                    # Keep the frame
+                    if self.keep_frames:
+                        self.prev_frames.append(image_canvas)
+                        if len(self.prev_frames) > self.keep_frames:
+                            self.prev_frames.pop(0)
+                        # end if
+                    # end if
+
+                    # Compose final image
+                    final_frame = RenderEngine.render(image_canvas)
+
+                    # Ensure the final frame is the correct size and type
+                    assert final_frame.data.shape[:2] == (height, width), "Final frame size mismatch"
+                    assert final_frame.data.dtype == np.uint8, "Final frame data type mismatch"
+
+                    # Save as RGB
+                    out.write(final_frame.data[:, :, :3])
+
+                    # Save frames
+                    if self.save_frames:
+                        frame_path = os.path.join(self.save_frames_path, f'frame_{frame_number}.png')
+                        final_frame.save(frame_path)
+                    # end if
+
+                    # Display the frame in the viewer
+                    if viewer:
+                        viewer.update_image(final_frame.data[:, :, :3])
+                        viewer.update_progress((frame_number / frame_count) * 100)
+                    # end if
+
+                    # Save debug layers
+                    if frame_number in self.debug_frames:
+                        self.save_debug_layers(image_canvas, frame_number)
+                    # end if
+
+                    # Read next frame
+                    if self.cap:
+                        ret, frame = self.cap.read()
+                    # end if
+
+                    pbar.update(1)
+                    frame_number += 1
+                # end while
+            # end with
+        finally:
+            # Release the video capture and writer
+            if self.cap:
+                self.cap.release()
+            # end if
+            out.release()
+
+            # If the video was successfully generated, open it with mpv
+            if not viewer or not viewer.stop:
+                subprocess.run(["mpv", self.output_video])
+            # end if
+
+            # Close the viewer if it exists
+            if viewer:
+                viewer.stop = True
+                viewer.on_close()
+            # end if
+        # end try
     # end compose_video
 
 # end Animation

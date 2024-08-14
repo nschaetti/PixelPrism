@@ -97,8 +97,25 @@ class Rectangle(
         Set the width.
         """
         self._width.value = value
-        self.update_data()
+        self.update_bbox()
     # end width
+
+    @property
+    def height(self):
+        """
+        Get the height.
+        """
+        return self._height
+    # end height
+
+    @height.setter
+    def height(self, value):
+        """
+        Set the height.
+        """
+        self._height.value = value
+        self.update_bbox()
+    # end height
 
     @property
     def x1(self):
