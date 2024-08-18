@@ -201,6 +201,7 @@ class BoundingBox(DrawableMixin):
     def draw(
             self,
             context: Any,
+            border_color: Color = utils.BLUE.copy(),
             border_width: float = 0.01
     ):
         """
@@ -208,6 +209,7 @@ class BoundingBox(DrawableMixin):
 
         Args:
             context (Any): Context to draw to
+            border_color (Color): Border color
             border_width (Scalar): Border width
         """
         # Save the context
@@ -222,7 +224,7 @@ class BoundingBox(DrawableMixin):
         )
 
         # Draw
-        context.set_source_rgba(utils.BLUE.copy())
+        context.set_source_rgba(border_color)
         context.set_line_width(border_width)
         context.stroke()
 

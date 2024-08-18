@@ -1,18 +1,27 @@
-
+import math
+from typing import Any
 
 # Imports
 import numpy as np
-
 from pixel_prism.animate.able import MovableMixin
-from pixel_prism.data import Point2D
+from pixel_prism.data import Point2D, Scalar, Color, EventMixin
 from pixel_prism.utils import random_color
 
+from . import BoundingBox
+from .boundingboxmixin import BoundingBoxMixin
 from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
+from .. import utils
+from ..base import Context
 
 
 # A Cubic Bezier curve
-class CubicBezierCurve(DrawableMixin, MovableMixin):
+class CubicBezierCurve(
+    DrawableMixin,
+    BoundingBoxMixin,
+    EventMixin,
+    MovableMixin
+):
     """
     A class to represent a cubic Bezier curve in 2D space.
     """
@@ -23,7 +32,11 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             control1: Point2D,
             control2: Point2D,
             end: Point2D,
-            bounding_box: Rectangle = None
+            position: Scalar = Scalar(0.0),
+            length: Scalar = Scalar(1.0),
+            line_width: Scalar = Scalar(0.0),
+            line_color: Color = utils.WHITE,
+            on_change=None
     ):
         """
         Initialize the curve with its start, control1, control2, and end points.
@@ -33,62 +46,369 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             control1 (Point2D): First control point of the curve
             control2 (Point2D): Second control point of the curve
             end (Point2D): End point of the curve
+            position (Scalar): Position of the curve
+            length (Scalar): Length of the curve
+            line_width (Scalar): Width of the line
+            line_color (Color): Color of the line
+            on_change (callable): Function to call when the arc
         """
         # Constructor
-        DrawableMixin.__init__(self, False)
+        DrawableMixin.__init__(self)
+        MovableMixin.__init__(self)
 
         # Properties
-        self.start = start
-        self.control1 = control1
-        self.control2 = control2
-        self.end = end
+        self._start = start
+        self._control1 = control1
+        self._control2 = control2
+        self._end = end
+        self._position = position
+        self._length = length
 
-        # Bounding box
-        if bounding_box is not None:
-            self.bbox = bounding_box
-            self.has_bbox = True
-        else:
-            self.bbox = None
-            self.has_bbox = False
-        # end if
+        # Display properties
+        self._line_width = line_width
+        self._line_color = line_color
+
+        # Beginning, end, middle, q1 and q2
+        self._start_point = Point2D(0, 0)
+        self._end_point = Point2D(0, 0)
+        self._center = Point2D(0, 0)
+        self._middle_point = Point2D(0, 0)
+        self._q1_point = Point2D(0, 0)
+        self._q3_point = Point2D(0, 0)
+        self._x_minima = Point2D(0, 0)
+        self._x_maxima = Point2D(0, 0)
+        self._y_minima = Point2D(0, 0)
+        self._y_maxima = Point2D(0, 0)
+
+        # Bounding box mixin
+        BoundingBoxMixin.__init__(self)
+
+        # Update points
+        self.update_points()
 
         # Calculate the length of the curve
-        self.length = self._recursive_bezier_length(
+        self.path_length = self._recursive_bezier_length(
             np.array([start.x, start.y]),
             np.array([control1.x, control1.y]),
             np.array([control2.x, control2.y]),
             np.array([end.x, end.y]),
             0
         )
+
+        # Movable
+        self.start_control1 = None
+        self.start_control2 = None
+        self.start_end = None
+
+        # Set event listeners
+        self._start.add_event_listener("on_change", self._on_start_changed)
+        self._control1.add_event_listener("on_change", self._on_control1_changed)
+        self._control2.add_event_listener("on_change", self._on_control2_changed)
+        self._end.add_event_listener("on_change", self._on_end_changed)
+        self._position.add_event_listener("on_change", self._on_position_changed)
+        self._length.add_event_listener("on_change", self._on_length_changed)
+
+        # List of event listeners (per events)
+        self.event_listeners = {
+            "on_change": [] if on_change is None else [on_change]
+        }
     # end __init__
 
     # region PROPERTIES
 
     @property
-    def width(self):
+    def start(self) -> Point2D:
         """
-        Get the width of the curve.
+        Get the start point of the curve.
         """
-        if self.bbox is None:
-            return None
-        # end if
-        return self.bbox.width
-    # end width
+        return self._start
+    # end start
+
+    @start.setter
+    def start(self, value: Point2D):
+        """
+        Set the start point of the curve.
+        """
+        self._start.x = value.x
+        self._start.y = value.y
+    # end start
 
     @property
-    def height(self):
+    def control1(self) -> Point2D:
         """
-        Get the height of the curve.
+        Get the first control point of the curve.
         """
-        if self.bbox is None:
-            return None
-        # end
-        return self.bbox.height
-    # end height
+        return self._control1
+    # end control1
+
+    @control1.setter
+    def control1(self, value: Point2D):
+        """
+        Set the first control point of the curve.
+        """
+        self._control1.x = value.x
+        self._control1.y = value.y
+    # end control1
+
+    # Absolute position of controle1
+    @property
+    def abs_control1(self) -> Point2D:
+        return self.start + self.control1
+    # end abs_control1
+
+    @property
+    def control2(self) -> Point2D:
+        """
+        Get the second control point of the curve.
+        """
+        return self._control2
+    # end control2
+
+    @control2.setter
+    def control2(self, value: Point2D):
+        """
+        Set the second control point of the curve.
+        """
+        self._control2.x = value.x
+        self._control2.y = value.y
+    # end control2
+
+    # Absolute position of control2
+    @property
+    def abs_control2(self) -> Point2D:
+        return self.end + self.control2
+    # end abs_control2
+
+    @property
+    def end(self) -> Point2D:
+        """
+        Get the end point of the curve.
+        """
+        return self._end
+    # end end
+
+    @end.setter
+    def end(self, value: Point2D):
+        """
+        Set the end point of the curve.
+        """
+        self._end.x = value.x
+        self._end.y = value.y
+    # end end
+
+    @property
+    def position(self) -> Scalar:
+        """
+        Get the position of the curve.
+        """
+        if self._position.value < 0.0:
+            return Scalar(0.0)
+        elif self._position.value > 1.0:
+            return Scalar(1.0)
+        # end if
+        return self._position
+    # end position
+
+    @position.setter
+    def position(self, value: Scalar):
+        """
+        Set the position of the curve.
+        """
+        self._position.value = value
+    # end position
+
+    @ property
+    def length(self) -> Scalar:
+        """
+        Get the length of the curve.
+        """
+        if self._length.value < 0.0:
+            return Scalar(0.0)
+        elif self._length.value > 1.0:
+            return Scalar(1.0)
+        # end if
+        return self._length
+    # end length
+
+    @length.setter
+    def length(self, value: Scalar):
+        """
+        Set the length of the curve.
+        """
+        self._length.value = value
+    # end length
+
+    @property
+    def line_width(self) -> Scalar:
+        """
+        Get the width of the line.
+        """
+        return self._line_width
+    # end line_width
+
+    @line_width.setter
+    def line_width(self, value: Scalar):
+        """
+        Set the width of the line.
+        """
+        self._line_width.value = value
+    # end line_width
+
+    @property
+    def line_color(self) -> Color:
+        """
+        Get the color of the line.
+        """
+        return self._line_color
+    # end line_color
+
+    @line_color.setter
+    def line_color(self, value: Color):
+        """
+        Set the color of the line.
+        """
+        self._line_color.red = value.red
+        self._line_color.green = value.green
+        self._line_color.blue = value.blue
+    # end line_color
+
+    @property
+    def start_point(self) -> Point2D:
+        """
+        Get the start point of the curve.
+        """
+        return self._start_point
+    # end start_point
+
+    @property
+    def end_point(self) -> Point2D:
+        """
+        Get the end point of the curve.
+        """
+        return self._end_point
+    # end end_point
+
+    @property
+    def center(self) -> Point2D:
+        """
+        Get the center point of the curve.
+        """
+        return self._center
+    # end center
+
+    @property
+    def middle_point(self) -> Point2D:
+        """
+        Get the middle point of the curve.
+        """
+        return self._middle_point
+    # end middle_point
+
+    @property
+    def q1_point(self) -> Point2D:
+        """
+        Get the Q1 point of the curve.
+        """
+        return self._q1_point
+    # end q1_point
+
+    @property
+    def q3_point(self) -> Point2D:
+        """
+        Get the Q3 point of the curve.
+        """
+        return self._q3_point
+    # end q3_point
 
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    # Get a point on the curve
+    def bezier(self, t) -> Point2D:
+        """
+        Get a point on the curve at parameter t.
+
+        Args:
+            t (float): Parameter
+        """
+        P0 = np.array([self.start.x, self.start.y])
+        P1 = P0 + np.array([self.control1.x, self.control1.y])
+        P3 = np.array([self.end.x, self.end.y])
+        P2 = P3 + np.array([self.control2.x, self.control2.y])
+        t_point = (1 - t) ** 3 * P0 + 3 * (1 - t) ** 2 * t * P1 + 3 * (1 - t) * t ** 2 * P2 + t ** 3 * P3
+        return Point2D(
+            float(t_point[0]),
+            float(t_point[1])
+        )
+    # end bezier
+
+    # Update points
+    def update_points(
+            self
+    ):
+        """
+        Update the points of the curve.
+        """
+        # Compute extreme points
+        x_min, x_max, y_min, y_max = self._compute_extreme_points()
+
+        # Start point
+        self._start_point.x = self.bezier(self.position.value).x
+        self._start_point.y = self.bezier(self.position.value).y
+
+        # End point
+        self._end_point.x = self.bezier(min(self.position.value + self.length.value, 1.0)).x
+        self._end_point.y = self.bezier(min(self.position.value + self.length.value, 1.0)).y
+
+        # X minima
+        self._x_minima.set(x_min.x, x_min.y)
+        self._x_maxima.set(x_max.x, x_max.y)
+        self._y_minima.set(y_min.x, y_min.y)
+        self._y_maxima.set(y_max.x, y_max.y)
+
+        # Center
+        self._center.x = self._bounding_box.upper_left.x + self._bounding_box.width / 2.0
+        self._center.y = self._bounding_box.upper_left.y + self._bounding_box.height / 2.0
+
+        # Middle point
+        self._middle_point.x = self.bezier(0.5).x
+        self._middle_point.y = self.bezier(0.5).y
+
+        # Q1 point
+        self._q1_point.x = self.bezier(0.25).x
+        self._q1_point.y = self.bezier(0.25).y
+
+        # Q2 point
+        self._q3_point.x = self.bezier(0.75).x
+        self._q3_point.y = self.bezier(0.75).y
+    # end update_points
+
+    # Update data
+    def update_data(self):
+        """
+        Update the data of the curve.
+        """
+        self.update_bbox()
+        self.update_points()
+    # end update_data
+
+    # Update bounding box
+    def update_bbox(
+            self
+    ):
+        """
+        Update the bounding box of the drawable.
+        """
+        # Get the bounding box
+        bbox = self._create_bbox()
+
+        # Update the bounding box
+        self._bounding_box.upper_left.x = bbox.upper_left.x
+        self._bounding_box.upper_left.y = bbox.upper_left.y
+        self._bounding_box.width = bbox.width
+        self._bounding_box.height = bbox.height
+    # end update_bbox
 
     # Move
     def translate(self, dx: float, dy: float):
@@ -102,18 +422,18 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
         # Translate the points
         self.start.x += dx
         self.start.y += dy
-        self.control1.x += dx
-        self.control1.y += dy
-        self.control2.x += dx
-        self.control2.y += dy
         self.end.x += dx
         self.end.y += dy
 
         # Translate the bounding box
-        if self.bbox is not None:
-            self.bbox.translate(dx, dy)
+        if self.bounding_box is not None:
+            self.bounding_box.translate(dx, dy)
         # end
     # end translate
+
+    # endregion PUBLIC
+
+    # region DRAW
 
     # Draw path (for debugging)
     def draw_path(self, context):
@@ -132,12 +452,12 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
         # Draw the path
         context.move_to(self.start.x, self.start.y)
         context.curve_to(
-            self.control1.x,
-            self.control1.y,
-            self.control2.x,
-            self.control2.y,
-            self.end.x,
-            self.end.y
+            x1=self.abs_control1.x,
+            y1=self.abs_control1.y,
+            x2=self.abs_control2.x,
+            y2=self.abs_control2.y,
+            x3=self.end.x,
+            y3=self.end.y
         )
 
         # Set the line width
@@ -153,62 +473,380 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
     def draw_partial_bezier_cubic(
             self,
             context,
-            t
+            t1,
+            t2
     ):
         """
-        Draw a partial cubic Bezier curve from 0 to t.
+        Draw a partial cubic Bezier curve from t1 to t2.
 
         Args:
             context (cairo.Context): Context to draw the curve to
-            t (float): Parameter
+            t1 (float): Start parameter (0 <= t1 <= 1)
+            t2 (float): End parameter (t1 <= t2 <= 1)
         """
-        # Subdivide the curve at t
-        p0, p01, p012, p0123, p123, p23, p3 = self._bezier_subdivide(t)
+        # Subdivide the curve at t1
+        p0, p01, p012, p0123, p123, p23, p3 = self._bezier_subdivide(t1)
 
-        # Draw the first part of the subdivided curve
+        # Calculate the relative t for the second subdivision
+        relative_t = (t2 - t1) / (1 - t1)
+
+        # Subdivide the new curve at relative_t
+        _, _, _, p0123_end, p123_end, p23_end, p3_end = self._bezier_subdivide(relative_t, p0123, p123, p23, p3)
+
+        # Move to the start of the new segment
+        context.move_to(p0123.x, p0123.y)
+
+        # Draw the curve from t1 to t2
         context.curve_to(
-            p01.x,
-            p01.y,
-            p012.x,
-            p012.y,
-            p0123.x,
-            p0123.y
+            p123_end.x,
+            p123_end.y,
+            p23_end.x,
+            p23_end.y,
+            p3_end.x,
+            p3_end.y
         )
+
+        # Stroke the curve
+        context.stroke()
+
     # end draw_partial_bezier_cubic
+
+    # Draw control points
+    def draw_control_points(
+            self,
+            context: Context,
+            color: Color = utils.YELLOW.copy(),
+            point_size: float = 0.05,
+            line_width: float = 0.01
+    ):
+        """
+        Draw the control points of the curve.
+
+        Args:
+            context (cairo.Context): Context to draw the control points to
+            color (Color): Color of the control points
+            point_size (float): Size of the control points
+            line_width (float): Width of the control points
+        """
+        # Save the context
+        context.save()
+
+        # Set the color
+        context.set_source_rgb(color)
+        context.set_line_width(line_width)
+
+        # Draw start
+        context.rectangle(
+            self.start.x - point_size / 2,
+            self.start.y - point_size / 2,
+            point_size,
+            point_size
+        )
+        context.stroke()
+
+        # Draw control 1
+        context.rectangle(
+            self.abs_control1.x - point_size / 2,
+            self.abs_control1.y - point_size / 2,
+            point_size,
+            point_size
+        )
+        context.stroke()
+
+        # Draw line between start and control 1
+        context.move_to(self.start.x, self.start.y)
+        context.line_to(self.abs_control1.x, self.abs_control1.y)
+        context.stroke()
+
+        # Draw control 2
+        context.rectangle(
+            self.abs_control2.x - point_size / 2,
+            self.abs_control2.y - point_size / 2,
+            point_size,
+            point_size
+        )
+        context.stroke()
+
+        # Draw end
+        context.rectangle(
+            self.end.x - point_size / 2,
+            self.end.y - point_size / 2,
+            point_size,
+            point_size
+        )
+        context.stroke()
+
+        # Draw line between control 2 and end
+        context.move_to(self.abs_control2.x, self.abs_control2.y)
+        context.line_to(self.end.x, self.end.y)
+        context.stroke()
+
+        # Restore the context
+        context.restore()
+    # end draw_control_points
+
+    # Draw points
+    def draw_points(
+            self,
+            context: Context,
+            font_size: float = 0.075,
+            line_width: float = 0.02,
+            radius: float = 0.05
+    ):
+        """
+        Draw the points of the curve.
+
+        Args:
+            context (cairo.Context): Context to draw the points to
+            font_size (float): Size of the font
+            line_width (float): Width of the points
+            radius (float): Radius of the points
+        """
+        # Save the context
+        context.save()
+
+        # Line width
+        context.set_line_width(line_width)
+
+        # Points to show
+        points = [
+            self._start_point,
+            self._end_point,
+            self._center,
+            self._middle_point,
+            self._q1_point,
+            self._q3_point,
+            self._x_minima,
+            self._x_maxima,
+            self._y_minima,
+            self._y_maxima
+        ]
+
+        # Point names
+        point_names = [
+            "Start",
+            "End",
+            "Center",
+            "Middle",
+            "Q1",
+            "Q3",
+            "X minima",
+            "X maxima",
+            "Y minima",
+            "Y maxima"
+        ]
+
+        # Draw the points
+        for point, point_name in zip(points, point_names):
+            # Draw point
+            context.set_source_rgb(utils.RED)
+            context.arc(
+                point.x,
+                point.y,
+                radius,
+                0,
+                2 * math.pi
+            )
+            context.stroke()
+
+            # Draw text upper left
+            context.set_font_size(font_size)
+
+            # point_position = f"({point.x:0.01f}, {point.y:0.01f})"
+            context.set_source_rgb(utils.WHITE)
+            extents = context.text_extents(point_name)
+            context.move_to(point.x - extents.width / 2, point.y - extents.height * 2)
+            context.show_text(point_name)
+            context.fill()
+        # end if
+
+        # Restore the context
+        context.restore()
+    # end draw_points
 
     # Draw the element
     def draw(
             self,
-            context,
-            move_to: bool = False,
-            build_ratio: float = 1.0
+            context: Context,
+            ratio: float = 1.0,
+            draw_bboxes: bool = False,
+            draw_reference_point: bool = False,
+            draw_control_points: bool = False,
+            draw_points: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Draw the curve to the context.
+
+        Args:
+            context (cairo.Context): Context to draw the curve to
+            ratio (float): Ratio of the curve to draw
+            draw_bboxes (bool): Flag to draw the bounding box
+            draw_reference_point (bool): Flag to draw the reference point
+            draw_points (bool): Flag to draw the points
+            draw_control_points (bool): Flag to draw the control points
         """
+        # Save context
+        context.save()
+
         # Move to the start point
-        if move_to:
-            context.move_to(self.start.x, self.start.y)
-        # end if
+        context.move_to(self.start.x, self.start.y)
+
+        # Line width and color
+        context.set_source_rgba(self._line_color)
+        context.set_line_width(self._line_width.value)
 
         # Draw the curve
-        if build_ratio == 1.0:
+        if self.position == 0.0 and self.length == 1.0:
             context.curve_to(
-                self.control1.x,
-                self.control1.y,
-                self.control2.x,
-                self.control2.y,
-                self.end.x,
-                self.end.y
+                x1=self.abs_control1.x,
+                y1=self.abs_control1.y,
+                x2=self.abs_control2.x,
+                y2=self.abs_control2.y,
+                x3=self.end.x,
+                y3=self.end.y
             )
+            context.stroke()
         else:
-            self.draw_partial_bezier_cubic(context, build_ratio)
+            self.draw_partial_bezier_cubic(
+                context=context,
+                t1=self.position.value,
+                t2=min(self.position.value + self.length.value, 1.0)
+            )
         # end if
+
+        # Draw bounding box
+        if draw_bboxes:
+            self.draw_bbox(
+                context=context,
+                border_color=utils.BLUE.copy(),
+                border_width=self.line_width.value / 2.0
+            )
+        # end if
+
+        # Draw reference point
+        if draw_reference_point:
+            self.draw_bbox_anchors(context)
+        # end if
+
+        # Draw points
+        if draw_points:
+            self.draw_points(context)
+        # end if
+
+        # Draw the control points
+        if draw_control_points:
+            self.draw_control_points(
+                context,
+                color=utils.YELLOW.copy(),
+                line_width=self.line_width.value/2.0
+            )
+        # end if
+
+        # Restore
+        context.restore()
     # end draw
 
-    # endregion PUBLIC
+    # endregion DRAW
 
     # region PRIVATE
+
+    # Compute extreme points
+    def _compute_extreme_points(
+            self
+    ):
+        """
+        Compute the extreme points of the curve.
+        """
+        # Coefficients
+        ax = -3 * self.start.x + 9 * self.abs_control1.x - 9 * self.abs_control2.x + 3 * self.end.x
+        bx = 6 * self.start.x - 12 * self.abs_control1.x + 6 * self.abs_control2.x
+        cx = -3 * self.start.x + 3 * self.abs_control1.x
+        ay = -3 * self.start.y + 9 * self.abs_control1.y - 9 * self.abs_control2.y + 3 * self.end.y
+        by = 6 * self.start.y - 12 * self.abs_control1.y + 6 * self.abs_control2.y
+        cy = -3 * self.start.y + 3 * self.abs_control1.y
+
+        def solve_quadratic(a, b, c):
+            """
+            Solve the quadratic equation ax^2 + bx + c = 0.
+
+            Args:
+                a (float): Coefficient of x^2
+                b (float): Coefficient of x
+                c (float): Constant term
+
+            Returns:
+                list: Real solutions of the equation
+            """
+            if abs(a) < 1e-8:  # a is approximately 0, so the equation is linear, not quadratic
+                if abs(b) < 1e-8:  # a and b are both approximately 0
+                    return []  # No solution or infinite solutions (here we return no solution)
+                else:
+                    return [-c / b]  # Linear solution for bx + c = 0
+            else:
+                discriminant = b ** 2 - 4 * a * c
+                if discriminant < 0:
+                    return []  # No real solutions
+                elif discriminant == 0:
+                    return [-b / (2 * a)]  # One real solution
+                else:
+                    sqrt_disc = np.sqrt(discriminant)
+                    return [(-b + sqrt_disc) / (2 * a), (-b - sqrt_disc) / (2 * a)]  # Two real solutions
+            # end if
+        # end solve_quadratic
+
+        # Solve for x and y
+        tx = solve_quadratic(ax, bx, cx)
+        ty = solve_quadratic(ay, by, cy)
+
+        # Filter the values
+        tx = [t for t in tx if 0 <= t <= 1]
+        ty = [t for t in ty if 0 <= t <= 1]
+
+        # Maximum and minimum values
+        def bezier(t, P0, P1, P2, P3):
+            return (1 - t) ** 3 * P0 + 3 * (1 - t) ** 2 * t * P1 + 3 * (1 - t) * t ** 2 * P2 + t ** 3 * P3
+        # end bezier
+
+        # Points
+        P0 = np.array([self.start.x, self.start.y])
+        P1 = np.array([self.abs_control1.x, self.abs_control1.y])
+        P2 = np.array([self.abs_control2.x, self.abs_control2.y])
+        P3 = np.array([self.end.x, self.end.y])
+
+        # Compute the points
+        points = [P0, P3] + [bezier(t, P0, P1, P2, P3) for t in tx] + [bezier(t, P0, P1, P2, P3) for t in ty]
+
+        # Get points for xmin, xmax, ymin, ymax
+        xmin = min(points, key=lambda p: p[0])
+        xmax = max(points, key=lambda p: p[0])
+        ymin = min(points, key=lambda p: p[1])
+        ymax = max(points, key=lambda p: p[1])
+
+        return (
+            Point2D(xmin[0], xmin[1]),
+            Point2D(xmax[0], xmax[1]),
+            Point2D(ymin[0], ymin[1]),
+            Point2D(ymax[0], ymax[1])
+        )
+    # end _compute_extreme_points
+
+    def _create_bbox(
+            self
+    ):
+        """
+        Create the bounding box.
+        """
+        # Get extreme points
+        xmin, xmax, ymin, ymax = self._compute_extreme_points()
+
+        return BoundingBox.from_objects(
+            upper_left=Point2D(xmin.x, ymin.y),
+            width=Scalar(xmax.x - xmin.x),
+            height=Scalar(ymax.y - ymin.y)
+        )
+    # end _create_bbox
 
     def _recursive_bezier_length(self, p0, p1, p2, p3, depth, tolerance=1e-5):
         """
@@ -237,7 +875,87 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
         return l2
     # end _recursive_bezier_length
 
+    def _bezier_subdivide_relative(
+            self,
+            t,
+            p0,
+            p01,
+            p012,
+            p0123
+    ):
+        """
+        Subdivide a cubic Bezier curve at parameter t for a relative curve starting at p0123.
+
+        Args:
+            t (float): Parameter
+            p0, p01, p012, p0123 (Point2D): Points from the first subdivision
+        """
+        # Calculate the points
+        p123 = (1 - t) * p012 + t * p0123
+        p234 = (1 - t) * p0123 + t * p123
+        p345 = (1 - t) * p123 + t * p234
+        p4 = (1 - t) * p234 + t * p345
+
+        return p0123, p123, p234, p345, p4
+    # end _bezier_subdivide_relative
+
     def _bezier_subdivide(
+            self,
+            t,
+            p0=None,
+            p1=None,
+            p2=None,
+            p3=None
+    ):
+        """
+        Subdivide a cubic Bezier curve at parameter t.
+
+        Args:
+            t (float): Parameter for subdivision
+            p0, p1, p2, p3 (Point2D): Optional points for subdivision. If not provided, use the curve's own points.
+
+        Returns:
+            Tuple[Point2D]: Seven points of the subdivided curve
+        """
+        # Use provided points or default to the curve's own points
+        if p0 is None:
+            p0 = np.array([self.start.x, self.start.y])
+        else:
+            p0 = np.array([p0.x, p0.y])
+        if p1 is None:
+            p1 = np.array([self.abs_control1.x, self.abs_control1.y])
+        else:
+            p1 = np.array([p1.x, p1.y])
+        if p2 is None:
+            p2 = np.array([self.abs_control2.x, self.abs_control2.y])
+        else:
+            p2 = np.array([p2.x, p2.y])
+        if p3 is None:
+            p3 = np.array([self.end.x, self.end.y])
+        else:
+            p3 = np.array([p3.x, p3.y])
+
+        # Calculate the points
+        p01 = (1 - t) * p0 + t * p1
+        p12 = (1 - t) * p1 + t * p2
+        p23 = (1 - t) * p2 + t * p3
+        p012 = (1 - t) * p01 + t * p12
+        p123 = (1 - t) * p12 + t * p23
+        p0123 = (1 - t) * p012 + t * p123
+
+        # Convert back to Point2D for return
+        return (
+            Point2D(float(p0[0]), float(p0[1])),
+            Point2D(float(p01[0]), float(p01[1])),
+            Point2D(float(p012[0]), float(p012[1])),
+            Point2D(float(p0123[0]), float(p0123[1])),
+            Point2D(float(p123[0]), float(p123[1])),
+            Point2D(float(p23[0]), float(p23[1])),
+            Point2D(float(p3[0]), float(p3[1]))
+        )
+    # end _bezier_subdivide
+
+    def _bezier_subdivide_at_t(
             self,
             t
     ):
@@ -250,9 +968,9 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
         """
         # Points
         p0 = np.array([self.start.x, self.start.y])
-        p1 = np.array([self.control1.x, self.control1.y])
-        p2 = np.array([self.control2.x, self.control2.y])
+        p1 = np.array([self.abs_control1.x, self.abs_control1.y])
         p3 = np.array([self.end.x, self.end.y])
+        p2 = np.array([self.abs_control2.x, self.abs_control2.y])
 
         # Calculate the points
         p01 = (1 - t) * p0 + t * p1
@@ -271,9 +989,164 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             Point2D(float(p23[0]), float(p23[1])),
             Point2D(float(p3[0]), float(p3[1]))
         )
-    # end _bezier_subdivide
+    # end _bezier_subdivide_at_t
 
     # endregion PRIVATE
+
+    # region MOVABLE
+
+    def init_move(self):
+        """
+        Initialize the move.
+        """
+        self.start_position = None
+        self.start_control1 = None
+        self.start_control2 = None
+        self.start_end = None
+    # end init_move
+
+    def start_move(
+            self,
+            start_value: Any
+    ):
+        """
+        Start the move.
+        """
+        self.start_position = self.start.copy()
+        self.start_control1 = self.abs_control1.copy()
+        self.start_control2 = self.abs_control2.copy()
+        self.start_end = self.end.copy()
+    # end start_move
+
+    def animate_move(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value
+    ):
+        """
+        Animate the move.
+        """
+        # Compute target value for control1, control2 and end using start
+        end_value_end = (self.end - self.start) + end_value
+
+        self.start.x = self.start_position.x * (1 - interpolated_t) + end_value.x * interpolated_t
+        self.start.y = self.start_position.y * (1 - interpolated_t) + end_value.y * interpolated_t
+        self.end.x = self.start_end.x * (1 - interpolated_t) + end_value_end.x * interpolated_t
+        self.end.y = self.start_end.y * (1 - interpolated_t) + end_value_end.y * interpolated_t
+    # end animate_move
+
+    def end_move(
+            self,
+            end_value: Any
+    ):
+        """
+        End the move.
+        """
+        self.start_position = None
+        self.start_control1 = None
+        self.start_control2 = None
+        self.start_end = None
+    # end end_move
+
+    # endregion MOVABLE
+
+    # region EVENTS
+
+    def _on_start_changed(
+            self,
+            x,
+            y
+    ):
+        """
+        Handle the start point changing.
+
+        Args:
+            x (float): X-coordinate
+            y (float): Y-coordinate
+        """
+        self.update_data()
+        self.dispatch_event("on_change", self)
+    # end _on_start_changed
+
+    def _on_control1_changed(
+            self,
+            x,
+            y
+    ):
+        """
+        Handle the control1 point changing.
+
+        Args:
+            x (float): X-coordinate
+            y (float): Y-coordinate
+        """
+        self.update_data()
+        self.dispatch_event("on_change", self)
+    # end _on_control1_changed
+
+    def _on_control2_changed(
+            self,
+            x,
+            y
+    ):
+        """
+        Handle the control2 point changing.
+
+        Args:
+            x (float): X-coordinate
+            y (float): Y-coordinate
+        """
+        self.update_data()
+        self.dispatch_event("on_change", self)
+    # end _on_control2_changed
+
+    def _on_end_changed(
+            self,
+            x,
+            y
+    ):
+        """
+        Handle the end point changing.
+
+        Args:
+            x (float): X-coordinate
+            y (float): Y-coordinate
+        """
+        self.update_data()
+        self.dispatch_event("on_change", self)
+    # end _on_end_changed
+
+    def _on_position_changed(
+            self,
+            value
+    ):
+        """
+        Handle the position changing.
+
+        Args:
+            value (float): Position value
+        """
+        self.update_data()
+        self.dispatch_event("on_change", self)
+    # end _on_position_changed
+
+    def _on_length_changed(
+            self,
+            value
+    ):
+        """
+        Handle the length changing.
+
+        Args:
+            value (float): Length value
+        """
+        self.update_data()
+        self.dispatch_event("on_change", self)
+    # end _on_length_changed
+
+    # endregion EVENTS
 
     # region OVERRIDE
 
@@ -311,7 +1184,12 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             control2_x: float,
             control2_y: float,
             end_x: float,
-            end_y: float
+            end_y: float,
+            position: float = 0.0,
+            length: float = 1.0,
+            line_width: Scalar = Scalar(0.0),
+            line_color: Color = utils.WHITE,
+            on_change=None
     ):
         """
         Create a cubic Bezier curve from scalar values.
@@ -320,9 +1198,43 @@ class CubicBezierCurve(DrawableMixin, MovableMixin):
             Point2D(start_x, start_y),
             Point2D(control1_x, control1_y),
             Point2D(control2_x, control2_y),
-            Point2D(end_x, end_y)
+            Point2D(end_x, end_y),
+            position=Scalar(position),
+            length=Scalar(length),
+            line_width=line_width,
+            line_color=line_color,
+            on_change=on_change
         )
     # end from_2d
+
+    @classmethod
+    def from_objects(
+            cls,
+            start: Point2D,
+            control1: Point2D,
+            control2: Point2D,
+            end: Point2D,
+            position: Scalar = Scalar(0.0),
+            length: Scalar = Scalar(1.0),
+            line_width: Scalar = Scalar(0.0),
+            line_color: Color = utils.WHITE,
+            on_change=None
+    ):
+        """
+        Create a cubic Bezier curve from objects.
+        """
+        return CubicBezierCurve(
+            start,
+            control1,
+            control2,
+            end,
+            position=position,
+            length=length,
+            line_width=line_width,
+            line_color=line_color,
+            on_change=on_change
+        )
+    # end from_objects
 
     # endregion CLASS_METHODS
 

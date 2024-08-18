@@ -70,6 +70,8 @@ class Arc(
         self._radius = radius
         self._start_angle = start_angle
         self._end_angle = end_angle
+
+        # Display properties
         self._line_width = line_width
         self._line_color = line_color
         self._fill_color = fill_color

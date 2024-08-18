@@ -50,6 +50,18 @@ class BoundingBoxMixin(object):
         return self._bounding_box
     # end bounding_box
 
+    # Bounding box height
+    @property
+    def bbox_height(self) -> Scalar:
+        return self.bounding_box.height
+    # end bbox_height
+
+    # Bounding box width
+    @property
+    def bbox_width(self) -> Scalar:
+        return self.bounding_box.width
+    # end bbox_width
+
     # endregion PROPERTIES
 
     # region PUBLIC
@@ -92,6 +104,7 @@ class BoundingBoxMixin(object):
     def draw_bbox(
             self,
             context: Context,
+            border_color: Color,
             border_width: Scalar
     ):
         """
@@ -99,11 +112,13 @@ class BoundingBoxMixin(object):
 
         Args:
             context (cairo.Context): Context to draw the bounding box to (Cairo context)
+            border_color (Color): Color of the border
             border_width (Scalar): Width of the border
         """
         if self.bounding_box is not None:
             self.bounding_box.draw(
                 context=context,
+                border_color=border_color,
                 border_width=border_width
             )
         # end if

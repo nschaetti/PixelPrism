@@ -16,9 +16,9 @@
 #
 
 
-from typing import List, Tuple, Sequence
+from typing import List, Tuple, Sequence, Union
 import cairo
-from pixel_prism.data import Color, Point2D
+from pixel_prism.data import Color, Point2D, Scalar
 from .coordsystem import CoordSystem
 
 
@@ -340,13 +340,16 @@ class Context:
         self.context.set_font_matrix(cairo.Matrix(size, 0, 0, -size, 0, 0))
     # end set_font_size
 
-    def set_line_width(self, width: float) -> None:
+    def set_line_width(self, width: Union[float, Scalar]) -> None:
         """
         Set the line width.
 
         Args:
             width (float): Line width
         """
+        if isinstance(width, Scalar):
+            width = width.value
+        # end
         self.context.set_line_width(width)
     # end set_line_width
 

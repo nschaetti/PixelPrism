@@ -20,177 +20,193 @@
 # Build and highlight
 #
 import math
-
 from pixel_prism import utils
 from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
-from pixel_prism.drawing import Arc
+from pixel_prism.drawing import MathTex, Arc, QuadraticBezierCurve, CubicBezierCurve
 from pixel_prism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class
-class ShapesAnimation(Animation):
+class CurveAnimation(Animation):
 
-    ARC_LINE_WIDTH = 0.02
-    ARC_RADIUS = 1.0
+    CURVE_LINE_WIDTH = 0.02
 
     # Init effects
     def init_effects(self):
         pass
     # end init_effects
 
-    # Build first arc
-    def build_first_arc(
+    # Build first cruve
+    def build_first_curve(
             self,
             coord_system: CoordSystem
     ):
         """
-        Build the first arc.
+        Build the first curve.
         """
         # Create an ARC on upper left
-        arc1 = Arc.from_objects(
-            center=coord_system.upper_left_square,
-            radius=Scalar(self.ARC_RADIUS),
-            start_angle=Scalar(0.0),
-            end_angle=Scalar(0.0),
-            line_color=utils.RED.copy(),
-            line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy()
+        curve1 = CubicBezierCurve.from_objects(
+            start=coord_system.upper_left_square - Point2D(1.5, 1),
+            control1=Point2D(0.5, 0.5),
+            control2=Point2D(-0.5, -0.5),
+            end=coord_system.upper_left_square + Point2D(1.5, 0),
+            line_color=utils.WHITE.copy(),
+            line_width=Scalar(self.CURVE_LINE_WIDTH)
         )
 
-        # Animate end angle
-        self.animate(
-            Range(
-                arc1.start_angle,
-                start_time=0,
-                end_time=8,
-                target_value=math.pi * 2,
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animate end angle
-        self.animate(
-            Range(
-                arc1.end_angle,
-                start_time=0,
-                end_time=4,
-                target_value=math.pi * 2,
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        return arc1
-    # end build_first_arc
-
-    # Create second arc
-    def build_second_arc(
-            self,
-            coord_system: CoordSystem
-    ):
-        """
-        Build the second arc.
-        """
-        # Create an ARC on upper left
-        arc2 = Arc.from_objects(
-            center=coord_system.upper_right_square - Point2D(1.0, 0.0),
-            radius=Scalar(self.ARC_RADIUS),
-            start_angle=Scalar(0.0),
-            end_angle=Scalar(math.pi),
-            line_color=utils.RED.copy(),
-            line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy()
-        )
-
-        # Move the Arc
+        # Animate start
         self.animate(
             Move(
-                arc2.center,
+                curve1.start,
                 start_time=0,
                 end_time=4,
-                target_value=coord_system.upper_right_square + Point2D(1.0, 0.0),
+                target_value=coord_system.upper_left_square - Point2D(1.5, -1),
                 interpolator=EaseInOutInterpolator()
             )
         )
 
-        # Move the Arc
+        # Animate start
         self.animate(
             Move(
-                arc2.center,
+                curve1.start,
                 start_time=4,
                 end_time=8,
-                target_value=coord_system.upper_right_square - Point2D(1.0, 0.0),
+                target_value=coord_system.upper_left_square - Point2D(1.5, 1),
                 interpolator=EaseInOutInterpolator()
             )
         )
 
-        return arc2
-    # end build_second_arc
+        # Animate control2
+        self.animate(
+            Move(
+                curve1.control2,
+                start_time=0,
+                end_time=4,
+                target_value=Point2D(0.5, 0.5),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
 
-    # Create third arc
-    def build_third_arc(
+        # Animate control2
+        self.animate(
+            Move(
+                curve1.control2,
+                start_time=4,
+                end_time=8,
+                target_value=Point2D(-0.5, -0.5),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        # Animate control1
+        self.animate(
+            Move(
+                curve1.control1,
+                start_time=0,
+                end_time=4,
+                target_value=Point2D(-0.5, -0.5),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        # Animate control1
+        self.animate(
+            Move(
+                curve1.control1,
+                start_time=4,
+                end_time=8,
+                target_value=Point2D(0.5, 0.5),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        return curve1
+    # end build_first_curve
+
+    # Build second cruve
+    def build_second_curve(
             self,
             coord_system: CoordSystem
     ):
         """
-        Build the third arc.
+        Build the first curve.
         """
         # Create an ARC on upper left
-        arc3 = Arc.from_objects(
-            center=coord_system.lower_left_square,
-            radius=Scalar(self.ARC_RADIUS / 2.0),
-            start_angle=Scalar(0.0),
-            end_angle=Scalar(math.pi * 1.5),
-            line_color=utils.RED.copy(),
-            line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy()
+        curve2 = CubicBezierCurve.from_objects(
+            start=coord_system.upper_right_square - Point2D(2, 1),
+            control1=Point2D(0.0, 1.0),
+            control2=Point2D(0.0, 1.0),
+            end=coord_system.upper_right_square + Point2D(0, -1),
+            line_color=utils.WHITE.copy(),
+            line_width=Scalar(self.CURVE_LINE_WIDTH)
         )
 
-        # Change value of scale
+        # Animate start
         self.animate(
-            Call(
-                arc3.scale,
-                times=[2, 4, 6],
-                values=[[Scalar(2.0)], [Scalar(0.5)], [Scalar(2.0)]],
+            Move(
+                curve2,
+                start_time=0,
+                end_time=4,
+                target_value=coord_system.upper_right_square - Point2D(2, 1) + Point2D(2, 0),
+                interpolator=EaseInOutInterpolator()
             )
         )
 
-        return arc3
-    # end build_third_arc
+        # Animate start
+        self.animate(
+            Move(
+                curve2,
+                start_time=4,
+                end_time=8,
+                target_value=coord_system.upper_right_square - Point2D(2, 1),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
 
-    # Build fourth arc
-    def build_fourth_arc(
+        return curve2
+    # end build_second_curve
+
+    # Build thid cruve
+    def build_thid_curve(
             self,
             coord_system: CoordSystem
     ):
         """
-        Build the fourth arc.
+        Build the first curve.
         """
+        # Position and length
+        position = Scalar(0.0)
+        length = Scalar(0.25)
+
         # Create an ARC on upper left
-        arc4 = Arc.from_objects(
-            center=coord_system.lower_right_square,
-            radius=Scalar(self.ARC_RADIUS),
-            start_angle=Scalar(0.0),
-            end_angle=Scalar(math.pi),
-            line_color=utils.RED.copy(),
-            line_width=Scalar(self.ARC_LINE_WIDTH),
-            fill_color=utils.GREEN.copy()
+        curve3 = CubicBezierCurve.from_objects(
+            start=coord_system.lower_left_square + Point2D(-1, -1),
+            control1=Point2D(0.0, 1.0),
+            control2=Point2D(0.0, -1.0),
+            end=coord_system.lower_left_square + Point2D(1, 1),
+            position=position,
+            length=length,
+            line_color=utils.WHITE.copy(),
+            line_width=Scalar(self.CURVE_LINE_WIDTH)
         )
 
-        # Change value of scale
+        # Animation position
         self.animate(
-            Call(
-                arc4.rotate,
-                times=[2, 4, 6],
-                values=[[Scalar(math.pi / 2.0)], [Scalar(math.pi / 2.0)], [Scalar(math.pi / 2.0)]],
+            Range(
+                position,
+                start_time=0,
+                end_time=4,
+                target_value=Scalar(0.5),
+                interpolator=EaseInOutInterpolator()
             )
         )
 
-        return arc4
-    # end build_fourth_arc
+        return curve3
+    # end build_thid_curve
 
     def build(self):
         """
@@ -211,26 +227,24 @@ class ShapesAnimation(Animation):
         viewport.add_widget(drawable_widget)
 
         # Create arcs
-        arc1 = self.build_first_arc(coord_system)
-        arc2 = self.build_second_arc(coord_system)
-        arc3 = self.build_third_arc(coord_system)
-        arc4 = self.build_fourth_arc(coord_system)
+        curve1 = self.build_first_curve(coord_system)
+        curve2 = self.build_second_curve(coord_system)
+        curve3 = self.build_thid_curve(coord_system)
 
         # Add the LaTeX widget to the drawable widget
-        drawable_widget.add(arc1)
-        drawable_widget.add(arc2)
-        drawable_widget.add(arc3)
-        drawable_widget.add(arc4)
+        drawable_widget.add(curve1)
+        drawable_widget.add(curve2)
+        drawable_widget.add(curve3)
+        # drawable_widget.add(arc4)
 
         # Add objects
         self.add(
             coord_system=coord_system,
             viewport=viewport,
             drawable_widget=drawable_widget,
-            arc1=arc1,
-            arc2=arc2,
-            arc3=arc3,
-            arc4=arc4
+            curve1=curve1,
+            curve2=curve2,
+            curve3=curve3
         )
     # end build
 
@@ -264,8 +278,9 @@ class ShapesAnimation(Animation):
         drawing_layer.render(
             draw_params={
                 'draw_bboxes': True,
+                'draw_points': True,
                 'draw_reference_point': True,
-                'draw_points': True
+                'draw_control_points': True
             }
         )
 
