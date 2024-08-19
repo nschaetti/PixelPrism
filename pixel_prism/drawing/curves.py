@@ -69,8 +69,6 @@ class CubicBezierCurve(
         self._line_color = line_color
 
         # Beginning, end, middle, q1 and q2
-        self._start_point = Point2D(0, 0)
-        self._end_point = Point2D(0, 0)
         self._center = Point2D(0, 0)
         self._middle_point = Point2D(0, 0)
         self._q1_point = Point2D(0, 0)
@@ -79,6 +77,20 @@ class CubicBezierCurve(
         self._x_maxima = Point2D(0, 0)
         self._y_minima = Point2D(0, 0)
         self._y_maxima = Point2D(0, 0)
+
+        # Curve points
+        self._curve_start = Point2D(0, 0)
+        self._curve_end = Point2D(0, 0)
+        self._curve_center = Point2D(0, 0)
+        self._curve_middle_point = Point2D(0, 0)
+        self._curve_q1_point = Point2D(0, 0)
+        self._curve_q3_point = Point2D(0, 0)
+        self._curve_x_minima = Point2D(0, 0)
+        self._curve_x_maxima = Point2D(0, 0)
+        self._curve_y_minima = Point2D(0, 0)
+        self._curve_y_maxima = Point2D(0, 0)
+        self._curve_control1 = Point2D(0, 0)
+        self._curve_control2 = Point2D(0, 0)
 
         # Bounding box mixin
         BoundingBoxMixin.__init__(self)
@@ -273,20 +285,20 @@ class CubicBezierCurve(
     # end line_color
 
     @property
-    def start_point(self) -> Point2D:
+    def curve_start(self) -> Point2D:
         """
         Get the start point of the curve.
         """
-        return self._start_point
+        return self._curve_start
     # end start_point
 
     @property
-    def end_point(self) -> Point2D:
+    def curve_end(self) -> Point2D:
         """
         Get the end point of the curve.
         """
-        return self._end_point
-    # end end_point
+        return self._curve_end
+    # end curve_end
 
     @property
     def center(self) -> Point2D:
@@ -325,17 +337,33 @@ class CubicBezierCurve(
     # region PUBLIC
 
     # Get a point on the curve
-    def bezier(self, t) -> Point2D:
+    def bezier(
+            self,
+            t,
+            start=None,
+            control1=None,
+            control2=None,
+            end=None
+    ) -> Point2D:
         """
         Get a point on the curve at parameter t.
 
         Args:
             t (float): Parameter
+            start (Point2D): Start point of the curve
+            control1 (Point2D): First control point of the curve
+            control2 (Point2D): Second control point of the curve
+            end (Point2D): End point of the curve
         """
-        P0 = np.array([self.start.x, self.start.y])
-        P1 = P0 + np.array([self.control1.x, self.control1.y])
-        P3 = np.array([self.end.x, self.end.y])
-        P2 = P3 + np.array([self.control2.x, self.control2.y])
+        start = self.start if start is None else start
+        control1 = self.control1 if control1 is None else control1
+        control2 = self.control2 if control2 is None else control2
+        end = self.end if end is None else end
+
+        P0 = np.array([start.x, start.y])
+        P1 = P0 + np.array([control1.x, control1.y])
+        P3 = np.array([end.x, end.y])
+        P2 = P3 + np.array([control2.x, control2.y])
         t_point = (1 - t) ** 3 * P0 + 3 * (1 - t) ** 2 * t * P1 + 3 * (1 - t) * t ** 2 * P2 + t ** 3 * P3
         return Point2D(
             float(t_point[0]),
@@ -354,12 +382,12 @@ class CubicBezierCurve(
         x_min, x_max, y_min, y_max = self._compute_extreme_points()
 
         # Start point
-        self._start_point.x = self.bezier(self.position.value).x
-        self._start_point.y = self.bezier(self.position.value).y
+        self._curve_start.x = self.bezier(self.position.value).x
+        self._curve_start.y = self.bezier(self.position.value).y
 
         # End point
-        self._end_point.x = self.bezier(min(self.position.value + self.length.value, 1.0)).x
-        self._end_point.y = self.bezier(min(self.position.value + self.length.value, 1.0)).y
+        self._curve_end.x = self.bezier(min(self.position.value + self.length.value, 1.0)).x
+        self._curve_end.y = self.bezier(min(self.position.value + self.length.value, 1.0)).y
 
         # X minima
         self._x_minima.set(x_min.x, x_min.y)
@@ -383,6 +411,46 @@ class CubicBezierCurve(
         self._q3_point.x = self.bezier(0.75).x
         self._q3_point.y = self.bezier(0.75).y
     # end update_points
+
+    # Update curve points
+    def update_curve_points(
+            self,
+            start,
+            control1,
+            control2,
+            end
+    ):
+        """
+        Update the curve points of the curve.
+        """
+        # Start point
+        self._curve_start.x = start.x
+        self._curve_start.y = start.y
+
+        # Control 1
+        self._curve_control1.x = control1.x
+        self._curve_control1.y = control1.y
+
+        # Control 2
+        self._curve_control2.x = control2.x
+        self._curve_control2.y = control2.y
+
+        # End point
+        self._curve_end.x = end.x
+        self._curve_end.y = end.y
+
+        # Middle point
+        self._curve_middle_point.x = self.bezier(self.position.value + self.length.value * 0.5).x
+        self._curve_middle_point.y = self.bezier(self.position.value + self.length.value * 0.5).y
+
+        # Q1 point
+        self._curve_q1_point.x = self.bezier(self.position.value + self.length.value * 0.25).x
+        self._curve_q1_point.y = self.bezier(self.position.value + self.length.value * 0.25).y
+
+        # Q3 point
+        self._curve_q3_point.x = self.bezier(self.position.value + self.length.value * 0.75).x
+        self._curve_q3_point.y = self.bezier(self.position.value + self.length.value * 0.75).y
+    # end update_curve_points
 
     # Update data
     def update_data(self):
@@ -470,6 +538,31 @@ class CubicBezierCurve(
         context.restore()
     # end draw_path
 
+    def draw_sub_control_point(self, context, point, label=None):
+        """
+        Draw a control point on the context.
+
+        Args:
+            context (Context): The drawing context
+            point (np.array): The point to draw
+            label (str): Optional label for the point
+        """
+        # Set the style for control points
+        context.save()
+        context.set_source_rgb(utils.YELLOW)  # Yellow color for control points
+        context.set_line_width(0.05)
+        context.arc(point[0], point[1], 0.01, 0, 2 * np.pi)  # Small circle at the control point
+        context.fill()
+
+        # Draw the label if provided
+        if label:
+            context.move_to(point[0] + 0.1, point[1])
+            context.set_font_size(0.1)
+            context.show_text(label)
+        # end if
+        context.restore()
+    # end draw_sub_control_point
+
     def draw_partial_bezier_cubic(
             self,
             context,
@@ -484,31 +577,60 @@ class CubicBezierCurve(
             t1 (float): Start parameter (0 <= t1 <= 1)
             t2 (float): End parameter (t1 <= t2 <= 1)
         """
-        # Subdivide the curve at t1
-        p0, p01, p012, p0123, p123, p23, p3 = self._bezier_subdivide(t1)
+        # Get control points
+        p0 = np.array([self.start.x, self.start.y])
+        p1 = np.array([self.abs_control1.x, self.abs_control1.y])
+        p2 = np.array([self.abs_control2.x, self.abs_control2.y])
+        p3 = np.array([self.end.x, self.end.y])
 
-        # Calculate the relative t for the second subdivision
+        # Subdivide at t1 to get the new control points from t1 to 1
+        _, p01, p012, p0123, _, p123, p23, p3 = self._bezier_subdivide(t1, p0, p1, p2, p3)
+
+        # Calculate relative t for t2
         relative_t = (t2 - t1) / (1 - t1)
 
-        # Subdivide the new curve at relative_t
-        _, _, _, p0123_end, p123_end, p23_end, p3_end = self._bezier_subdivide(relative_t, p0123, p123, p23, p3)
+        # Subdivide again at relative t
+        p0123_start, p01_start, p012_end, p0123_end, test2, test3, test4, test5 = self._bezier_subdivide(relative_t, p0123, p123, p23, p3)
 
         # Move to the start of the new segment
-        context.move_to(p0123.x, p0123.y)
+        context.move_to(p0123_start[0], p0123_start[1])
 
         # Draw the curve from t1 to t2
         context.curve_to(
-            p123_end.x,
-            p123_end.y,
-            p23_end.x,
-            p23_end.y,
-            p3_end.x,
-            p3_end.y
+            x1=p01_start[0],
+            y1=p01_start[1],
+            x2=p012_end[0],
+            y2=p012_end[1],
+            x3=p0123_end[0],
+            y3=p0123_end[1]
         )
 
         # Stroke the curve
         context.stroke()
 
+        # Update curve points
+        self.update_curve_points(
+            start=Point2D(p0123_start[0], p0123_start[1]),
+            control1=Point2D(p01_start[0], p01_start[1]),
+            control2=Point2D(p012_end[0], p012_end[1]),
+            end=Point2D(p0123_end[0], p0123_end[1])
+        )
+
+        # Draw control points
+        # self.draw_sub_control_point(context, p0, "P0 (Start)")
+        # self.draw_sub_control_point(context, p01, "P01")
+        # self.draw_sub_control_point(context, p012, "P012")
+        # self.draw_sub_control_point(context, p0123, "P0123")
+        """self.draw_sub_control_point(context, p0123_start, "P0123 (start)")
+        self.draw_sub_control_point(context, p0123_end, "P0123 (end)")
+        self.draw_sub_control_point(context, p123, "P123")
+        self.draw_sub_control_point(context, p23, "P23")"""
+        # self.draw_sub_control_point(context, p3, "P3")
+        """self.draw_sub_control_point(context, p012_end, "p012_end")
+        self.draw_sub_control_point(context, test1, "test1")
+        self.draw_sub_control_point(context, test2, "test2")
+        self.draw_sub_control_point(context, test3, "test3")
+        self.draw_sub_control_point(context, test4, "test4")"""
     # end draw_partial_bezier_cubic
 
     # Draw control points
@@ -610,8 +732,8 @@ class CubicBezierCurve(
 
         # Points to show
         points = [
-            self._start_point,
-            self._end_point,
+            self._start,
+            self._end,
             self._center,
             self._middle_point,
             self._q1_point,
@@ -619,7 +741,14 @@ class CubicBezierCurve(
             self._x_minima,
             self._x_maxima,
             self._y_minima,
-            self._y_maxima
+            self._y_maxima,
+            self._curve_start,
+            self._curve_end,
+            self._curve_control1,
+            self._curve_control2,
+            self._curve_middle_point,
+            self._curve_q1_point,
+            self._curve_q3_point,
         ]
 
         # Point names
@@ -633,7 +762,14 @@ class CubicBezierCurve(
             "X minima",
             "X maxima",
             "Y minima",
-            "Y maxima"
+            "Y maxima",
+            "Curve start",
+            "Curve end",
+            "Curve control 1",
+            "Curve control 2",
+            "Curve middle point",
+            "Curve Q1",
+            "Curve Q3"
         ]
 
         # Draw the points
@@ -875,37 +1011,13 @@ class CubicBezierCurve(
         return l2
     # end _recursive_bezier_length
 
-    def _bezier_subdivide_relative(
-            self,
-            t,
-            p0,
-            p01,
-            p012,
-            p0123
-    ):
-        """
-        Subdivide a cubic Bezier curve at parameter t for a relative curve starting at p0123.
-
-        Args:
-            t (float): Parameter
-            p0, p01, p012, p0123 (Point2D): Points from the first subdivision
-        """
-        # Calculate the points
-        p123 = (1 - t) * p012 + t * p0123
-        p234 = (1 - t) * p0123 + t * p123
-        p345 = (1 - t) * p123 + t * p234
-        p4 = (1 - t) * p234 + t * p345
-
-        return p0123, p123, p234, p345, p4
-    # end _bezier_subdivide_relative
-
     def _bezier_subdivide(
             self,
             t,
-            p0=None,
-            p1=None,
-            p2=None,
-            p3=None
+            p0,
+            p1,
+            p2,
+            p3
     ):
         """
         Subdivide a cubic Bezier curve at parameter t.
@@ -917,25 +1029,7 @@ class CubicBezierCurve(
         Returns:
             Tuple[Point2D]: Seven points of the subdivided curve
         """
-        # Use provided points or default to the curve's own points
-        if p0 is None:
-            p0 = np.array([self.start.x, self.start.y])
-        else:
-            p0 = np.array([p0.x, p0.y])
-        if p1 is None:
-            p1 = np.array([self.abs_control1.x, self.abs_control1.y])
-        else:
-            p1 = np.array([p1.x, p1.y])
-        if p2 is None:
-            p2 = np.array([self.abs_control2.x, self.abs_control2.y])
-        else:
-            p2 = np.array([p2.x, p2.y])
-        if p3 is None:
-            p3 = np.array([self.end.x, self.end.y])
-        else:
-            p3 = np.array([p3.x, p3.y])
-
-        # Calculate the points
+        # Points
         p01 = (1 - t) * p0 + t * p1
         p12 = (1 - t) * p1 + t * p2
         p23 = (1 - t) * p2 + t * p3
@@ -943,15 +1037,15 @@ class CubicBezierCurve(
         p123 = (1 - t) * p12 + t * p23
         p0123 = (1 - t) * p012 + t * p123
 
-        # Convert back to Point2D for return
         return (
-            Point2D(float(p0[0]), float(p0[1])),
-            Point2D(float(p01[0]), float(p01[1])),
-            Point2D(float(p012[0]), float(p012[1])),
-            Point2D(float(p0123[0]), float(p0123[1])),
-            Point2D(float(p123[0]), float(p123[1])),
-            Point2D(float(p23[0]), float(p23[1])),
-            Point2D(float(p3[0]), float(p3[1]))
+            p0,
+            p01,
+            p012,
+            p0123,
+            p0123,
+            p123,
+            p23,
+            p3
         )
     # end _bezier_subdivide
 
@@ -1044,10 +1138,11 @@ class CubicBezierCurve(
         """
         End the move.
         """
-        self.start_position = None
+        """self.start_position = None
         self.start_control1 = None
         self.start_control2 = None
-        self.start_end = None
+        self.start_end = None"""
+        pass
     # end end_move
 
     # endregion MOVABLE

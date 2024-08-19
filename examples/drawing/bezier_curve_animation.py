@@ -205,6 +205,28 @@ class CurveAnimation(Animation):
             )
         )
 
+        # Animation position
+        self.animate(
+            Range(
+                position,
+                start_time=4,
+                end_time=8,
+                target_value=Scalar(0.0),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        # Animation position
+        self.animate(
+            Range(
+                length,
+                start_time=4,
+                end_time=8,
+                target_value=Scalar(1.0),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
         return curve3
     # end build_thid_curve
 
