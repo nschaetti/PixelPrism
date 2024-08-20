@@ -211,6 +211,62 @@ class Scalar(Data, EventMixin, RangeableMixin):
         return not self.__eq__(other)
     # end __ne__
 
+    # Override less
+    def __lt__(self, other):
+        """
+        Check if the scalar value is less than another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self._value < other._value
+        # end if
+        return self._value < other
+    # end __lt__
+
+    # Override less or equal
+    def __le__(self, other):
+        """
+        Check if the scalar value is less than or equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self._value <= other._value
+        # end if
+        return self._value <= other
+    # end __le__
+
+    # Override greater
+    def __gt__(self, other):
+        """
+        Check if the scalar value is greater than another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self._value > other._value
+        # end if
+        return self._value > other
+    # end __gt__
+
+    # Override greater or equal
+    def __ge__(self, other):
+        """
+        Check if the scalar value is greater than or equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self._value >= other._value
+        # end if
+        return self._value >= other
+    # end __ge__
+
     # endregion OVERRIDE
 
 # end Scalar

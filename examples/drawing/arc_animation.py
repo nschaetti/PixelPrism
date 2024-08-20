@@ -20,7 +20,6 @@
 # Build and highlight
 #
 import math
-
 from pixel_prism import utils
 from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call

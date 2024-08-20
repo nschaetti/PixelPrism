@@ -314,6 +314,23 @@ class BoundingBox(DrawableMixin):
 
     # region OVERRIDE
 
+    # Translate object (to override)
+    def _translate_object(
+            self,
+            dx,
+            dy
+    ):
+        """
+        Translate the object.
+
+        Args:
+            dx (float): Translation along X-axis
+            dy (float): Translation along Y-axis
+        """
+        self.upper_left.x += dx
+        self.upper_left.y += dy
+    # end _translate_object
+
     # To string
     def __str__(self):
         return f"BoundingBox({self.upper_left}, {self.width}, {self.height})"
@@ -323,6 +340,8 @@ class BoundingBox(DrawableMixin):
     def __repr__(self):
         return f"BoundingBox({self.upper_left}, {self.width}, {self.height})"
     # end __repr__
+
+    # endregion OVERRIDE
 
 # end BoundingBox
 

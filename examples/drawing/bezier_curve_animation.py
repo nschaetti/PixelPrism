@@ -19,7 +19,7 @@
 # Animation of an equation.
 # Build and highlight
 #
-import math
+from pixel_prism import p2, s, c
 from pixel_prism import utils
 from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
@@ -50,12 +50,12 @@ class CurveAnimation(Animation):
         """
         # Create an ARC on upper left
         curve1 = CubicBezierCurve.from_objects(
-            start=coord_system.upper_left_square - Point2D(1.5, 1),
-            control1=Point2D(0.5, 0.5),
-            control2=Point2D(-0.5, -0.5),
-            end=coord_system.upper_left_square + Point2D(1.5, 0),
-            line_color=utils.WHITE.copy(),
-            line_width=Scalar(self.CURVE_LINE_WIDTH)
+            start=coord_system.upper_left_square - p2(1.5, 1),
+            control1=p2(0.5, 0.5),
+            control2=p2(-0.5, -0.5),
+            end=coord_system.upper_left_square + p2(1.5, 0),
+            line_color=c('WHITE').copy(),
+            line_width=s(self.CURVE_LINE_WIDTH)
         )
 
         # Animate start
@@ -64,7 +64,7 @@ class CurveAnimation(Animation):
                 curve1.start,
                 start_time=0,
                 end_time=4,
-                target_value=coord_system.upper_left_square - Point2D(1.5, -1),
+                target_value=coord_system.upper_left_square - p2(1.5, -1),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -75,7 +75,7 @@ class CurveAnimation(Animation):
                 curve1.start,
                 start_time=4,
                 end_time=8,
-                target_value=coord_system.upper_left_square - Point2D(1.5, 1),
+                target_value=coord_system.upper_left_square - p2(1.5, 1),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -86,7 +86,7 @@ class CurveAnimation(Animation):
                 curve1.control2,
                 start_time=0,
                 end_time=4,
-                target_value=Point2D(0.5, 0.5),
+                target_value=p2(0.5, 0.5),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -97,7 +97,7 @@ class CurveAnimation(Animation):
                 curve1.control2,
                 start_time=4,
                 end_time=8,
-                target_value=Point2D(-0.5, -0.5),
+                target_value=p2(-0.5, -0.5),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -108,7 +108,7 @@ class CurveAnimation(Animation):
                 curve1.control1,
                 start_time=0,
                 end_time=4,
-                target_value=Point2D(-0.5, -0.5),
+                target_value=p2(-0.5, -0.5),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -119,7 +119,7 @@ class CurveAnimation(Animation):
                 curve1.control1,
                 start_time=4,
                 end_time=8,
-                target_value=Point2D(0.5, 0.5),
+                target_value=p2(0.5, 0.5),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -137,12 +137,12 @@ class CurveAnimation(Animation):
         """
         # Create an ARC on upper left
         curve2 = CubicBezierCurve.from_objects(
-            start=coord_system.upper_right_square - Point2D(2, 1),
-            control1=Point2D(0.0, 1.0),
-            control2=Point2D(0.0, 1.0),
-            end=coord_system.upper_right_square + Point2D(0, -1),
-            line_color=utils.WHITE.copy(),
-            line_width=Scalar(self.CURVE_LINE_WIDTH)
+            start=coord_system.upper_right_square - p2(2, 1),
+            control1=p2(0.0, 1.0),
+            control2=p2(0.0, 1.0),
+            end=coord_system.upper_right_square + p2(0, -1),
+            line_color=c('WHITE').copy(),
+            line_width=s(self.CURVE_LINE_WIDTH)
         )
 
         # Animate start
@@ -151,7 +151,7 @@ class CurveAnimation(Animation):
                 curve2,
                 start_time=0,
                 end_time=4,
-                target_value=coord_system.upper_right_square - Point2D(2, 1) + Point2D(2, 0),
+                target_value=coord_system.upper_right_square - p2(2, 1) + p2(2, 0),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -162,7 +162,7 @@ class CurveAnimation(Animation):
                 curve2,
                 start_time=4,
                 end_time=8,
-                target_value=coord_system.upper_right_square - Point2D(2, 1),
+                target_value=coord_system.upper_right_square - p2(2, 1),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -170,8 +170,8 @@ class CurveAnimation(Animation):
         return curve2
     # end build_second_curve
 
-    # Build thid cruve
-    def build_thid_curve(
+    # Build third curve
+    def build_third_curve(
             self,
             coord_system: CoordSystem
     ):
@@ -184,14 +184,14 @@ class CurveAnimation(Animation):
 
         # Create an ARC on upper left
         curve3 = CubicBezierCurve.from_objects(
-            start=coord_system.lower_left_square + Point2D(-1, -1),
-            control1=Point2D(0.0, 1.0),
-            control2=Point2D(0.0, -1.0),
-            end=coord_system.lower_left_square + Point2D(1, 1),
+            start=coord_system.lower_left_square + p2(-1, -1),
+            control1=p2(0.0, 1.0),
+            control2=p2(0.0, -1.0),
+            end=coord_system.lower_left_square + p2(1, 1),
             position=position,
             length=length,
-            line_color=utils.WHITE.copy(),
-            line_width=Scalar(self.CURVE_LINE_WIDTH)
+            line_color=c('WHITE').copy(),
+            line_width=s(self.CURVE_LINE_WIDTH)
         )
 
         # Animation position
@@ -200,7 +200,7 @@ class CurveAnimation(Animation):
                 position,
                 start_time=0,
                 end_time=4,
-                target_value=Scalar(0.5),
+                target_value=s(0.5),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -211,7 +211,7 @@ class CurveAnimation(Animation):
                 position,
                 start_time=4,
                 end_time=8,
-                target_value=Scalar(0.0),
+                target_value=s(0.0),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -222,13 +222,49 @@ class CurveAnimation(Animation):
                 length,
                 start_time=4,
                 end_time=8,
-                target_value=Scalar(1.0),
+                target_value=s(1.0),
                 interpolator=EaseInOutInterpolator()
             )
         )
 
         return curve3
-    # end build_thid_curve
+    # end build_third_curve
+
+    # Build fourth curve
+    def build_fourth_curve(
+            self,
+            coord_system: CoordSystem
+    ):
+        """
+        Build the first curve.
+        """
+        # Position and length
+        position = s(0.0)
+        length = s(0.25)
+
+        # Create an ARC on upper left
+        curve4 = CubicBezierCurve.from_objects(
+            start=coord_system.lower_right_square - p2(1, 1),
+            control1=p2(0.0, 1.0),
+            control2=p2(0.0, -1.0),
+            end=coord_system.lower_right_square + p2(1, 1),
+            position=position,
+            length=length,
+            line_color=c('WHITE').copy(),
+            line_width=s(self.CURVE_LINE_WIDTH)
+        )
+
+        # Translate
+        """self.animate(
+            Call(
+                curve4.translate,
+                times=[2, 6],
+                values=[[p2(1.0, 0.0)], [p2(-1.0, 0.0)]],
+            )
+        )"""
+
+        return curve4
+    # end build_fourth_curve
 
     def build(self):
         """
@@ -251,13 +287,14 @@ class CurveAnimation(Animation):
         # Create arcs
         curve1 = self.build_first_curve(coord_system)
         curve2 = self.build_second_curve(coord_system)
-        curve3 = self.build_thid_curve(coord_system)
+        curve3 = self.build_third_curve(coord_system)
+        curve4 = self.build_fourth_curve(coord_system)
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(curve1)
         drawable_widget.add(curve2)
         drawable_widget.add(curve3)
-        # drawable_widget.add(arc4)
+        drawable_widget.add(curve4)
 
         # Add objects
         self.add(
@@ -266,7 +303,8 @@ class CurveAnimation(Animation):
             drawable_widget=drawable_widget,
             curve1=curve1,
             curve2=curve2,
-            curve3=curve3
+            curve3=curve3,
+            curve4=curve4
         )
     # end build
 
