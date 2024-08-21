@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+import math
 
 #
 # Animation of an equation.
@@ -242,12 +243,11 @@ class CurveAnimation(Animation):
         position = s(0.0)
         length = s(0.25)
 
-        # Create an ARC on upper left
         curve4 = CubicBezierCurve.from_objects(
-            start=coord_system.lower_right_square - p2(1, 1),
+            start=coord_system.lower_right_square - p2(1.5, 0.5),
             control1=p2(0.0, 1.0),
-            control2=p2(0.0, -1.0),
-            end=coord_system.lower_right_square + p2(1, 1),
+            control2=p2(0.0, 1.0),
+            end=coord_system.lower_right_square + p2(0, -0.5),
             position=position,
             length=length,
             line_color=c('WHITE').copy(),
@@ -262,6 +262,26 @@ class CurveAnimation(Animation):
                 values=[[p2(1.0, 0.0)], [p2(-1.0, 0.0)]],
             )
         )"""
+
+        # Translate
+        """self.animate(
+            Call(
+                curve4.rotate,
+                times=[4, 7],
+                values=[[s(math.pi / 4.0), curve4.center], [s(-math.pi / 4.0), curve4.center]],
+            )
+        )"""
+
+        # Animation position
+        self.animate(
+            Range(
+                length,
+                start_time=0,
+                end_time=8,
+                target_value=s(1.0),
+                interpolator=EaseInOutInterpolator()
+            )
+        )
 
         return curve4
     # end build_fourth_curve

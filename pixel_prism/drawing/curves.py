@@ -108,8 +108,8 @@ class CubicBezierCurve(
         self._curve_y_maxima = Point2D(0, 0)
         self._curve_control1 = Point2D(0, 0)
         self._curve_control2 = Point2D(0, 0)
-        self._curve_abs_control1 = Point2D(0, 0)
-        self._curve_abs_control2 = Point2D(0, 0)
+        # self._curve_abs_control1 = Point2D(0, 0)
+        # self._curve_abs_control2 = Point2D(0, 0)
 
         # Bounding box mixin
         BoundingBoxMixin.__init__(self)
@@ -146,6 +146,9 @@ class CubicBezierCurve(
         self._end.add_event_listener("on_change", self._on_end_changed)
         self._position.add_event_listener("on_change", self._on_position_changed)
         self._length.add_event_listener("on_change", self._on_length_changed)
+
+        # Update data
+        self.update_data()
 
         # List of event listeners (per events)
         self.event_listeners = {
@@ -340,7 +343,8 @@ class CubicBezierCurve(
         """
         Get the first control point of the curve.
         """
-        return self._curve_abs_control1
+        # return self._curve_abs_control1
+        return self._curve_start + self._curve_control1
     # end curve_abs_control1
 
     @property
@@ -356,8 +360,17 @@ class CubicBezierCurve(
         """
         Get the second control point of the curve.
         """
-        return self._curve_abs_control2
+        # return self._curve_abs_control2
+        return self._curve_end + self._curve_control2
     # end curve_abs_control2
+
+    @property
+    def curve_center(self) -> Point2D:
+        """
+        Get the center point of the curve.
+        """
+        return self._curve_center
+    # end curve_center
 
     @property
     def curve_middle_point(self) -> Point2D:
@@ -511,8 +524,10 @@ class CubicBezierCurve(
         self._y_maxima.set(y_max.x, y_max.y)
 
         # Center
-        self._center.x = self._bounding_box.upper_left.x + self._bounding_box.width / 2.0
-        self._center.y = self._bounding_box.upper_left.y + self._bounding_box.height / 2.0
+        print(self._x_minima, self._x_maxima)
+        self._center.x = (self._x_maxima.x + self._x_minima.x) / 2.0
+        self._center.y = (self._y_maxima.y + self._y_minima.y) / 2.0
+        print(self._center.x)
 
         # Middle point
         self._middle_point.x = self.bezier(0.5).x
@@ -554,14 +569,10 @@ class CubicBezierCurve(
         self._curve_start.y = start.y
 
         # Control 1
-        self._curve_abs_control1.x = control1.x
-        self._curve_abs_control1.y = control1.y
         self._curve_control1.x = control1.x - start.x
         self._curve_control1.y = control1.y - start.y
 
         # Control 2
-        self._curve_abs_control2.x = control2.x
-        self._curve_abs_control2.y = control2.y
         self._curve_control2.x = control2.x - end.x
         self._curve_control2.y = control2.y - end.y
 
@@ -589,6 +600,10 @@ class CubicBezierCurve(
         self._curve_x_maxima.set(x_max.x, x_max.y)
         self._curve_y_minima.set(y_min.x, y_min.y)
         self._curve_y_maxima.set(y_max.x, y_max.y)
+
+        # Center
+        self._curve_center.x = self._bounding_box.upper_left.x + self._bounding_box.width / 2.0
+        self._curve_center.y = self._bounding_box.upper_left.y + self._bounding_box.height / 2.0
     # end update_curve_points
 
     # Update data
@@ -596,8 +611,8 @@ class CubicBezierCurve(
         """
         Update the data of the curve.
         """
-        self.update_bbox()
         self.update_points()
+        self.update_bbox()
     # end update_data
 
     # Update bounding box
@@ -862,26 +877,27 @@ class CubicBezierCurve(
             "Start",
             "End",
             "Center",
-            "Middle",
-            "Q1",
-            "Q3",
-            "X minima",
-            "X maxima",
-            "Y minima",
-            "Y maxima",
+            # "Middle",
+            # "Q1",
+            # "Q3",
+            # "X minima",
+            # "X maxima",
+            # "Y minima",
+            # "Y maxima",
             # "Curve start",
             # "Curve end",
             # "Curve control 1",
             # "Curve abs. control 1",
             # "Curve control 2",
             # "Curve abs. control 2",
+            "Curve center",
             # "Curve middle point",
             # "Curve Q1",
             # "Curve Q3",
-            # "Curve X minima",
-            # "Curve X maxima",
-            # "Curve Y minima",
-            # "Curve Y maxima"
+            "Curve X minima",
+            "Curve X maxima",
+            "Curve Y minima",
+            "Curve Y maxima"
         ]
 
         # Points to show
@@ -899,9 +915,10 @@ class CubicBezierCurve(
             self._curve_start,
             self._curve_end,
             self._curve_control1,
-            self._curve_abs_control1,
+            self.curve_abs_control1,
             self._curve_control2,
-            self._curve_abs_control2,
+            self.curve_abs_control2,
+            self._curve_center,
             self._curve_middle_point,
             self._curve_q1_point,
             self._curve_q3_point,
@@ -929,6 +946,7 @@ class CubicBezierCurve(
             "Curve abs. control 1",
             "Curve control 2",
             "Curve abs. control 2",
+            "Curve center",
             "Curve middle point",
             "Curve Q1",
             "Curve Q3",
@@ -1511,12 +1529,34 @@ class CubicBezierCurve(
         self.start.y += dp.y
         self.end.x += dp.x
         self.end.y += dp.y
-
-        # Translate the bounding box
-        if self.bounding_box is not None:
-            self.bounding_box.translate(dp.x, dp.y)
-        # end
+        self.update_data()
     # _translate_object
+
+    # Rotate object (to override)
+    def _rotate_object(
+            self,
+            angle,
+            center: Point2D
+    ):
+        """
+        Rotate the object.
+
+        Args:
+            angle (float): Angle to rotate
+        """
+        # Get the angle
+        angle = angle.value if isinstance(angle, Scalar) else angle
+
+        # Rotate start, end, control1, control2
+        self.start.x = center.x + (self.start.x - center.x) * math.cos(angle) - (self.start.y - center.y) * math.sin(angle)
+        self.start.y = center.y + (self.start.x - center.x) * math.sin(angle) + (self.start.y - center.y) * math.cos(angle)
+        self.end.x = center.x + (self.end.x - center.x) * math.cos(angle) - (self.end.y - center.y) * math.sin(angle)
+        self.end.y = center.y + (self.end.x - center.x) * math.sin(angle) + (self.end.y - center.y) * math.cos(angle)
+        self.control1.x = self.control1.x * math.cos(angle) - self.control1.y * math.sin(angle)
+        self.control1.y = self.control1.x * math.sin(angle) + self.control1.y * math.cos(angle)
+        self.control2.x = self.control2.x * math.cos(angle) - self.control2.y * math.sin(angle)
+        self.control2.y = self.control2.x * math.sin(angle) + self.control2.y * math.cos(angle)
+    # end _rotate_object
 
     # str
     def __str__(self):
