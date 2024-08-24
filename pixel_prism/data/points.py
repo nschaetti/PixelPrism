@@ -135,6 +135,17 @@ class Point2D(Point):
         return Point2D(x=self.x, y=self.y, dtype=self._pos.dtype)
     # end copy
 
+    # Euclidian norm of the point
+    def norm2(self, other):
+        """
+        Calculate the Euclidean norm of the point.
+
+        Args:
+            other (Point2D): Point to calculate the norm with
+        """
+        return np.linalg.norm(self._pos - other._pos)
+    # end if
+
     # region OVERRIDE
 
     # Return a string representation of the point.

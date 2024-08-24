@@ -255,22 +255,31 @@ class CurveAnimation(Animation):
         )
 
         # Translate
-        """self.animate(
+        self.animate(
             Call(
                 curve4.translate,
-                times=[2, 6],
+                times=[2, 7],
                 values=[[p2(1.0, 0.0)], [p2(-1.0, 0.0)]],
             )
-        )"""
+        )
 
         # Translate
-        """self.animate(
+        self.animate(
             Call(
                 curve4.rotate,
-                times=[4, 7],
-                values=[[s(math.pi / 4.0), curve4.center], [s(-math.pi / 4.0), curve4.center]],
+                times=[3, 6],
+                values=[[s(math.pi / 4.0), p2(1.89, -1.67)], [s(-math.pi / 4.0), p2(1.89, -1.67)]],
             )
-        )"""
+        )
+
+        # Scale
+        self.animate(
+            Call(
+                curve4.scale,
+                times=[4, 5],
+                values=[[s(1.5), p2(1.89, -1.67)], [s(0.6666666), p2(1.89, -1.67)]],
+            )
+        )
 
         # Animation position
         self.animate(
