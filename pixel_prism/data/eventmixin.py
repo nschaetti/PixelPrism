@@ -30,6 +30,18 @@ class EventMixin:
         self.event_listeners = {}
     # end __init__
 
+    def add_event(self, event):
+        """
+        Add an event to the data object.
+
+        Args:
+            event (str): Event to add
+        """
+        if event not in self.event_listeners:
+            self.event_listeners[event] = []
+        # end if
+    # end add_event
+
     def add_event_listener(self, event, listener):
         """
         Add an event listener to the data object.
@@ -41,7 +53,10 @@ class EventMixin:
         if event not in self.event_listeners:
             raise ValueError(f"Event '{event}' is not supported by this data object.")
         # end if
-        self.event_listeners[event].append(listener)
+
+        if listener not in self.event_listeners[event]:
+            self.event_listeners[event].append(listener)
+        # end if
     # end add_event_listener
 
     def remove_event_listener(self, event, listener):

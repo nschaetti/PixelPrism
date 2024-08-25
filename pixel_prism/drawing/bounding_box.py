@@ -122,7 +122,6 @@ class BoundingBox(DrawableMixin):
         Get the X-coordinate of the lower right corner.
         """
         return self.upper_left.x + self._width.value
-
     # end x2
 
     @property
@@ -309,6 +308,27 @@ class BoundingBox(DrawableMixin):
             Scalar(positions[3] - positions[2])
         )
     # end from
+
+    # Union
+    @classmethod
+    def union(cls, other1: 'BoundingBox', other2: 'BoundingBox'):
+        """
+        Return the union of the rectangle with another object.
+
+        Args:
+            other1 (Rectangle): Object to union with
+            other2 (Rectangle): Object to union with
+        """
+        x1 = min(other1.x1, other2.x1)
+        y1 = min(other1.y1, other2.y1)
+        x2 = max(other1.x2, other2.x2)
+        y2 = max(other1.y2, other2.y2)
+        return BoundingBox.from_objects(
+            upper_left=Point2D(x1, y1),
+            width=Scalar(x2 - x1),
+            height=Scalar(y2 - y1)
+        )
+    # end union
 
     # endregion CLASS_METHODS
 

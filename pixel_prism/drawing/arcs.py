@@ -94,9 +94,8 @@ class Arc(
         self._end_angle.add_event_listener("on_change", self._on_end_angle_changed)
 
         # List of event listeners (per events)
-        self.event_listeners = {
-            "on_change": [] if on_change is None else [on_change]
-        }
+        self.add_event("on_change")
+        if on_change: self.add_event_listener("on_change", on_change)
     # end __init__
 
     # region PROPERTIES
@@ -244,6 +243,15 @@ class Arc(
         return self._middle_point
     # end middle_point
 
+    # Length
+    @property
+    def length(self):
+        """
+        Get the length of the arc.
+        """
+        return self.radius.value * (self.end_angle.value - self.start_angle.value)
+    # end length
+
     # Line width
     @property
     def line_width(self):
@@ -368,6 +376,10 @@ class Arc(
         self._bounding_box.width = bbox.width
         self._bounding_box.height = bbox.height
     # end update_bbox
+
+    # endregion PUBLIC
+
+    # region DRAW
 
     # Realize
     def realize(self, context):
@@ -518,7 +530,7 @@ class Arc(
         context.restore()
     # end draw
 
-    # endregion PUBLIC
+    # endregion DRAW
 
     # region EVENTS
 

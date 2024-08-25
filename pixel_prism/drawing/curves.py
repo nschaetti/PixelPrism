@@ -939,7 +939,6 @@ class CubicBezierCurve(
     def draw(
             self,
             context: Context,
-            ratio: float = 1.0,
             draw_bboxes: bool = False,
             draw_reference_point: bool = False,
             draw_control_points: bool = False,
@@ -952,7 +951,6 @@ class CubicBezierCurve(
 
         Args:
             context (cairo.Context): Context to draw the curve to
-            ratio (float): Ratio of the curve to draw
             draw_bboxes (bool): Flag to draw the bounding box
             draw_reference_point (bool): Flag to draw the reference point
             draw_points (bool): Flag to draw the points

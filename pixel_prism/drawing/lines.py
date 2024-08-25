@@ -29,7 +29,8 @@ class Line(
             start: Point2D,
             end: Point2D,
             line_width: Scalar = Scalar(1.0),
-            line_color: Color = utils.WHITE
+            line_color: Color = utils.WHITE,
+            on_change=None
     ):
         """
         Initialize the line with its start and end points.
@@ -39,6 +40,7 @@ class Line(
             end (Point2D): End point of the line
             line_width (float): Width of the line
             line_color (Color): Color of the line
+            on_change (callable): On change event
         """
         # Init
         DrawableMixin.__init__(self)
@@ -62,6 +64,10 @@ class Line(
         # Set events
         self._start.add_event_listener("on_change", self._start_changed)
         self._end.add_event_listener("on_change", self._end_changed)
+
+        # List of event listeners (per events)
+        self.add_event("on_change")
+        if on_change: self.add_event_listener("on_change", on_change)
     # end __init__
 
     # region PROPERTIES
