@@ -3,7 +3,7 @@
 from typing import List, Any, Tuple, Union
 import cairo
 import numpy as np
-from pixel_prism.data import Point2D, Color, Scalar
+from pixel_prism.data import Point2D, Color, Scalar, EventMixin
 import pixel_prism.utils as utils
 from pixel_prism.drawing import Circle, QuadraticBezierCurve, BoundingBoxMixin, BoundingBox
 from pixel_prism.animate.able import (
@@ -463,6 +463,7 @@ class PathArc(Arc):
 class PathSegment(
     DrawableMixin,
     BoundingBoxMixin,
+    EventMixin,
     MovableMixin,
     BuildableMixin,
     DestroyableMixin
@@ -494,6 +495,7 @@ class PathSegment(
         self.update_data()
 
         # Register to elements
+        self.add_event("on_change")
         for element in self.elements:
             element.add_event_listener("on_change", self._on_element_updated)
         # end for
@@ -565,6 +567,7 @@ class PathSegment(
         self.elements.append(element)
         self._length += element.length
         self.update_bbox()
+        element.add_event_listener("on_change", self._on_element_updated)
     # end add
 
     # Move segments
@@ -744,6 +747,7 @@ class PathSegment(
         Handle the element updating.
         """
         self.update_data()
+        self.dispatch_event("on_change")
     # end _on_element_updated
 
     # endregion EVENTS
@@ -884,6 +888,52 @@ class PathSegment(
         )
     # end from_objects
 
+    @classmethod
+    def rectangle(
+            cls,
+            lower_left: Point2D,
+            width: Scalar,
+            height: Scalar
+    ) -> 'PathSegment':
+        """
+        Create a path segment for a rectangle.
+
+        Args:
+            lower_left (Point2D): Lower left corner of the rectangle
+            width (Scalar): Width of the rectangle
+            height (Scalar): Height of the rectangle
+
+        Returns:
+            PathSegment: Path segment for the rectangle
+        """
+        # Get width and height
+        width = width.value if isinstance(width, Scalar) else width
+        height = height.value if isinstance(height, Scalar) else height
+
+        # Create the path segment
+        return cls.from_objects(
+            start=lower_left,
+            elements=[
+                PathLine(
+                    start=lower_left,
+                    end=Point2D(lower_left.x + width, lower_left.y)
+                ),
+                PathLine(
+                    start=Point2D(lower_left.x + width, lower_left.y),
+                    end=Point2D(lower_left.x + width, lower_left.y + height)
+                ),
+                PathLine(
+                    start=Point2D(lower_left.x + width, lower_left.y + height),
+                    end=Point2D(lower_left.x, lower_left.y + height)
+                ),
+                PathLine(
+                    start=Point2D(lower_left.x, lower_left.y + height),
+                    end=lower_left
+                )
+            ]
+        )
+    # end rectangle
+
     # endregion CLASS_METHODS
 
 # end PathSegment
@@ -892,6 +942,7 @@ class PathSegment(
 class Path(
     DrawableMixin,
     BoundingBoxMixin,
+    EventMixin,
     MovableMixin,
     FadeInableMixin,
     FadeOutableMixin,
@@ -904,7 +955,6 @@ class Path(
 
     def __init__(
             self,
-            origin: Point2D,
             path: PathSegment,
             subpaths: List[PathSegment],
             line_width: Scalar,
@@ -917,7 +967,6 @@ class Path(
         Initialize the path.
 
         Args:
-            origin (Point2D): Origin of the path
             path (PathSegment): Path segment of the path
             subpaths (List[PathSegment]): Subpaths of the path
             line_width (Scalar): Width of the line
@@ -927,7 +976,6 @@ class Path(
             transform: Transformation to apply to the path
         """
         # Initialize the elements
-        self._origin = origin
         self._line_width = line_width
         self._line_color = line_color
         self._fill_color = fill_color
@@ -935,6 +983,7 @@ class Path(
         self._subpaths = [] if subpaths is None else subpaths
         self._transform = transform
         self._closed_path = closed_path
+        self._length = None
 
         # Constructors
         DrawableMixin.__init__(self)
@@ -944,8 +993,8 @@ class Path(
         BuildableMixin.__init__(self)
         BoundingBoxMixin.__init__(self)
 
-        # Set length
-        self._length = self.compute_length()
+        # Update points
+        self.update_data()
 
         # Debug circle
         """self.debug_circle = Circle(
@@ -956,9 +1005,96 @@ class Path(
             radius=Scalar(0.2),
             border_width=Scalar(0.01)
         )"""
+
+        # Events
+        self.add_event("on_change")
+        self._path.add_event_listener("on_change", self._on_element_changed)
+        for subpath in self._subpaths:
+            subpath.add_event_listener("on_change", self._on_element_changed)
+        # end for
     # end __init__
 
+    # region PROPERTIES
+
+    @property
+    def path(self):
+        """
+        Get the path segment of the path.
+        """
+        return self._path
+    # end path
+
+    @property
+    def subpaths(self):
+        """
+        Get the subpaths of the path.
+        """
+        return self._subpaths
+    # end subpaths
+
+    @property
+    def line_width(self):
+        """
+        Get the line width of the path.
+        """
+        return self._line_width
+    # end line_width
+
+    @property
+    def line_color(self):
+        """
+        Get the line color of the path.
+        """
+        return self._line_color
+    # end line_color
+
+    @property
+    def fill_color(self):
+        """
+        Get the fill color of the path.
+        """
+        return self._fill_color
+    # end fill_color
+
+    @property
+    def closed_path(self):
+        """
+        Get if the path is closed.
+        """
+        return self._closed_path
+    # end closed_path
+
+    @property
+    def transform(self):
+        """
+        Get the transformation of the path.
+        """
+        return self._transform
+    # end transform
+
+    @property
+    def length(self):
+        """
+        Get the length of the path.
+        """
+        return self._length
+    # end length
+
+    # endregion PROPERTIES
+
     # region PUBLIC
+
+    # Update data
+    def update_data(self):
+        """
+        Update the data of the path.
+        """
+        # Update length
+        self._length = self.compute_length()
+
+        # Update bounding box
+        self.update_bbox()
+    # end update_data
 
     # Update bounding box
     def update_bbox(self):
@@ -1013,10 +1149,15 @@ class Path(
             element: Element to add to the path
         """
         self._path.add(element)
-        self.length = self.compute_length()
+
+        # Recompute length
+        self._length = self.compute_length()
 
         # Update bounding box
         self.update_bbox()
+
+        # Add event
+        element.add_event_listener("on_change", self._on_element_changed)
     # end add
 
     # Add subpath
@@ -1028,8 +1169,15 @@ class Path(
             subpath (PathSegmentList): Subpath to add to the path
         """
         self._subpaths.append(subpath)
-        self.length = self.compute_length()
+
+        # Recompute length
+        self._length = self.compute_length()
+
+        # Update bounding box
         self.update_bbox()
+
+        # Add event
+        subpath.add_event_listener("on_change", self._on_element_changed)
     # end add_subpath
 
     # Get subpaths
@@ -1052,7 +1200,7 @@ class Path(
             subpaths (list): Subpaths of the path
         """
         self._subpaths = subpaths
-        self.length = self.compute_length()
+        self._length = self.compute_length()
     # end set_subpaths
 
     # Translate path
@@ -1068,10 +1216,6 @@ class Path(
             dx (float): Displacement in the X-direction
             dy (float): Displacement in the Y-direction
         """
-        # Translate the path
-        self._origin.x += dx
-        self._origin.y += dy
-
         # Move path
         self._path.translate(dx, dy)
 
@@ -1271,8 +1415,6 @@ class Path(
         """
         # Save context
         context.save()
-        # context.translate(self.origin.x, self.origin.y)
-        context.set_fill_rule(cairo.FillRule.WINDING)
 
         # Reference point
         """if draw_reference_point:
@@ -1283,9 +1425,6 @@ class Path(
         # if self._transform is not None:
         #     self.apply_transform(context, self._transform)
         # end if
-
-        # Go to origin
-        # context.move_to(self._origin.x, self._origin.y)
 
         # Draw path
         context.new_path()
@@ -1307,6 +1446,9 @@ class Path(
 
         # Fill if color is set
         if self._fill_color is not None:
+            # Fill rule
+            context.set_fill_rule(cairo.FillRule.EVEN_ODD)
+
             # Set color
             context.set_source_rgba(self._fill_color)
 
@@ -1328,9 +1470,11 @@ class Path(
         # Draw the bounding box and anchors
         if draw_bboxes:
             self.bounding_box.draw(context)
-            self._path.draw_bounding_box(context)
+            # self._path.draw_bounding_box(context)
+            self._path.bounding_box.draw(context)
             for subpath in self._subpaths:
-                subpath.draw_bounding_box(context)
+                # subpath.draw_bounding_box(context)
+                subpath.bounding_box.draw(context)
             # end for
         # end if
 
@@ -1348,6 +1492,19 @@ class Path(
 
     # endregion DRAW
 
+    # region EVENTS
+
+    # On element changed
+    def _on_element_changed(self, *args, **kwargs):
+        """
+        Handle the element changing.
+        """
+        self.update_data()
+        self.dispatch_event("on_change")
+    # end _on_element_changed
+
+    # endregion EVENTS
+
     # region PRIVATE
 
     def _create_bbox(
@@ -1364,11 +1521,13 @@ class Path(
         """
         # Get the bounding box of the path
         bbox = self._path.bounding_box
-
+        print(f"Path bbox: {bbox}")
         # For each subpath
         for subpath in self._subpaths:
             # Update the bounding box
-            bbox = bbox.union(subpath.bounding_box)
+            print(f"Subpath bbox: {subpath.bounding_box}")
+            bbox = BoundingBox.union(bbox, subpath.bounding_box)
+            print(f"Updated bbox: {bbox}")
         # end for
 
         # Return the bounding box
@@ -1618,34 +1777,34 @@ class Path(
     @classmethod
     def from_objects(
             cls,
-            origin: Point2D,
             path: PathSegment,
             subpaths: List[PathSegment],
             line_width: Scalar,
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            transform=None
+            transform=None,
+            closed_path: bool = True
     ) -> 'Path':
         """
         Create a path from objects.
 
         Args:
-            origin (Point2D): Origin of the path
             path (PathSegment): Path segment of the path
             subpaths (List[PathSegment]): Subpaths of the path
             line_width (Scalar): Width of the line
             line_color (Color): Color of the line
             fill_color (Color): Fill color of the path
             transform: Transformation to apply to the path
+            closed_path (bool): Is the path closed
         """
         return Path(
-            origin=origin,
             path=path,
             subpaths=subpaths,
             line_width=line_width,
             line_color=line_color,
             fill_color=fill_color,
-            transform=transform
+            transform=transform,
+            closed_path=closed_path
         )
     # end from_objects
 

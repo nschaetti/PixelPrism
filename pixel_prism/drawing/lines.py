@@ -417,6 +417,7 @@ class Line(
         Start point changed event.
         """
         self.update_data()
+        self.dispatch_event("on_change")
     # end _start_changed
 
     # End changed
@@ -429,6 +430,7 @@ class Line(
         End point changed event.
         """
         self.update_data()
+        self.dispatch_event("on_change")
     # end _end_changed
 
     # endregion EVENTS

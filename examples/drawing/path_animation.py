@@ -69,6 +69,11 @@ class PathAnimation(Animation):
             p2(0, -self.PATH_SIZE)
         ]
 
+        # Subpath control points
+        subpath_control_points = [
+            p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0)
+        ]
+
         # Create path segment
         path_segment = PathSegment.from_objects(
             start=control_points[0],
@@ -81,12 +86,29 @@ class PathAnimation(Animation):
 
         # Create path
         path1 = Path.from_objects(
-            origin=p2(0, 0),
             path=path_segment,
-            subpaths=[],
+            subpaths=[
+                PathSegment.rectangle(
+                    lower_left=subpath_control_points[0],
+                    width=Scalar(self.PATH_SIZE),
+                    height=Scalar(self.PATH_SIZE / 2.0)
+                )
+            ],
             line_color=utils.RED.copy(),
             line_width=Scalar(self.PATH_LINE_WIDTH),
-            fill_color=utils.GREEN.copy()
+            fill_color=utils.GREEN.copy(),
+            closed_path=False
+        )
+
+        # Moving rectangle
+        self.animate(
+            Move(
+                subpath_control_points[0],
+                start_time=0,
+                end_time=8,
+                target_value=p2(-self.PATH_SIZE * 1.5   , -self.PATH_SIZE / 4.0),
+                interpolator=EaseInOutInterpolator()
+            )
         )
 
         # Moving starting point
