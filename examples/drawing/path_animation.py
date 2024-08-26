@@ -22,8 +22,9 @@ import math
 #
 from pixel_prism import p2, s, c
 from pixel_prism import utils
+from pixel_prism.animate.animate import Rotate
 from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator
+from pixel_prism.animate import Move, EaseInOutInterpolator, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
@@ -34,7 +35,7 @@ from pixel_prism.drawing import (
     PathBezierCubic,
     PathArc
 )
-from pixel_prism.data import Point2D, Scalar
+from pixel_prism.data import Scalar
 
 
 # A path animation class
@@ -217,7 +218,7 @@ class PathAnimation(Animation):
         )
 
         # Moving rectangle
-        """self.animate(
+        self.animate(
             Move(
                 path_segment,
                 start_time=0,
@@ -225,7 +226,7 @@ class PathAnimation(Animation):
                 target_value=coord_system.upper_right_square + p2(self.PATH_SIZE - 0.5, 0),
                 interpolator=EaseInOutInterpolator()
             )
-        )"""
+        )
 
         # Moving rectangle
         self.animate(
@@ -240,6 +241,71 @@ class PathAnimation(Animation):
 
         return path2
     # end build_second_path
+
+    # Build the third path
+    def build_third_path(
+            self,
+            coord_system: CoordSystem
+    ):
+        """
+        Build the third curve.
+
+        Args:
+            coord_system (CoordSystem): Coordinate system
+        """
+        # Create path segment
+        path_segment = PathSegment.from_objects(
+            start=coord_system.lower_left_square + p2(self.PATH_SIZE, 0),
+            elements=[
+                PathLine(
+                    coord_system.lower_left_square + p2(self.PATH_SIZE, 0),
+                    coord_system.lower_left_square + p2(0, self.PATH_SIZE)
+                ),
+                PathArc(
+                    center=coord_system.lower_left_square,
+                    radius=s(self.PATH_SIZE),
+                    start_angle=s(math.pi / 2),
+                    end_angle=s(math.pi)
+                ),
+                PathBezierCubic(
+                    start=coord_system.lower_left_square + p2(-self.PATH_SIZE, 0),
+                    control1=p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 2.0),
+                    control2=p2(0, self.PATH_SIZE / 2.0),
+                    end=coord_system.lower_left_square + p2(0, -self.PATH_SIZE)
+                )
+            ]
+        )
+
+        # Rectangle
+        rectangle = PathSegment.rectangle(
+            lower_left=coord_system.lower_left_square + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
+            width=Scalar(self.PATH_SIZE),
+            height=Scalar(self.PATH_SIZE / 2.0)
+        )
+
+        # Create path
+        path3 = Path.from_objects(
+            path=path_segment,
+            subpaths=[rectangle],
+            line_color=utils.RED.copy(),
+            line_width=Scalar(self.PATH_LINE_WIDTH),
+            fill_color=utils.GREEN.copy(),
+            closed_path=True
+        )
+
+        # Rotating internal path
+        self.animate(
+            Rotate(
+                rectangle,
+                start_time=0,
+                end_time=8,
+                target_value=math.pi,
+                interpolator=EaseInOutInterpolator()
+            )
+        )
+
+        return path3
+    # end build_third_path
 
     def build(self):
         """
@@ -262,10 +328,12 @@ class PathAnimation(Animation):
         # Create paths
         path1 = self.build_first_path(coord_system)
         path2 = self.build_second_path(coord_system)
+        path3 = self.build_third_path(coord_system)
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(path1)
         drawable_widget.add(path2)
+        drawable_widget.add(path3)
 
         # Add objects
         self.add(
@@ -273,7 +341,8 @@ class PathAnimation(Animation):
             viewport=viewport,
             drawable_widget=drawable_widget,
             path1=path1,
-            path2=path2
+            path2=path2,
+            path3=path3
         )
     # end build
 

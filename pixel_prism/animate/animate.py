@@ -16,7 +16,6 @@
 #
 
 # Imports
-import numpy as np
 from enum import Enum
 from .able import (
     MovableMixin,
@@ -24,7 +23,8 @@ from .able import (
     FadeOutableMixin,
     RangeableMixin,
     BuildableMixin,
-    DestroyableMixin
+    DestroyableMixin,
+    RotableMixin
 )
 from .interpolate import Interpolator, LinearInterpolator
 
@@ -202,6 +202,8 @@ class Animate:
         )
     # end __repr__
 
+    # endregion OVERRIDE
+
 # end Animate
 
 
@@ -242,6 +244,8 @@ class Move(Animate):
         )
     # end __init__
 
+    # region PUBLIC
+
     def update(
             self,
             t
@@ -276,7 +280,88 @@ class Move(Animate):
         # end if
     # end update
 
+    # endregion PUBLIC
+
 # end Move
+
+
+class Rotate(Animate):
+    """
+    A transition that rotates an object over time.
+    """
+
+    # Constructor
+    def __init__(
+            self,
+            obj,
+            start_time,
+            end_time,
+            target_value,
+            interpolator=LinearInterpolator(),
+            name=""
+    ):
+        """
+        Initialize the move transition.
+
+        Args:
+            name (str): Name of the transition
+            obj (any): Object to move
+            start_time (float): Start time
+            end_time (float): End time
+            target_value (any): End position
+            interpolator (Interpolator): Interpolator
+        """
+        assert isinstance(obj, RotableMixin), "Object must be an instance of MovAble"
+        super().__init__(
+            obj,
+            start_time,
+            end_time,
+            None,
+            target_value,
+            name=name,
+            interpolator=interpolator
+        )
+    # end __init__
+
+    # region PUBLIC
+
+    def update(
+            self,
+            t
+    ):
+        """
+        Update the object property at time t.
+
+        Args:
+            t (float): Time
+        """
+        if self.state == AnimationState.WAITING_START and t >= self.start_time:
+            self.start()
+        elif self.state == AnimationState.RUNNING and t > self.end_time:
+            self.stop()
+            return
+        elif self.state in [AnimationState.WAITING_START, AnimationState.FINISHED]:
+            return
+        # end if
+
+        # Relative time
+        relative_t = (t - self.start_time) / (self.end_time - self.start_time)
+
+        # Interpolate time
+        interpolated_t = self.interpolator.interpolate(0, 1, relative_t)
+
+        # Get the animate method
+        if hasattr(self.obj, self.animate_method):
+            animate_method = getattr(self.obj, self.animate_method)
+            animate_method(relative_t, self.end_time - self.start_time, interpolated_t, self.target_value)
+        else:
+            raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
+        # end if
+    # end update
+
+    # endregion PUBLIC
+
+# end Rotate
 
 
 class Range(Animate):

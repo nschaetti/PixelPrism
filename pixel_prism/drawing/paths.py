@@ -11,7 +11,8 @@ from pixel_prism.animate.able import (
     FadeInableMixin,
     FadeOutableMixin,
     BuildableMixin,
-    DestroyableMixin
+    DestroyableMixin,
+    RotableMixin
 )
 from .rectangles import Rectangle
 from .arcs import Arc
@@ -92,7 +93,6 @@ class PathLine(Line):
     # end from_objects
 
 # end PathLine
-
 
 
 # Path bezier cubic curve
@@ -465,6 +465,7 @@ class PathSegment(
     BoundingBoxMixin,
     EventMixin,
     MovableMixin,
+    RotableMixin,
     BuildableMixin,
     DestroyableMixin
 ):
@@ -614,6 +615,28 @@ class PathSegment(
         self.update_bbox()
     # end move
 
+    # Move
+    def translate(self, dp: Point2D):
+        """
+        Move the path by a given displacement.
+
+        Args:
+            dp (Point2D): Displacement in the X and Y directions
+        """
+        # Move the start point
+        self.start.x += dp.x
+        self.start.y += dp.y
+
+        # Move the path segment
+        for element in self.elements:
+            element.translate(dp)
+        # end for
+    # end translate
+
+    # endregion PUBLIC
+
+    # region DRAW
+
     # Draw bounding box
     def draw_bounding_box(self, context):
         """
@@ -673,10 +696,6 @@ class PathSegment(
         # end for
     # end draw_control_points
 
-    # endregion PUBLIC
-
-    # region DRAW
-
     # Draw points
     def draw_points(
             self,
@@ -710,24 +729,6 @@ class PathSegment(
             element.draw(context)
         # end for
     # end draw
-
-    # Move
-    def translate(self, dp: Point2D):
-        """
-        Move the path by a given displacement.
-
-        Args:
-            dp (Point2D): Displacement in the X and Y directions
-        """
-        # Move the start point
-        self.start.x += dp.x
-        self.start.y += dp.y
-
-        # Move the path segment
-        for element in self.elements:
-            element.translate(dp)
-        # end for
-    # end translate
 
     # endregion DRAW
 
@@ -826,22 +827,14 @@ class PathSegment(
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The end position of the object
         """
-        print(interpolated_t)
-        print(f"Start position: {self.start_position}")
-        print(f"End value: {end_value}")
         # New position
         new_position = self.start_position * (1 - interpolated_t) + end_value * interpolated_t
 
         # Difference
         dp = new_position - self.movable_position
-        print(f"{dp} = {new_position} - {self.movable_position}")
+
         # Translate object
-        dp.round_(2)
-        print(f"dp: {dp}")
-        print(f"Position: {self.movable_position}")
         self.translate(dp)
-        print(f"New position: {self.movable_position}")
-        print("")
     # end animate_move
 
     # Stop animation
@@ -867,6 +860,66 @@ class PathSegment(
     # end finish_move
 
     # endregion MOVABLE
+
+    # region ROTABLE
+
+    # Initialize rotation
+    def init_rotate(self):
+        """
+        Initialize the rotation.
+        """
+        pass
+    # end init_rotate
+
+    # Start rotation
+    def start_rotate(self, *args, **kwargs):
+        """
+        Start the rotation animation.
+        """
+        self._rotable_angle = 0
+    # end start_rotate
+
+    # Start animation
+    def animate_rotate(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value
+    ):
+        """
+        Animate the rotation.
+        """
+        # Get the angle
+        angle = interpolated_t * end_value
+
+        # Difference
+        da = angle - self._rotable_angle
+
+        # Translate object
+        self.rotate(da)
+
+        # Set current angle
+        self._rotable_angle = angle
+    # end animate_rotate
+
+    # End rotate
+    def end_rotate(self):
+        """
+        End the rotation.
+        """
+        pass
+    # end end_rotate
+
+    # Finish rotate
+    def finish_rotate(self):
+        """
+        Finish the rotation.
+        """
+        pass
+    # end finish_rotate
+
+    # endregion ROTABLE
 
     # region BUILD
 
@@ -925,6 +978,18 @@ class PathSegment(
     # endregion DESTROY
 
     # region OVERRIDE
+
+    # Rotate object (to override)
+    def _rotate_object(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Rotate the object.
+        """
+        print("Rotate object")
+    # end _rotate_object
 
     def __len__(self):
         """
@@ -1015,7 +1080,7 @@ class PathSegment(
         Create a path segment for a rectangle.
 
         Args:
-            lower_left (Point2D): Lower left corner of the rectangle
+            lower_left (Point2D): Lower left corner of the rectangle (is copied)
             width (Scalar): Width of the rectangle
             height (Scalar): Height of the rectangle
 
@@ -1028,10 +1093,10 @@ class PathSegment(
 
         # Create the path segment
         return cls.from_objects(
-            start=lower_left,
+            start=lower_left.copy(),
             elements=[
                 PathLine(
-                    start=lower_left,
+                    start=lower_left.copy(),
                     end=Point2D(lower_left.x + width, lower_left.y)
                 ),
                 PathLine(
@@ -1044,7 +1109,7 @@ class PathSegment(
                 ),
                 PathLine(
                     start=Point2D(lower_left.x, lower_left.y + height),
-                    end=lower_left
+                    end=lower_left.copy()
                 )
             ]
         )
