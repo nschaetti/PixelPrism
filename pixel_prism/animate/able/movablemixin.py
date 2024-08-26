@@ -36,24 +36,42 @@ class MovableMixin(AnimableMixin):
         Initialize the movable object.
         """
         super().__init__()
-        self.pos = None
-        self.start_position = None
     # end __init__
 
-    # Get position
-    def get_position(self):
+    # region PROPERTIES
+
+    @property
+    def movable_position(self) -> Any:
         """
-        Get the position of the point.
+        Get the position of the object.
+
+        Returns:
+            any: Position of the object
         """
-        return self.pos
-    # end get_position
+        raise NotImplementedError("Property 'movable_position' must be implemented in the derived class.")
+    # end movable_position
+
+    @movable_position.setter
+    def movable_position(self, value: Any):
+        """
+        Set the position of the object.
+
+        Args:
+            value (any): Position of the object
+        """
+        raise NotImplementedError("Property 'movable_position' must be implemented in the derived class.")
+    # end movable_position
+
+    # end PROPERTIES
+
+    # region PUBLIC
 
     # Initialize position
     def init_move(self):
         """
         Initialize the move animation.
         """
-        pass
+        raise NotImplementedError("Method 'init_move' must be implemented in the derived class.")
     # end init_move
 
     # Start animation
@@ -67,7 +85,7 @@ class MovableMixin(AnimableMixin):
         Args:
             start_value (any): The start position of the object
         """
-        self.start_position = self.pos.copy()
+        raise NotImplementedError("Method 'start_move' must be implemented in the derived class.")
     # end start_move
 
     def animate_move(
@@ -86,7 +104,8 @@ class MovableMixin(AnimableMixin):
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The end position of the object
         """
-        self.pos = self.start_position * (1 - interpolated_t) + end_value.pos * interpolated_t
+        # self.pos = self.start_position * (1 - interpolated_t) + end_value.pos * interpolated_t
+        raise NotImplementedError("Method 'animate_move' must be implemented in the derived class.")
     # end animate_move
 
     # Stop animation
@@ -100,7 +119,7 @@ class MovableMixin(AnimableMixin):
         Args:
             end_value (any): The end position of the object
         """
-        pass
+        raise NotImplementedError("Method 'end_move' must be implemented in the derived class.")
     # end end_move
 
     # Finish animation
@@ -108,8 +127,10 @@ class MovableMixin(AnimableMixin):
         """
         Finish the move animation.
         """
-        pass
+        raise NotImplementedError("Method 'finish_move' must be implemented in the derived class.")
     # end finish_move
+
+    # endregion PUBLIC
 
 # end MovAble
 

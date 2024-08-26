@@ -3,9 +3,9 @@
 from typing import List, Any, Tuple, Union
 import cairo
 import numpy as np
-from pixel_prism.data import Point2D, Color, Scalar, EventMixin
+from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent
 import pixel_prism.utils as utils
-from pixel_prism.drawing import Circle, QuadraticBezierCurve, BoundingBoxMixin, BoundingBox
+from pixel_prism.drawing import BoundingBoxMixin, BoundingBox
 from pixel_prism.animate.able import (
     MovableMixin,
     FadeInableMixin,
@@ -485,6 +485,9 @@ class PathSegment(
         self._elements = elements
         self._length = 0
 
+        # Movable
+        self.start_position = None
+
         # Constructors
         DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
@@ -526,6 +529,28 @@ class PathSegment(
         """
         return self._length
     # end length
+
+    @property
+    def movable_position(self) -> Any:
+        """
+        Get the position of the object.
+
+        Returns:
+            any: Position of the object
+        """
+        return self._start
+    # end movable_position
+
+    @movable_position.setter
+    def movable_position(self, value: Any):
+        """
+        Set the position of the object.
+
+        Args:
+            value (any): Position of the object
+        """
+        raise NotImplementedError("Property 'movable_position' must be implemented in the derived class.")
+    # end movable_position
 
     # endregion PROPERTIES
 
@@ -648,6 +673,27 @@ class PathSegment(
         # end for
     # end draw_control_points
 
+    # endregion PUBLIC
+
+    # region DRAW
+
+    # Draw points
+    def draw_points(
+            self,
+            context: Context,
+    ):
+        """
+        Draw the points of the path segment.
+
+        Args:
+            context (Context): Context to draw the points to (Cairo context).
+        """
+        # Draw points
+        for element in self.elements:
+            element.draw_points(context)
+        # end for
+    # end draw_points
+
     def draw(self, context):
         """
         Draw the path segment.
@@ -663,42 +709,27 @@ class PathSegment(
         for element in self.elements:
             element.draw(context)
         # end for
-        # else:
-        #     # How many elements based on build ratio
-        #     num_elements = int(len(self.elements) * self.build_ratio)
-        #
-        #     # Share of time for each element
-        #     element_share = 1 / len(self.elements)
-        #
-        #     # For each element in the segment
-        #     for i in range(num_elements):
-        #         # Build ratio for this element
-        #         element_build_ratio = min((self.build_ratio - i * element_share) / element_share, 1.0)
-        #         element = self.elements[i]
-        #         element.draw(
-        #             context=context,
-        #             move_to=False,
-        #             build_ratio=element_build_ratio
-        #         )
-        #     # end for
-        # # end if
     # end draw
 
     # Move
-    def translate(self, dx: float, dy: float):
+    def translate(self, dp: Point2D):
         """
         Move the path by a given displacement.
 
         Args:
-            dx (float): Displacement in the X-direction
-            dy (float): Displacement in the Y-direction
+            dp (Point2D): Displacement in the X and Y directions
         """
+        # Move the start point
+        self.start.x += dp.x
+        self.start.y += dp.y
+
+        # Move the path segment
         for element in self.elements:
-            element.translate(dx, dy)
+            element.translate(dp)
         # end for
     # end translate
 
-    # endregion PUBLIC
+    # endregion DRAW
 
     # region PRIVATE
 
@@ -742,15 +773,100 @@ class PathSegment(
 
     # region EVENTS
 
-    def _on_element_updated(self, *args, **kwargs):
+    def _on_element_updated(self, event):
         """
         Handle the element updating.
+
+        Args:
+            event: Event that triggered the update.
         """
         self.update_data()
-        self.dispatch_event("on_change")
+        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="elements", value=self.elements))
     # end _on_element_updated
 
     # endregion EVENTS
+
+    # region MOVABLE
+
+    # Initialize position
+    def init_move(self):
+        """
+        Initialize the move animation.
+        """
+        pass
+    # end init_move
+
+    # Start animation
+    def start_move(
+            self,
+            start_value: Any
+    ):
+        """
+        Start the move animation.
+
+        Args:
+            start_value (any): The start position of the object
+        """
+        self.start_position = self.movable_position.copy()
+    # end start_move
+
+    def animate_move(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value
+    ):
+        """
+        Perform the move animation.
+
+        Args:
+            t (float): Relative time since the start of the animation
+            duration (float): Duration of the animation
+            interpolated_t (float): Time value adjusted by the interpolator
+            end_value (any): The end position of the object
+        """
+        print(interpolated_t)
+        print(f"Start position: {self.start_position}")
+        print(f"End value: {end_value}")
+        # New position
+        new_position = self.start_position * (1 - interpolated_t) + end_value * interpolated_t
+
+        # Difference
+        dp = new_position - self.movable_position
+        print(f"{dp} = {new_position} - {self.movable_position}")
+        # Translate object
+        dp.round_(2)
+        print(f"dp: {dp}")
+        print(f"Position: {self.movable_position}")
+        self.translate(dp)
+        print(f"New position: {self.movable_position}")
+        print("")
+    # end animate_move
+
+    # Stop animation
+    def end_move(
+            self,
+            end_value: Any
+    ):
+        """
+        Stop the move animation.
+
+        Args:
+            end_value (any): The end position of the object
+        """
+        raise NotImplementedError("Method 'end_move' must be implemented in the derived class.")
+    # end end_move
+
+    # Finish animation
+    def finish_move(self):
+        """
+        Finish the move animation.
+        """
+        raise NotImplementedError("Method 'finish_move' must be implemented in the derived class.")
+    # end finish_move
+
+    # endregion MOVABLE
 
     # region BUILD
 
@@ -1008,9 +1124,9 @@ class Path(
 
         # Events
         self.add_event("on_change")
-        self._path.add_event_listener("on_change", self._on_element_changed)
+        self._path.add_event_listener("on_change", self._on_path_changed)
         for subpath in self._subpaths:
-            subpath.add_event_listener("on_change", self._on_element_changed)
+            subpath.add_event_listener("on_change", self._on_subpath_element)
         # end for
     # end __init__
 
@@ -1402,6 +1518,8 @@ class Path(
             context: Context,
             draw_bboxes: bool = False,
             draw_reference_point: bool = False,
+            draw_control_points: bool = False,
+            draw_points: bool = False,
             *args,
             **kwargs
     ):
@@ -1412,6 +1530,8 @@ class Path(
             context (cairo.Context): Context to draw the path to
             draw_bboxes (bool): Whether to draw the bounding boxes
             draw_reference_point (bool): Whether to draw the debug information
+            draw_control_points (bool): Whether to draw the control points
+            draw_points (bool): Whether to draw the points
         """
         # Save context
         context.save()
@@ -1439,11 +1559,6 @@ class Path(
             segment.draw(context)
         # end for
 
-        # Closed path ?
-        if self._closed_path:
-            context.close_path()
-        # end if
-
         # Fill if color is set
         if self._fill_color is not None:
             # Fill rule
@@ -1462,6 +1577,11 @@ class Path(
 
         # Stroke
         if self._line_width.value > 0:
+            # Closed path ?
+            if self._closed_path:
+                context.close_path()
+            # end if
+
             context.set_line_width(self._line_width.value)
             context.set_source_rgba(self._line_color)
             context.stroke()
@@ -1479,10 +1599,26 @@ class Path(
         # end if
 
         # Draw control points
-        if draw_reference_point:
+        if draw_control_points:
             self._path.draw_control_points(context)
             for subpath in self._subpaths:
                 subpath.draw_control_points(context)
+            # end for
+        # end if
+
+        # Draw reference points
+        if draw_reference_point:
+            self.bounding_box.draw_anchors(context)
+            for subpath in self._subpaths:
+                subpath.bounding_box.draw_anchors(context)
+            # end for
+        # end if
+
+        # Draw points
+        if draw_points:
+            self._path.draw_points(context)
+            for subpath in self._subpaths:
+                subpath.draw_points(context)
             # end for
         # end if
 
@@ -1494,14 +1630,29 @@ class Path(
 
     # region EVENTS
 
-    # On element changed
-    def _on_element_changed(self, *args, **kwargs):
+    # On path changed
+    def _on_path_changed(self, event):
         """
         Handle the element changing.
+
+        Args:
+            event: Event that triggered the change.
         """
         self.update_data()
-        self.dispatch_event("on_change")
-    # end _on_element_changed
+        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="path", value=event))
+    # end _on_path_changed
+
+    # On subpath element
+    def _on_subpath_element(self, event):
+        """
+        Handle the element changing.
+
+        Args:
+            event: Event that triggered the change.
+        """
+        self.update_data()
+        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="subpath", value=event))
+    # end _on_subpath_element
 
     # endregion EVENTS
 
@@ -1521,13 +1672,11 @@ class Path(
         """
         # Get the bounding box of the path
         bbox = self._path.bounding_box
-        print(f"Path bbox: {bbox}")
+
         # For each subpath
         for subpath in self._subpaths:
             # Update the bounding box
-            print(f"Subpath bbox: {subpath.bounding_box}")
             bbox = BoundingBox.union(bbox, subpath.bounding_box)
-            print(f"Updated bbox: {bbox}")
         # end for
 
         # Return the bounding box

@@ -30,61 +30,62 @@ class EventMixin:
         self.event_listeners = {}
     # end __init__
 
-    def add_event(self, event):
+    def add_event(self, event_name):
         """
         Add an event to the data object.
 
         Args:
-            event (str): Event to add
+            event_name (str): Event to add
         """
-        if event not in self.event_listeners:
-            self.event_listeners[event] = []
+        if event_name not in self.event_listeners:
+            self.event_listeners[event_name] = []
         # end if
     # end add_event
 
-    def add_event_listener(self, event, listener):
+    def add_event_listener(self, event_name, listener):
         """
         Add an event listener to the data object.
 
         Args:
-            event (str): Event to listen for
+            event_name (str): Event to listen for
             listener (function): Listener function
         """
-        if event not in self.event_listeners:
-            raise ValueError(f"Event '{event}' is not supported by this data object.")
+        if event_name not in self.event_listeners:
+            raise ValueError(f"Event '{event_name}' is not supported by this data object.")
         # end if
 
-        if listener not in self.event_listeners[event]:
-            self.event_listeners[event].append(listener)
+        if listener not in self.event_listeners[event_name]:
+            self.event_listeners[event_name].append(listener)
         # end if
     # end add_event_listener
 
-    def remove_event_listener(self, event, listener):
+    def remove_event_listener(self, event_name, listener):
         """
         Remove an event listener from the data object.
 
         Args:
-            event (str): Event to remove listener from
+            event_name (str): Event to remove listener from
             listener (function): Listener function to remove
         """
-        if event in self.event_listeners:
-            self.event_listeners[event].remove(listener)
+        if event_name in self.event_listeners:
+            self.event_listeners[event_name].remove(listener)
         # end if
     # end remove_event_listener
 
-    def dispatch_event(self, event, *args, **kwargs):
+    def dispatch_event(self, event_name, event):
         """
         Dispatch an event to all listeners.
 
         Args:
-            event (str): Event to dispatch
+            event_name (str): Event to dispatch
+            event (object): Event to dispatch
         """
-        if event in self.event_listeners:
-            for listener in self.event_listeners[event]:
-                listener(*args, **kwargs)
+        if event_name in self.event_listeners:
+            for listener in self.event_listeners[event_name]:
+                listener(event)
             # end for
         else:
-            raise ValueError(f"Event '{event}' is not supported by this data object.")
+            raise ValueError(f"Event '{event_name}' is not supported by this data object.")
         # end if
     # end dispatch_event
 

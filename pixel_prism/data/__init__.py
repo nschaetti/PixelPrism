@@ -8,6 +8,10 @@ from .data import Data
 
 # Events
 from .eventmixin import EventMixin
+from .events import (
+    Event,
+    ObjectChangedEvent
+)
 
 # Colors
 from .colors import (
@@ -32,6 +36,8 @@ __all__ = [
     "Data",
     # Events
     "EventMixin",
+    "Event",
+    "ObjectChangedEvent",
     # Colors
     "Color",
     # Points

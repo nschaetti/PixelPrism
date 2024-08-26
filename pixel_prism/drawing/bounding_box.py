@@ -141,8 +141,8 @@ class BoundingBox(DrawableMixin):
     def draw_anchors(
             self,
             context: Any,
-            point_size: float,
-            font_size: float
+            point_size: float = 0.08,
+            font_size: float = 0.1
     ):
         """
         Draw the anchors of the bounding box.

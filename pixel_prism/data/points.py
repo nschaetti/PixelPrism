@@ -1,6 +1,7 @@
 #
 # This file contains the Point2D class, which is a simple class that
 # represents a point in 2D space.
+from typing import Any
 
 # Imports
 import numpy as np
@@ -9,6 +10,7 @@ from pixel_prism.animate.able import MovableMixin
 from .data import Data
 from .scalar import Scalar
 from .eventmixin import EventMixin
+from .events import ObjectChangedEvent
 
 
 # A generic point
@@ -42,11 +44,16 @@ class Point2D(Point):
         super().__init__()
         self._pos = np.array([x, y], dtype=dtype)
 
+        # Movable
+        self.start_position = None
+
         # List of event listeners (per events)
         self.event_listeners = {
             "on_change": [] if on_change is None else [on_change]
         }
     # end __init__
+
+    # region PROPERTIES
 
     @property
     def pos(self):
@@ -105,6 +112,33 @@ class Point2D(Point):
         self.set(self.x, value)
     # end y
 
+    # Movable position
+    @property
+    def movable_position(self) -> Any:
+        """
+        Get the position of the object.
+
+        Returns:
+            any: Position of the object
+        """
+        return self.pos
+    # end movable_position
+
+    @movable_position.setter
+    def movable_position(self, value: Any):
+        """
+        Set the position of the object.
+
+        Args:
+            value (any): Position of the object
+        """
+        self.pos = value
+    # end movable_position
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
     def set(self, x, y):
         """
         Set the coordinates of the point.
@@ -115,7 +149,7 @@ class Point2D(Point):
         """
         self._pos[0] = x.value if type(x) is Scalar else x
         self._pos[1] = y.value if type(y) is Scalar else y
-        self.dispatch_event("on_change", x=self._pos[0], y=self._pos[1])
+        self.dispatch_event("on_change", ObjectChangedEvent(self, x=self._pos[0], y=self._pos[1]))
     # end set
 
     def get(self):
@@ -145,6 +179,87 @@ class Point2D(Point):
         """
         return np.linalg.norm(self._pos - other._pos)
     # end if
+
+    # Round the point
+    def round_(self, ndigits=0):
+        """
+        Round the point.
+
+        Args:
+            ndigits (int): Number of digits to round to
+        """
+        self.x = round(self.x, ndigits=ndigits)
+        self.y = round(self.y, ndigits=ndigits)
+    # end round
+
+    # endregion PUBLIC
+
+    # region MOVABLE
+
+    # Initialize position
+    def init_move(self):
+        """
+        Initialize the move animation.
+        """
+        self.start_position = None
+    # end init_move
+
+    # Start animation
+    def start_move(
+            self,
+            start_value: Any
+    ):
+        """
+        Start the move animation.
+
+        Args:
+            start_value (any): The start position of the object
+        """
+        self.start_position = self.pos.copy()
+    # end start_move
+
+    def animate_move(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value
+    ):
+        """
+        Perform the move animation.
+
+        Args:
+            t (float): Relative time since the start of the animation
+            duration (float): Duration of the animation
+            interpolated_t (float): Time value adjusted by the interpolator
+            end_value (any): The end position of the object
+        """
+        self.movable_position = self.start_position * (1 - interpolated_t) + end_value.movable_position * interpolated_t
+    # end animate_move
+
+    # Stop animation
+    def end_move(
+            self,
+            end_value: Any
+    ):
+        """
+        Stop the move animation.
+
+        Args:
+            end_value (any): The end position of the object
+        """
+        pass
+    # end end_move
+
+    # Finish animation
+    def finish_move(self):
+        """
+        Finish the move animation.
+        """
+        pass
+    # end finish_move
+
+    # endregion MOVABLE
 
     # region OVERRIDE
 
@@ -282,6 +397,13 @@ class Point2D(Point):
             return NotImplemented
         # end if
     # end __eq__
+
+    def __abs__(self):
+        """
+        Get the absolute value of the point.
+        """
+        return Point2D(abs(self.x), abs(self.y))
+    # end __abs__
 
     # endregion OVERRIDE
 

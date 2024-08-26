@@ -21,7 +21,7 @@ from typing import Any
 import numpy as np
 from pixel_prism import p2, s
 from pixel_prism.animate.able import MovableMixin
-from pixel_prism.data import Point2D, Scalar, Color, EventMixin
+from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 
 # Local imports
@@ -1343,94 +1343,86 @@ class CubicBezierCurve(
 
     def _on_start_changed(
             self,
-            x,
-            y
+            event
     ):
         """
         Handle the start point changing.
 
         Args:
-            x (float): X-coordinate
-            y (float): Y-coordinate
+            event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", self)
+        self.dispatch_event("on_change", ObjectChangedEvent(self, property="start", value=self.start))
     # end _on_start_changed
 
     def _on_control1_changed(
             self,
-            x,
-            y
+            event
     ):
         """
         Handle the control1 point changing.
 
         Args:
-            x (float): X-coordinate
-            y (float): Y-coordinate
+            event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", self)
+        self.dispatch_event("on_change", ObjectChangedEvent(self, property="control1", value=self.control1))
     # end _on_control1_changed
 
     def _on_control2_changed(
             self,
-            x,
-            y
+            event
     ):
         """
         Handle the control2 point changing.
 
         Args:
-            x (float): X-coordinate
-            y (float): Y-coordinate
+            event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", self)
+        self.dispatch_event("on_change", ObjectChangedEvent(self, property="control2", value=self.control2))
     # end _on_control2_changed
 
     def _on_end_changed(
             self,
-            x,
-            y
+            event
     ):
         """
         Handle the end point changing.
 
         Args:
-            x (float): X-coordinate
-            y (float): Y-coordinate
+            event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", self)
+        self.dispatch_event("on_change", ObjectChangedEvent(self, property="end", value=self.end))
     # end _on_end_changed
 
     def _on_position_changed(
             self,
-            value
+            event
     ):
         """
         Handle the position changing.
 
         Args:
-            value (float): Position value
+            event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", self)
+        self.dispatch_event("on_change", ObjectChangedEvent(self, property="position", value=self.position))
     # end _on_position_changed
 
     def _on_length_changed(
             self,
-            value
+            event
     ):
         """
         Handle the length changing.
 
         Args:
-            value (float): Length value
+            event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", self)
+        self.dispatch_event("on_change", ObjectChangedEvent(self, property="length", value=self.length))
     # end _on_length_changed
 
     # endregion EVENTS
@@ -1664,6 +1656,8 @@ class QuadraticBezierCurve(DrawableMixin, MovableMixin):
         )
     # end __init__
 
+    # region PROPERTIES
+
     @property
     def width(self):
         """
@@ -1685,6 +1679,10 @@ class QuadraticBezierCurve(DrawableMixin, MovableMixin):
         # end
         return self.bbox.height
     # end height
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     # Move
     def translate(self, dx: float, dy: float):
@@ -1744,6 +1742,10 @@ class QuadraticBezierCurve(DrawableMixin, MovableMixin):
         return l2
     # end recursive_bezier_length
 
+    # endregion PUBLIC
+
+    # region DRAW
+
     # Draw path (for debugging)
     def draw_path(self, context):
         """
@@ -1798,6 +1800,10 @@ class QuadraticBezierCurve(DrawableMixin, MovableMixin):
         )
     # end draw
 
+    # endregion DRAW
+
+    # region CLASS_METHODS
+
     @classmethod
     def from_2d(
             cls,
@@ -1817,5 +1823,7 @@ class QuadraticBezierCurve(DrawableMixin, MovableMixin):
             Point2D(end_x, end_y)
         )
     # end from_2d
+
+    # endregion CLASS_METHODS
 
 # end QuadraticBezierCurve

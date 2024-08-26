@@ -3,11 +3,10 @@ from typing import Union
 # Imports
 import numpy as np
 from pixel_prism.animate.able import MovableMixin
-from pixel_prism.data import Point2D, Color, Scalar, EventMixin
+from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 from . import BoundingBoxMixin, BoundingBox
 
-from .rectangles import Rectangle
 from .drawablemixin import DrawableMixin
 from .. import utils
 from ..base import Context
@@ -229,6 +228,10 @@ class Line(
         self._bounding_box.height = bbox.height
     # end update_bbox
 
+    # endregion PUBLIC
+
+    # region DRAW
+
     # Realize
     def realize(
             self,
@@ -403,34 +406,32 @@ class Line(
         context.restore()
     # end draw
 
-    # endregion PUBLIC
+    # endregion DRAW
 
     # region EVENTS
 
     # Start changed
     def _start_changed(
             self,
-            x: float,
-            y: float
+            event
     ):
         """
         Start point changed event.
         """
         self.update_data()
-        self.dispatch_event("on_change")
+        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="start", value=self.start))
     # end _start_changed
 
     # End changed
     def _end_changed(
             self,
-            x: float,
-            y: float
+            event
     ):
         """
         End point changed event.
         """
         self.update_data()
-        self.dispatch_event("on_change")
+        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="end", value=self.end))
     # end _end_changed
 
     # endregion EVENTS
@@ -468,7 +469,6 @@ class Line(
         self._start.y += dp.y
         self._end.x += dp.x
         self._end.y += dp.y
-
     # end translate
 
     # Scale object

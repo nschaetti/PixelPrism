@@ -18,7 +18,7 @@
 # Imports
 import math
 from pixel_prism.animate.able import MovableMixin
-from pixel_prism.data import Point2D, Scalar, Color, EventMixin
+from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
@@ -537,8 +537,7 @@ class Arc(
     # Center changed
     def _on_center_changed(
             self,
-            x,
-            y
+            event
     ):
         """
         Event handler for the center changing.
@@ -550,7 +549,7 @@ class Arc(
     # Radius changed
     def _on_radius_changed(
             self,
-            value
+            event
     ):
         """
         Event handler for the radius changing.
@@ -562,7 +561,7 @@ class Arc(
     # Start angle changed
     def _on_start_angle_changed(
             self,
-            value
+            event
     ):
         """
         Event handler for the start angle changing.
@@ -574,7 +573,7 @@ class Arc(
     # End angle changed
     def _on_end_angle_changed(
             self,
-            value
+            event
     ):
         """
         Event handler for the end angle changing.
