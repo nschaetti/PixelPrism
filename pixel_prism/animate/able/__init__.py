@@ -18,7 +18,7 @@
 # Able
 from .animablemixin import AnimableMixin
 from .buildablemixin import BuildableMixin, DestroyableMixin
-from .movablemixin import MovableMixin, RangeableMixin
+from .movablemixin import MovableMixin, RangeableMixin, ScalableMixin
 from .fadeinablemixin import FadeInableMixin
 from .fadeoutablemixin import FadeOutableMixin
 from .rotablemixin import RotableMixin
@@ -29,6 +29,7 @@ __all__ = [
     "BuildableMixin",
     "DestroyableMixin",
     "MovableMixin",
+    "ScalableMixin",
     "RangeableMixin",
     "FadeInableMixin",
     "FadeOutableMixin",

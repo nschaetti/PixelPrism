@@ -192,14 +192,69 @@ class Point2D(Point):
         self.y = round(self.y, ndigits=ndigits)
     # end round
 
+    # Translate point
+    def translate_(self, dp):
+        """
+        Translate the point.
+
+        Args:
+            dp (Point2D): Difference
+        """
+        self.x += dp.x
+        self.y += dp.y
+    # end translate
+
+    # Rotate point
+    def rotate_(self, angle, center=None):
+        """
+        Rotate the point.
+
+        Args:
+            angle (float): Angle to rotate by
+            center (Point2D): Origin of the rotation
+        """
+        if center is None:
+            origin = Point2D.null()
+        # end if
+        x = self.x - center.x
+        y = self.y - center.y
+        x_new = x * np.cos(angle) - y * np.sin(angle)
+        y_new = x * np.sin(angle) + y * np.cos(angle)
+        self.x = x_new + center.x
+        self.y = y_new + center.y
+    # end rotate
+
+    # Scale point
+    def scale_(self, scale, center=None):
+        """
+        Scale the point.
+
+        Args:
+            scale (float or Scalar): Scale factor
+            center (Point2D): Origin of the scaling
+        """
+        scale = scale.value if type(scale) is Scalar else scale
+        if center is None:
+            center = Point2D.null()
+        # end if
+        self.x = center.x + (self.x - center.x) * scale
+        self.y = center.y + (self.y - center.y) * scale
+    # end scale
+
     # endregion PUBLIC
 
     # region MOVABLE
 
     # Initialize position
-    def init_move(self):
+    def init_move(
+            self,
+            relative: bool = False
+    ):
         """
         Initialize the move animation.
+
+        Args:
+            relative (bool): If the move is relative to the current position
         """
         self.start_position = None
     # end init_move
@@ -207,13 +262,17 @@ class Point2D(Point):
     # Start animation
     def start_move(
             self,
-            start_value: Any
+            start_value: Any,
+            relative: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Start the move animation.
 
         Args:
             start_value (any): The start position of the object
+            relative (bool): If the move is relative to the current position
         """
         self.start_position = self.pos.copy()
     # end start_move
@@ -223,7 +282,10 @@ class Point2D(Point):
             t,
             duration,
             interpolated_t,
-            end_value
+            end_value,
+            relative: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Perform the move animation.
@@ -233,6 +295,7 @@ class Point2D(Point):
             duration (float): Duration of the animation
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The end position of the object
+            relative (bool): If the move is relative to the current position
         """
         self.movable_position = self.start_position * (1 - interpolated_t) + end_value.movable_position * interpolated_t
     # end animate_move
@@ -240,19 +303,23 @@ class Point2D(Point):
     # Stop animation
     def end_move(
             self,
-            end_value: Any
+            end_value: Any,
+            relative: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Stop the move animation.
 
         Args:
             end_value (any): The end position of the object
+            relative (bool): If the move is relative to the current position
         """
         pass
     # end end_move
 
     # Finish animation
-    def finish_move(self):
+    def finish_move(self, relative: bool = False, *args, **kwargs):
         """
         Finish the move animation.
         """

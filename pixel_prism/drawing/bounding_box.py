@@ -130,7 +130,6 @@ class BoundingBox(DrawableMixin):
         Get the Y-coordinate of the lower right corner.
         """
         return self.upper_left.y + self._height.value
-
     # end y2
 
     # endregion PROPERTIES

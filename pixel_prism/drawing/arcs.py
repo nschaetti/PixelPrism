@@ -589,14 +589,26 @@ class Arc(
     # Scale object
     def _scale_object(
             self,
-            m: float
+            scale: Scalar,
+            center: Point2D = None,
     ):
         """
         Scale the object.
 
         Args:
-            m (float): Scale of the object
+            scale (Scalar): Scale factor
+            center (Point2D): Center of the scaling
         """
+        # Scale
+        m = scale.value if isinstance(scale, Scalar) else scale
+
+        # Scale center
+        if center is None:
+            center = self.center.copy()
+        # end if
+
+        # Scale
+        self._center.scale_(m, center)
         self.radius.value *= m
     # end _scale_object
 
@@ -611,21 +623,26 @@ class Arc(
         Args:
             dp (Point2D): Displacement to move the object by
         """
-        self._center.x += dp.x
-        self._center.y += dp.y
+        self._center.translate_(dp)
     # end _translate_object
 
     # Rotate object
     def _rotate_object(
             self,
+            center: Point2D,
             angle: float
     ):
         """
         Rotate the object.
 
         Args:
+            center (Point2D): Center of rotation
             angle (float): Angle to rotate the object by
         """
+        # Rotate center
+        self._center.rotate_(center=center, angle=angle)
+
+        # Change angles
         self._start_angle.value += angle
         self._end_angle.value += angle
     # end _rotate_object

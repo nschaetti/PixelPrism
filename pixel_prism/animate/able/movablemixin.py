@@ -21,7 +21,6 @@
 
 # Imports
 from typing import Any
-import numpy as np
 from .animablemixin import AnimableMixin
 
 
@@ -36,6 +35,9 @@ class MovableMixin(AnimableMixin):
         Initialize the movable object.
         """
         super().__init__()
+        self.movablemixin_state = AnimableMixin.AnimationRegister()
+        self.movablemixin_state.start_position = None
+        self.movablemixin_state.last_position = None
     # end __init__
 
     # region PROPERTIES
@@ -67,7 +69,7 @@ class MovableMixin(AnimableMixin):
     # region PUBLIC
 
     # Initialize position
-    def init_move(self):
+    def init_move(self, *args, **kwargs):
         """
         Initialize the move animation.
         """
@@ -77,7 +79,9 @@ class MovableMixin(AnimableMixin):
     # Start animation
     def start_move(
             self,
-            start_value: Any
+            start_value: Any,
+            *args,
+            **kwargs
     ):
         """
         Start the move animation.
@@ -93,7 +97,9 @@ class MovableMixin(AnimableMixin):
             t,
             duration,
             interpolated_t,
-            end_value
+            end_value,
+            *args,
+            **kwargs
     ):
         """
         Perform the move animation.
@@ -111,7 +117,9 @@ class MovableMixin(AnimableMixin):
     # Stop animation
     def end_move(
             self,
-            end_value: Any
+            end_value: Any,
+            *args,
+            **kwargs
     ):
         """
         Stop the move animation.
@@ -123,7 +131,7 @@ class MovableMixin(AnimableMixin):
     # end end_move
 
     # Finish animation
-    def finish_move(self):
+    def finish_move(self, *args, **kwargs):
         """
         Finish the move animation.
         """
@@ -218,3 +226,105 @@ class RangeableMixin(AnimableMixin):
     # end finish_range
 
 # end RangeAble
+
+
+class ScalableMixin(AnimableMixin):
+    """
+    Interface class for ranging values
+    """
+
+    # Initialize
+    def __init__(
+            self
+    ):
+        """
+        Initialize the movable object.
+        """
+        super().__init__()
+        self.scalablemixin_state = AnimableMixin.AnimationRegister()
+        self.scalablemixin_state.scale = None
+    # end __init__
+
+    # Initialize animation
+    def init_scale(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Initialize the range animation.
+        """
+        raise NotImplementedError(f"Method 'init_scale' must be implemented in the {self.__class__.__name__} class.")
+    # end init_scale
+
+    # Start animation
+    def start_scale(
+            self,
+            start_value: Any,
+            center: Any,
+            *args,
+            **kwargs
+    ):
+        """
+        Start the range animation.
+
+        Args:
+            start_value (any): The start position of the object
+            center (Point2D): Center of the scaling
+        """
+        raise NotImplementedError(f"Method 'start_scale' must be implemented in the {self.__class__.__name__} class.")
+    # end start_scale
+
+    def animate_scale(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value,
+            center,
+            *args,
+            **kwargs
+    ):
+        """
+        Perform the move animation.
+
+        Args:
+            t (float): Relative time since the start of the animation
+            duration (float): Duration of the animation
+            interpolated_t (float): Time value adjusted by the interpolator
+            end_value (any): The end position of the object
+            center (Point2D): Center of the scaling
+        """
+        raise NotImplementedError(f"Method 'animate_scale' must be implemented in the {self.__class__.__name__} class.")
+    # end animate_scale
+
+    # Stop animation
+    def end_scale(
+            self,
+            end_value: Any,
+            *args,
+            **kwargs
+    ):
+        """
+        Stop the range animation.
+
+        Args:
+            end_value (any): The end value of the object
+        """
+        raise NotImplementedError(f"Method 'end_scale' must be implemented in the {self.__class__.__name__} class.")
+    # end end_scale
+
+    # Finish animation
+    def finish_scale(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Finish the range animation.
+        """
+        raise NotImplementedError(f"Method 'finish_scale' must be implemented in the {self.__class__.__name__} class.")
+    # end finish_scale
+
+# end ScalableMixin
+

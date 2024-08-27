@@ -474,17 +474,27 @@ class Line(
     # Scale object
     def _scale_object(
             self,
-            m: Scalar
+            scale: Scalar,
+            center: Point2D = None,
     ):
         """
         Scale the object.
 
         Args:
-            m (Scalar): Scale of the object
+            scale (Scalar): Scale to apply
+            center (Point2D): Center of the scaling
         """
-        self._end.x = self._start.x + (self._end.x - self._start.x) * m.value
-        self._end.y = self._start.y + (self._end.y - self._start.y) * m.value
+        # Scale
+        m = scale.value if isinstance(scale, Scalar) else scale
 
+        # Center
+        if center is None:
+            center = self.middle_point.copy()
+        # end if
+
+        # Scale
+        self._start.scale_(m, center)
+        self._end.scale_(m, center)
     # end _scale_object
 
     # Rotate object

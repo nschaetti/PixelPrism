@@ -31,6 +31,8 @@ from .interpolate import (
 from .animate import (
     Animate,
     Move,
+    Scale,
+    Rotate,
     FadeIn,
     FadeOut,
     Range,
@@ -52,6 +54,8 @@ __all__ = [
     # Animate
     "Animate",
     "Move",
+    "Scale",
+    "Rotate",
     "FadeIn",
     "FadeOut",
     "Range",

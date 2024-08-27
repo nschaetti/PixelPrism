@@ -19,12 +19,13 @@
 from enum import Enum
 from .able import (
     MovableMixin,
+    RotableMixin,
+    ScalableMixin,
     FadeInableMixin,
     FadeOutableMixin,
     RangeableMixin,
     BuildableMixin,
-    DestroyableMixin,
-    RotableMixin
+    DestroyableMixin
 )
 from .interpolate import Interpolator, LinearInterpolator
 
@@ -101,7 +102,7 @@ class Animate:
             # Get the init method
             if hasattr(self.obj, self.init_method):
                 init_method = getattr(self.obj, self.init_method)
-                init_method()
+                init_method(**self.kwargs)
             else:
                 raise NotImplementedError(f"{self.init_method} not implemented for {self.obj.__class__.__name__}")
             # end if
@@ -109,7 +110,7 @@ class Animate:
             # Get the start method
             if hasattr(self.obj, self.start_method):
                 start_method = getattr(self.obj, self.start_method)
-                start_method(self.start_value)
+                start_method(self.start_value, **self.kwargs)
             else:
                 raise NotImplementedError(f"{self.start_method} not implemented for {self.obj.__class__.__name__}")
             # end if
@@ -127,7 +128,7 @@ class Animate:
             # Get the end method
             if hasattr(self.obj, self.end_method):
                 end_method = getattr(self.obj, self.end_method)
-                end_method(self.target_value)
+                end_method(self.target_value, **self.kwargs)
             else:
                 raise NotImplementedError(f"{self.end_method} not implemented for {self.obj.__class__.__name__}")
             # end if
@@ -135,7 +136,7 @@ class Animate:
             # Get the finish method
             if hasattr(self.obj, self.finish_method):
                 finish_method = getattr(self.obj, self.finish_method)
-                finish_method()
+                finish_method(**self.kwargs)
             else:
                 raise NotImplementedError(f"{self.finish_method} not implemented for {self.obj.__class__.__name__}")
             # end if
@@ -170,7 +171,13 @@ class Animate:
         # Get the animate method
         if hasattr(self.obj, self.animate_method):
             animate_method = getattr(self.obj, self.animate_method)
-            animate_method(relative_t, self.end_time - self.start_time, interpolated_t, self.target_value)
+            animate_method(
+                t=relative_t,
+                duration=self.end_time - self.start_time,
+                interpolated_t=interpolated_t,
+                end_value=self.target_value,
+                **self.kwargs
+            )
         else:
             raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
         # end if
@@ -219,7 +226,8 @@ class Move(Animate):
             end_time,
             target_value,
             interpolator=LinearInterpolator(),
-            name=""
+            name="",
+            relative: bool = False,
     ):
         """
         Initialize the move transition.
@@ -231,6 +239,7 @@ class Move(Animate):
             end_time (float): End time
             target_value (any): End position
             interpolator (Interpolator): Interpolator
+            relative (bool): Relative movement
         """
         assert isinstance(obj, MovableMixin), "Object must be an instance of MovAble"
         super().__init__(
@@ -240,7 +249,8 @@ class Move(Animate):
             None,
             target_value,
             name=name,
-            interpolator=interpolator
+            interpolator=interpolator,
+            relative=relative
         )
     # end __init__
 
@@ -274,7 +284,13 @@ class Move(Animate):
         # Get the animate method
         if hasattr(self.obj, self.animate_method):
             animate_method = getattr(self.obj, self.animate_method)
-            animate_method(relative_t, self.end_time - self.start_time, interpolated_t, self.target_value)
+            animate_method(
+                t=relative_t,
+                duration=self.end_time - self.start_time,
+                interpolated_t=interpolated_t,
+                end_value=self.target_value,
+                relative=self.kwargs.get("relative", False)
+            )
         else:
             raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
         # end if
@@ -298,10 +314,11 @@ class Rotate(Animate):
             end_time,
             target_value,
             interpolator=LinearInterpolator(),
-            name=""
+            name="",
+            **kwargs
     ):
         """
-        Initialize the move transition.
+        Initialize the rotation transition.
 
         Args:
             name (str): Name of the transition
@@ -311,7 +328,7 @@ class Rotate(Animate):
             target_value (any): End position
             interpolator (Interpolator): Interpolator
         """
-        assert isinstance(obj, RotableMixin), "Object must be an instance of MovAble"
+        assert isinstance(obj, RotableMixin), "Object must be an instance of RotableMixin"
         super().__init__(
             obj,
             start_time,
@@ -319,7 +336,8 @@ class Rotate(Animate):
             None,
             target_value,
             name=name,
-            interpolator=interpolator
+            interpolator=interpolator,
+            **kwargs
         )
     # end __init__
 
@@ -353,7 +371,13 @@ class Rotate(Animate):
         # Get the animate method
         if hasattr(self.obj, self.animate_method):
             animate_method = getattr(self.obj, self.animate_method)
-            animate_method(relative_t, self.end_time - self.start_time, interpolated_t, self.target_value)
+            animate_method(
+                t=relative_t,
+                duration=self.end_time - self.start_time,
+                interpolated_t=interpolated_t,
+                end_value=self.target_value,
+                **self.kwargs
+            )
         else:
             raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
         # end if
@@ -362,6 +386,91 @@ class Rotate(Animate):
     # endregion PUBLIC
 
 # end Rotate
+
+
+# Scale
+class Scale(Animate):
+    """
+    A transition that scales an object over time.
+    """
+
+    def __init__(
+            self,
+            obj,
+            start_time,
+            end_time,
+            target_value,
+            interpolator=LinearInterpolator(),
+            name="",
+            **kwargs
+    ):
+        """
+        Initialize the scale transition.
+
+        Args:
+            name (str): Name of the transition
+            obj (any): Object to scale
+            start_time (float): Start time
+            end_time (float): End time
+            target_value (any): End scale
+            interpolator (Interpolator): Interpolator
+        """
+        assert isinstance(obj, ScalableMixin), "Object must be an instance of ScalableMixin"
+        super().__init__(
+            obj,
+            start_time,
+            end_time,
+            None,
+            target_value,
+            interpolator=interpolator,
+            name=name,
+            **kwargs
+        )
+    # end __init__
+
+    # region PUBLIC
+
+    def update(
+            self,
+            t
+    ):
+        """
+        Update the object property at time t.
+
+        Args:
+            t (float): Time
+        """
+        if self.state == AnimationState.WAITING_START and t >= self.start_time:
+            self.start()
+        elif self.state == AnimationState.RUNNING and t > self.end_time:
+            self.stop()
+            return
+        elif self.state in [AnimationState.WAITING_START, AnimationState.FINISHED]:
+            return
+        # end if
+
+        # Relative time
+        relative_t = (t - self.start_time) / (self.end_time - self.start_time)
+
+        # Interpolate time
+        interpolated_t = self.interpolator.interpolate(0, 1, relative_t)
+
+        # Get the animate method
+        if hasattr(self.obj, self.animate_method):
+            animate_method = getattr(self.obj, self.animate_method)
+            animate_method(
+                t=relative_t,
+                duration=self.end_time - self.start_time,
+                interpolated_t=interpolated_t,
+                end_value=self.target_value,
+                **self.kwargs
+            )
+        else:
+            raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
+        # end if
+    # end update
+
+# end Scale
 
 
 class Range(Animate):

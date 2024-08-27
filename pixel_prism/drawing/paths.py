@@ -1,3 +1,23 @@
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+#
+# Path element
+#
 
 # Imports
 from typing import List, Any, Tuple, Union
@@ -27,6 +47,7 @@ from .transforms import (
     SkewY2D,
     Matrix2D
 )
+from ..animate.able.movablemixin import ScalableMixin
 from ..base import Context
 
 
@@ -615,24 +636,6 @@ class PathSegment(
         self.update_bbox()
     # end move
 
-    # Move
-    def translate(self, dp: Point2D):
-        """
-        Move the path by a given displacement.
-
-        Args:
-            dp (Point2D): Displacement in the X and Y directions
-        """
-        # Move the start point
-        self.start.x += dp.x
-        self.start.y += dp.y
-
-        # Move the path segment
-        for element in self.elements:
-            element.translate(dp)
-        # end for
-    # end translate
-
     # endregion PUBLIC
 
     # region DRAW
@@ -790,7 +793,10 @@ class PathSegment(
     # region MOVABLE
 
     # Initialize position
-    def init_move(self):
+    def init_move(
+            self,
+            relative: bool = False
+    ):
         """
         Initialize the move animation.
         """
@@ -800,15 +806,23 @@ class PathSegment(
     # Start animation
     def start_move(
             self,
-            start_value: Any
+            start_value: Any,
+            relative: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Start the move animation.
 
         Args:
             start_value (any): The start position of the object
+            relative (bool): Is the move relative
         """
-        self.start_position = self.movable_position.copy()
+        if relative:
+            self.start_position = Point2D.null()
+        else:
+            self.start_position = self.movable_position.copy()
+        # end if
     # end start_move
 
     def animate_move(
@@ -816,7 +830,10 @@ class PathSegment(
             t,
             duration,
             interpolated_t,
-            end_value
+            end_value,
+            relative: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Perform the move animation.
@@ -826,6 +843,7 @@ class PathSegment(
             duration (float): Duration of the animation
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The end position of the object
+            relative (bool): Is the move relative
         """
         # New position
         new_position = self.start_position * (1 - interpolated_t) + end_value * interpolated_t
@@ -840,19 +858,28 @@ class PathSegment(
     # Stop animation
     def end_move(
             self,
-            end_value: Any
+            end_value: Any,
+            relative: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Stop the move animation.
 
         Args:
             end_value (any): The end position of the object
+            relative (bool): Is the move relative
         """
         raise NotImplementedError("Method 'end_move' must be implemented in the derived class.")
     # end end_move
 
     # Finish animation
-    def finish_move(self):
+    def finish_move(
+            self,
+            relative: bool = False,
+            *args,
+            **kwargs
+    ):
         """
         Finish the move animation.
         """
@@ -864,7 +891,7 @@ class PathSegment(
     # region ROTABLE
 
     # Initialize rotation
-    def init_rotate(self):
+    def init_rotate(self, *args, **kwargs):
         """
         Initialize the rotation.
         """
@@ -885,7 +912,10 @@ class PathSegment(
             t,
             duration,
             interpolated_t,
-            end_value
+            end_value,
+            center: Point2D = None,
+            *args,
+            **kwargs
     ):
         """
         Animate the rotation.
@@ -897,14 +927,14 @@ class PathSegment(
         da = angle - self._rotable_angle
 
         # Translate object
-        self.rotate(da)
+        self.rotate(angle=da, center=center)
 
         # Set current angle
         self._rotable_angle = angle
     # end animate_rotate
 
     # End rotate
-    def end_rotate(self):
+    def end_rotate(self, *args, **kwargs):
         """
         End the rotation.
         """
@@ -912,7 +942,7 @@ class PathSegment(
     # end end_rotate
 
     # Finish rotate
-    def finish_rotate(self):
+    def finish_rotate(self, *args, **kwargs):
         """
         Finish the rotation.
         """
@@ -982,14 +1012,69 @@ class PathSegment(
     # Rotate object (to override)
     def _rotate_object(
             self,
-            *args,
-            **kwargs
+            center: Point2D,
+            angle: Union[Scalar, float]
     ):
         """
         Rotate the object.
+
+        Args:
+            origin (Point2D): Origin of the rotation
+            angle (Union[Scalar, float]): Angle of the rotation
         """
-        print("Rotate object")
+        # Angle
+        angle = angle.value if isinstance(angle, Scalar) else angle
+
+        # Copy center
+        center = center.copy()
+
+        # Rotate the start point
+        self.start.rotate_(center=center, angle=angle)
+
+        # Rotate each segments
+        for element in self.elements:
+            element.rotate(center=center, angle=angle)
+        # end for
     # end _rotate_object
+
+    # Translate object (to override)
+    def _translate_object(
+            self,
+            dp: Point2D
+    ):
+        """
+        Translate the object.
+        """
+        # Move the start point
+        self.start.translate_(dp)
+
+        # Move the path segment
+        for element in self.elements:
+            element.translate(dp)
+        # end for
+    # end _translate_object
+
+    # Scale object (to override)
+    def _scale_object(
+            self,
+            center: Point2D,
+            scale: Scalar
+    ):
+        """
+        Scale the object.
+
+        Args:
+            center (Point2D): Center of the scaling
+            scale (Point2D): Scale factor
+        """
+        # Scale the start point
+        self.start.scale_(center=center, scale=scale)
+
+        # Scale the path segment
+        for element in self.elements:
+            element.scale(center=center, scale=scale)
+        # end for
+    # end _scale_object
 
     def __len__(self):
         """
@@ -1125,6 +1210,8 @@ class Path(
     BoundingBoxMixin,
     EventMixin,
     MovableMixin,
+    RotableMixin,
+    ScalableMixin,
     FadeInableMixin,
     FadeOutableMixin,
     BuildableMixin,
@@ -1169,6 +1256,8 @@ class Path(
         # Constructors
         DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
+        RotableMixin.__init__(self)
+        ScalableMixin.__init__(self)
         FadeInableMixin.__init__(self)
         FadeOutableMixin.__init__(self)
         BuildableMixin.__init__(self)
@@ -1261,6 +1350,17 @@ class Path(
         return self._length
     # end length
 
+    @property
+    def movable_position(self) -> Any:
+        """
+        Get the position of the object.
+
+        Returns:
+            any: Position of the object
+        """
+        return self._path.start
+    # end movable_position
+
     # endregion PROPERTIES
 
     # region PUBLIC
@@ -1338,7 +1438,7 @@ class Path(
         self.update_bbox()
 
         # Add event
-        element.add_event_listener("on_change", self._on_element_changed)
+        element.add_event_listener("on_change", self._on_path_changed)
     # end add
 
     # Add subpath
@@ -1358,7 +1458,7 @@ class Path(
         self.update_bbox()
 
         # Add event
-        subpath.add_event_listener("on_change", self._on_element_changed)
+        subpath.add_event_listener("on_change", self._on_subpath_element)
     # end add_subpath
 
     # Get subpaths
@@ -1383,32 +1483,6 @@ class Path(
         self._subpaths = subpaths
         self._length = self.compute_length()
     # end set_subpaths
-
-    # Translate path
-    def translate(
-            self,
-            dx: float,
-            dy: float
-    ):
-        """
-        Translate the path by a given displacement.
-
-        Args:
-            dx (float): Displacement in the X-direction
-            dy (float): Displacement in the Y-direction
-        """
-        # Move path
-        self._path.translate(dx, dy)
-
-        # Translate the subpaths
-        for subpath in self._subpaths:
-            # Translate the subpath
-            subpath.translate(dx, dy)
-        # end for
-
-        # Update bounding box
-        self.update_data()
-    # end translate
 
     # # Draw bounding box anchors
     # def draw_bbox_anchors(
@@ -1723,6 +1797,72 @@ class Path(
 
     # region PRIVATE
 
+    # Translate object
+    def _translate_object(
+            self,
+            dp
+    ):
+        """
+        Translate the object.
+        """
+        # Move path
+        self._path.translate(dp)
+
+        # Translate the subpaths
+        for subpath in self._subpaths:
+            # Translate the subpath
+            subpath.translate(dp)
+        # end for
+    # end _translate_object
+
+    # Rotate object
+    def _rotate_object(
+            self,
+            center: Point2D,
+            angle: Union[Scalar, float]
+    ):
+        """
+        Rotate the object.
+
+        Args:
+            origin (Point2D): Origin of the rotation
+            angle (Union[Scalar, float]): Angle of the rotation
+        """
+        # Angle
+        angle = angle.value if isinstance(angle, Scalar) else angle
+
+        # Copy center
+        center = center.copy()
+
+        # Rotate the path
+        self._path.rotate(center=center, angle=angle)
+
+        # Rotate the subpaths
+        for subpath in self._subpaths:
+            # Rotate the subpath
+            subpath.rotate(center=center, angle=angle)
+        # end for
+    # end _rotate_object
+
+    # Scale object
+    def _scale_object(self, center: Point2D, scale: Union[Scalar, float]):
+        """
+        Scale the object.
+
+        Args:
+            center (Point2D): Center of the scaling
+            scale (Union[Scalar, float]): Scale factor
+        """
+        # Scale path
+        self._path.scale(center=center, scale=scale)
+
+        # Scale subpaths
+        for subpath in self._subpaths:
+            # Scale the subpath
+            subpath.scale(center=center, scale=scale)
+        # end for
+    # end _scale_object
+
     def _create_bbox(
             self,
             border_width: float = 1.0,
@@ -1749,6 +1889,272 @@ class Path(
     # end _create_bbox
 
     # endregion PRIVATE
+
+    # region MOVABLE
+
+    # Initialize position
+    def init_move(
+            self,
+            relative: bool = False
+    ):
+        """
+        Initialize the move animation.
+        """
+        pass
+
+    # end init_move
+
+    # Start animation
+    def start_move(
+            self,
+            start_value: Any,
+            relative: bool = False,
+            *args,
+            **kwargs
+    ):
+        """
+        Start the move animation.
+
+        Args:
+            start_value (any): The start position of the object
+            relative (bool): Is the move relative
+        """
+        if relative:
+            self.movablemixin_state.start_position = Point2D.null()
+            self.movablemixin_state.last_position = Point2D.null()
+        else:
+            self.movablemixin_state.start_position = self.movable_position.copy()
+        # end if
+    # end start_move
+
+    def animate_move(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value,
+            relative: bool = False,
+            *args,
+            **kwargs
+    ):
+        """
+        Perform the move animation.
+
+        Args:
+            t (float): Relative time since the start of the animation
+            duration (float): Duration of the animation
+            interpolated_t (float): Time value adjusted by the interpolator
+            end_value (any): The end position of the object
+            relative (bool): Is the move relative
+        """
+        # New position
+        new_position = self.movablemixin_state.start_position * (1 - interpolated_t) + end_value * interpolated_t
+
+        # Get difference
+        if relative:
+            dp = new_position - self.movablemixin_state.last_position
+            self.movablemixin_state.last_position = new_position
+        else:
+            dp = new_position - self.movable_position
+        # end if
+
+        # Translate object
+        self.translate(dp)
+    # end animate_move
+
+    # Stop animation
+    def end_move(
+            self,
+            end_value: Any,
+            relative: bool = False,
+            *args,
+            **kwargs
+    ):
+        """
+        Stop the move animation.
+
+        Args:
+            end_value (any): The end position of the object
+            relative (bool): Is the move relative
+        """
+        pass
+    # end end_move
+
+    # Finish animation
+    def finish_move(
+            self,
+            relative: bool = False,
+            *args,
+            **kwargs
+    ):
+        """
+        Finish the move animation.
+        """
+        pass
+    # end finish_move
+
+    # endregion MOVABLE
+
+    # region ROTABLE
+
+    # Initialize rotation
+    def init_rotate(self, *args, **kwargs):
+        """
+        Initialize the rotation.
+        """
+        pass
+    # end init_rotate
+
+    # Start rotation
+    def start_rotate(self, *args, **kwargs):
+        """
+        Start the rotation animation.
+        """
+        self.rotablemixin_state.angle = 0
+    # end start_rotate
+
+    # Start animation
+    def animate_rotate(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value,
+            center: Point2D = None,
+            *args,
+            **kwargs
+    ):
+        """
+        Animate the rotation.
+        """
+        # Get the angle
+        angle = interpolated_t * end_value
+
+        # Difference
+        da = angle - self.rotablemixin_state.angle
+
+        # Translate object
+        self.rotate(angle=da, center=center)
+
+        # Set current angle
+        self.rotablemixin_state.angle = angle
+    # end animate_rotate
+
+    # End rotate
+    def end_rotate(self, *args, **kwargs):
+        """
+        End the rotation.
+        """
+        pass
+    # end end_rotate
+
+    # Finish rotate
+    def finish_rotate(self, *args, **kwargs):
+        """
+        Finish the rotation.
+        """
+        pass
+    # end finish_rotate
+
+    # endregion ROTABLE
+
+    # region SCALABLE
+
+    # Initialize animation
+    def init_scale(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Initialize the range animation.
+        """
+        pass
+    # end init_scale
+
+    # Start animation
+    def start_scale(
+            self,
+            start_value: Any,
+            center: Point2D,
+            *args,
+            **kwargs
+    ):
+        """
+        Start the range animation.
+
+        Args:
+            start_value (any): The start position of the object
+            center (Point2D): Center of the scaling
+        """
+        self.scalablemixin_state.center = center.copy()
+        self.scalablemixin_state.scale = 1.0
+    # end start_scale
+
+    def animate_scale(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value,
+            center: Point2D,
+            *args,
+            **kwargs
+    ):
+        """
+        Perform the move animation.
+
+        Args:
+            t (float): Relative time since the start of the animation
+            duration (float): Duration of the animation
+            interpolated_t (float): Time value adjusted by the interpolator
+            end_value (any): The end position of the object
+            center (Point2D): Center of the scaling
+        """
+        # Get the angle
+        scale = interpolated_t * (end_value - 1) + 1
+
+        # print(f"data = {scale} / {self.scalablemixin_state.scale}")
+
+        # Difference
+        da = scale / self.scalablemixin_state.scale
+
+        # Translate object
+        self.scale(scale=da, center=self.scalablemixin_state.center)
+
+        # Set current angle
+        self.scalablemixin_state.scale *= da
+    # end animate_scale
+
+    # Stop animation
+    def end_scale(
+            self,
+            end_value: Any,
+            *args,
+            **kwargs
+    ):
+        """
+        Stop the range animation.
+
+        Args:
+            end_value (any): The end value of the object
+        """
+        pass
+    # end end_scale
+
+    # Finish animation
+    def finish_scale(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Finish the range animation.
+        """
+        pass
+    # end finish_scale
+
+    # endregion SCALABLE
 
     # region FADE_IN
 

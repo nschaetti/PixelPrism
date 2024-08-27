@@ -14,15 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import math
 
 #
-# Animation of an equation.
+# Animation of an path.
 # Build and highlight
 #
+
+# Imports
+import math
 from pixel_prism import p2, s, c
 from pixel_prism import utils
-from pixel_prism.animate.animate import Rotate
+from pixel_prism.animate.animate import Rotate, Scale
 from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Call
 from pixel_prism.widgets.containers import Viewport
@@ -42,7 +44,7 @@ from pixel_prism.data import Scalar
 class PathAnimation(Animation):
 
     PATH_LINE_WIDTH = 0.02
-    PATH_SIZE = 0.5
+    PATH_SIZE = 0.7
 
     # Init effects
     def init_effects(self):
@@ -299,13 +301,140 @@ class PathAnimation(Animation):
                 rectangle,
                 start_time=0,
                 end_time=8,
-                target_value=math.pi,
-                interpolator=EaseInOutInterpolator()
+                target_value=math.pi * 2.0,
+                interpolator=EaseInOutInterpolator(),
+                center=coord_system.lower_left_square
+            )
+        )
+
+        # Rotating internal path
+        self.animate(
+            Rotate(
+                path_segment,
+                start_time=0,
+                end_time=8,
+                target_value=-math.pi * 2.0,
+                interpolator=EaseInOutInterpolator(),
+                center=coord_system.lower_left_square
             )
         )
 
         return path3
     # end build_third_path
+
+    # Build fourth path
+    def build_fourth_path(
+            self,
+            coord_system: CoordSystem
+    ):
+        """
+        Build the fourth curve.
+
+        Args:
+            coord_system (CoordSystem): Coordinate system
+        """
+        # Create path segment
+        path_segment = PathSegment.from_objects(
+            start=coord_system.lower_right_square + p2(self.PATH_SIZE, 0),
+            elements=[
+                PathLine(
+                    coord_system.lower_right_square + p2(self.PATH_SIZE, 0),
+                    coord_system.lower_right_square + p2(0, self.PATH_SIZE)
+                ),
+                PathArc(
+                    center=coord_system.lower_right_square.copy(),
+                    radius=s(self.PATH_SIZE),
+                    start_angle=s(math.pi / 2),
+                    end_angle=s(math.pi)
+                ),
+                PathBezierCubic(
+                    start=coord_system.lower_right_square + p2(-self.PATH_SIZE, 0),
+                    control1=p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 2.0),
+                    control2=p2(0, self.PATH_SIZE / 2.0),
+                    end=coord_system.lower_right_square + p2(0, -self.PATH_SIZE)
+                )
+            ]
+        )
+
+        # Rectangle
+        rectangle = PathSegment.rectangle(
+            lower_left=coord_system.lower_right_square + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
+            width=Scalar(self.PATH_SIZE),
+            height=Scalar(self.PATH_SIZE / 2.0)
+        )
+
+        # Create path
+        path4 = Path.from_objects(
+            path=path_segment,
+            subpaths=[rectangle],
+            line_color=utils.RED.copy(),
+            line_width=Scalar(self.PATH_LINE_WIDTH),
+            fill_color=utils.GREEN.copy(),
+            closed_path=True
+        )
+
+        # Moving path
+        self.animate(
+            Move(
+                path4,
+                start_time=0,
+                end_time=2,
+                target_value=p2(self.PATH_SIZE, 0.0),
+                interpolator=EaseInOutInterpolator(),
+                relative=True
+            )
+        )
+
+        # Rotate path
+        self.animate(
+            Rotate(
+                path4,
+                start_time=2,
+                end_time=4,
+                target_value=math.pi * 2.0,
+                interpolator=EaseInOutInterpolator(),
+                center=path4.path.start
+            )
+        )
+
+        # Moving path
+        self.animate(
+            Move(
+                path4,
+                start_time=4,
+                end_time=6,
+                target_value=p2(-self.PATH_SIZE, 0.0),
+                interpolator=EaseInOutInterpolator(),
+                relative=True
+            )
+        )
+
+        # Scale path
+        self.animate(
+            Scale(
+                path4,
+                start_time=6,
+                end_time=8,
+                target_value=Scalar(2.0),
+                interpolator=EaseInOutInterpolator(),
+                center=path4.path.start
+            )
+        )
+
+        # Scale path
+        self.animate(
+            Scale(
+                path4,
+                start_time=8,
+                end_time=10,
+                target_value=Scalar(0.5),
+                interpolator=EaseInOutInterpolator(),
+                center=coord_system.lower_right_square + p2(self.PATH_SIZE, 0)
+            )
+        )
+
+        return path4
+    # end build_fourth_path
 
     def build(self):
         """
@@ -329,11 +458,13 @@ class PathAnimation(Animation):
         path1 = self.build_first_path(coord_system)
         path2 = self.build_second_path(coord_system)
         path3 = self.build_third_path(coord_system)
+        path4 = self.build_fourth_path(coord_system)
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(path1)
         drawable_widget.add(path2)
         drawable_widget.add(path3)
+        drawable_widget.add(path4)
 
         # Add objects
         self.add(
@@ -342,7 +473,8 @@ class PathAnimation(Animation):
             drawable_widget=drawable_widget,
             path1=path1,
             path2=path2,
-            path3=path3
+            path3=path3,
+            path4=path4
         )
     # end build
 

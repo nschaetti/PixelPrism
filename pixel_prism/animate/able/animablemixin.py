@@ -7,24 +7,28 @@ class AnimableMixin:
     Abstract class for animatable objects.
     """
 
-    def animate(
-            self,
-            t,
-            duration,
-            interpolated_t,
-            end_value
-    ):
+    class AnimationRegister:
         """
-        Method to be implemented by subclasses to perform animation.
-
-        Args:
-            t (float): Relative time since the start of the animation
-            duration (float): Duration of the animation
-            interpolated_t (float): Time value adjusted by the interpolator
-            end_value (any): The target value of the animation
+        Animation register.
         """
-        raise NotImplementedError(f"{self.__class__.__name__} Subclasses should implement this method")
-    # end animate
 
-# end Able
+        def __init__(self):
+            self.__dict__['_vars'] = {}
+        # end __init__
+
+        def __getattr__(self, item):
+            return self._vars[item]
+        # end __getattr__
+
+        def __setattr__(self, key, value):
+            if key == '_vars':
+                self.__dict__[key] = value
+            else:
+                self._vars[key] = value
+            # end if
+        # end __setattr__
+
+    # end AnimationRegister
+
+# end AnimableMixin
 

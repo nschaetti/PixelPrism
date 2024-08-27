@@ -30,6 +30,7 @@ from pixel_prism.utils.svg import parse_svg, parse_path
 from pixel_prism.utils import Anchor
 import svgpathtools as svg
 
+from . import BoundingBoxMixin
 from .rectangles import Rectangle
 from .paths import (
     Path,
@@ -296,8 +297,76 @@ def load_svg(
 # end load_svg
 
 
+# A class to group paths
+class PathGroup:
+    """
+    A class to group paths.
+    """
+
+    def __init__(
+            self,
+            paths: Optional[List[Path]] = None
+    ):
+        """
+        Initialize the path group.
+
+        Args:
+            paths (List[Path]): Paths to group
+        """
+        self._paths = paths if paths is not None else list()
+    # end __init__
+
+    # region OVERRIDE
+
+    # Get path by index
+    def __getitem__(self, item):
+        """
+        Get the path by index.
+        """
+        return self._paths[item]
+    # end __getitem__
+
+    # Set path by index
+    def __setitem__(self, key, value):
+        """
+        Set the path by index.
+        """
+        self._paths[key] = value
+    # end __setitem__
+
+    # Get the length
+    def __len__(self):
+        """
+        Get the length of the path group.
+        """
+        return len(self._paths)
+    # end __len__
+
+    # Get the iterator
+    def __iter__(self):
+        """
+        Get the iterator of the path group.
+        """
+        return iter(self._paths)
+    # end __iter__
+
+    # Get the string representation
+    def __str__(self):
+        """
+        Get the string representation of the path group.
+        """
+        return f"PathGroup(paths={self._paths})"
+    # end __str__
+
+    # endregion OVERRIDE
+
+# end PathGroup
+
+
+
 class VectorGraphics(
     DrawableMixin,
+    BoundingBoxMixin,
     MovableMixin,
     FadeInableMixin,
     FadeOutableMixin,
@@ -311,9 +380,7 @@ class VectorGraphics(
             scale: Point2D,
             elements=None,
             is_built: bool = True,
-            build_ratio: float = 1.0,
-            bbox_border_width: float = 1.0,
-            bbox_border_color: Color = utils.GREEN.copy()
+            build_ratio: float = 1.0
     ):
         """
         Initialize the vector graphics
@@ -324,18 +391,17 @@ class VectorGraphics(
             elements (list): Elements of the vector graphics
             is_built (bool): Whether the vector graphics is built
             build_ratio (float): Build ratio
-            bbox_border_width (float): Width of the bounding box border
-            bbox_border_color (Color): Color of the bounding box border
         """
         # Initialize the elements
-        self.position = position
-        self.scale = scale
-        self.elements = elements if elements is not None else []
-        self.references = {}
+        self._position = position
+        self._scale = scale
+        self._elements = elements if elements is not None else []
+        self._path_group = PathGroup(self._elements)
+        self._references = {}
         self._index = 0
 
         # Init of VectorGraphicsData
-        DrawableMixin.__init__(self, True, bbox_border_width, bbox_border_color)
+        DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
         FadeInableMixin.__init__(self)
         FadeOutableMixin.__init__(self)
@@ -355,6 +421,89 @@ class VectorGraphics(
             border_width=Scalar(0.05)
         )"""
     # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def position(self) -> Point2D:
+        """
+        Get the position of the vector graphics.
+
+        Returns:
+            Point2D: Position of the vector graphics
+        """
+        return self._position
+    # end position
+
+    @position.setter
+    def position(self, value: Point2D):
+        """
+        Set the position of the vector graphics.
+
+        Args:
+            value (Point2D): Position of the vector graphics
+        """
+        self._position.set(value.x, value.y)
+    # end position
+
+    @property
+    def scale(self) -> Point2D:
+        """
+        Get the scale of the vector graphics.
+
+        Returns:
+            Point2D: Scale of the vector graphics
+        """
+        return self._scale
+    # end scale
+
+    @scale.setter
+    def scale(self, value: Point2D):
+        """
+        Set the scale of the vector graphics.
+
+        Args:
+            value (Point2D): Scale of the vector graphics
+        """
+        self._scale.set(value.x, value.y)
+    # end scale
+
+    @property
+    def elements(self) -> List[Any]:
+        """
+        Get the elements of the vector graphics.
+
+        Returns:
+            List[Any]: Elements of the vector graphics
+        """
+        return self._elements
+    # end elements
+
+    @property
+    def path_group(self) -> PathGroup:
+        """
+        Get the path group of the vector graphics.
+
+        Returns:
+            PathGroup: Path group of the vector graphics
+        """
+        return self._path_group
+    # end path_group
+
+    @property
+    def references(self) -> dict:
+        """
+        Get the references of the vector graphics.
+
+        Returns:
+            dict: References of the vector graphics
+        """
+        return self._references
+    # end references
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     # Update bounding box
     def update_bbox(self):
@@ -420,6 +569,10 @@ class VectorGraphics(
         self.update_bbox()
     # end add
 
+    # endregion PUBLIC
+
+    # region DRAW
+
     # Draw bounding box anchors
     def draw_bounding_box_anchors(self, context):
         """
@@ -472,7 +625,7 @@ class VectorGraphics(
         Draw the bounding box of the vector graphics.
         """
         # Set the color and draw the rectangle
-        self.bounding_box.draw(context)
+        self._bounding_box.draw(context)
     # end draw_bbox
 
     def draw(
@@ -538,6 +691,8 @@ class VectorGraphics(
         context.restore()
     # end draw
 
+    # endregion DRAW
+
     # region PRIVATE
 
     # Get bounding box
@@ -588,16 +743,33 @@ class VectorGraphics(
     # Start moving
     def start_move(
             self,
-            start_value: Any
+            start_value: Any,
+            relative: bool = False,
+            *args,
+            **kwargs
     ):
         """
         Start moving the vector graphic.
         """
-        self.start_position = self.position.copy()
+        if relative:
+            self.movablemixin_state.start_position = Point2D.null()
+            self.movablemixin_state.last_position = Point2D.null()
+        else:
+            self.movablemixin_state.start_position = self.movable_position.copy()
+        # end if
     # end start_moving
 
     # Animate move
-    def animate_move(self, t, duration, interpolated_t, env_value):
+    def animate_move(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            env_value,
+            relative: bool = False,
+            *args,
+            **kwargs
+    ):
         """
         Animate moving the vector graphic.
         """
@@ -610,7 +782,12 @@ class VectorGraphics(
 
     # region FADE_IN
 
-    def start_fadein(self, start_value: Any):
+    def start_fadein(
+            self,
+            start_value: Any,
+            *args,
+            **kwargs
+    ):
         """
         Start fading in the vector graphic.
         """
@@ -618,7 +795,13 @@ class VectorGraphics(
         self.last_animated_element = -1
     # end start_fadein
 
-    def animate_fadein(self, t, duration, interpolated_t, end_value):
+    def animate_fadein(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value
+    ):
         """
         Animate fading in the vector graphic.
         """

@@ -15,6 +15,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#
+# Rotable objects and elements
+#
+
 # Imports
 from typing import Any
 import numpy as np
@@ -32,7 +36,8 @@ class RotableMixin(AnimableMixin):
         Initialize the rotatable object.
         """
         super().__init__()
-        self._rotable_angle = None
+        self.rotablemixin_state = AnimableMixin.AnimationRegister()
+        self.rotablemixin_state.angle = None
     # end __init__
 
     # region PUBLIC
