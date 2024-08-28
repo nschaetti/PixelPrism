@@ -24,7 +24,7 @@ from pixel_prism.animate.able import (
     BuildableMixin,
     DestroyableMixin
 )
-from pixel_prism.data import Point2D, Color
+from pixel_prism.data import Point2D, Color, EventMixin, ObjectChangedEvent
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path
 from pixel_prism.utils import Anchor
@@ -298,7 +298,10 @@ def load_svg(
 
 
 # A class to group paths
-class PathGroup:
+class PathGroup(
+    BoundingBoxMixin,
+    EventMixin
+):
     """
     A class to group paths.
     """
@@ -313,8 +316,154 @@ class PathGroup:
         Args:
             paths (List[Path]): Paths to group
         """
+        # Properties
         self._paths = paths if paths is not None else list()
+
+        # Bounding box
+        BoundingBoxMixin.__init__(self)
+        EventMixin.__init__(self)
+
+        # Events
+        self.add_event('on_change')
+        for path in self._paths:
+            path.add_event_listener("on_change", self._on_path_changed)
+        # end for
     # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def paths(self) -> List[Path]:
+        """
+        Get the paths of the path group.
+
+        Returns:
+            List[Path]: Paths of the path group
+        """
+        return self._paths
+    # end paths
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    # Update data
+    def update_data(self):
+        """
+        Update the data of the vector graphics.
+        """
+        self.update_bbox()
+    # end update_data
+
+    # Update bounding box
+    def update_bbox(self):
+        """
+        Update the bounding box of the vector graphics.
+        """
+        if len(self._paths) > 0:
+            # Get the min and max values
+            min_x = min([el.bounding_box.x1 for el in self._paths])
+            min_y = min([el.bounding_box.y1 for el in self._paths])
+            max_x = max([el.bounding_box.x2 for el in self._paths])
+            max_y = max([el.bounding_box.y2 for el in self._paths])
+
+            # Update the bounding box
+            self._bounding_box.upper_left.x = min_x
+            self._bounding_box.upper_left.y = min_y
+            self._bounding_box.width = max_x - min_x
+            self._bounding_box.height = max_y - min_y
+        # end if
+    # end update_bbox
+
+    # endregion PUBLIC
+
+    # region EVENT
+
+    # On path changed
+    def _on_path_changed(self, event):
+        """
+        On path changed event.
+        """
+        self.update_data()
+        self.dispatch_event('on_change', event=event)
+    # end _on_path_changed
+
+    # endregion EVENT
+
+    # region FADE_IN
+
+    def init_fadein(self):
+        """
+        Initialize the fadein animation.
+        """
+        pass
+    # end init_fadein
+
+    def start_fadein(
+            self,
+            start_value: Any,
+            *args,
+            **kwargs
+    ):
+        """
+        Start fading in the vector graphic.
+        """
+        # Reset the last animated element
+        self.last_animated_element = -1
+    # end start_fadein
+
+    def animate_fadein(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value
+    ):
+        """
+        Animate fading in the vector graphic.
+        """
+        # Time of animation divided by elements
+        t_per_element = duration / len(self.elements)
+
+        # Check on which element we are
+        i = min(int(interpolated_t * len(self.elements)), len(self.elements) - 1)
+
+        # Element time
+        element_t = (interpolated_t - i / len(self.elements)) * len(self.elements)
+
+        # Check if it is the first time
+        if i != self.last_animated_element:
+            self.last_animated_element = i
+            if i > 0:  # Start the fadein animation
+                self.elements[i - 1].end_fadein(1)
+            # end if
+            self.elements[i].start_fadein(0)
+        else:
+            # Animate the element
+            self.elements[i].animate_fadein(
+                element_t,
+                t_per_element,
+                element_t,
+                end_value
+            )
+        # end if
+    # end animate_fadein
+
+    def end_fadein(self, end_value: Any):
+        """
+        End the fade-in animation.
+        """
+        pass
+    # end end_fadein
+
+    def finish_fadein(self):
+        """
+        Finish the fade-in animation.
+        """
+        pass
+    # end finish_fadein
+
+    # endregion FADE_IN
 
     # region OVERRIDE
 
@@ -373,30 +522,22 @@ class VectorGraphics(
     BuildableMixin,
     DestroyableMixin
 ):
+    """
+    Vector graphics class.
+    """
 
     def __init__(
             self,
-            position: Point2D,
-            scale: Point2D,
-            elements=None,
-            is_built: bool = True,
-            build_ratio: float = 1.0
+            paths=None
     ):
         """
         Initialize the vector graphics
 
         Args:
-            position (Point2D): Position of the vector graphics
-            scale (Point2D): Scale of the vector graphics
-            elements (list): Elements of the vector graphics
-            is_built (bool): Whether the vector graphics is built
-            build_ratio (float): Build ratio
+            paths (List[Path]): Paths of the vector graphics
         """
         # Initialize the elements
-        self._position = position
-        self._scale = scale
-        self._elements = elements if elements is not None else []
-        self._path_group = PathGroup(self._elements)
+        self._path_group = PathGroup(elements)
         self._references = {}
         self._index = 0
 
@@ -405,7 +546,7 @@ class VectorGraphics(
         MovableMixin.__init__(self)
         FadeInableMixin.__init__(self)
         FadeOutableMixin.__init__(self)
-        BuildableMixin.__init__(self, is_built, build_ratio)
+        BuildableMixin.__init__(self, True, 1.0)
 
         # Fadein, fadeout
         self.last_animated_element = None
@@ -423,61 +564,6 @@ class VectorGraphics(
     # end __init__
 
     # region PROPERTIES
-
-    @property
-    def position(self) -> Point2D:
-        """
-        Get the position of the vector graphics.
-
-        Returns:
-            Point2D: Position of the vector graphics
-        """
-        return self._position
-    # end position
-
-    @position.setter
-    def position(self, value: Point2D):
-        """
-        Set the position of the vector graphics.
-
-        Args:
-            value (Point2D): Position of the vector graphics
-        """
-        self._position.set(value.x, value.y)
-    # end position
-
-    @property
-    def scale(self) -> Point2D:
-        """
-        Get the scale of the vector graphics.
-
-        Returns:
-            Point2D: Scale of the vector graphics
-        """
-        return self._scale
-    # end scale
-
-    @scale.setter
-    def scale(self, value: Point2D):
-        """
-        Set the scale of the vector graphics.
-
-        Args:
-            value (Point2D): Scale of the vector graphics
-        """
-        self._scale.set(value.x, value.y)
-    # end scale
-
-    @property
-    def elements(self) -> List[Any]:
-        """
-        Get the elements of the vector graphics.
-
-        Returns:
-            List[Any]: Elements of the vector graphics
-        """
-        return self._elements
-    # end elements
 
     @property
     def path_group(self) -> PathGroup:
@@ -510,19 +596,11 @@ class VectorGraphics(
         """
         Update the bounding box of the vector graphics.
         """
-        if len(self.elements) > 0:
-            # Get the min and max values
-            min_x = min([el.bounding_box.x1 for el in self.elements])
-            min_y = min([el.bounding_box.y1 for el in self.elements])
-            max_x = max([el.bounding_box.x2 for el in self.elements])
-            max_y = max([el.bounding_box.y2 for el in self.elements])
-
-            # Update the bounding box
-            self._bounding_box.upper_left.x = min_x
-            self._bounding_box.upper_left.y = min_y
-            self._bounding_box.width = max_x - min_x
-            self._bounding_box.height = max_y - min_y
-        # end if
+        # Update the bounding box
+        self._bounding_box.upper_left.x = self._path_group.bounding_box.x
+        self._bounding_box.upper_left.y = self._path_group.bounding_box.y
+        self._bounding_box.width = self._path_group.bounding_box.width
+        self._bounding_box.height = self._path_group.bounding_box.height
     # end update_bbox
 
     # Set alpha
@@ -1104,6 +1182,8 @@ class VectorGraphics(
 
     # endregion OVERRIDE
 
+    # region CLASS_METHODS
+
     @classmethod
     def from_svg(
             cls,
@@ -1144,6 +1224,8 @@ class VectorGraphics(
 
         return vector_graphics
     # end from_svg
+
+    # endregion CLASS_METHODS
 
 # end VectorGraphics
 

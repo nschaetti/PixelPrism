@@ -15,11 +15,15 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 # Imports
 from typing import Any
-from .animablemixin import AnimableMixin
+from . import LinearInterpolator
+from .able import AnimableMixin
+from .animate import Animate
 
 
+# Interface class for fade-in support objects
 class FadeInableMixin(AnimableMixin):
     """
     Interface class for fade-in animations
@@ -99,3 +103,32 @@ class FadeInableMixin(AnimableMixin):
 # end FadeInableMixin
 
 
+
+# Fade in animation
+class FadeIn(Animate):
+    """
+    A transition that fades in an object over time.
+    """
+
+    def __init__(
+            self,
+            obj,
+            start_time,
+            end_time,
+            interpolator=LinearInterpolator(),
+            name="",
+    ):
+        """
+        Initialize the fade-in transition.
+
+        Args:
+            obj (any): Object to fade in
+            start_time (float): Start time
+            end_time (float): End time
+            interpolator (Interpolator): Interpolator
+        """
+        assert isinstance(obj, FadeInableMixin), "Object must be an instance of FadeInAble"
+        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
+    # end __init__
+
+# end FadeIn
