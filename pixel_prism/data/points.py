@@ -1,6 +1,7 @@
 #
 # This file contains the Point2D class, which is a simple class that
 # represents a point in 2D space.
+import math
 from typing import Any
 
 # Imports
@@ -620,4 +621,423 @@ class Point3D(Point):
     # end __repr__
 
 # end Point3D
+
+
+# TPoint2D class
+class TPoint2D(Point2D):
+    """
+    A class that tracks transformations applied to a Point2D and updates dynamically.
+    """
+
+    def __init__(self, point: Point2D, transform_func):
+        self.original_point = point
+        self.transform_func = transform_func
+
+        # Initialize with the transformed point's position
+        transformed_point = self.transform_func(self.original_point)
+        super().__init__(transformed_point.x, transformed_point.y)
+
+        # Subscribe to changes on the original point
+        self.original_point.add_event_listener("on_change", self.update_position)
+    # end __init__
+
+    # region PUBLIC
+
+    def update_position(self, _=None):
+        """
+        Update the position based on the original point's new position.
+        """
+        transformed_point = self.transform_func(self.original_point)
+        super().set(transformed_point.x, transformed_point.y)
+    # end update_position
+
+    # endregion PUBLIC
+
+# end TPoint2D
+
+
+# Function to create a new tracked point
+def add_t(point: Point2D, delta: Point2D):
+    """
+    Create a TPoint2D that represents point + delta.
+    """
+    return TPoint2D(point, lambda p: Point2D(p.x + delta.x, p.y + delta.y))
+# end add_t
+
+
+def sub_t(point: Point2D, delta: Point2D):
+    """
+    Create a TPoint2D that represents point - delta.
+    """
+    return TPoint2D(point, lambda p: Point2D(p.x - delta.x, p.y - delta.y))
+# end sub_t
+
+
+def mul_t(point: Point2D, scalar: float):
+    """
+    Create a TPoint2D that represents point * scalar.
+    """
+    return TPoint2D(point, lambda p: Point2D(p.x * scalar, p.y * scalar))
+# end mul_t
+
+
+def div_t(point: Point2D, scalar: float):
+    """
+    Create a TPoint2D that represents point / scalar.
+    """
+    return TPoint2D(point, lambda p: Point2D(p.x / scalar, p.y / scalar))
+# end div_t
+
+
+def neg_t(point: Point2D):
+    """
+    Create a TPoint2D that represents -point (negation).
+    """
+    return TPoint2D(point, lambda p: Point2D(-p.x, -p.y))
+# end neg_t
+
+
+def abs_t(point: Point2D):
+    """
+    Create a TPoint2D that represents the absolute value of the point.
+    """
+    return TPoint2D(point, lambda p: Point2D(abs(p.x), abs(p.y)))
+# end abs_t
+
+
+def round_t(point: Point2D, ndigits=0):
+    """
+    Create a TPoint2D that represents the rounded value of the point.
+    """
+    return TPoint2D(point, lambda p: Point2D(round(p.x, ndigits=ndigits), round(p.y, ndigits=ndigits)))
+# end round_t
+
+
+def rotate_t(point: Point2D, angle: Scalar, center: Point2D = None):
+    """
+    Create a TPoint2D that represents the point rotated around another point by a given angle.
+
+    Args:
+        point (Point2D): The point to rotate.
+        angle (Scalar): The angle of rotation (in radians).
+        center (Point2D): The center of rotation. If None, rotate around the origin.
+    """
+    if center is None:
+        center = Point2D(0, 0)
+
+    return TPoint2D(point, lambda p: Point2D(
+        center.x + (p.x - center.x) * math.cos(angle.value) - (p.y - center.y) * math.sin(angle.value),
+        center.y + (p.x - center.x) * math.cos(angle.value) + (p.y - center.y) * math.cos(angle.value)
+    ))
+# end rotate_t
+
+
+def scale_t(point: Point2D, scale: Scalar, center: Point2D = None):
+    """
+    Create a TPoint2D that represents the point scaled away from another point by a given scale factor.
+
+    Args:
+        point (Point2D): The point to scale.
+        scale (Scalar): The scale factor.
+        center (Point2D): The center of scaling. If None, scale from the origin.
+    """
+    if center is None:
+        center = Point2D(0, 0)
+
+    return TPoint2D(point, lambda p: Point2D(
+        center.x + (p.x - center.x) * scale.value,
+        center.y + (p.y - center.y) * scale.value
+    ))
+# end scale_t
+
+
+def dot_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the dot product of two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: point1.x * point2.x + point1.y * point2.y)
+# end dot_t
+
+
+def cross_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the cross product of two points in 2D.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: point1.x * point2.y - point1.y * point2.x)
+# end cross_t
+
+
+def norm_t(point: Point2D):
+    """
+    Create a TScalar representing the norm (magnitude) of a point.
+
+    Args:
+        point (Point2D): The point.
+    """
+    return TScalar(lambda: math.sqrt(point.x ** 2 + point.y ** 2))
+# end norm_t
+
+
+def normalize_t(point: Point2D):
+    """
+    Create a TPoint2D representing the normalized (unit vector) of a point.
+
+    Args:
+        point (Point2D): The point to normalize.
+    """
+    norm = norm_t(point)
+    return TPoint2D(point, lambda p: Point2D(p.x / norm.value, p.y / norm.value))
+# end normalize_t
+
+
+def angle_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the angle between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    dot = dot_t(point1, point2)
+    norm1 = norm_t(point1)
+    norm2 = norm_t(point2)
+    return TScalar(lambda: math.acos(dot.value / (norm1.value * norm2.value)))
+# end angle_t
+
+
+def distance_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Euclidean distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2))
+# end distance_t
+
+
+def distance_squared_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the squared Euclidean distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: (point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2)
+# end distance_squared_t
+
+
+def distance_manhattan_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Manhattan distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: abs(point1.x - point2.x) + abs(point1.y - point2.y))
+# end distance_manhattan_t
+
+
+def distance_chebyshev_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Chebyshev distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: max(abs(point1.x - point2.x), abs(point1.y - point2.y)))
+# end distance_chebyshev_t
+
+
+def distance_canberra_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Canberra distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: abs(point1.x - point2.x) / (abs(point1.x) + abs(point2.x)) +
+                             abs(point1.y - point2.y) / (abs(point1.y) + abs(point2.y)))
+# end distance_canberra_t
+
+
+def distance_minkowski_t(point1: Point2D, point2: Point2D, p: float):
+    """
+    Create a TScalar representing the Minkowski distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+        p (float): The order of the Minkowski distance (p=1 is Manhattan, p=2 is Euclidean).
+    """
+    return TScalar(lambda: ((abs(point1.x - point2.x) ** p + abs(point1.y - point2.y) ** p) ** (1 / p)))
+# end distance_minkowski_t
+
+
+def distance_hamming_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Hamming distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: int(point1.x != point2.x) + int(point1.y != point2.y))
+# end distance_hamming_t
+
+
+def distance_jaccard_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Jaccard distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    intersection = min(point1.x, point2.x) + min(point1.y, point2.y)
+    union = max(point1.x, point2.x) + max(point1.y, point2.y)
+    return TScalar(lambda: 1 - intersection / union if union != 0 else 0)
+# end distance_jaccard_t
+
+
+def distance_braycurtis_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Bray-Curtis distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    numerator = abs(point1.x - point2.x) + abs(point1.y - point2.y)
+    denominator = abs(point1.x + point2.x) + abs(point1.y + point2.y)
+    return TScalar(lambda: numerator / denominator if denominator != 0 else 0)
+# end distance_braycurtis_t
+
+
+def distance_cosine_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the cosine distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    dot = dot_t(point1, point2)
+    norm1 = norm_t(point1)
+    norm2 = norm_t(point2)
+    return TScalar(lambda: 1 - (dot.value / (norm1.value * norm2.value)) if norm1.value != 0 and norm2.value != 0 else 1)
+# end distance_cosine_t
+
+
+def distance_correlation_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the correlation distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    mean1 = (point1.x + point1.y) / 2
+    mean2 = (point2.x + point2.y) / 2
+    numerator = (point1.x - mean1) * (point2.x - mean2) + (point1.y - mean1) * (point2.y - mean2)
+    denominator = math.sqrt(((point1.x - mean1) ** 2 + (point1.y - mean1) ** 2) *
+                            ((point2.x - mean2) ** 2 + (point2.y - mean2) ** 2))
+    return TScalar(lambda: 1 - (numerator / denominator) if denominator != 0 else 1)
+# end distance_correlation_t
+
+
+def distance_haversine_t(point1: Point2D, point2: Point2D, radius=6371.0):
+    """
+    Create a TScalar representing the Haversine distance between two geographic points.
+
+    Args:
+        point1 (Point2D): The first point (latitude, longitude).
+        point2 (Point2D): The second point (latitude, longitude).
+        radius (float): Radius of the sphere (default is Earth's radius in km).
+    """
+    lat1, lon1 = math.radians(point1.y), math.radians(point1.x)
+    lat2, lon2 = math.radians(point2.y), math.radians(point2.x)
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return TScalar(lambda: radius * c)
+# end distance_haversine_t
+
+
+def distance_euclidean_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the Euclidean distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: np.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2))
+# end distance_euclidean_t
+
+
+def distance_mahalanobis_t(point1: Point2D, point2: Point2D, cov_matrix):
+    """
+    Create a TScalar representing the Mahalanobis distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+        cov_matrix (np.ndarray): Covariance matrix of the dataset.
+    """
+    delta = np.array([point1.x - point2.x, point1.y - point2.y])
+    inv_cov_matrix = np.linalg.inv(cov_matrix)
+    return TScalar(lambda: np.sqrt(delta.T @ inv_cov_matrix @ delta))
+# end distance_mahalanobis_t
+
+
+def distance_seuclidean_t(point1: Point2D, point2: Point2D, std_devs):
+    """
+    Create a TScalar representing the standardized Euclidean distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+        std_devs (np.ndarray): Standard deviations of the dimensions.
+    """
+    delta = np.array([point1.x - point2.x, point1.y - point2.y])
+    return TScalar(lambda: np.sqrt(np.sum((delta / std_devs) ** 2)))
+# end distance_seuclidean_t
+
+
+def distance_sqeuclidean_t(point1: Point2D, point2: Point2D):
+    """
+    Create a TScalar representing the squared Euclidean distance between two points.
+
+    Args:
+        point1 (Point2D): The first point.
+        point2 (Point2D): The second point.
+    """
+    return TScalar(lambda: (point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2)
+# end distance_sqeuclidean_t
+
+
+
+
+
+
+
+
 

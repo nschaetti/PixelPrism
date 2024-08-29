@@ -3,8 +3,8 @@
 #
 
 # Imports
+import numpy as np
 from pixel_prism.animate.able import RangeableMixin
-
 from .data import Data
 from .eventmixin import EventMixin
 
@@ -270,3 +270,243 @@ class Scalar(Data, EventMixin, RangeableMixin):
     # endregion OVERRIDE
 
 # end Scalar
+
+
+class TScalar(Scalar):
+    """
+    A class to represent a scalar value that is dynamically computed based on other Scalars.
+    """
+
+    def __init__(self, func, *sources):
+        """
+        Initialize the TScalar.
+
+        Args:
+            func (function): A function that computes the value dynamically.
+            sources (Scalar): Scalar objects that this TScalar depends on.
+        """
+        self.func = func
+        self.sources = sources
+
+        # Initialize the base class with the computed value
+        initial_value = self.func()
+        super().__init__(initial_value)
+
+        # Attach listeners to the source Scalars
+        for source in self.sources:
+            source.add_event_listener("on_change", self._on_source_changed)
+        # end for
+    # end __init__
+
+    def _on_source_changed(self, *args, **kwargs):
+        """
+        Update the value when a source Scalar changes.
+        """
+        new_value = self.func()
+        self.set(new_value)
+    # end _on_source_changed
+
+    # Override set to prevent manual setting
+    def set(self, value):
+        """
+        Prevent manual setting of the value. It should be computed only.
+        """
+        raise AttributeError("Cannot set value directly on TScalar. It's computed based on other Scalars.")
+    # end set
+
+    def get(self):
+        """
+        Get the current computed value.
+        """
+        return self.func()
+    # end get
+# end TScalar
+
+
+def floor_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the floor function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the floor function to.
+    """
+    return TScalar(lambda: np.floor(scalar.value))
+# end floor_t
+
+
+def ceil_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the ceil function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the ceil function to.
+    """
+    return TScalar(lambda: np.ceil(scalar.value))
+# end ceil_t
+
+
+def trunc_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the trunc function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the trunc function to.
+    """
+    return TScalar(lambda: np.trunc(scalar.value))
+# end trunc_t
+
+
+def frac_t(scalar: Scalar):
+    """
+    Create a TScalar that returns the fractional part of the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to get the fractional part of.
+    """
+    return TScalar(lambda: scalar.value - np.floor(scalar.value))
+# end frac_t
+
+
+def sqrt_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the sqrt function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the sqrt function to.
+    """
+    return TScalar(lambda: np.sqrt(scalar.value))
+# end sqrt_t
+
+
+def exp_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the exp function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the exp function to.
+    """
+    return TScalar(lambda: np.exp(scalar.value))
+# end exp_t
+
+
+def expm1_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the expm1 function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the expm1 function to.
+    """
+    return TScalar(lambda: np.expm1(scalar.value))
+# end expm1_t
+
+
+def log_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the log function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the log function to.
+    """
+    return TScalar(lambda: np.log(scalar.value))
+# end log_t
+
+
+def log1p_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the log1p function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the log1p function to.
+    """
+    return TScalar(lambda: np.log1p(scalar.value))
+# end log1p_t
+
+
+def log2_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the log2 function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the log2 function to.
+    """
+    return TScalar(lambda: np.log2(scalar.value))
+# end log2_t
+
+
+def log10_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the log10 function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the log10 function to.
+    """
+    return TScalar(lambda: np.log10(scalar.value))
+# end log10_t
+
+
+import numpy as np
+
+def sin_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the sin function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the sin function to.
+    """
+    return TScalar(lambda: np.sin(scalar.value), scalar)
+# end sin_t
+
+def cos_t(scalar: Scalar):
+    return TScalar(lambda: np.cos(scalar.value), scalar)
+# end cos_t
+
+def tan_t(scalar: Scalar):
+    return TScalar(lambda: np.tan(scalar.value), scalar)
+# end tan_t
+
+def asin_t(scalar: Scalar):
+    return TScalar(lambda: np.arcsin(scalar.value), scalar)
+# end asin_t
+
+def acos_t(scalar: Scalar):
+    return TScalar(lambda: np.arccos(scalar.value), scalar)
+# end acos_t
+
+def atan_t(scalar: Scalar):
+    return TScalar(lambda: np.arctan(scalar.value), scalar)
+# end atan_t
+
+def atan2_t(y: Scalar, x: Scalar):
+    return TScalar(lambda: np.arctan2(y.value, x.value), y, x)
+# end atan2_t
+
+def sinh_t(scalar: Scalar):
+    return TScalar(lambda: np.sinh(scalar.value), scalar)
+# end sinh_t
+
+def cosh_t(scalar: Scalar):
+    return TScalar(lambda: np.cosh(scalar.value), scalar)
+# end cosh_t
+
+def tanh_t(scalar: Scalar):
+    return TScalar(lambda: np.tanh(scalar.value), scalar)
+# end tanh_t
+
+def asinh_t(scalar: Scalar):
+    return TScalar(lambda: np.arcsinh(scalar.value), scalar)
+# end asinh_t
+
+def acosh_t(scalar: Scalar):
+    return TScalar(lambda: np.arccosh(scalar.value), scalar)
+# end acosh_t
+
+def atanh_t(scalar: Scalar):
+    return TScalar(lambda: np.arctanh(scalar.value), scalar)
+# end atanh_t
+
+def degrees_t(scalar: Scalar):
+    return TScalar(lambda: np.degrees(scalar.value), scalar)
+# end degrees_t
+
+
+
