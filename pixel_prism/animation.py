@@ -17,6 +17,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 
+from pixel_prism.animate import Animate
 # Locals
 from pixel_prism.base.imagecanvas import ImageCanvas
 from pixel_prism.render_engine import RenderEngine
@@ -240,6 +241,8 @@ class Animation:
 
     # endregion PROPERTIES
 
+    # region PUBLIC
+
     def init_effects(
             self
     ):
@@ -379,7 +382,13 @@ class Animation:
         Args:
             transition (Transition): Transition object
         """
-        self.transitions.append(transition)
+        if isinstance(transition, Animate):
+            self.transitions.extend(transition)
+        else:
+            for trans in transition:
+                self.transitions.extend(trans)
+            # end for
+        # end if
     # end animate
 
     def apply_transitions(
@@ -605,6 +614,8 @@ class Animation:
             # end if
         # end try
     # end compose_video
+
+    # endregion PUBLIC
 
 # end Animation
 

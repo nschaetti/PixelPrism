@@ -33,11 +33,18 @@ from .animate import (
     Move,
     Scale,
     Rotate,
-    FadeIn,
     FadeOut,
     Range,
     Build,
     Destroy
+)
+
+# Fade
+from .fade import (
+    FadeInableMixin,
+    FadeOutableMixin,
+    FadeIn,
+    FadeOut
 )
 
 from .changes import (
@@ -51,6 +58,9 @@ __all__ = [
     "Interpolator",
     "LinearInterpolator",
     "EaseInOutInterpolator",
+    # Mixin
+    "FadeInableMixin",
+    "FadeOutableMixin",
     # Animate
     "Animate",
     "Move",
