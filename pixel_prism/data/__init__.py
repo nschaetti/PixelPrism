@@ -18,6 +18,21 @@ from .colors import (
     Color
 )
 
+# Matrices
+from .matrices import (
+    Matrix2D,
+    TMatrix2D,
+    add_t,
+    sub_t,
+    mul_t,
+    transpose_t,
+    determinant_t,
+    inverse_t,
+    scalar_mul_t,
+    trace_t,
+    rotate_point_t
+)
+
 # Points
 from .points import (
     Point,
@@ -46,7 +61,6 @@ from .points import (
     distance_braycurtis_t,
     distance_cosine_t,
     distance_correlation_t,
-    distance_haversine_t,
     distance_euclidean_t,
     distance_mahalanobis_t,
     distance_seuclidean_t,
@@ -99,10 +113,51 @@ __all__ = [
     "ObjectChangedEvent",
     # Colors
     "Color",
+    # Matrices
+    "Matrix2D",
+    "TMatrix2D",
+    "add_t",
+    "sub_t",
+    "mul_t",
+    "transpose_t",
+    "determinant_t",
+    "inverse_t",
+    "scalar_mul_t",
+    "trace_t",
+    "rotate_point_t",
     # Points
     "Point",
     "Point2D",
     "Point3D",
+    "TPoint2D",
+    "add_t",
+    "sub_t",
+    "mul_t",
+    "div_t",
+    "abs_t",
+    "neg_t",
+    "dot_t",
+    "cross_t",
+    "norm_t",
+    "normalize_t",
+    "angle_t",
+    "distance_t",
+    "distance_squared_t",
+    "distance_manhattan_t",
+    "distance_chebyshev_t",
+    "distance_canberra_t",
+    "distance_minkowski_t",
+    "distance_hamming_t",
+    "distance_jaccard_t",
+    "distance_braycurtis_t",
+    "distance_cosine_t",
+    "distance_correlation_t",
+    "distance_euclidean_t",
+    "distance_mahalanobis_t",
+    "distance_seuclidean_t",
+    "distance_sqeuclidean_t",
+    "round_t",
+    "rotate_t",
     # Scalar
     "Scalar",
     "TScalar",

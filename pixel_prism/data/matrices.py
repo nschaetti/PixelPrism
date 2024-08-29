@@ -1,8 +1,27 @@
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
 
 # Imports
+from typing import Union
 import numpy as np
 from .data import Data
+from .scalar import TScalar
+from .points import Point2D, TPoint2D
 from .eventmixin import EventMixin
 
 
@@ -143,81 +162,93 @@ class Matrix2D(Data, EventMixin):
 
 class TMatrix2D(Matrix2D):
     """
-    A class to represent a 2D matrix that tracks transformations.
+    A class to represent a 2D matrix that is dynamically computed based on other Matrix2D objects.
     """
 
-    def __init__(self, matrix=None, on_change=None):
+    def __init__(self, func, *sources):
         """
-        Initialize the tracking 2D matrix.
+        Initialize the TMatrix2D.
 
         Args:
-            matrix (list or np.array): Initial matrix values, defaults to identity matrix if None
-            on_change (callable): Function to call when the matrix changes
+            func (function): A function that computes the matrix dynamically.
+            sources (Matrix2D): Matrix2D objects that this TMatrix2D depends on.
         """
-        super().__init__(matrix=matrix, on_change=on_change)
+        self.func = func
+        self.sources = sources
+
+        # Initialize the base class with the computed matrix
+        initial_value = self.func()
+        super().__init__(initial_value)
+
+        # Attach listeners to the source matrices
+        for source in self.sources:
+            source.add_event_listener("on_change", self._on_source_changed)
+        # end for
     # end __init__
 
-    def add_t(self, other):
+    def _on_source_changed(self, *args, **kwargs):
         """
-        Add two matrices and return a tracked result.
+        Update the matrix when a source Matrix2D changes.
+        """
+        new_value = self.func()
+        self.set(new_value)
+    # end _on_source_changed
 
-        Args:
-            other (Matrix2D or np.array): Matrix to add
+    # Override set to prevent manual setting
+    def set(self, value):
         """
-        result = super().__add__(other)
-        return TMatrix2D(result.matrix)
-    # end add_t
+        Prevent manual setting of the matrix. It should be computed only.
+        """
+        raise AttributeError("Cannot set matrix directly on TMatrix2D. It's computed based on other Matrix2D objects.")
+    # end set
 
-    def sub_t(self, other):
+    def get(self):
         """
-        Subtract two matrices and return a tracked result.
-
-        Args:
-            other (Matrix2D or np.array): Matrix to subtract
+        Get the current computed matrix.
         """
-        result = super().__sub__(other)
-        return TMatrix2D(result.matrix)
-    # end sub_t
-
-    def mul_t(self, other):
-        """
-        Multiply the matrix by another matrix or a scalar and return a tracked result.
-
-        Args:
-            other (Matrix2D or scalar): Matrix or scalar to multiply
-        """
-        result = super().__mul__(other)
-        return TMatrix2D(result.matrix)
-    # end mul_t
-
-    def div_t(self, other):
-        """
-        Divide the matrix by a scalar and return a tracked result.
-
-        Args:
-            other (scalar): Scalar to divide by
-        """
-        result = super().__truediv__(other)
-        return TMatrix2D(result.matrix)
-    # end div_t
-
-    def transpose_t(self):
-        """
-        Return the transpose of the matrix as a tracked result.
-        """
-        result = self._matrix.T
-        return TMatrix2D(result)
-    # end transpose_t
-
-    def inverse_t(self):
-        """
-        Return the inverse of the matrix as a tracked result.
-        """
-        result = np.linalg.inv(self._matrix)
-        return TMatrix2D(result)
-    # end inverse_t
+        return self.func()
+    # end get
 
 # end TMatrix2D
+
+
+def add_t(matrix1: Matrix2D, matrix2: Matrix2D) -> TMatrix2D:
+    return TMatrix2D(lambda: matrix1.get() + matrix2.get(), matrix1, matrix2)
+# end add_t
+
+def sub_t(matrix1: Matrix2D, matrix2: Matrix2D) -> TMatrix2D:
+    return TMatrix2D(lambda: matrix1.get() - matrix2.get(), matrix1, matrix2)
+# end sub_t
+
+def mul_t(matrix1: Matrix2D, matrix2: Matrix2D) -> TMatrix2D:
+    return TMatrix2D(lambda: np.dot(matrix1.get(), matrix2.get()), matrix1, matrix2)
+# end mul_t
+
+def scalar_mul_t(matrix: Matrix2D, scalar: TScalar) -> TMatrix2D:
+    return TMatrix2D(lambda: matrix.get() * scalar.get(), matrix, scalar)
+# end scalar_mul_t
+
+def transpose_t(matrix: Matrix2D) -> TMatrix2D:
+    return TMatrix2D(lambda: np.transpose(matrix.get()), matrix)
+# end transpose_t
+
+def inverse_t(matrix: Matrix2D) -> TMatrix2D:
+    return TMatrix2D(lambda: np.linalg.inv(matrix.get()), matrix)
+# end inverse_t
+
+def rotate_point_t(matrix: Matrix2D, point: Union[Point2D, TPoint2D]) -> TPoint2D:
+    return TPoint2D(point, lambda p: np.dot(matrix.get(), p.pos))
+# end rotate_point_t
+
+def determinant_t(matrix: Matrix2D) -> TScalar:
+    return TScalar(lambda: np.linalg.det(matrix.get()), matrix)
+# end determinant_t
+
+def trace_t(matrix: Matrix2D) -> TScalar:
+    return TScalar(lambda: np.trace(matrix.get()), matrix)
+# end trace_t
+
+
 
 
 

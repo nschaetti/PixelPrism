@@ -1,6 +1,7 @@
 #
 # This file contains the Scalar class, which is used to represent a scalar value.
 #
+from typing import List, Dict
 
 # Imports
 import numpy as np
@@ -277,34 +278,68 @@ class TScalar(Scalar):
     A class to represent a scalar value that is dynamically computed based on other Scalars.
     """
 
-    def __init__(self, func, *sources):
+    def __init__(self, func, on_change=None, **scalars):
         """
         Initialize the TScalar.
 
         Args:
             func (function): A function that computes the value dynamically.
-            sources (Scalar): Scalar objects that this TScalar depends on.
+            on_change (function): A function to call when the value changes.
+            scalars: Scalar objects that this TScalar depends on.
         """
-        self.func = func
-        self.sources = sources
+        self._func = func
+        self._scalars = scalars
 
         # Initialize the base class with the computed value
-        initial_value = self.func()
+        initial_value = self._func(**self._scalars)
         super().__init__(initial_value)
 
-        # Attach listeners to the source Scalars
-        for source in self.sources:
-            source.add_event_listener("on_change", self._on_source_changed)
-        # end for
+        # Listen to changes in the original point
+        if on_change is not None:
+            for scalar in self._scalars.values():
+                scalar.add_event_listener("on_change", on_change)
+            # end for
+        # end if
     # end __init__
 
-    def _on_source_changed(self, *args, **kwargs):
+    # region PROPERTIES
+
+    @property
+    def func(self):
         """
-        Update the value when a source Scalar changes.
+        Get the function that computes the value.
         """
-        new_value = self.func()
-        self.set(new_value)
-    # end _on_source_changed
+        return self._func
+    # end func
+
+    @property
+    def scalars(self):
+        """
+        Source scalar
+        """
+        return self._scalars
+    # end sources
+
+    @property
+    def value(self):
+        """
+        Get the scalar value.
+        """
+        self._value = self.get()
+        return self._value
+    # end value
+
+    @value.setter
+    def value(self, value):
+        """
+        Set the scalar value.
+        """
+        raise AttributeError("Cannot set value directly on TScalar. It's computed based on other Scalars.")
+    # end value
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     # Override set to prevent manual setting
     def set(self, value):
@@ -318,8 +353,101 @@ class TScalar(Scalar):
         """
         Get the current computed value.
         """
-        return self.func()
+        return self._func(**self._scalars)
     # end get
+
+    def scalar(self):
+        """
+        Get the current computed value.
+        """
+        return Scalar(self._func(**self._scalars))
+    # end get
+
+    # endregion PUBLIC
+
+    # region OVERRIDE
+
+    def __eq__(self, other):
+        """
+        Check if the scalar value is equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self.value == other.value
+        # end if
+        return self.value == other
+    # end __eq__
+
+    def __ne__(self, other):
+        """
+        Check if the scalar value is not equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        return not self.__eq__(other)
+    # end __ne__
+
+    # Override less
+    def __lt__(self, other):
+        """
+        Check if the scalar value is less than another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self.value < other.value
+        # end if
+        return self.value < other
+    # end __lt__
+
+    # Override less or equal
+    def __le__(self, other):
+        """
+        Check if the scalar value is less than or equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self.value <= other.value
+        # end if
+        return self.value <= other
+    # end __le__
+
+    # Override greater
+    def __gt__(self, other):
+        """
+        Check if the scalar value is greater than another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self.value > other.value
+        # end if
+        return self.value > other
+    # end __gt__
+
+    # Override greater or equal
+    def __ge__(self, other):
+        """
+        Check if the scalar value is greater than or equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        if isinstance(other, Scalar):
+            return self.value >= other.value
+        # end if
+        return self.value >= other
+    # end __ge__
+
+    # endregion OVERRIDE
+
 # end TScalar
 
 
@@ -330,7 +458,7 @@ def floor_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the floor function to.
     """
-    return TScalar(lambda: np.floor(scalar.value))
+    return TScalar(lambda s: np.floor(s.value), s=scalar)
 # end floor_t
 
 
@@ -341,7 +469,7 @@ def ceil_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the ceil function to.
     """
-    return TScalar(lambda: np.ceil(scalar.value))
+    return TScalar(lambda s: np.ceil(s.value), s=scalar)
 # end ceil_t
 
 
@@ -352,7 +480,7 @@ def trunc_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the trunc function to.
     """
-    return TScalar(lambda: np.trunc(scalar.value))
+    return TScalar(lambda s: np.trunc(s.value), s=scalar)
 # end trunc_t
 
 
@@ -363,7 +491,7 @@ def frac_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to get the fractional part of.
     """
-    return TScalar(lambda: scalar.value - np.floor(scalar.value))
+    return TScalar(lambda s: s.value - np.floor(s.value), s=scalar)
 # end frac_t
 
 
@@ -374,7 +502,7 @@ def sqrt_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the sqrt function to.
     """
-    return TScalar(lambda: np.sqrt(scalar.value))
+    return TScalar(lambda s: np.sqrt(s.value), s=scalar)
 # end sqrt_t
 
 
@@ -385,7 +513,7 @@ def exp_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the exp function to.
     """
-    return TScalar(lambda: np.exp(scalar.value))
+    return TScalar(lambda s: np.exp(s.value), s=scalar)
 # end exp_t
 
 
@@ -396,7 +524,7 @@ def expm1_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the expm1 function to.
     """
-    return TScalar(lambda: np.expm1(scalar.value))
+    return TScalar(lambda s: np.expm1(s.value), s=scalar)
 # end expm1_t
 
 
@@ -407,7 +535,7 @@ def log_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the log function to.
     """
-    return TScalar(lambda: np.log(scalar.value))
+    return TScalar(lambda s: np.log(s.value), s=scalar)
 # end log_t
 
 
@@ -418,7 +546,7 @@ def log1p_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the log1p function to.
     """
-    return TScalar(lambda: np.log1p(scalar.value))
+    return TScalar(lambda s: np.log1p(s.value), s=scalar)
 # end log1p_t
 
 
@@ -429,7 +557,7 @@ def log2_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the log2 function to.
     """
-    return TScalar(lambda: np.log2(scalar.value))
+    return TScalar(lambda s: np.log2(s.value), s=scalar)
 # end log2_t
 
 
@@ -440,11 +568,8 @@ def log10_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the log10 function to.
     """
-    return TScalar(lambda: np.log10(scalar.value))
+    return TScalar(lambda s: np.log10(s.value), s=scalar)
 # end log10_t
-
-
-import numpy as np
 
 def sin_t(scalar: Scalar):
     """
@@ -453,59 +578,59 @@ def sin_t(scalar: Scalar):
     Args:
         scalar (Scalar): The scalar to apply the sin function to.
     """
-    return TScalar(lambda: np.sin(scalar.value), scalar)
+    return TScalar(lambda s: np.sin(s.value), s=scalar)
 # end sin_t
 
 def cos_t(scalar: Scalar):
-    return TScalar(lambda: np.cos(scalar.value), scalar)
+    return TScalar(lambda s: np.cos(s.value), s=scalar)
 # end cos_t
 
 def tan_t(scalar: Scalar):
-    return TScalar(lambda: np.tan(scalar.value), scalar)
+    return TScalar(lambda s: np.tan(s.value), s=scalar)
 # end tan_t
 
 def asin_t(scalar: Scalar):
-    return TScalar(lambda: np.arcsin(scalar.value), scalar)
+    return TScalar(lambda s: np.arcsin(s.value), s=scalar)
 # end asin_t
 
 def acos_t(scalar: Scalar):
-    return TScalar(lambda: np.arccos(scalar.value), scalar)
+    return TScalar(lambda s: np.arccos(s.value), s=scalar)
 # end acos_t
 
 def atan_t(scalar: Scalar):
-    return TScalar(lambda: np.arctan(scalar.value), scalar)
+    return TScalar(lambda s: np.arctan(s.value), s=scalar)
 # end atan_t
 
 def atan2_t(y: Scalar, x: Scalar):
-    return TScalar(lambda: np.arctan2(y.value, x.value), y, x)
+    return TScalar(lambda p1, p2: np.arctan2(p1.value, p2.value), p1=y, p2=x)
 # end atan2_t
 
 def sinh_t(scalar: Scalar):
-    return TScalar(lambda: np.sinh(scalar.value), scalar)
+    return TScalar(lambda s: np.sinh(s.value), s=scalar)
 # end sinh_t
 
 def cosh_t(scalar: Scalar):
-    return TScalar(lambda: np.cosh(scalar.value), scalar)
+    return TScalar(lambda s: np.cosh(s.value), s=scalar)
 # end cosh_t
 
 def tanh_t(scalar: Scalar):
-    return TScalar(lambda: np.tanh(scalar.value), scalar)
+    return TScalar(lambda s: np.tanh(s.value), s=scalar)
 # end tanh_t
 
 def asinh_t(scalar: Scalar):
-    return TScalar(lambda: np.arcsinh(scalar.value), scalar)
+    return TScalar(lambda s: np.arcsinh(s.value), s=scalar)
 # end asinh_t
 
 def acosh_t(scalar: Scalar):
-    return TScalar(lambda: np.arccosh(scalar.value), scalar)
+    return TScalar(lambda s: np.arccosh(s.value), s=scalar)
 # end acosh_t
 
 def atanh_t(scalar: Scalar):
-    return TScalar(lambda: np.arctanh(scalar.value), scalar)
+    return TScalar(lambda s: np.arctanh(s.value), s=scalar)
 # end atanh_t
 
 def degrees_t(scalar: Scalar):
-    return TScalar(lambda: np.degrees(scalar.value), scalar)
+    return TScalar(lambda s: np.degrees(s.value), s=scalar)
 # end degrees_t
 
 
