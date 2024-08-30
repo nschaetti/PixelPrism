@@ -25,7 +25,7 @@ from pixel_prism.data import (
     log2_t, log10_t, sin_t, cos_t, tan_t, asin_t,
     acos_t, atan_t, atan2_t, sinh_t, cosh_t, tanh_t,
     asinh_t, acosh_t, atanh_t, degrees_t,
-    add_t, sub_t, mul_t, div_t
+    add_t, sub_t, mul_t, div_t, tscalar
 )
 
 
@@ -661,6 +661,122 @@ class TestScalar(unittest.TestCase):
         s0.value = 7
         self.assertEqual(s3.value, 8)
     # end test_mixed_tscalar_float_operations
+
+    def test_tscalar_initial_value(self):
+        """
+        Test the initial value of a TScalar object.
+        """
+        scalar = Scalar(10)
+        t_scalar = tscalar(scalar)
+        self.assertEqual(t_scalar.get(), 10)
+        self.assertEqual(t_scalar.value, 10)
+
+    # end test_tscalar_initial_value
+
+    def test_tscalar_update(self):
+        """
+        Test that a TScalar object updates its value when the source scalar changes.
+        """
+        scalar = Scalar(10)
+        t_scalar = tscalar(scalar)
+
+        # Change the original scalar's value
+        scalar.value = 20
+
+        # The TScalar should reflect the updated value
+        self.assertEqual(t_scalar.get(), 20)
+        self.assertEqual(t_scalar.value, 20)
+    # end test_tscalar_update
+
+    def test_tscalar_with_float(self):
+        """
+        Test the initialization of a TScalar object with a float value.
+        """
+        scalar = Scalar(5.5)
+        t_scalar = tscalar(scalar)
+        self.assertEqual(t_scalar.get(), 5.5)
+        self.assertEqual(t_scalar.value, 5.5)
+    # end test_tscalar_with_float
+
+    def test_tscalar_multiple_updates(self):
+        """
+        Test that a TScalar object updates its value when the source scalar changes multiple
+        """
+        scalar = Scalar(0)
+        t_scalar = tscalar(scalar)
+
+        # Update the scalar multiple times
+        scalar.value = 1
+        self.assertEqual(t_scalar.get(), 1)
+
+        scalar.value = -3.5
+        self.assertEqual(t_scalar.get(), -3.5)
+
+        scalar.value = 100
+        self.assertEqual(t_scalar.get(), 100)
+    # end test_tscalar_multiple_updates
+
+    def test_tscalar_event_trigger(self):
+        """
+        Test that a TScalar object triggers an event when the source scalar changes.
+        """
+        scalar = Scalar(10)
+        t_scalar = tscalar(scalar)
+
+        event_triggered = False
+
+        def on_change(new_value):
+            nonlocal event_triggered
+            event_triggered = True
+        # end on_change
+
+        t_scalar.add_event_listener("on_change", on_change)
+
+        # Trigger the event
+        scalar.value = 50
+
+        self.assertTrue(event_triggered)
+        self.assertEqual(t_scalar.get(), 50)
+    # end test_tscalar_event_trigger
+
+    def test_tscalar_complex_nesting(self):
+        """
+        Test complex nesting of TScalar objects and event propagation through multiple levels.
+        """
+        # Base scalars
+        scalar_a = Scalar(10)
+        scalar_b = Scalar(20)
+        scalar_c = Scalar(5)
+
+        # Create nested TScalars
+        t_scalar1 = add_t(scalar_a, scalar_b)  # t_scalar1 = scalar_a + scalar_b
+        t_scalar2 = mul_t(t_scalar1, scalar_c)  # t_scalar2 = (scalar_a + scalar_b) * scalar_c
+        t_scalar3 = sub_t(t_scalar2, scalar_a)  # t_scalar3 = ((scalar_a + scalar_b) * scalar_c) - scalar_a
+
+        # Ensure the initial values are correct
+        self.assertEqual(t_scalar1.get(), 30)  # 10 + 20
+        self.assertEqual(t_scalar2.get(), 150)  # 30 * 5
+        self.assertEqual(t_scalar3.get(), 140)  # 150 - 10
+
+        event_triggered = False
+
+        def on_change(new_value):
+            nonlocal event_triggered
+            event_triggered = True
+
+        # end on_change
+
+        t_scalar3.add_event_listener("on_change", on_change)
+
+        # Modify a base scalar and check propagation
+        scalar_a.value = 15
+
+        # Check that the event was triggered and the values are updated correctly
+        self.assertTrue(event_triggered)
+        self.assertEqual(t_scalar1.get(), 35)  # 15 + 20
+        self.assertEqual(t_scalar2.get(), 175)  # 35 * 5
+        self.assertEqual(t_scalar3.get(), 160)  # 175 - 15
+    # end test_tscalar_complex_nesting
 
     # endregion OPERATORS
 

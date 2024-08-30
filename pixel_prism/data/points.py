@@ -369,7 +369,7 @@ class Point2D(Point):
         Add two points together.
 
         Args:
-            other (Point2D): Point to add
+            other (Union[Point2D, TPoint2D, int, float, tuple]): Point to add
         """
         if isinstance(other, Point2D):
             return Point2D(self.x + other.x, self.y + other.y)
@@ -387,7 +387,7 @@ class Point2D(Point):
         Add two points together.
 
         Args:
-            other (Point2D): Point to add
+            other (Union[Point2D, TPoint2D, int, float, tuple]): Point to add
         """
         return self.__add__(other)
     # end __radd__
@@ -932,6 +932,20 @@ class TPoint2D(Point2D):
 
 # end TPoint2D
 
+
+# Basic TPoint2D (just return value of a point)
+def tpoint2d(point: Union[Point2D, TPoint2D, tuple]):
+    """
+    Create a TPoint2D that represents a point.
+    """
+    if isinstance(point, Point2D):
+        return TPoint2D(lambda p: (p.x, p.y), p=point)
+    elif isinstance(point, tuple):
+        return TPoint2D(lambda p: (point[0], point[1]))
+    else:
+        return point
+    # end if
+# end tpoint2d
 
 # Function to create a new tracked point
 def add_t(point: Union[Point2D, TPoint2D], delta: Union[Point2D, TPoint2D]):

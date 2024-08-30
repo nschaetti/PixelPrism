@@ -137,6 +137,8 @@ class TestMatrix2D(unittest.TestCase):
         np.testing.assert_array_equal(result.get(), expected)
     # end test_rotate_point_t
 
+# end TestMatrix2D
+
 
 class TestTMatrix2D(unittest.TestCase):
 

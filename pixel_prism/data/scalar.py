@@ -384,6 +384,34 @@ class TScalar(Scalar):
         return Scalar(self._func(**self._scalars))
     # end get
 
+    def add_event_listener(self, event_name, listener):
+        """
+        Add an event listener to the data object.
+
+        Args:
+            event_name (str): Event to listen for
+            listener (function): Listener function
+        """
+        # Register to all sources
+        for scalar in self._scalars.values():
+            scalar.add_event_listener(event_name, listener)
+        # end for
+    # end add_event_listener
+
+    def remove_event_listener(self, event_name, listener):
+        """
+        Remove an event listener from the data object.
+
+        Args:
+            event_name (str): Event to remove listener from
+            listener (function): Listener function to remove
+        """
+        # Unregister from all sources
+        for scalar in self._scalars.values():
+            scalar.remove_event_listener(event_name, listener)
+        # end for
+    # end remove_event_listener
+
     # endregion PUBLIC
 
     # region OVERRIDE
@@ -545,6 +573,21 @@ class TScalar(Scalar):
     # endregion OVERRIDE
 
 # end TScalar
+
+
+# Basic TScalar (just return value of scalar)
+def tscalar(scalar: Union[Scalar, float, int]):
+    """
+    Create a TScalar that returns the value of a scalar.
+
+    Args:
+        scalar (Scalar): The scalar to return the value of.
+    """
+    if isinstance(scalar, float) or isinstance(scalar, int):
+        scalar = Scalar(scalar)
+    # end if
+    return TScalar(lambda s: s.value, s=scalar)
+# end tscalar
 
 
 # Add to scalar

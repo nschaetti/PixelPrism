@@ -54,6 +54,7 @@ from .points import (
     Point2D,
     Point3D,
     TPoint2D,
+    tpoint2d,
     add_t,
     sub_t,
     mul_t,
@@ -89,6 +90,7 @@ from .points import (
 from .scalar import (
     Scalar,
     TScalar,
+    tscalar,
     add_t,
     sub_t,
     mul_t,
@@ -149,6 +151,7 @@ __all__ = [
     "Point2D",
     "Point3D",
     "TPoint2D",
+    "tpoint2d",
     "add_t",
     "sub_t",
     "mul_t",
@@ -180,6 +183,7 @@ __all__ = [
     # Scalar
     "Scalar",
     "TScalar",
+    "tscalar",
     "floor_t",
     "ceil_t",
     "trunc_t",
