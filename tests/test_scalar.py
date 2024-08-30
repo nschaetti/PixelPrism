@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+# Imports
 import unittest
 import numpy as np
 from pixel_prism.data import (
@@ -23,30 +24,46 @@ from pixel_prism.data import (
     sqrt_t, exp_t, expm1_t, log_t, log1p_t,
     log2_t, log10_t, sin_t, cos_t, tan_t, asin_t,
     acos_t, atan_t, atan2_t, sinh_t, cosh_t, tanh_t,
-    asinh_t, acosh_t, atanh_t, degrees_t
+    asinh_t, acosh_t, atanh_t, degrees_t,
+    add_t, sub_t, mul_t, div_t
 )
 
 
 class TestScalar(unittest.TestCase):
+    """
+    Test cases for the Scalar class.
+    """
 
     def test_initialization(self):
+        """
+        Test the initialization of a Scalar object.
+        """
         scalar = Scalar(5)
         self.assertEqual(scalar.value, 5)
     # end test_initialization
 
     def test_set_and_get(self):
+        """
+        Test the set and get methods of a Scalar objects
+        """
         scalar = Scalar()
         scalar.value = 10
         self.assertEqual(scalar.value, 10)
     # end test_set_and_get
 
     def test_copy(self):
+        """
+        Test the copy method of a Scalar object.
+        """
         scalar = Scalar(10)
         scalar_copy = scalar.copy()
         self.assertEqual(scalar_copy.value, scalar.value)
     # end test_copy
 
     def test_addition(self):
+        """
+        Test the addition operation of a Scalar object.
+        """
         scalar1 = Scalar(5)
         scalar2 = Scalar(3)
         result = scalar1 + scalar2
@@ -57,6 +74,9 @@ class TestScalar(unittest.TestCase):
     # end test_addition
 
     def test_subtraction(self):
+        """
+        Test the subtraction operation of a Scalar object.
+        """
         scalar1 = Scalar(5)
         scalar2 = Scalar(3)
         result = scalar1 - scalar2
@@ -67,6 +87,9 @@ class TestScalar(unittest.TestCase):
     # end test_subtraction
 
     def test_multiplication(self):
+        """
+        Test the multiplication operation of a Scalar object.
+        """
         scalar1 = Scalar(5)
         scalar2 = Scalar(3)
         result = scalar1 * scalar2
@@ -77,6 +100,9 @@ class TestScalar(unittest.TestCase):
     # end test_multiplication
 
     def test_division(self):
+        """
+        Test the division operation of a Scalar object.
+        """
         scalar1 = Scalar(6)
         scalar2 = Scalar(3)
         result = scalar1 / scalar2
@@ -87,6 +113,9 @@ class TestScalar(unittest.TestCase):
     # end test_division
 
     def test_comparison(self):
+        """
+        Test the comparison operations of a Scalar object.
+        """
         scalar1 = Scalar(5)
         scalar2 = Scalar(3)
         self.assertTrue(scalar1 > scalar2)
@@ -368,5 +397,271 @@ class TestScalar(unittest.TestCase):
         self.assertTrue(callback1_triggered)
         self.assertTrue(callback2_triggered)
     # end test_multiple_callbacks
+
+    # region OPERATORS
+
+    def test_add_t(self):
+        """
+        Test the addition of two TScalar objects.
+        """
+        # s1, s2
+        s1 = Scalar(2)
+        s2 = Scalar(3)
+
+        # Addition
+        # Assert the result (2 + 3 = 5)
+        s3 = add_t(s1, s2)
+        self.assertEqual(s3.value, 5)
+
+        # Modify one of the sources and check the updated result
+        # Assert the updated result (4 + 3 = 7)
+        s1.value = 4
+        self.assertEqual(s3.value, 7)
+
+        # Update again
+        # Assert the updated result (4 + 1 = 5)
+        s2.value = 1
+        self.assertEqual(s3.value, 5)
+    # end test_add_t
+
+    def test_sub_t(self):
+        """
+        Test the subtraction of two TScalar objects.
+        """
+        # s1, s2
+        s1 = Scalar(7)
+        s2 = Scalar(4)
+
+        # Subtraction
+        s3 = sub_t(s1, s2)
+        self.assertEqual(s3.value, 3)
+
+        # Modify one of the sources and check the updated result
+        s1.value = 10
+        self.assertEqual(s3.value, 6)
+
+        # Check 2
+        s2.value = 2
+        self.assertEqual(s3.value, 8)
+    # end test_sub_t
+
+    def test_mul_t(self):
+        """
+        Test the multiplication of two TScalar objects.
+        """
+        # s1, s2
+        s1 = Scalar(2)
+        s2 = Scalar(3)
+
+        # Multiplication
+        s3 = mul_t(s1, s2)
+        self.assertEqual(s3.value, 6)
+
+        # Modify one of the sources and check the updated result
+        s1.value = 4
+        self.assertEqual(s3.value, 12)
+
+        # Check value update 2
+        s2.value = 5
+        self.assertEqual(s3.value, 20)
+    # end test_mul_t
+
+    def test_mul_t2(self):
+        """
+        Test the multiplication of two TScalar objects.
+        """
+        # s1, s2
+        s1 = Scalar(2)
+        s2 = 3.0
+
+        # Multiplication
+        s3 = mul_t(s1, s2)
+        self.assertEqual(s3.value, 6)
+
+        # Modify one of the sources and check the updated result
+        s1.value = 4
+        self.assertEqual(s3.value, 12)
+
+        # Check value update 2
+        # Changing s2 desn't affect the result
+        s2 = 5
+        self.assertEqual(s3.value, 12)
+    # end test_mul_t2
+
+    def test_div_t(self):
+        """
+        Test the division of two TScalar objects.
+        """
+        # s1, s2
+        s1 = Scalar(8)
+        s2 = Scalar(4)
+
+        # Division
+        s3 = div_t(s1, s2)
+        self.assertEqual(s3.value, 2)
+
+        # Modify one of the sources and check the updated result
+        s1.value = 16
+        self.assertEqual(s3.value, 4)
+
+        # Second update
+        s2.value = 2
+        self.assertEqual(s3.value, 8)
+    # end test_div_t
+
+    def test_div_t2(self):
+        """
+        Test the division of two TScalar objects.
+        """
+        # s1, s2
+        s1 = Scalar(8)
+        s2 = 4.0
+
+        # Division
+        s3 = div_t(s1, s2)
+        self.assertEqual(s3.value, 2)
+
+        # Modify one of the sources and check the updated result
+        s1.value = 16
+        self.assertEqual(s3.value, 4)
+
+        # Second update
+        # Changing s2 desn't affect the result
+        s2 = 2
+        self.assertEqual(s3.value, 4)
+    # end test_div_t2
+
+    def test_nested_tscalar_operations(self):
+        """
+        Test nested TScalar operations.
+        """
+        # s1, s2
+        s1 = Scalar(2)
+        s2 = Scalar(3)
+
+        # s3 = s1 + s2
+        s3 = add_t(s1, s2)
+
+        # s4 = 5
+        s4 = Scalar(5)
+
+        # We test operator *
+        s5 = s3 * s4
+
+        # Assert the result
+        # (2 + 3) * 5 = 25
+        self.assertEqual(s5.value, 25)
+
+        # Modify one of the sources and check the updated result
+        # (4 + 3) * 5 = 35
+        s1.value = 4
+        self.assertEqual(s5.value, 35)
+
+        # (4 + 1) * 5 = 25
+        s2.value = 1
+        self.assertEqual(s5.value, 25)
+
+        # (4 + 1) * 10 = 50
+        s4.value = 10
+        self.assertEqual(s5.value, 50)
+    # end test_nested_tscalar_operations
+
+    def test_multiple_nested_tscalar_operations(self):
+        """
+        Test multiple nested TScalar operations.
+        """
+        # s1, s2, s3
+        s1 = Scalar(2)
+        s2 = Scalar(3)
+        s3 = Scalar(5)
+
+        # 5 = 2 + 3
+        s4 = add_t(s1, s2)
+
+        # (2 + 3) * 5 = 25
+        s5 = s4 * s3
+
+        # 25 - 2 = 23
+        s6 = s5 - s1
+
+        # 23 / 3 = 7.6667
+        s7 = s6 / s2
+
+        # Assert the result of the final operation
+        # ((2 + 3) * 5 - 2) / 3 = 7.6667
+        self.assertAlmostEqual(s7.value, 7.6667, places=4)
+
+        # Modify the sources and check the updated result
+        # ((4 + 3) * 5 - 4) / 3 = 7.6667
+        s1.value = 4
+        self.assertAlmostEqual(s7.value, 10.3333, places=4)  # ((4 + 3) * 5 - 4) / 3 = 11.3333
+
+        # Update s2 and check
+        # ((4 + 2) * 5 - 4) / 2 = 13
+        s2.value = 2
+        self.assertAlmostEqual(s7.value, 13.0, places=4)  # ((4 + 2) * 5 - 4) / 2 = 17.0
+
+        # Update s3 and check
+        # ((4 + 2) * 10 - 4) / 2 = 28
+        s3.value = 10
+        self.assertAlmostEqual(s7.value, 28.0, places=4)  # ((4 + 2) * 10 - 4) / 2 = 29.0
+    # end test_multiple_nested_tscalar_operations
+
+    def test_mixed_tscalar_and_scalar_operations(self):
+        """
+        Test mixed operations between TScalar and Scalar objects.
+        """
+        # s1 = 3
+        s1 = Scalar(2)
+        s2 = 3.0
+
+        # Test addition, 5 = 2 + 3
+        s3 = add_t(s1, s2)
+        self.assertEqual(s3.value, 5)
+
+        # Modify the Scalar and check the updated result
+        # 7 = 4 + 3
+        s1.value = 4
+        self.assertEqual(s3.value, 7)
+
+        # Test the reverse operation
+        # 3 + 4 = 7
+        s4 = s2 + s1
+        self.assertEqual(s4.value, 7)
+
+        # Test subtraction with mixed types
+        # 1 = 4 - 3
+        s5 = s1 - s2
+        self.assertEqual(s5.value, 1)
+
+        # Test reverse subtraction
+        # -1 = 3 - 4
+        s6 = s2 - s1
+        self.assertEqual(s6.value, -1)
+    # end test_mixed_tscalar_and_scalar_operations
+
+    def test_mixed_tscalar_float_operations(self):
+        """
+        Test mixed operations between TScalar and float objects.
+        """
+        # s1 = 5
+        s0 = Scalar(2)
+        s1 = TScalar(lambda: 5)
+
+        # Test subtraction, 3 = 5 - 2
+        s2 = sub_t(s1, s0)
+        self.assertEqual(s2.value, 3)
+
+        # s3 = (5 - 2) + 10 = 13
+        s3 = s2 + 10
+        self.assertEqual(s3.value, 13)
+
+        # Modify the TScalar lambda function and ensure the result updates
+        # s3 = (5 - 7) + 10 = 15
+        s0.value = 7
+        self.assertEqual(s3.value, 8)
+    # end test_mixed_tscalar_float_operations
+
+    # endregion OPERATORS
 
 # end TestScalar

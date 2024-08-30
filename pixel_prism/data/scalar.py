@@ -1,7 +1,24 @@
 #
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+#
 # This file contains the Scalar class, which is used to represent a scalar value.
 #
-from typing import List, Dict
+from typing import List, Dict, Union
 
 # Imports
 import numpy as np
@@ -22,6 +39,10 @@ class Scalar(Data, EventMixin, RangeableMixin):
     ):
         """
         Initialize the scalar value.
+
+        Args:
+            value (any): Initial value of the scalar.
+            on_change (function): Function to call when the value changes.
         """
         Data.__init__(self)
         RangeableMixin.__init__(self, "value")
@@ -367,6 +388,81 @@ class TScalar(Scalar):
 
     # region OVERRIDE
 
+    # Operator overloading
+    def __add__(self, other):
+        """
+        Add the scalar value to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to add
+        """
+        return add_t(self, other)
+    # end __add__
+
+    def __radd__(self, other):
+        """
+        Add the scalar value to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to add
+        """
+        return add_t(other, self)
+    # end __radd__
+
+    def __sub__(self, other):
+        return sub_t(self, other)
+    # end __sub__
+
+    def __rsub__(self, other):
+        """
+        Subtract the scalar value from another scalar or value.
+
+        Args:
+            other (any): Scalar or value to subtract
+        """
+        return sub_t(other, self)
+    # end __rsub__
+
+    def __mul__(self, other):
+        """
+        Multiply the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to multiply
+        """
+        return mul_t(self, other)
+    # end __mul__
+
+    def __rmul__(self, other):
+        """
+        Multiply the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to multiply
+        """
+        return mul_t(other, self)
+    # end __rmul__
+
+    def __truediv__(self, other):
+        """
+        Divide the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to divide by
+        """
+        return div_t(self, other)
+    # end __truediv__
+
+    def __rtruediv__(self, other):
+        """
+        Divide the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to divide by
+        """
+        return div_t(other, self)
+    # end __rtruediv__
+
     def __eq__(self, other):
         """
         Check if the scalar value is equal to another scalar or value.
@@ -449,6 +545,87 @@ class TScalar(Scalar):
     # endregion OVERRIDE
 
 # end TScalar
+
+
+# Add to scalar
+def add_t(scalar1: Union[Scalar, float, int], scalar2: Union[Scalar, float, int]):
+    """
+    Create a TScalar that adds two scalar values.
+
+    Args:
+        scalar1 (Union[Scalar, float, int]): First scalar to add.
+        scalar2 (Union[Scalar, float, int]): Second scalar to add.
+    """
+    if isinstance(scalar1, float) or isinstance(scalar1, int):
+        scalar1 = Scalar(scalar1)
+    # end if
+
+    if isinstance(scalar2, float) or isinstance(scalar2, int):
+        scalar2 = Scalar(scalar2)
+    # end if
+
+    return TScalar(lambda s1, s2: s1.value + s2.value, s1=scalar1, s2=scalar2)
+# end add_t
+
+
+def sub_t(scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
+    """
+    Create a TScalar that subtracts two scalar values.
+
+    Args:
+        scalar1 (Union[Scalar, float]): First scalar to subtract.
+        scalar2 (Union[Scalar, float]): Second scalar to subtract.
+    """
+    if isinstance(scalar1, float):
+        scalar1 = Scalar(scalar1)
+    # end if
+
+    if isinstance(scalar2, float):
+        scalar2 = Scalar(scalar2)
+    # end if
+
+    return TScalar(lambda s1, s2: s1.value - s2.value, s1=scalar1, s2=scalar2)
+# end sub_t
+
+
+def mul_t(scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
+    """
+    Create a TScalar that multiplies two scalar values.
+
+    Args:
+        scalar1 (Union[Scalar, float]): First scalar to multiply.
+        scalar2 (Union[Scalar, float]): Second scalar to multiply.
+    """
+    if isinstance(scalar1, float):
+        scalar1 = Scalar(scalar1)
+    # end if
+
+    if isinstance(scalar2, float):
+        scalar2 = Scalar(scalar2)
+    # end if
+
+    return TScalar(lambda s1, s2: s1.value * s2.value, s1=scalar1, s2=scalar2)
+# end mul_t
+
+
+def div_t(scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
+    """
+    Create a TScalar that divides two scalar values.
+
+    Args:
+        scalar1 (Union[Scalar, float]): First scalar to divide.
+        scalar2 (Union[Scalar, float]): Second scalar to divide.
+    """
+    if isinstance(scalar1, float):
+        scalar1 = Scalar(scalar1)
+    # end if
+
+    if isinstance(scalar2, float):
+        scalar2 = Scalar(scalar2)
+    # end if
+
+    return TScalar(lambda s1, s2: s1.value / s2.value, s1=scalar1, s2=scalar2)
+# end div_t
 
 
 def floor_t(scalar: Scalar):
