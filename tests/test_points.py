@@ -18,8 +18,9 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import (
-    Point2D, TPoint2D, Scalar, add_t, sub_t, mul_t, div_t, rotate_t, scale_t, dot_t,
+from pixel_prism.data import Point2D, TPoint2D
+from pixel_prism.data.points import (
+    add_t, sub_t, mul_t, div_t, rotate_t, scale_t, dot_t,
     cross_t, norm_t, normalize_t, angle_t, distance_t, distance_squared_t,
     distance_manhattan_t, distance_chebyshev_t, distance_canberra_t, distance_minkowski_t,
     distance_hamming_t, distance_jaccard_t, distance_braycurtis_t,
@@ -681,6 +682,177 @@ class TestPoint2D(unittest.TestCase):
         result = distance_sqeuclidean_t(point1, point2)
         self.assertEqual(result.value, 13)
     # end test_distance_sqeuclidean_t
+
+    # region OPERATORS
+
+    def test_add_t2(self):
+        """
+        Test that two points can be added together.
+        """
+        # p1 = (1, 2)
+        # p2 = (3, 4)
+        p1 = Point2D(1, 2)
+        p2 = Point2D(3, 4)
+
+        # (1, 2) + (3, 4) = (4, 6)
+        tp = add_t(p1, p2)
+
+        # Check addition is correct
+        self.assertEqual(tp.x, 4)
+        self.assertEqual(tp.y, 6)
+
+        # Modify one of the sources and check the updated result
+        # (2, 3) + (3, 4) = (5, 7)
+        p1.x = 2
+        p1.y = 3
+        self.assertEqual(tp.x, 5)
+        self.assertEqual(tp.y, 7)
+
+        # Check another modification
+        # (2, 3) + (1, 1) = (3, 4)
+        p2.x = 1
+        p2.y = 1
+        self.assertEqual(tp.x, 3)
+        self.assertEqual(tp.y, 4)
+    # end test_add_t
+
+    def test_sub_t2(self):
+        p1 = Point2D(5, 7)
+        p2 = Point2D(2, 3)
+        tp = p1 - p2
+
+        self.assertEqual(tp.x, 3)
+        self.assertEqual(tp.y, 4)
+
+        # Modify one of the sources and check the updated result
+        p1.x = 8
+        p1.y = 9
+        self.assertEqual(tp.x, 6)
+        self.assertEqual(tp.y, 6)
+
+        p2.x = 1
+        p2.y = 1
+        self.assertEqual(tp.x, 7)
+        self.assertEqual(tp.y, 8)
+
+    # end test_sub_t
+
+    def test_mul_t3(self):
+        p1 = Point2D(2, 3)
+        scalar = 2.0
+        tp = p1 * scalar
+
+        self.assertEqual(tp.x, 4)
+        self.assertEqual(tp.y, 6)
+
+        # Modify the source and check the updated result
+        p1.x = 3
+        p1.y = 4
+        self.assertEqual(tp.x, 6)
+        self.assertEqual(tp.y, 8)
+
+    # end test_mul_t
+
+    def test_div_t2(self):
+        p1 = Point2D(8, 6)
+        scalar = 2.0
+        tp = p1 / scalar
+
+        self.assertEqual(tp.x, 4)
+        self.assertEqual(tp.y, 3)
+
+        # Modify the source and check the updated result
+        p1.x = 10
+        p1.y = 8
+        self.assertEqual(tp.x, 5)
+        self.assertEqual(tp.y, 4)
+
+    # end test_div_t
+
+    def test_nested_tpoint2d_operations(self):
+        p1 = Point2D(2, 3)
+        p2 = Point2D(4, 5)
+        p3 = Point2D(1, 1)
+        tp1 = p1 + p2
+        tp2 = tp1 * p3
+
+        self.assertEqual(tp2.x, 6)  # (2+4)*1 = 6
+        self.assertEqual(tp2.y, 8)  # (3+5)*1 = 8
+
+        # Modify one of the sources and check the updated result
+        p1.x = 3
+        p1.y = 4
+        self.assertEqual(tp2.x, 7)  # (3+4)*1 = 7
+        self.assertEqual(tp2.y, 9)  # (4+5)*1 = 9
+
+        p2.x = 2
+        p2.y = 2
+        self.assertEqual(tp2.x, 5)  # (3+2)*1 = 5
+        self.assertEqual(tp2.y, 6)  # (4+2)*1 = 6
+
+    # end test_nested_tpoint2d_operations
+
+    def test_multiple_nested_tpoint2d_operations(self):
+        p1 = Point2D(2, 3)
+        p2 = Point2D(4, 5)
+        p3 = Point2D(1, 1)
+        tp1 = p1 + p2
+        tp2 = tp1 * p3
+        tp3 = tp2 / 2.0
+        tp4 = tp3 - p1
+
+        self.assertEqual(tp4.x, 0.5)  # ((2+4)*1/2) - 2 = 0.5
+        self.assertEqual(tp4.y, 0.5)  # ((3+5)*1/2) - 3 = 0.5
+
+        # Modify one of the sources and check the updated result
+        p1.x = 3
+        p1.y = 4
+        self.assertEqual(tp4.x, -0.5)  # ((3+4)*1/2) - 3 = -0.5
+        self.assertEqual(tp4.y, -0.5)  # ((4+5)*1/2) - 4 = -0.5
+
+        p2.x = 2
+        p2.y = 2
+        self.assertAlmostEqual(tp4.x, -1.5)  # ((3+2)*1/2) - 3 = -1.5
+        self.assertAlmostEqual(tp4.y, -2)  # ((4+2)*1/2) - 4 = -2
+
+    # end test_multiple_nested_tpoint2d_operations
+
+    def test_mixed_tpoint2d_and_scalar_operations(self):
+        p1 = Point2D(2, 3)
+        scalar = 2.0
+        tp = p1 * scalar
+
+        self.assertEqual(tp.x, 4)
+        self.assertEqual(tp.y, 6)
+
+        # Modify the source and check the updated result
+        p1.x = 3
+        p1.y = 4
+        self.assertEqual(tp.x, 6)
+        self.assertEqual(tp.y, 8)
+
+        # Test reverse operation
+        tp2 = scalar * p1
+        self.assertEqual(tp2.x, 6)
+        self.assertEqual(tp2.y, 8)
+
+    # end test_mixed_tpoint2d_and_scalar_operations
+
+    def test_mixed_tpoint2d_and_tscalar_operations(self):
+        p1 = Point2D(3, 4)
+        tscalar = TScalar(lambda: 2)
+        tp = p1 * tscalar
+
+        self.assertEqual(tp.x, 6)
+        self.assertEqual(tp.y, 8)
+
+        # Modify the TScalar and ensure the result updates
+        tscalar._func = lambda: 3
+        self.assertEqual(tp.x, 9)
+        self.assertEqual(tp.y, 12)
+    # end test_mixed_tpoint2d_and_tscalar_operations
+
+    # endregion OPERATORS
 
 # end TestPoint2D
 

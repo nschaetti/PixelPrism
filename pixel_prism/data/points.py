@@ -771,11 +771,170 @@ class TPoint2D(Point2D):
         self.dispatch_event("on_change", ObjectChangedEvent(self, x=self.x, y=self.y))
     # end _on_point_changed
 
+    # endregion EVENT
+
+    # region OVERRIDE
+
+    # Return a string representation of the point.
+    def __str__(self):
+        """
+        Return a string representation of the point.
+        """
+        return f"TPoint2D(points={self._points}, transform_func={self._transform_func.__name__}, x={self.x}, y={self.y})"
+
+    # end __str__
+
+    # Return a string representation of the point.
+    def __repr__(self):
+        """
+        Return a string representation of the point.
+        """
+        return self.__str__()
+    # end __repr__
+
+    # Operator overloads
+    def __add__(self, other):
+        """
+        Add two points together.
+
+        Args:
+            other (Point2D): Point to add
+        """
+        if isinstance(other, Point2D):
+            return TPoint2D(lambda p, o: (p.x + o.x, p.y + o.y), p=self, o=other)
+        elif isinstance(other, (int, float)):
+            return TPoint2D(lambda p, o: (p.x + o, p.y + o), p=self, o=other)
+        elif isinstance(other, tuple):
+            return TPoint2D(lambda p, o: (p.x + o[0], p.y + o[1]), p=self, o=other)
+        elif isinstance(other, TPoint2D):
+            return TPoint2D(lambda p, o: (p.x + o.x, p.y + o.y), p=self, o=other)
+        else:
+            return NotImplemented
+        # end if
+    # end __add__
+
+    def __radd__(self, other):
+        """
+        Add two points together.
+
+        Args:
+            other (Point2D): Point to add
+        """
+        return self.__add__(other)
+    # end __radd__
+
+    def __sub__(self, other):
+        """
+        Subtract two points.
+
+        Args:
+            other (Point2D): Point to subtract from this point or scalar value to subtract from the point.
+        """
+        if isinstance(other, Point2D):
+            return TPoint2D(lambda p, o: (p.x - o.x, p.y - o.y), p=self, o=other)
+        elif isinstance(other, (int, float)):
+            return TPoint2D(lambda p, o: (p.x - o, p.y - o), p=self, o=other)
+        elif isinstance(other, tuple):
+            return TPoint2D(lambda p, o: (p.x - o[0], p.y - o[1]), p=self, o=other)
+        elif isinstance(other, TPoint2D):
+            return TPoint2D(lambda p, o: (p.x - o.x, p.y - o.y), p=self, o=other)
+        else:
+            return NotImplemented
+        # end if
+    # end __sub__
+
+    def __rsub__(self, other):
+        """
+        Subtract two points.
+
+        Args:
+            other (Point2D): Point to subtract from this point or scalar value to subtract from the point.
+        """
+        return self.__sub__(other)
+    # end __rsub__
+
+    def __mul__(self, other):
+        """
+        Multiply the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to multiply the point by.
+        """
+        if isinstance(other, (int, float)):
+            return TPoint2D(lambda p, o: (p.x * o, p.y * o), p=self, o=other)
+        elif isinstance(other, Point2D):
+            return TPoint2D(lambda p, o: (p.x * o.x, p.y * o.y), p=self, o=other)
+        elif isinstance(other, tuple):
+            return TPoint2D(lambda p, o: (p.x * o[0], p.y * o[1]), p=self, o=other)
+        elif isinstance(other, TPoint2D):
+            return TPoint2D(lambda p, o: (p.x * o.x, p.y * o.y), p=self, o=other)
+        else:
+            return NotImplemented
+        # end if
+    # end __mul__
+
+    def __rmul__(self, other):
+        """
+        Multiply the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to multiply the point by.
+        """
+        return self.__mul__(other)
+    # end __rmul__
+
+    def __truediv__(self, other):
+        """
+        Divide the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to divide the point by.
+        """
+        if isinstance(other, (int, float)):
+            return TPoint2D(lambda p, o: (p.x / o, p.y / o), p=self, o=other)
+        elif isinstance(other, Point2D):
+            return TPoint2D(lambda p, o: (p.x / o.x, p.y / o.y), p=self, o=other)
+        elif isinstance(other, tuple):
+            return TPoint2D(lambda p, o: (p.x / o[0], p.y / o[1]), p=self, o=other)
+        elif isinstance(other, TPoint2D):
+            return TPoint2D(lambda p, o: (p.x / o.x, p.y / o.y), p=self, o=other)
+        else:
+            return NotImplemented
+        # end if
+    # end __truediv__
+
+    def __eq__(self, other):
+        """
+        Compare two points for equality.
+
+        Args:
+            other (Point2D): Point to compare with
+        """
+        if isinstance(other, Point2D):
+            return self.x == other.x and self.y == other.y
+        elif isinstance(other, tuple):
+            return self.x == other[0] and self.y == other[1]
+        elif isinstance(other, TPoint2D):
+            return self.x == other.x and self.y == other.y
+        else:
+            return NotImplemented
+        # end if
+    # end __eq__
+
+    def __abs__(self):
+        """
+        Get the absolute value of the point.
+        """
+        return TPoint2D(lambda p: (abs(p.x), abs(p.y)), p=self)
+    # end __abs__
+
+    # endregion OVERRIDE
+
 # end TPoint2D
 
 
 # Function to create a new tracked point
-def add_t(point: Point2D, delta: Point2D):
+def add_t(point: Union[Point2D, TPoint2D], delta: Union[Point2D, TPoint2D]):
     """
     Create a TPoint2D that represents point + delta.
     """
