@@ -26,7 +26,9 @@ from pixel_prism.data.points import (
     distance_hamming_t, distance_jaccard_t, distance_braycurtis_t,
     distance_cosine_t, distance_correlation_t,
     distance_euclidean_t, distance_mahalanobis_t, distance_seuclidean_t,
-    distance_sqeuclidean_t, tpoint2d
+    distance_sqeuclidean_t, tpoint2d,
+    point_range, linspace, logspace, uniform, logspace, poisson, randint, shuffle, point_arange,
+    normal, choice, point_arange, meshgrid
 )
 
 
@@ -1086,7 +1088,6 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp2.y, 8)
     # end test_mixed_tpoint2d_and_scalar_operations
 
-    # TODO: fix this test
     def test_mixed_tpoint2d_and_tscalar_operations(self):
         """
         Test that mixed operations can be performed on TPoint
@@ -1109,7 +1110,476 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp.y, 12)
     # end test_mixed_tpoint2d_and_tscalar_operations
 
+    def test_mixed_tpoint2d_and_tscalar_addition(self):
+        """
+        Test that mixed operations can be performed on TPoint
+        """
+        p1 = Point2D(3, 4)
+        tscalar = TScalar(lambda: 2)
+
+        # Addition
+        tp = p1 + tscalar
+
+        self.assertEqual(tp.x, 5)
+        self.assertEqual(tp.y, 6)
+
+        # Modify the TScalar and ensure the result updates
+        tscalar._func = lambda: 3
+        self.assertEqual(tp.x, 6)
+        self.assertEqual(tp.y, 7)
+
+        # Reverse addition
+        tp_reverse = tscalar + p1
+        self.assertEqual(tp_reverse.x, 6)
+        self.assertEqual(tp_reverse.y, 7)
+    # end test_mixed_tpoint2d_and_tscalar_addition
+
+    def test_mixed_tpoint2d_and_tscalar_subtraction(self):
+        """
+        Test that mixed operations can be performed on TPoint
+        """
+        p1 = Point2D(5, 7)
+        tscalar = TScalar(lambda: 2)
+
+        # Subtraction
+        tp = p1 - tscalar
+
+        self.assertEqual(tp.x, 3)
+        self.assertEqual(tp.y, 5)
+
+        # Modify the TScalar and ensure the result updates
+        tscalar._func = lambda: 3
+        self.assertEqual(tp.x, 2)
+        self.assertEqual(tp.y, 4)
+
+        # Reverse subtraction
+        tp_reverse = tscalar - p1
+        self.assertEqual(tp_reverse.x, -2)
+        self.assertEqual(tp_reverse.y, -4)
+    # end test_mixed_tpoint2d_and_tscalar_subtraction
+
+    def test_mixed_tpoint2d_and_tscalar_multiplication(self):
+        """
+        Test that mixed operations can be performed on TPoint
+        """
+        p1 = Point2D(3, 4)
+        tscalar = TScalar(lambda: 2)
+
+        # Multiplication
+        tp = p1 * tscalar
+
+        self.assertEqual(tp.x, 6)
+        self.assertEqual(tp.y, 8)
+
+        # Modify the TScalar and ensure the result updates
+        tscalar._func = lambda: 3
+        self.assertEqual(tp.x, 9)
+        self.assertEqual(tp.y, 12)
+
+        # Reverse multiplication
+        tp_reverse = tscalar * p1
+        self.assertEqual(tp_reverse.x, 9)
+        self.assertEqual(tp_reverse.y, 12)
+    # end test_mixed_tpoint2d_and_tscalar_multiplication
+
+    def test_mixed_tpoint2d_and_tscalar_division(self):
+        """
+        Test that mixed operations can be performed on TPoint
+        """
+        p1 = Point2D(6, 8)
+        tscalar = TScalar(lambda: 2)
+
+        # Division
+        tp = p1 / tscalar
+        self.assertEqual(tp.x, 3)
+        self.assertEqual(tp.y, 4)
+
+        # Modify the TScalar and ensure the result updates
+        tscalar._func = lambda: 4
+        self.assertEqual(tp.x, 1.5)
+        self.assertEqual(tp.y, 2)
+
+        # Reverse division
+        tp_reverse = tscalar / p1
+        self.assertAlmostEqual(tp_reverse.x, 2/3, places=5)
+        self.assertAlmostEqual(tp_reverse.y, 0.5, places=5)
+    # end test_mixed_tpoint2d_and_tscalar_division
+
     # endregion OPERATORS
+
+    # region GENERATION
+
+    def test_point_range_point2d(self):
+        """
+        Test the generation of points using a range.
+        """
+        points = point_range(Point2D(0, 0), Point2D(5, 10), Point2D(1, 2), return_tpoint=False)
+        expected_points = [
+            Point2D(0, 0),
+            Point2D(1, 2),
+            Point2D(2, 4),
+            Point2D(3, 6),
+            Point2D(4, 8)
+        ]
+        self.assertEqual(points, expected_points)
+    # end test_point_range_point2d
+
+    def test_point_range_tpoint2d(self):
+        """
+        Test the generation of points using a range.
+        """
+        tpoints = point_range(Point2D(0, 0), Point2D(5, 10), Point2D(1, 2), return_tpoint=True)
+        expected_points = [
+            Point2D(0, 0),
+            Point2D(1, 2),
+            Point2D(2, 4),
+            Point2D(3, 6),
+            Point2D(4, 8)
+        ]
+        for tp, expected in zip(tpoints, expected_points):
+            self.assertEqual(tp.x, expected.x)
+            self.assertEqual(tp.y, expected.y)
+        # end for
+
+    # end test_point_range_tpoint2d
+
+    def test_linspace_point2d(self):
+        """
+        Test the generation of points using linspace.
+        """
+        points = linspace(Point2D(0, 0), Point2D(4, 8), num=5, return_tpoint=False)
+        expected_points = [
+            Point2D(0, 0),
+            Point2D(1, 2),
+            Point2D(2, 4),
+            Point2D(3, 6),
+            Point2D(4, 8)
+        ]
+        self.assertEqual(points, expected_points)
+    # end test_linspace_point2d
+
+    def test_linspace_tpoint2d(self):
+        """
+        Test the generation of points using linspace.
+        """
+        tpoints = linspace(Point2D(0, 0), Point2D(4, 8), num=5, return_tpoint=True)
+        expected_points = [
+            Point2D(0, 0),
+            Point2D(1, 2),
+            Point2D(2, 4),
+            Point2D(3, 6),
+            Point2D(4, 8)
+        ]
+        for tp, expected in zip(tpoints, expected_points):
+            self.assertEqual(tp.x, expected.x)
+            self.assertEqual(tp.y, expected.y)
+        # end for
+    # end test_linspace_tpoint2d
+
+    def test_logspace_point2d(self):
+        """
+        Test the generation of points using logspace.
+        """
+        points = logspace(Point2D(1, 1), Point2D(100, 1000), num=5, return_tpoint=False)
+        expected_points = [
+            Point2D(1.0, 1.0),
+            Point2D(3.1622776601683795, 5.623414039611816),
+            Point2D(10.0, 31.622785568237305),
+            Point2D(31.622776601683793, 177.82803344726562),
+            Point2D(100.00005340576172, 1000.0005493164062)
+        ]
+        for p, expected in zip(points, expected_points):
+            self.assertAlmostEqual(p.x, expected.x, places=4)
+            self.assertAlmostEqual(p.y, expected.y, places=4)
+        # end for
+    # end test_logspace_point2d
+
+    def test_logspace_tpoint2d(self):
+        """
+        Test the generation of points using logspace.
+        """
+        tpoints = logspace(Point2D(1, 1), Point2D(100, 1000), num=5, return_tpoint=True)
+        expected_points = [
+            Point2D(1.0, 1.0),
+            Point2D(3.1622776601683795, 5.623414039611816),
+            Point2D(10.0, 31.622785568237305),
+            Point2D(31.622776601683793, 177.82803344726562),
+            Point2D(100.0, 1000.0005493164062)
+        ]
+        for tp, expected in zip(tpoints, expected_points):
+            self.assertAlmostEqual(tp.x, expected.x, places=4)
+            self.assertAlmostEqual(tp.y, expected.y, places=4)
+        # end for
+    # end test_logspace_tpoint2d
+
+    def test_point_uniform(self):
+        """
+        Test the generation of points using a uniform distribution.
+        """
+        low = (0, 0)
+        high = (10, 10)
+        points = uniform(low, high, size=5)
+        self.assertEqual(len(points), 5)
+        self.assertTrue(all(0 <= p.x <= 10 for p in points))
+    # end test_point_uniform
+
+    def test_uniform_different_ranges(self):
+        """
+        Test the generation of points using a uniform distribution with different ranges.
+        """
+        points = uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=True)
+        self.assertEqual(len(points), 5)
+        for point in points:
+            self.assertTrue(isinstance(point, TPoint2D))
+            self.assertTrue(0 <= point.x <= 5)
+            self.assertTrue(10 <= point.y <= 15)
+        # end for
+    # end test_uniform_different_ranges
+
+    def test_uniform_point2d(self):
+        """
+        Test the generation of points using a uniform distribution.
+        """
+        points = uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=False)
+        self.assertEqual(len(points), 5)
+        for point in points:
+            self.assertTrue(isinstance(point, Point2D))
+            self.assertTrue(0 <= point.x <= 5)
+            self.assertTrue(10 <= point.y <= 15)
+        # end for
+    # end test_uniform_point2d
+
+    def test_uniform_tpoint2d(self):
+        """
+        Test the generation of points using a uniform distribution.
+        """
+        tpoints = uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=True)
+        self.assertEqual(len(tpoints), 5)
+        for tpoint in tpoints:
+            self.assertTrue(isinstance(tpoint, TPoint2D))
+            self.assertTrue(0 <= tpoint.x <= 5)
+            self.assertTrue(10 <= tpoint.y <= 15)
+        # end for
+    # end test_uniform_tpoint2d
+
+    def test_normal_point2d(self):
+        """
+        Test the generation of points using a normal distribution.
+        """
+        points = normal(Point2D(0, 0), Point2D(1, 1), size=5, return_tpoint=False)
+        self.assertEqual(len(points), 5)
+        for p in points:
+            self.assertIsInstance(p, Point2D)
+        # end for
+    # end test_normal_point2d
+
+    def test_normal_tpoint2d(self):
+        """
+        Test the generation of points using a normal distribution.
+        """
+        tpoints = normal(Point2D(0, 0), Point2D(1, 1), size=5, return_tpoint=True)
+        self.assertEqual(len(tpoints), 5)
+        for tp in tpoints:
+            self.assertIsInstance(tp, TPoint2D)
+        # end for
+    # end test_normal_tpoint2d
+
+    def test_poisson_point2d(self):
+        """
+        Test the generation of points using a Poisson distribution.
+        """
+        points = poisson(Point2D(3, 5), size=5, return_tpoint=False)
+        self.assertEqual(len(points), 5)
+        for p in points:
+            self.assertIsInstance(p, Point2D)
+        # end for
+    # end test_poisson_point2d
+
+    def test_poisson_tpoint2d(self):
+        """
+        Test the generation of points using a Poisson distribution.
+        """
+        tpoints = poisson(Point2D(3, 5), size=5, return_tpoint=True)
+        self.assertEqual(len(tpoints), 5)
+        for tp in tpoints:
+            self.assertIsInstance(tp, TPoint2D)
+        # end for
+    # end test_poisson_tpoint2d
+
+    def test_randint_point2d(self):
+        """
+        Test the generation of points using randint.
+        """
+        points = randint(Point2D(0, 0), Point2D(10, 10), size=5, return_tpoint=False)
+        self.assertEqual(len(points), 5)
+        for p in points:
+            self.assertIsInstance(p, Point2D)
+            self.assertGreaterEqual(p.x, 0)
+            self.assertLess(p.x, 10)
+            self.assertGreaterEqual(p.y, 0)
+            self.assertLess(p.y, 10)
+        # end for
+    # end test_randint_point2d
+
+    def test_randint_tpoint2d(self):
+        """
+        Test the generation of points using randint.
+        """
+        tpoints = randint(Point2D(0, 0), Point2D(10, 10), size=5, return_tpoint=True)
+        self.assertEqual(len(tpoints), 5)
+        for tp in tpoints:
+            self.assertIsInstance(tp, TPoint2D)
+            self.assertGreaterEqual(tp.x, 0)
+            self.assertLess(tp.x, 10)
+            self.assertGreaterEqual(tp.y, 0)
+            self.assertLess(tp.y, 10)
+        # end for
+    # end test_randint_tpoint2d
+
+    def test_choice_point2d(self):
+        """
+        Test the choice of points.
+        """
+        points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
+        chosen_points = choice(points, size=2, replace=False, return_tpoint=False)
+        self.assertEqual(len(chosen_points), 2)
+        for p in chosen_points:
+            self.assertIn(p, points)
+            self.assertIsInstance(p, Point2D)
+        # end for
+    # end test_choice_point2d
+
+    def test_choice_tpoint2d(self):
+        """
+        Test the choice of points.
+        """
+        points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
+        tpoints = choice(points, size=2, replace=False, return_tpoint=True)
+        self.assertEqual(len(tpoints), 2)
+        for tp in tpoints:
+            self.assertIsInstance(tp, TPoint2D)
+            self.assertIn((tp.x, tp.y), [(1, 1), (2, 2), (3, 3)])
+        # end for
+    # end test_choice_tpoint2d
+
+    def test_shuffle_point2d(self):
+        """
+        Test the shuffling of points.
+        """
+        points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
+        shuffled_points = shuffle(points, return_tpoint=False)
+        self.assertEqual(len(shuffled_points), 3)
+        self.assertCountEqual(shuffled_points,
+                              points)  # Vérifie que les éléments sont les mêmes, indépendamment de l'ordre
+        for p in shuffled_points:
+            self.assertIsInstance(p, Point2D)
+        # end for
+    # end test_shuffle_point2d
+
+    def test_shuffle_tpoint2d(self):
+        """
+        Test the shuffling of TPoints.
+        """
+        points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
+        tpoints = shuffle(points, return_tpoint=True)
+        self.assertEqual(len(tpoints), 3)
+        self.assertCountEqual([(tp.x, tp.y) for tp in tpoints],
+                              [(1, 1), (2, 2), (3, 3)])  # Vérifie que les valeurs sont correctes
+        for tp in tpoints:
+            self.assertIsInstance(tp, TPoint2D)
+        # end for
+    # end test_shuffle_tpoint2d
+
+    def test_point_arange(self):
+        """
+        Test the generation of points using arange.
+        """
+        start = Point2D(0, 0)
+        stop = Point2D(5, 5)
+        step = Point2D(1, 1)
+        points = point_arange(start, stop, step, return_tpoint=False)
+
+        self.assertEqual(len(points), 5)
+        self.assertEqual(points[0].x, 0)
+        self.assertEqual(points[0].y, 0)
+        self.assertEqual(points[-1].x, 4)
+        self.assertEqual(points[-1].y, 4)
+        for p in points:
+            self.assertIsInstance(p, Point2D)
+        # end for
+    # end test_point_arange
+
+    def test_point_arange_tpoint(self):
+        """
+        Test the generation of points using arange.
+        """
+        start = Point2D(0, 0)
+        stop = Point2D(5, 5)
+        step = Point2D(1, 1)
+        tpoints = point_arange(start, stop, step, return_tpoint=True)
+
+        self.assertEqual(len(tpoints), 5)
+        self.assertEqual(tpoints[0].x, 0)
+        self.assertEqual(tpoints[0].y, 0)
+        self.assertEqual(tpoints[-1].x, 4)
+        self.assertEqual(tpoints[-1].y, 4)
+        for tp in tpoints:
+            self.assertIsInstance(tp, TPoint2D)
+        # end for
+    # end test_point_arange_tpoint
+
+    def test_meshgrid_point2d(self):
+        """
+        Test meshgrid with Point2D objects.
+        """
+        x_values = np.linspace(0, 2, 3)
+        y_values = np.linspace(0, 2, 3)
+        grid = meshgrid(x_values, y_values, return_tpoint=False)
+
+        self.assertEqual(len(grid), 3)  # 3 rows
+        self.assertEqual(len(grid[0]), 3)  # 3 columns
+
+        # Verify individual points
+        self.assertEqual(grid[0][0].x, 0)
+        self.assertEqual(grid[0][0].y, 0)
+
+        self.assertEqual(grid[2][2].x, 2)
+        self.assertEqual(grid[2][2].y, 2)
+
+        # Ensure all objects are Point2D instances
+        for row in grid:
+            for point in row:
+                self.assertIsInstance(point, Point2D)
+        # end for
+    # end test_meshgrid_point2d
+
+    def test_meshgrid_tpoint2d(self):
+        """
+        Test meshgrid with TPoint2D objects.
+        """
+        x_values = np.linspace(0, 2, 3)
+        y_values = np.linspace(0, 2, 3)
+        grid = meshgrid(x_values, y_values, return_tpoint=True)
+
+        self.assertEqual(len(grid), 3)  # 3 rows
+        self.assertEqual(len(grid[0]), 3)  # 3 columns
+
+        # Verify individual points
+        self.assertEqual(grid[0][0].x, 0)
+        self.assertEqual(grid[0][0].y, 0)
+
+        self.assertEqual(grid[2][2].x, 2)
+        self.assertEqual(grid[2][2].y, 2)
+
+        # Ensure all objects are TPoint2D instances
+        for row in grid:
+            for tpoint in row:
+                self.assertIsInstance(tpoint, TPoint2D)
+            # end for
+        # end for
+    # end test_meshgrid_tpoint2d
+
+    # endregion GENERATION
 
 # end TestPoint2D
 

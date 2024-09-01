@@ -417,7 +417,15 @@ class Point2D(Point):
         Args:
             other (Point2D): Point to subtract from this point or scalar value to subtract from the point.
         """
-        return self.__sub__(other)
+        if isinstance(other, Point2D):
+            return Point2D(other.x - self.x, other.y - self.y)
+        elif isinstance(other, (int, float)):
+            return Point2D(other - self.x, other - self.y)
+        elif isinstance(other, tuple):
+            return Point2D(other[0] - self.x, other[1] - self.y)
+        else:
+            return NotImplemented
+        # end if
     # end __rsub__
 
     def __mul__(self, other):
@@ -768,6 +776,9 @@ class TPoint2D(Point2D):
         """
         Update the point when a source point changes.
         """
+        x, y = self.get()
+        self._pos[0] = x
+        self._pos[1] = y
         self.dispatch_event("on_change", ObjectChangedEvent(self, x=self.x, y=self.y))
     # end _on_point_changed
 
@@ -947,6 +958,10 @@ def tpoint2d(point: Union[Point2D, TPoint2D, tuple]):
     # end if
 # end tpoint2d
 
+
+# region OPERATORS
+
+
 # Function to create a new tracked point
 def add_t(point: Union[Point2D, TPoint2D], delta: Union[Point2D, TPoint2D]):
     """
@@ -1002,6 +1017,9 @@ def abs_t(point: Point2D):
     """
     return TPoint2D(lambda p: (abs(p.x), abs(p.y)), p=point)
 # end abs_t
+
+
+# endregion OPERATORS
 
 
 def round_t(point: Point2D, ndigits=0):
@@ -1374,3 +1392,293 @@ def distance_sqeuclidean_t(point1: Point2D, point2: Point2D):
     return TScalar(lambda p1, p2: (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2, p1=point1, p2=point2)
 # end distance_sqeuclidean_t
 
+
+# region GENERATION
+
+
+def point_range(start: Point2D, stop: Point2D, step: Point2D, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects using a range-like function for 2D points.
+
+    Args:
+        start (Point2D): Starting point.
+        stop (Point2D): Stopping point.
+        step (Point2D): Step sizes for x and y coordinates.
+        return_tpoint (bool): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    x_range = np.arange(start.x, stop.x, step.x)
+    y_range = np.arange(start.y, stop.y, step.y)
+
+    if return_tpoint:
+        return [
+            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+            for x, y in zip(x_range, y_range)
+        ]
+    else:
+        return [Point2D(x, y) for x, y in zip(x_range, y_range)]
+    # end if
+# end point_range
+
+
+def linspace(start: Point2D, stop: Point2D, num=50, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects using numpy's linspace for 2D points.
+
+    Args:
+        start (Point2D): Starting point.
+        stop (Point2D): Stopping point.
+        num (int, optional): Number of points.
+        return_tpoint (bool): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    x_values = np.linspace(start.x, stop.x, num)
+    y_values = np.linspace(start.y, stop.y, num)
+
+    if return_tpoint:
+        return [
+            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+            for x, y in zip(x_values, y_values)
+        ]
+    else:
+        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+    # end if
+# end linspace
+
+
+def logspace(start: Point2D, stop: Point2D, num=50, base=10.0, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects using numpy's logspace for 2D points.
+
+    Args:
+        start (Point2D): Starting point.
+        stop (Point2D): Stopping point.
+        num (int, optional): Number of points.
+        base (float, optional): Base of the logarithm.
+        return_tpoint (bool): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    x_values = np.logspace(np.log10(start.x), np.log10(stop.x), num, base=base)
+    y_values = np.logspace(np.log10(start.y), np.log10(stop.y), num, base=base)
+
+    if return_tpoint:
+        return [
+            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+            for x, y in zip(x_values, y_values)
+        ]
+    else:
+        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+    # end if
+# end logspace
+
+
+def uniform(low=(0.0, 0.0), high=(1.0, 1.0), size=None, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects with uniform distribution, allowing different ranges for x and y.
+
+    Args:
+        low (tuple): Lower bounds of the uniform distribution for x and y.
+        high (tuple): Upper bounds of the uniform distribution for x and y.
+        size (int, optional): Number of samples to generate.
+        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    if size is None:
+        size = 1
+    # end if
+
+    points = [
+        (np.random.uniform(low[0], high[0]), np.random.uniform(low[1], high[1]))
+        for _ in range(size)
+    ]
+
+    if return_tpoint:
+        return [
+            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(p[0]), y=Scalar(p[1]))
+            for p in points
+        ]
+    else:
+        return [Point2D(p[0], p[1]) for p in points]
+    # end if
+# end uniform
+
+
+def normal(loc: Point2D, scale: Point2D, size=None, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects with normal distribution.
+
+    Args:
+        loc (Point2D): Mean of the distribution.
+        scale (Point2D): Standard deviation of the distribution.
+        size (int, optional): Number of samples to generate.
+        return_tpoint (bool): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    x_values = np.random.normal(loc.x, scale.x, size)
+    y_values = np.random.normal(loc.y, scale.y, size)
+
+    if return_tpoint:
+        return [
+            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+            for x, y in zip(x_values, y_values)
+        ]
+    else:
+        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+    # end if
+# end normal
+
+
+def poisson(lam: Point2D, size=None, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects with Poisson distribution.
+
+    Args:
+        lam (Point2D): Expected number of events (lambda) for x and y.
+        size (int, optional): Number of samples to generate.
+        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    x_values = np.random.poisson(lam.x, size)
+    y_values = np.random.poisson(lam.y, size)
+
+    if return_tpoint:
+        return [
+            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+            for x, y in zip(x_values, y_values)
+        ]
+    else:
+        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+    # end if
+# end poisson
+
+
+def randint(low: Point2D, high: Point2D, size=None, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects with random integers from low to high for x and y coordinates.
+
+    Args:
+        low (Point2D): Lower bound for x and y.
+        high (Point2D): Upper bound for x and y.
+        size (int, optional): Number of samples to generate.
+        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    x_values = np.random.randint(low.x, high.x, size)
+    y_values = np.random.randint(low.y, high.y, size)
+
+    if return_tpoint:
+        return [
+            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+            for x, y in zip(x_values, y_values)
+        ]
+    else:
+        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+    # end if
+# end randint
+
+
+def choice(points: list, size=None, replace=True, return_tpoint: bool = False):
+    """
+    Create a list of Point2D or TPoint2D objects by randomly choosing from a given list of points.
+
+    Args:
+        points (list): List of Point2D objects to choose from.
+        size (int, optional): Number of samples to generate.
+        replace (bool, optional): Whether to sample with replacement.
+        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    choices = np.random.choice(points, size=size, replace=replace)
+
+    if return_tpoint:
+        return [TPoint2D(lambda p: (p.x, p.y), p=choice) for choice in choices]
+    else:
+        return list(choices)
+    # end if
+# end choice
+
+
+def shuffle(points: list, return_tpoint: bool = False):
+    """
+    Shuffle a list of Point2D objects in place.
+
+    Args:
+        points (list): List of Point2D objects to shuffle.
+        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: Shuffled list of Point2D or TPoint2D objects.
+    """
+    np.random.shuffle(points)
+
+    if return_tpoint:
+        return [TPoint2D(lambda p: (p.x, p.y), p=point) for point in points]
+    else:
+        return points
+    # end if
+# end shuffle
+
+
+def point_arange(start: Point2D, stop: Point2D, step: Point2D, return_tpoint: bool = False):
+    """
+    Create a list of Point2D objects using numpy's arange function for 2D points.
+
+    Args:
+        start (Point2D): Start point.
+        stop (Point2D): Stop point.
+        step (Point2D): Step sizes for x and y coordinates.
+        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+
+    Returns:
+        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+    """
+    x_values = np.arange(start.x, stop.x, step.x)
+    y_values = np.arange(start.y, stop.y, step.y)
+
+    if return_tpoint:
+        return [TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y)) for x, y in zip(x_values, y_values)]
+    else:
+        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+    # end if
+# end point_arange
+
+
+def meshgrid(x_values, y_values, return_tpoint: bool = False):
+    """
+    Create a meshgrid of Point2D objects from x and y values.
+
+    Args:
+        x_values (array-like): The x-coordinates.
+        y_values (array-like): The y-coordinates.
+        return_tpoint (bool, optional): If True, return a grid of TPoint2D objects.
+
+    Returns:
+        List[List[Point2D]]: A 2D list of Point2D or TPoint2D objects representing the meshgrid.
+    """
+    x_grid, y_grid = np.meshgrid(x_values, y_values)
+    if return_tpoint:
+        return [[TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y)) for x, y in zip(x_row, y_row)]
+                for x_row, y_row in zip(x_grid, y_grid)]
+    else:
+        return [[Point2D(x, y) for x, y in zip(x_row, y_row)] for x_row, y_row in zip(x_grid, y_grid)]
+    # end if
+# end meshgrid
+
+
+# endregion GENERATION

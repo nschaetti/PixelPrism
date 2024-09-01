@@ -27,6 +27,10 @@ from pixel_prism.data import (
     asinh_t, acosh_t, atanh_t, degrees_t,
     add_t, sub_t, mul_t, div_t, tscalar
 )
+from pixel_prism.data.scalar import (
+    scalar_range, linspace, logspace, uniform, normal, poisson,
+    randint, choice, shuffle, scalar_arange
+)
 
 
 class TestScalar(unittest.TestCase):
@@ -779,5 +783,222 @@ class TestScalar(unittest.TestCase):
     # end test_tscalar_complex_nesting
 
     # endregion OPERATORS
+
+    # region GENERATION
+
+    def test_scalar_range(self):
+        """
+        Test the generation of a range of Scalar objects.
+        """
+        scalars = scalar_range(1, 5)
+        values = [scalar.get() for scalar in scalars]
+        self.assertEqual(values, [1, 2, 3, 4])
+    # end test_scalar_range
+
+    def test_tscalar_range(self):
+        """
+        Test the generation of a range of TScalar objects.
+        """
+        tscalars = scalar_range(1, 5, return_tscalar=True)
+        values = [tscalar.value for tscalar in tscalars]
+        self.assertEqual(values, [1, 2, 3, 4])
+    # end test_tscalar_range
+
+    def test_scalar_linspace(self):
+        """
+        Test the generation of a range of Scalar objects using linspace.
+        """
+        scalars = linspace(0, 1, num=5)
+        values = [scalar.get() for scalar in scalars]
+        np.testing.assert_almost_equal(values, [0.0, 0.25, 0.5, 0.75, 1.0])
+    # end test_scalar_linspace
+
+    def test_tscalar_linspace(self):
+        """
+        Test the generation of a range of TScalar objects using linspace.
+        """
+        tscalars = linspace(0, 1, num=5, return_tscalar=True)
+        values = [tscalar.get() for tscalar in tscalars]
+        np.testing.assert_almost_equal(values, [0.0, 0.25, 0.5, 0.75, 1.0])
+    # end test_tscalar_linspace
+
+    def test_scalar_logspace(self):
+        """
+        Test the generation of a range of Scalar objects using logspace.
+        """
+        scalars = logspace(0, 2, num=3)
+        values = [scalar.get() for scalar in scalars]
+        np.testing.assert_almost_equal(values, [1.0, 10.0, 100.0])
+    # end test_scalar_logspace
+
+    def test_tscalar_logspace(self):
+        """
+        Test the generation of a range of TScalar objects using logspace.
+        """
+        tscalars = logspace(0, 2, num=3, return_tscalar=True)
+        values = [tscalar.get() for tscalar in tscalars]
+        np.testing.assert_almost_equal(values, [1.0, 10.0, 100.0])
+    # end test_tscalar_logspace
+
+    def test_scalar_uniform(self):
+        """
+        Test the generation of a range of Scalar objects using a uniform distribution.
+        """
+        scalar = uniform(0, 10)
+        value = scalar.get()
+        self.assertTrue(0 <= value <= 10)
+
+        scalars = uniform(0, 10, size=5)
+        values = [scal.get() for scal in scalars]
+        self.assertTrue(all(0 <= v <= 10 for v in values))
+    # end test_scalar_uniform
+
+    def test_tscalar_uniform(self):
+        tscalar = uniform(0, 10, return_tscalar=True)
+        value = tscalar.get()
+        self.assertTrue(0 <= value <= 10)
+
+        tscalars = uniform(0, 10, size=5, return_tscalar=True)
+        values = [ts.get() for ts in tscalars]
+        self.assertTrue(all(0 <= v <= 10 for v in values))
+
+    # end test_tscalar_uniform
+
+    def test_scalar_normal(self):
+        """
+        Test the generation of a range of Scalar objects using a normal distribution.
+        """
+        scalar = normal(0, 1)
+        value = scalar.get()
+        self.assertTrue(np.abs(value) < 10)  # Reasonable range for a normal distribution
+
+        scalars = normal(0, 1, size=5)
+        values = [scal.get() for scal in scalars]
+        self.assertTrue(all(np.abs(v) < 10 for v in values))
+    # end test_scalar_normal
+
+    def test_tscalar_normal(self):
+        """
+        Test the generation of a range of TScalar objects using a normal distribution.
+        """
+        tscalar = normal(0, 1, return_tscalar=True)
+        value = tscalar.get()
+        self.assertTrue(np.abs(value) < 10)  # Reasonable range for a normal distribution
+
+        tscalars = normal(0, 1, size=5, return_tscalar=True)
+        values = [ts.get() for ts in tscalars]
+        self.assertTrue(all(np.abs(v) < 10 for v in values))
+    # end test_tscalar_normal
+
+    def test_scalar_poisson(self):
+        """
+        Test the generation of a range of Scalar objects using a Poisson distribution.
+        """
+        scalar = poisson(5)
+        value = scalar.get()
+        self.assertTrue(value >= 0)  # Poisson distribution is non-negative
+
+        scalars = poisson(5, size=5)
+        values = [scal.get() for scal in scalars]
+        self.assertTrue(all(v >= 0 for v in values))
+    # end test_scalar_poisson
+
+    def test_tscalar_poisson(self):
+        """
+        Test the generation of a range of TScalar objects using a Poisson distribution.
+        """
+        tscalar = poisson(5, return_tscalar=True)
+        value = tscalar.get()
+        self.assertTrue(value >= 0)  # Poisson distribution is non-negative
+
+        tscalars = poisson(5, size=5, return_tscalar=True)
+        values = [ts.get() for ts in tscalars]
+        self.assertTrue(all(v >= 0 for v in values))
+    # end test_tscalar_poisson
+
+    def test_scalar_randint(self):
+        """
+        Test the generation of a range of Scalar objects using randint.
+        """
+        scalar = randint(0, 10)
+        value = scalar.get()
+        self.assertTrue(0 <= value < 10)
+
+        scalars = randint(0, 10, size=5)
+        values = [scal.get() for scal in scalars]
+        self.assertTrue(all(0 <= v < 10 for v in values))
+
+    # end test_scalar_randint
+
+    def test_tscalar_randint(self):
+        """
+        Test the generation of a range of TScalar objects using randint.
+        """
+        tscalar = randint(0, 10, return_tscalar=True)
+        value = tscalar.get()
+        self.assertTrue(0 <= value < 10)
+
+        tscalars = randint(0, 10, size=5, return_tscalar=True)
+        values = [ts.get() for ts in tscalars]
+        self.assertTrue(all(0 <= v < 10 for v in values))
+    # end test_tscalar_randint
+
+    def test_scalar_choice(self):
+        """
+        Test the generation of a Scalar object using choice
+        """
+        scalar = choice([1, 2, 3, 4, 5])
+        value = scalar.get()
+        self.assertIn(value, [1, 2, 3, 4, 5])
+
+        scalars = choice([1, 2, 3, 4, 5], size=3)
+        values = [scal.get() for scal in scalars]
+        self.assertTrue(all(v in [1, 2, 3, 4, 5] for v in values))
+    # end test_scalar_choice
+
+    def test_tscalar_choice(self):
+        """
+        Test the generation of a TScalar object using choice.
+        """
+        tscalar = choice([1, 2, 3, 4, 5], return_tscalar=True)
+        value = tscalar.get()
+        self.assertIn(value, [1, 2, 3, 4, 5])
+
+        tscalars = choice([1, 2, 3, 4, 5], size=3, return_tscalar=True)
+        values = [ts.get() for ts in tscalars]
+        self.assertTrue(all(v in [1, 2, 3, 4, 5] for v in values))
+    # end test_tscalar_choice
+
+    def test_scalar_shuffle(self):
+        """
+        Test the shuffle function for Scalar objects.
+        """
+        array = [1, 2, 3, 4, 5]
+        shuffled = shuffle(array)
+        self.assertEqual(sorted([scal.get() for scal in shuffled]), [1, 2, 3, 4, 5])
+    # end test_scalar_shuffle
+
+    def test_tscalar_shuffle(self):
+        """
+        Test the shuffle function for TScalar objects.
+        """
+        array = [1, 2, 3, 4, 5]
+        shuffled = shuffle(array, return_tscalar=True)
+        self.assertEqual(sorted([ts.get() for ts in shuffled]), [1, 2, 3, 4, 5])
+    # end test_tscalar_shuffle
+
+    def test_scalar_arange(self):
+        scalars = scalar_arange(0, 5, 1)
+        values = [scalar.get() for scalar in scalars]
+        self.assertEqual(values, [0, 1, 2, 3, 4])
+    # end test_scalar_arange
+
+    def test_tscalar_arange(self):
+        tscalars = scalar_arange(0, 5, 1, return_tscalar=True)
+        values = [tscalar.get() for tscalar in tscalars]
+        self.assertEqual(values, [0, 1, 2, 3, 4])
+    # end test_tscalar_arange
+
+    # endregion GENERATION
 
 # end TestScalar

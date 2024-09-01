@@ -124,8 +124,11 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             other (any): Scalar or value to add
         """
+        from .points import Point2D
         if isinstance(other, Scalar):
             return Scalar(self._value + other._value)
+        elif isinstance(other, Point2D):
+            return Point2D(self.value + other.x, self.value + other.y)
         # end if
         return Scalar(self._value + other)
     # end __add__
@@ -416,6 +419,20 @@ class TScalar(Scalar):
 
     # region OVERRIDE
 
+    def __str__(self):
+        """
+        Return a string representation of the scalar value.
+        """
+        return str(self._value)
+    # end __str__
+
+    def __repr__(self):
+        """
+        Return a string representation of the scalar value.
+        """
+        return f"TScalar(func={self._func})"
+    # end __repr__
+
     # Operator overloading
     def __add__(self, other):
         """
@@ -424,7 +441,17 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to add
         """
-        return add_t(self, other)
+        from .points import Point2D, TPoint2D
+        # tscalar * scalar -> tscalar
+        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+            return add_t(self, other)
+        # tscalar * tscalar -> tscalar
+        elif isinstance(other, TScalar):
+            return add_t(self, other)
+        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
+            return TPoint2D(lambda p: (self.value + p.x, self.value + p.y), p=other)
+            # TODO: TMatrix2D
+        # end if
     # end __add__
 
     def __radd__(self, other):
@@ -434,11 +461,24 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to add
         """
-        return add_t(other, self)
+        return self.__add__(other)
     # end __radd__
 
     def __sub__(self, other):
-        return sub_t(self, other)
+        """
+        Subtract the scalar value from another scalar or value.
+        """
+        from .points import Point2D, TPoint2D
+        # tscalar * scalar -> tscalar
+        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+            return sub_t(self, other)
+        # tscalar * tscalar -> tscalar
+        elif isinstance(other, TScalar):
+            return sub_t(self, other)
+        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
+            return TPoint2D(lambda p: (self.value - p.x, self.value - p.y), p=other)
+            # TODO: TMatrix2D
+        # end if
     # end __sub__
 
     def __rsub__(self, other):
@@ -448,7 +488,17 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to subtract
         """
-        return sub_t(other, self)
+        from .points import Point2D, TPoint2D
+        # tscalar * scalar -> tscalar
+        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+            return sub_t(other, self)
+        # tscalar * tscalar -> tscalar
+        elif isinstance(other, TScalar):
+            return sub_t(other, self)
+        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
+            return TPoint2D(lambda p: (p.x - self.value, p.y - self.value), p=other)
+            # TODO: TMatrix2D
+        # end if
     # end __rsub__
 
     def __mul__(self, other):
@@ -458,7 +508,17 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to multiply
         """
-        return mul_t(self, other)
+        from .points import Point2D, TPoint2D
+        # tscalar * scalar -> tscalar
+        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+            return mul_t(self, other)
+        # tscalar * tscalar -> tscalar
+        elif isinstance(other, TScalar):
+            return mul_t(self, other)
+        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
+            return TPoint2D(lambda p: (self.value * p.x, self.value * p.y), p=other)
+            # TODO: TMatrix2D
+        # end if
     # end __mul__
 
     def __rmul__(self, other):
@@ -468,7 +528,17 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to multiply
         """
-        return mul_t(other, self)
+        from .points import Point2D, TPoint2D
+        # tscalar * scalar -> tscalar
+        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+            return mul_t(other, self)
+        # tscalar * tscalar -> tscalar
+        elif isinstance(other, TScalar):
+            return mul_t(other, self)
+        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
+            return TPoint2D(lambda p: (p.x * self.value, p.y * self.value), p=other)
+            # TODO: TMatrix2D
+        # end if
     # end __rmul__
 
     def __truediv__(self, other):
@@ -478,7 +548,17 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to divide by
         """
-        return div_t(self, other)
+        from .points import Point2D, TPoint2D
+        # tscalar * scalar -> tscalar
+        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+            return div_t(self, other)
+        # tscalar * tscalar -> tscalar
+        elif isinstance(other, TScalar):
+            return div_t(self, other)
+        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
+            return TPoint2D(lambda p: (self.value / p.x, self.value / p.y), p=other)
+            # TODO: TMatrix2D
+        # end if
     # end __truediv__
 
     def __rtruediv__(self, other):
@@ -488,7 +568,17 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to divide by
         """
-        return div_t(other, self)
+        from .points import Point2D, TPoint2D
+        # tscalar * scalar -> tscalar
+        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+            return div_t(other, self)
+        # tscalar * tscalar -> tscalar
+        elif isinstance(other, TScalar):
+            return div_t(other, self)
+        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
+            return TPoint2D(lambda p: (p.x / self.value, p.y / self.value), p=other)
+            # TODO: TMatrix2D
+        # end if
     # end __rtruediv__
 
     def __eq__(self, other):
@@ -589,6 +679,7 @@ def tscalar(scalar: Union[Scalar, float, int]):
     return TScalar(lambda s: s.value, s=scalar)
 # end tscalar
 
+# region OPERATIONS
 
 # Add to scalar
 def add_t(scalar1: Union[Scalar, float, int], scalar2: Union[Scalar, float, int]):
@@ -670,6 +761,9 @@ def div_t(scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
     return TScalar(lambda s1, s2: s1.value / s2.value, s1=scalar1, s2=scalar2)
 # end div_t
 
+# endregion OPERATIONS
+
+# region OPERATIONS
 
 def floor_t(scalar: Scalar):
     """
@@ -802,56 +896,389 @@ def sin_t(scalar: Scalar):
 # end sin_t
 
 def cos_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the cos function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the cos function to.
+    """
     return TScalar(lambda s: np.cos(s.value), s=scalar)
 # end cos_t
 
 def tan_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the tan function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the tan function to.
+    """
     return TScalar(lambda s: np.tan(s.value), s=scalar)
 # end tan_t
 
 def asin_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the asin function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the asin function
+    """
     return TScalar(lambda s: np.arcsin(s.value), s=scalar)
 # end asin_t
 
 def acos_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the acos function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the acos function
+    """
     return TScalar(lambda s: np.arccos(s.value), s=scalar)
 # end acos_t
 
 def atan_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the atan function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the atan function
+    """
     return TScalar(lambda s: np.arctan(s.value), s=scalar)
 # end atan_t
 
 def atan2_t(y: Scalar, x: Scalar):
+    """
+    Create a TScalar that applies the atan2 function to the scalar.
+
+    Args:
+        y (Scalar): The y-coordinate of the point.
+        x (Scalar): The x-coordinate of the point.
+    """
     return TScalar(lambda p1, p2: np.arctan2(p1.value, p2.value), p1=y, p2=x)
 # end atan2_t
 
 def sinh_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the sinh function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the sinh function
+    """
     return TScalar(lambda s: np.sinh(s.value), s=scalar)
 # end sinh_t
 
 def cosh_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the cosh function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the cosh function
+    """
     return TScalar(lambda s: np.cosh(s.value), s=scalar)
 # end cosh_t
 
 def tanh_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the tanh function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the tanh function
+    """
     return TScalar(lambda s: np.tanh(s.value), s=scalar)
 # end tanh_t
 
 def asinh_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the asinh function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the asinh function
+    """
     return TScalar(lambda s: np.arcsinh(s.value), s=scalar)
 # end asinh_t
 
 def acosh_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the acosh function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the acosh function
+    """
     return TScalar(lambda s: np.arccosh(s.value), s=scalar)
 # end acosh_t
 
 def atanh_t(scalar: Scalar):
+    """
+    Create a TScalar that applies the atanh function to the scalar.
+
+    Args:
+        scalar (Scalar): The scalar to apply the atanh function
+    """
     return TScalar(lambda s: np.arctanh(s.value), s=scalar)
 # end atanh_t
 
 def degrees_t(scalar: Scalar):
+    """
+    Create a TScalar that converts the scalar value from radians to degrees.
+
+    Args:
+        scalar (Scalar): The scalar
+    """
     return TScalar(lambda s: np.degrees(s.value), s=scalar)
 # end degrees_t
 
+# endregion OPERATIONS
 
+# region GENERATION
+
+
+def scalar_range(start, stop=None, step=1, return_tscalar: bool = False):
+    """
+    Create a list of Scalars using the built-in range function.
+
+    Args:
+        start (int): Start value.
+        stop (int, optional): Stop value.
+        step (int, optional): Step value.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        List[Scalar]: List of Scalars or TScalars.
+    """
+    if return_tscalar:
+        scalars = [Scalar(i) for i in range(start, stop, step)]
+        return [TScalar(lambda s: s.value, s=scalar) for scalar in scalars]
+    else:
+        return [Scalar(i) for i in range(start, stop, step)]
+    # end if
+# end scalar_range
+
+
+def linspace(start, stop, num=50, return_tscalar: bool = False):
+    """
+    Create a list of TScalars using numpy's linspace.
+
+    Args:
+        start (float): Start value.
+        stop (float): Stop value.
+        num (int, optional): Number of samples to generate.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        List[TScalar]: List of TScalars.
+    """
+    if return_tscalar:
+        scalars = [Scalar(i) for i in np.linspace(start, stop, num)]
+        return [TScalar(lambda s: s.value, s=scalar) for scalar in scalars]
+    else:
+        return [Scalar(s) for s in np.linspace(start, stop, num)]
+    # end if
+# end linspace
+
+
+def logspace(start, stop, num=50, base=10.0, return_tscalar: bool = False):
+    """
+    Create a list of TScalars using numpy's logspace.
+
+    Args:
+        start (float): Start value.
+        stop (float): Stop value.
+        num (int, optional): Number of samples to generate.
+        base (float, optional): Base of the logarithm.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        List[TScalar]: List of TScalars.
+    """
+    if return_tscalar:
+        scalars = [Scalar(i) for i in np.logspace(start, stop, num=num, base=base)]
+        return [TScalar(lambda s: s.value, s=scalar) for scalar in scalars]
+    else:
+        return [Scalar(s) for s in np.logspace(start, stop, num=num, base=base)]
+    # end if
+# end logspace
+
+
+def uniform(low=0.0, high=1.0, size=None, return_tscalar: bool = False):
+    """
+    Create a TScalar or a list of TScalars with uniform distribution.
+
+    Args:
+        low (float): Lower bound of the uniform distribution.
+        high (float): Upper bound of the uniform distribution.
+        size (int, optional): Number of samples to generate.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        TScalar or List[TScalar]: TScalar or list of TScalars.
+    """
+    if size is None and return_tscalar:
+        scalar = Scalar(np.random.uniform(low, high))
+        return TScalar(lambda s: s.value, s=scalar)
+    elif size is None:
+        return Scalar(np.random.uniform(low, high))
+    elif return_tscalar:
+        scalars = [Scalar(np.random.uniform(low, high)) for _ in range(size)]
+        return [TScalar(lambda s: s.value, s=scal) for scal in scalars]
+    else:
+        return [Scalar(np.random.uniform(low, high)) for _ in range(size)]
+    # end if
+# end uniform
+
+
+def normal(loc=0.0, scale=1.0, size=None, return_tscalar: bool = False):
+    """
+    Create a TScalar or a list of TScalars with normal distribution.
+
+    Args:
+        loc (float): Mean of the distribution.
+        scale (float): Standard deviation of the distribution.
+        size (int, optional): Number of samples to generate.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        TScalar or List[TScalar]: TScalar or list of TScalars.
+    """
+    if size is None and return_tscalar:
+        scalar = Scalar(np.random.normal(loc, scale))
+        return TScalar(lambda s: s.value, s=scalar)
+    elif size is None:
+        return Scalar(np.random.normal(loc, scale))
+    elif return_tscalar:
+        scalars = [Scalar(np.random.normal(loc, scale)) for _ in range(size)]
+        return [TScalar(lambda s: s.value, s=scal) for scal in scalars]
+    else:
+        return [Scalar(np.random.normal(loc, scale)) for _ in range(size)]
+    # end if
+# end normal
+
+
+def poisson(lam=1.0, size=None, return_tscalar: bool = False):
+    """
+    Create a TScalar or a list of TScalars with Poisson distribution.
+
+    Args:
+        lam (float): Expected number of events (lambda).
+        size (int, optional): Number of samples to generate.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        TScalar or List[TScalar]: TScalar or list of TScalars.
+    """
+    if size is None and return_tscalar:
+        scalar = Scalar(np.random.poisson(lam))
+        return TScalar(lambda s: s.value, s=scalar)
+    elif size is None:
+        return Scalar(np.random.poisson(lam))
+    elif return_tscalar:
+        scalars = [Scalar(np.random.poisson(lam)) for _ in range(size)]
+        return [TScalar(lambda s: s.value, s=scal) for scal in scalars]
+    else:
+        return [Scalar(np.random.poisson(lam)) for _ in range(size)]
+    # end if
+# end poisson
+
+
+def randint(low, high=None, size=None, return_tscalar: bool = False):
+    """
+    Create a Scalar or a list of Scalars with random integers from low (inclusive) to high (exclusive).
+
+    Args:
+        low (int): Lower bound of the range (inclusive).
+        high (int, optional): Upper bound of the range (exclusive). If None, range is from 0 to low.
+        size (int, optional): Number of samples to generate.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        Scalar or List[Scalar]: Scalar or list of Scalars or TScalars.
+    """
+    if high is None:
+        high = low
+        low = 0
+    # end if
+
+    if size is None and return_tscalar:
+        scalar = Scalar(np.random.randint(low, high))
+        return TScalar(lambda s: s.value, s=scalar)
+    elif size is None:
+        return Scalar(np.random.randint(low, high))
+    elif return_tscalar:
+        scalars = [Scalar(np.random.randint(low, high)) for _ in range(size)]
+        return [TScalar(lambda s: s.value, s=scal) for scal in scalars]
+    else:
+        return [Scalar(np.random.randint(low, high)) for _ in range(size)]
+    # end if
+# end randint
+
+
+def choice(a, size=None, replace=True, return_tscalar: bool = False):
+    """
+    Create a Scalar or a list of Scalars with random choices from a given array.
+
+    Args:
+        a (array-like): Array to choose from.
+        size (int, optional): Number of samples to generate.
+        replace (bool, optional): Whether to sample with replacement.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        Scalar or List[Scalar]: Scalar or list of Scalars or TScalars.
+    """
+    if size is None and return_tscalar:
+        scalar = Scalar(np.random.choice(a, replace=replace))
+        return TScalar(lambda s: s.value, s=scalar)
+    elif size is None:
+        return Scalar(np.random.choice(a, replace=replace))
+    elif return_tscalar:
+        scalars = [Scalar(np.random.choice(a, replace=replace)) for _ in range(size)]
+        return [TScalar(lambda s: s.value, s=scal) for scal in scalars]
+    else:
+        return [Scalar(np.random.choice(a, replace=replace)) for _ in range(size)]
+    # end if
+# end choice
+
+
+def shuffle(x, return_tscalar: bool = False):
+    """
+    Shuffle a sequence in place and return it as a list of Scalars.
+
+    Args:
+        x (array-like): Array to shuffle.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        List[Scalar]: List of Scalars or TScalars.
+    """
+    np.random.shuffle(x)
+    if return_tscalar:
+        scalars = [Scalar(s) for s in x]
+        return [TScalar(lambda s: s.value, s=scalar) for scalar in scalars]
+    else:
+        return [Scalar(s) for s in x]
+    # end if
+# end shuffle
+
+
+def scalar_arange(start, stop=None, step=1, return_tscalar: bool = False):
+    """
+    Create a list of Scalars using numpy's arange function.
+
+    Args:
+        start (int or float): Start value.
+        stop (int or float, optional): Stop value.
+        step (int or float, optional): Step value.
+        return_tscalar (bool, optional): If True, return a list of TScalars.
+
+    Returns:
+        List[Scalar]: List of Scalars or TScalars.
+    """
+    if return_tscalar:
+        scalars = [Scalar(s) for s in np.arange(start, stop, step)]
+        return [TScalar(lambda s: s.value, s=scalar) for scalar in scalars]
+    else:
+        return [Scalar(s) for s in np.arange(start, stop, step)]
+    # end if
+# end arange
+
+
+# endregion GENERATION
 

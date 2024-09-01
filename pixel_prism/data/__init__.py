@@ -44,8 +44,7 @@ from .matrices import (
     determinant_t,
     inverse_t,
     scalar_mul_t,
-    trace_t,
-    rotate_point_t
+    trace_t
 )
 
 # Points
