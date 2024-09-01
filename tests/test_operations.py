@@ -388,6 +388,138 @@ class TestOperations(unittest.TestCase):
         self.assertTrue(np.allclose(result.data, np.array([[1 / 2, 2 / 2], [3 / 2, 4 / 2]])))
     # end test_scalar_op_tmatrix2d_reverse
 
+    def test_scalar_plus_float(self):
+        s = Scalar(5)
+        result = s + 3.0
+        self.assertIsInstance(result, Scalar)
+        self.assertEqual(result.get(), 8.0)
+    # end test_scalar_plus_float
+
+    def test_scalar_plus_tscalar(self):
+        s = Scalar(5)
+        ts = TScalar(lambda: 3)
+        result = s + ts
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 8)
+    # end test_scalar_plus_tscalar
+
+    def test_scalar_plus_scalar(self):
+        s1 = Scalar(5)
+        s2 = Scalar(3)
+        result = s1 + s2
+        self.assertIsInstance(result, Scalar)
+        self.assertEqual(result.get(), 8)
+    # end test_scalar_plus_scalar
+
+    def test_scalar_plus_tpoint2d(self):
+        s = Scalar(5)
+        tp = TPoint2D(lambda: (1, 2))
+        result = s + tp
+        self.assertIsInstance(result, TPoint2D)
+        self.assertEqual(result.x, 6)
+        self.assertEqual(result.y, 7)
+    # end test_scalar_plus_tpoint2d
+
+    def test_scalar_plus_point2d(self):
+        s = Scalar(5)
+        p = Point2D(1, 2)
+        result = s + p
+        self.assertIsInstance(result, Point2D)
+        self.assertEqual(result.x, 6)
+        self.assertEqual(result.y, 7)
+    # end test_scalar_plus_point2d
+
+    def test_scalar_plus_tmatrix2d(self):
+        s = Scalar(5)
+        tm = TMatrix2D(lambda: np.array([[1, 2], [3, 4]]))
+        result = s + tm
+        self.assertIsInstance(result, TMatrix2D)
+        self.assertTrue(np.array_equal(result.get(), np.array([[6, 7], [8, 9]])))
+    # end test_scalar_plus_tmatrix2d
+
+    def test_scalar_plus_matrix2d(self):
+        s = Scalar(5)
+        m = Matrix2D(np.array([[1, 2], [3, 4]]))
+        result = s + m
+        self.assertIsInstance(result, Matrix2D)
+        self.assertTrue(np.array_equal(result.get(), np.array([[6, 7], [8, 9]])))
+    # end test_scalar_plus_matrix2d
+
+    def test_tscalar_plus_scalar(self):
+        ts = TScalar(lambda: 5)
+        s = Scalar(3)
+        result = ts + s
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 8)
+    # end test_tscalar_plus_scalar
+
+    def test_tscalar_plus_tscalar(self):
+        ts1 = TScalar(lambda: 5)
+        ts2 = TScalar(lambda: 3)
+        result = ts1 + ts2
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 8)
+    # end test_tscalar_plus_tscalar
+
+    def test_tscalar_plus_float(self):
+        ts = TScalar(lambda: 5)
+        result = ts + 3.0
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 8.0)
+    # end test_tscalar_plus_float
+
+    def test_tscalar_plus_int(self):
+        ts = TScalar(lambda: 5)
+        result = ts + 3
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 8)
+    # end test_tscalar_plus_int
+
+    def test_tscalar_plus_tpoint2d(self):
+        ts = TScalar(lambda: 5)
+        tp = TPoint2D(lambda: (1, 2))
+        result = ts + tp
+        self.assertIsInstance(result, TPoint2D)
+        self.assertEqual(result.x, 6)
+        self.assertEqual(result.y, 7)
+    # end test_tscalar_plus_tpoint2d
+
+    def test_tscalar_plus_tmatrix2d(self):
+        ts = TScalar(lambda: 5)
+        tm = TMatrix2D(lambda: np.array([[1, 2], [3, 4]]))
+        result = ts + tm
+        self.assertIsInstance(result, TMatrix2D)
+        self.assertTrue(np.array_equal(result.get(), np.array([[6, 7], [8, 9]])))
+    # end test_tscalar_plus_tmatrix2d
+
+    def test_scalar_plus_string(self):
+        s = Scalar(5)
+        with self.assertRaises(TypeError):
+            result = s + "string"
+        # end with
+    # end test_scalar_plus_string
+
+    def test_tscalar_plus_string(self):
+        ts = TScalar(lambda: 5)
+        with self.assertRaises(TypeError):
+            result = ts + "string"
+        # end with
+    # end test_tscalar_plus_string
+
+    def test_scalar_plus_string_reverse(self):
+        s = Scalar(5)
+        with self.assertRaises(TypeError):
+            result = "string" + s
+        # end with
+    # end test_scalar_plus_string_reverse
+
+    def test_tscalar_plus_string_reverse(self):
+        ts = TScalar(lambda: 5)
+        with self.assertRaises(TypeError):
+            result = "string" + ts
+        # end with
+    # end test_tscalar_plus_string_reverse
+
 # end TestOperations
 
 

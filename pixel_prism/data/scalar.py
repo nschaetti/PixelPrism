@@ -28,6 +28,22 @@ from .data import Data
 from .eventmixin import EventMixin
 
 
+# Type hint for addition
+# Scalar + float = Scalar
+# Scalar + TScalar = TScalar
+# Scalar + Scalar = Scalar
+# Scalar + TPoint2D = TPoint2D
+# Scalar + Point2D = Point2D
+# Scalar + TMatrix2D = TMatrix2D
+# Scalar + Matrix2D = Matrix2D
+# TScalar + Scalar = TScalar
+# TScalar + TScalar = TScalar
+# TScalar + float = TScalar
+# TScalar + int = TScalar
+# TScalar + TPoint2D = TPoint2D
+# TScalar + TMatrix2D = TMatrix2D
+
+
 # Scalar class
 class Scalar(Data, EventMixin, RangeableMixin):
     """
