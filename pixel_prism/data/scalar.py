@@ -23,10 +23,12 @@ from typing import List, Dict, Union
 # Imports
 import numpy as np
 from pixel_prism.animate.able import RangeableMixin
+from . import ObjectChangedEvent
 from .data import Data
 from .eventmixin import EventMixin
 
 
+# Scalar class
 class Scalar(Data, EventMixin, RangeableMixin):
     """
     A class to represent a scalar value
@@ -56,6 +58,8 @@ class Scalar(Data, EventMixin, RangeableMixin):
         }
     # end __init__
 
+    # region PROPERTIES
+
     @property
     def value(self):
         """
@@ -71,6 +75,10 @@ class Scalar(Data, EventMixin, RangeableMixin):
         """
         self.set(value)
     # end value
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     def set(self, value):
         """
@@ -100,6 +108,8 @@ class Scalar(Data, EventMixin, RangeableMixin):
         return Scalar(self._value)
     # end copy
 
+    # endregion PUBLIC
+
     # region OVERRIDE
 
     def __str__(self):
@@ -124,13 +134,36 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             other (any): Scalar or value to add
         """
-        from .points import Point2D
-        if isinstance(other, Scalar):
-            return Scalar(self._value + other._value)
+        # Imports
+        from .points import Point2D, TPoint2D
+        from .matrices import Matrix2D, TMatrix2D
+
+        # Scalar, TScalar
+        if isinstance(other, float) or isinstance(other, int):
+            # Scalar + float = Scalar
+            return Scalar(self.value + other)
+        elif isinstance(other, TScalar):
+            # Scalar + TScalar = TScalar
+            return TScalar(lambda s, o: s.value + o.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar + Scalar = Scalar
+            return Scalar(self.value + other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, TPoint2D):
+            # Scalar + TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value + p.x, s.value + p.y), s=self, p=other)
         elif isinstance(other, Point2D):
+            # Scalar + Point2D = Point2D
             return Point2D(self.value + other.x, self.value + other.y)
+        elif isinstance(other, TMatrix2D):
+            # Scalar + TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: m.data + s.value, s=self, m=other)
+        elif isinstance(other, Matrix2D):
+            # Scalar + Matrix2D = Matrix2D
+            return Matrix2D(self.value + other.data)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'Scalar' and '{}'".format(type(other)))
         # end if
-        return Scalar(self._value + other)
     # end __add__
 
     def __radd__(self, other):
@@ -144,10 +177,44 @@ class Scalar(Data, EventMixin, RangeableMixin):
     # end __radd__
 
     def __sub__(self, other):
-        if isinstance(other, Scalar):
-            return Scalar(self._value - other._value)
-        return Scalar(self._value - other)
+        """
+        Subtract the scalar value from another scalar or value.
 
+        Args:
+            other (any): Scalar or value to subtract
+        """
+        # Imports
+        from .points import Point2D, TPoint2D
+        from .matrices import Matrix2D, TMatrix2D
+
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # Scalar - float = Scalar
+            return Scalar(self.value - other)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # Scalar - TScalar = TScalar
+            return TScalar(lambda s, o: s.value - o.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar - Scalar = Scalar
+            return Scalar(self.value - other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, TPoint2D):
+            # Scalar - TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value - p.x, s.value - p.y), s=self, p=other)
+        elif isinstance(other, Point2D):
+            # Scalar - Point2D = Point2D
+            return Point2D(self.value - other.x, self.value - other.y)
+        # Matrix2D, TMatrix2D
+        elif isinstance(other, TMatrix2D):
+            # Scalar - TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: s.value - m.data, s=self, m=other)
+        elif isinstance(other, Matrix2D):
+            # Scalar - Matrix2D = Matrix2D
+            return Matrix2D(self.value - other.data)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'Scalar' and '{}'".format(type(other)))
+        # end if
     # end __sub__
 
     def __rsub__(self, other):
@@ -157,10 +224,38 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             other (any): Scalar or value to subtract
         """
-        if isinstance(other, Scalar):
-            return Scalar(other._value - self._value)
+        # Imports
+        from .points import Point2D, TPoint2D
+        from .matrices import Matrix2D, TMatrix2D
+
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # float - Scalar = Scalar
+            return Scalar(other - self.value)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # TScalar - Scalar = TScalar
+            return TScalar(lambda s, o: o.value - s.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar - Scalar = Scalar
+            return Scalar(other.value - self.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, TPoint2D):
+            # TPoint2D - Scalar = TPoint2D
+            return TPoint2D(lambda s, p: (p.x - s.value, p.y - s.value), s=self, p=other)
+        elif isinstance(other, Point2D):
+            # Point2D - Scalar = Point2D
+            return Point2D(other.x - self.value, other.y - self.value)
+        # Matrix2D, TMatrix2D
+        elif isinstance(other, TMatrix2D):
+            # TMatrix2D - Scalar = TMatrix2D
+            return TMatrix2D(lambda s, m: m.data - s.value, s=self, m=other)
+        elif isinstance(other, Matrix2D):
+            # Matrix2D - Scalar = Matrix2D
+            return Matrix2D(other.data - self.value)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'Scalar' and '{}'".format(type(other)))
         # end if
-        return Scalar(other - self._value)
     # end __rsub__
 
     def __mul__(self, other):
@@ -170,10 +265,38 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             other (any): Scalar or value to multiply
         """
-        if isinstance(other, Scalar):
-            return Scalar(self._value * other._value)
+        # Imports
+        from .points import Point2D, TPoint2D
+        from .matrices import Matrix2D, TMatrix2D
+
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # Scalar * float = Scalar
+            return Scalar(self.value * other)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # Scalar * TScalar = TScalar
+            return TScalar(lambda s, o: o.value - s.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar * Scalar = Scalar
+            return Scalar(self.value * other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, TPoint2D):
+            # Scalar * TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value * p.x, s.value * p.y), s=self, p=other)
+        elif isinstance(other, Point2D):
+            # Scalar * Point2D = Point2D
+            return Point2D(self.value * other.x, self.value * other.y)
+        # Matrix2D, TMatrix2D
+        elif isinstance(other, TMatrix2D):
+            # Scalar * TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: s.value * m.data, s=self, m=other)
+        elif isinstance(other, Matrix2D):
+            # Scalar * Matrix2D = Matrix2D
+            return Matrix2D(self.value * other.data)
+        else:
+            raise TypeError("Unsupported operand type(s) for *: 'Scalar' and '{}'".format(type(other)))
         # end if
-        return Scalar(self._value * other)
     # end __mul__
 
     def __rmul__(self, other):
@@ -193,11 +316,38 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             other (any): Scalar or value to divide by
         """
-        if isinstance(other, Scalar):
-            return Scalar(self._value / other._value)
-        # end if
-        return Scalar(self._value / other)
+        # Imports
+        from .points import Point2D, TPoint2D
+        from .matrices import Matrix2D, TMatrix2D
 
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # Scalar / float = Scalar
+            return Scalar(self.value / other)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # Scalar / TScalar = TScalar
+            return TScalar(lambda s, o: s.value / o.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar / Scalar = Scalar
+            return Scalar(self.value / other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, TPoint2D):
+            # Scalar / TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value / p.x, s.value / p.y), s=self, p=other)
+        elif isinstance(other, Point2D):
+            # Scalar / Point2D = Point2D
+            return Point2D(self.value / other.x, self.value / other.y)
+        # Matrix2D, TMatrix2D
+        elif isinstance(other, TMatrix2D):
+            # Scalar / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: s.value / m.data, s=self, m=other)
+        elif isinstance(other, Matrix2D):
+            # Scalar / Matrix2D = Matrix2D
+            return Matrix2D(self.value / other.data)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'Scalar' and '{}'".format(type(other)))
+        # end if
     # end __truediv__
 
     def __rtruediv__(self, other):
@@ -207,10 +357,38 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             other (any): Scalar or value to divide by
         """
-        if isinstance(other, Scalar):
-            return Scalar(other / self._value)
+        # Imports
+        from .points import Point2D, TPoint2D
+        from .matrices import Matrix2D, TMatrix2D
+
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # float / Scalar = Scalar
+            return Scalar(other / self.value)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # TScalar / Scalar = TScalar
+            return TScalar(lambda s, o: o.value / s.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar / Scalar = Scalar
+            return Scalar(other.value / self.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, TPoint2D):
+            # TPoint2D / Scalar = TPoint2D
+            return TPoint2D(lambda s, p: (p.x / s.value, p.y / s.value), s=self, p=other)
+        elif isinstance(other, Point2D):
+            # Point2D / Scalar = Point2D
+            return Point2D(other.x / self.value, other.y / self.value)
+        # Matrix2D, TMatrix2D
+        elif isinstance(other, TMatrix2D):
+            # TMatrix2D / Scalar = TMatrix2D
+            return TMatrix2D(lambda s, m: m.data / s.value, s=self, m=other)
+        elif isinstance(other, Matrix2D):
+            # Matrix2D / Scalar = Matrix2D
+            return Matrix2D(other.data / self.value)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'Scalar' and '{}'".format(type(other)))
         # end if
-        return Scalar(other / self._value)
     # end __rtruediv__
 
     def __eq__(self, other):
@@ -297,6 +475,7 @@ class Scalar(Data, EventMixin, RangeableMixin):
 # end Scalar
 
 
+# Transformable Scalar
 class TScalar(Scalar):
     """
     A class to represent a scalar value that is dynamically computed based on other Scalars.
@@ -321,6 +500,7 @@ class TScalar(Scalar):
         # Listen to changes in the original point
         if on_change is not None:
             for scalar in self._scalars.values():
+                scalar.add_event_listener("on_change", self._on_source_changed)
                 scalar.add_event_listener("on_change", on_change)
             # end for
         # end if
@@ -417,6 +597,19 @@ class TScalar(Scalar):
 
     # endregion PUBLIC
 
+    # region EVENTS
+
+    def _on_source_changed(self, event):
+        """
+        Called when the source scalar changes.
+        """
+        new_value = self.get()
+        self._value = new_value
+        self.dispatch_event("on_change", ObjectChangedEvent(self, value=self.value, event=event))
+    # end _on_source_changed
+
+    # endregion EVENTS
+
     # region OVERRIDE
 
     def __str__(self):
@@ -430,7 +623,7 @@ class TScalar(Scalar):
         """
         Return a string representation of the scalar value.
         """
-        return f"TScalar(func={self._func})"
+        return f"TScalar(func={self._func}, scalars={self._scalars})"
     # end __repr__
 
     # Operator overloading
@@ -441,16 +634,25 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to add
         """
+        # Imports
         from .points import Point2D, TPoint2D
-        # tscalar * scalar -> tscalar
-        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+        from .matrices import Matrix2D, TMatrix2D
+
+        # int, float,
+        if isinstance(other, (Scalar, TScalar, float, int)):
+            # TScalar + Scalar = TScalar
+            # TScalar + TScalar = TScalar
+            # TScalar + float = TScalar
+            # TScalar + int = TScalar
             return add_t(self, other)
-        # tscalar * tscalar -> tscalar
-        elif isinstance(other, TScalar):
-            return add_t(self, other)
-        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
-            return TPoint2D(lambda p: (self.value + p.x, self.value + p.y), p=other)
-            # TODO: TMatrix2D
+        elif isinstance(other, (TPoint2D, Point2D)):
+            # TScalar + TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value + p.x, s.value + p.y), s=self, p=other)
+        elif isinstance(other, (TMatrix2D, Matrix2D)):
+            # TScalar + TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: m.data + s.value, s=self, m=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for +: 'TScalar' and '{}'".format(type(other)))
         # end if
     # end __add__
 
@@ -468,16 +670,25 @@ class TScalar(Scalar):
         """
         Subtract the scalar value from another scalar or value.
         """
+        # Imports
         from .points import Point2D, TPoint2D
-        # tscalar * scalar -> tscalar
-        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+        from .matrices import Matrix2D, TMatrix2D
+
+        # int, float,
+        if isinstance(other, (Scalar, TScalar, float, int)):
+            # TScalar - Scalar = TScalar
+            # TScalar - TScalar = TScalar
+            # TScalar - float = TScalar
+            # TScalar - int = TScalar
             return sub_t(self, other)
-        # tscalar * tscalar -> tscalar
-        elif isinstance(other, TScalar):
-            return sub_t(self, other)
-        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
-            return TPoint2D(lambda p: (self.value - p.x, self.value - p.y), p=other)
-            # TODO: TMatrix2D
+        elif isinstance(other, (TPoint2D, Point2D)):
+            # TScalar - TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value - p.x, s.value - p.y), s=self, p=other)
+        elif isinstance(other, (TMatrix2D, Matrix2D)):
+            # TScalar - TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: s.value - m.data, s=self, m=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'TScalar' and '{}'".format(type(other)))
         # end if
     # end __sub__
 
@@ -488,16 +699,26 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to subtract
         """
+        # Imports
         from .points import Point2D, TPoint2D
-        # tscalar * scalar -> tscalar
-        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+        from .matrices import Matrix2D, TMatrix2D
+
+        # int, float,
+        if isinstance(other, (Scalar, TScalar, float, int)):
+            # float - TScalar = TScalar
+            # int - TScalar = TScalar
+            # Scalar - TScalar = TScalar
+            # TSclar - TScalar = TScalar
             return sub_t(other, self)
-        # tscalar * tscalar -> tscalar
-        elif isinstance(other, TScalar):
-            return sub_t(other, self)
-        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
-            return TPoint2D(lambda p: (p.x - self.value, p.y - self.value), p=other)
-            # TODO: TMatrix2D
+        elif isinstance(other, (TPoint2D, Point2D)):
+            # TPoint2D - TScalar = TPoint2D
+            # Point2D - TScalar = TPoint2D
+            return TPoint2D(lambda s, p: (p.x - s.value, p.y - s.value), s=self, p=other)
+        elif isinstance(other, (TMatrix2D, Matrix2D)):
+            # TScalar - TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: m.data - s.value, s=self, m=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'TScalar' and '{}'".format(type(other)))
         # end if
     # end __rsub__
 
@@ -508,16 +729,25 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to multiply
         """
+        # Imports
         from .points import Point2D, TPoint2D
-        # tscalar * scalar -> tscalar
-        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+        from .matrices import Matrix2D, TMatrix2D
+
+        # int, float,
+        if isinstance(other, (Scalar, TScalar, float, int)):
+            # TScalar * Scalar = TScalar
+            # TScalar * TScalar = TScalar
+            # TScalar * float = TScalar
+            # TScalar * int = TScalar
             return mul_t(self, other)
-        # tscalar * tscalar -> tscalar
-        elif isinstance(other, TScalar):
-            return mul_t(self, other)
-        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
-            return TPoint2D(lambda p: (self.value * p.x, self.value * p.y), p=other)
-            # TODO: TMatrix2D
+        elif isinstance(other, (TPoint2D, Point2D)):
+            # TScalar * TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value * p.x, s.value * p.y), s=self, p=other)
+        elif isinstance(other, (TMatrix2D, Matrix2D)):
+            # TScalar * TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: s.value * m.data, s=self, m=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for *: 'TScalar' and '{}'".format(type(other)))
         # end if
     # end __mul__
 
@@ -528,17 +758,7 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to multiply
         """
-        from .points import Point2D, TPoint2D
-        # tscalar * scalar -> tscalar
-        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
-            return mul_t(other, self)
-        # tscalar * tscalar -> tscalar
-        elif isinstance(other, TScalar):
-            return mul_t(other, self)
-        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
-            return TPoint2D(lambda p: (p.x * self.value, p.y * self.value), p=other)
-            # TODO: TMatrix2D
-        # end if
+        return self.__mul__(other)
     # end __rmul__
 
     def __truediv__(self, other):
@@ -548,16 +768,25 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to divide by
         """
+        # Imports
         from .points import Point2D, TPoint2D
-        # tscalar * scalar -> tscalar
-        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+        from .matrices import Matrix2D, TMatrix2D
+
+        # int, float,
+        if isinstance(other, (Scalar, TScalar, float, int)):
+            # TScalar / Scalar = TScalar
+            # TScalar / TScalar = TScalar
+            # TScalar / float = TScalar
+            # TScalar / int = TScalar
             return div_t(self, other)
-        # tscalar * tscalar -> tscalar
-        elif isinstance(other, TScalar):
-            return div_t(self, other)
-        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
-            return TPoint2D(lambda p: (self.value / p.x, self.value / p.y), p=other)
-            # TODO: TMatrix2D
+        elif isinstance(other, (TPoint2D, Point2D)):
+            # TScalar / TPoint2D = TPoint2D
+            return TPoint2D(lambda s, p: (s.value / p.x, s.value / p.y), s=self, p=other)
+        elif isinstance(other, (TMatrix2D, Matrix2D)):
+            # TScalar / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: s.value / m.data, s=self, m=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'TScalar' and '{}'".format(type(other)))
         # end if
     # end __truediv__
 
@@ -568,16 +797,26 @@ class TScalar(Scalar):
         Args:
             other (any): Scalar or value to divide by
         """
+        # Imports
         from .points import Point2D, TPoint2D
-        # tscalar * scalar -> tscalar
-        if isinstance(other, Scalar) or isinstance(other, float) or isinstance(other, int):
+        from .matrices import Matrix2D, TMatrix2D
+
+        # int, float,
+        if isinstance(other, (Scalar, TScalar, float, int)):
+            # float / TScalar = TScalar
+            # int / TScalar = TScalar
+            # Scalar / TScalar = TScalar
+            # TSclar / TScalar = TScalar
             return div_t(other, self)
-        # tscalar * tscalar -> tscalar
-        elif isinstance(other, TScalar):
-            return div_t(other, self)
-        elif isinstance(other, Point2D) or isinstance(other, TPoint2D):
-            return TPoint2D(lambda p: (p.x / self.value, p.y / self.value), p=other)
-            # TODO: TMatrix2D
+        elif isinstance(other, (TPoint2D, Point2D)):
+            # TPoint2D / TScalar = TPoint2D
+            # Point2D / TScalar = TPoint2D
+            return TPoint2D(lambda s, p: (p.x / s.value, p.y / s.value), s=self, p=other)
+        elif isinstance(other, (TMatrix2D, Matrix2D)):
+            # TScalar / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda s, m: m.data / s.value, s=self, m=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'TScalar' and '{}'".format(type(other)))
         # end if
     # end __rtruediv__
 
@@ -742,13 +981,13 @@ def mul_t(scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
 # end mul_t
 
 
-def div_t(scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
+def div_t(scalar1: Union[Scalar, float, int], scalar2: Union[Scalar, float, int]):
     """
     Create a TScalar that divides two scalar values.
 
     Args:
-        scalar1 (Union[Scalar, float]): First scalar to divide.
-        scalar2 (Union[Scalar, float]): Second scalar to divide.
+        scalar1 (Union[Scalar, float, int]): First scalar to divide.
+        scalar2 (Union[Scalar, float, int]): Second scalar to divide.
     """
     if isinstance(scalar1, float):
         scalar1 = Scalar(scalar1)

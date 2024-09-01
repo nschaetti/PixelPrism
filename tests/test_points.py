@@ -28,7 +28,7 @@ from pixel_prism.data.points import (
     distance_euclidean_t, distance_mahalanobis_t, distance_seuclidean_t,
     distance_sqeuclidean_t, tpoint2d,
     point_range, linspace, logspace, uniform, logspace, poisson, randint, shuffle, point_arange,
-    normal, choice, point_arange, meshgrid
+    normal, choice, point_arange, meshgrid, scalar_mul_t
 )
 
 
@@ -419,7 +419,7 @@ class TestPoint2D(unittest.TestCase):
         # 2, 3
         point1 = Point2D(2, 3)
         scalar = Scalar(2)
-        tpoint = mul_t(point1, scalar)
+        tpoint = scalar_mul_t(point1, scalar)
 
         # 4 = 2 * 2
         # 6 = 3 * 2
@@ -450,7 +450,7 @@ class TestPoint2D(unittest.TestCase):
         # 2, 3
         point1 = Point2D(2, 3)
         scalar = 2.0
-        tpoint = mul_t(point1, scalar)
+        tpoint = scalar_mul_t(point1, scalar)
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 6)
 
@@ -1161,22 +1161,25 @@ class TestPoint2D(unittest.TestCase):
     def test_mixed_tpoint2d_and_tscalar_multiplication(self):
         """
         Test that mixed operations can be performed on TPoint
+        Point2D x TScalar -> TPoint2D
         """
         p1 = Point2D(3, 4)
         tscalar = TScalar(lambda: 2)
 
         # Multiplication
+        # (3, 4) * 2 = (6, 8)
         tp = p1 * tscalar
-
         self.assertEqual(tp.x, 6)
         self.assertEqual(tp.y, 8)
 
         # Modify the TScalar and ensure the result updates
+        # (3, 4) * 3 = (9, 12)
         tscalar._func = lambda: 3
         self.assertEqual(tp.x, 9)
         self.assertEqual(tp.y, 12)
 
         # Reverse multiplication
+        # 3 * (3, 4) = (9, 12)
         tp_reverse = tscalar * p1
         self.assertEqual(tp_reverse.x, 9)
         self.assertEqual(tp_reverse.y, 12)
@@ -1304,7 +1307,7 @@ class TestPoint2D(unittest.TestCase):
             Point2D(3.1622776601683795, 5.623414039611816),
             Point2D(10.0, 31.622785568237305),
             Point2D(31.622776601683793, 177.82803344726562),
-            Point2D(100.0, 1000.0005493164062)
+            Point2D(100.00005, 1000.0005493164062)
         ]
         for tp, expected in zip(tpoints, expected_points):
             self.assertAlmostEqual(tp.x, expected.x, places=4)

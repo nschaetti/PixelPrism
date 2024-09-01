@@ -28,6 +28,7 @@ class TestOperations(unittest.TestCase):
     def test_scalar_op_scalar(self):
         """
         Test operations between two scalar values (addition, subtraction, multiplication, division)
+        Scalar x Scalar
         """
         s1 = Scalar(5)
         s2 = Scalar(3)
@@ -56,6 +57,7 @@ class TestOperations(unittest.TestCase):
     def test_scalar_op_tscalar(self):
         """
         Test operations between a scalar value and a TScalar (addition, subtraction, multiplication, division)
+        Scalar x TScalar
         """
         s1 = Scalar(5)
         t_s2 = TScalar(lambda: 3)
@@ -81,9 +83,44 @@ class TestOperations(unittest.TestCase):
         self.assertEqual(result.get(), 5 / 3)
     # end test_scalar_op_tscalar
 
+    def test_scalar_op_tscalar_reverse(self):
+        """
+        Test operations between a scalar value and a TScalar (addition, subtraction, multiplication, division)
+        Scalar x TScalar
+        """
+        # s1 = 5
+        # t_s2 = 3
+        s1 = Scalar(5)
+        t_s2 = TScalar(lambda: 3)
+
+        # Test addition
+        result = t_s2 + s1
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 8)
+
+        # Test subtraction
+        # 3 - 5 = -2
+        result = t_s2 - s1
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), -2)
+
+        # Test multiplication
+        # 3 * 5 = 15
+        result = t_s2 * s1
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 15)
+
+        # Test division
+        # 3 / 5
+        result = t_s2 / s1
+        self.assertIsInstance(result, TScalar)
+        self.assertEqual(result.get(), 3 / 5)
+    # end test_scalar_op_tscalar_reverse
+
     def test_scalar_op_point(self):
         """
         Test operations between a scalar value and a Point2D (addition, subtraction, multiplication, division)
+        Scalar x Point2D
         """
         s = Scalar(2)
         p = Point2D(3, 4)
@@ -111,10 +148,53 @@ class TestOperations(unittest.TestCase):
         self.assertIsInstance(result, Point2D)
         self.assertEqual(result.x, 2 / 3)
         self.assertEqual(result.y, 2 / 4)
-
     # end test_scalar_op_point
 
+    def test_scalar_op_point_reverse(self):
+        """
+        Test operations between a scalar value and a Point2D (addition, subtraction, multiplication, division)
+        Scalar x Point2D
+        """
+        # s = 2
+        # p = (3, 4)
+        s = Scalar(2)
+        p = Point2D(3, 4)
+
+        # Test addition
+        # (3, 4) + 2 = (5, 6)
+        result = p + s
+        self.assertIsInstance(result, Point2D)
+        self.assertEqual(result.x, 5)
+        self.assertEqual(result.y, 6)
+
+        # Test subtraction
+        # (3, 4) - 2 = (1, 2)
+        result = p - s
+        self.assertIsInstance(result, Point2D)
+        self.assertEqual(result.x, 1)
+        self.assertEqual(result.y, 2)
+
+        # Test multiplication
+        # (3, 4) * 2 = (6, 8)
+        result = p * s
+        self.assertIsInstance(result, Point2D)
+        self.assertEqual(result.x, 6)
+        self.assertEqual(result.y, 8)
+
+        # Test division
+        # (3, 4) / 2 = (3/2, 4/2)
+        result = p / s
+        self.assertIsInstance(result, Point2D)
+        self.assertEqual(result.x, 1.5)
+        self.assertEqual(result.y, 2.0)
+    # end test_scalar_op_point_reverse
+
     def test_scalar_op_tpoint(self):
+        """
+        Test operations between a scalar value and a TPoint2D (addition, subtraction, multiplication, division)
+        Scalar x TPoint2D
+        """
+        # 2 and (3, 4)
         s = Scalar(2)
         tp = TPoint2D(lambda: (3, 4))
 
@@ -141,10 +221,53 @@ class TestOperations(unittest.TestCase):
         self.assertIsInstance(result, TPoint2D)
         self.assertEqual(result.x, 2 / 3)
         self.assertEqual(result.y, 2 / 4)
-
     # end test_scalar_op_tpoint
 
+    def test_scalar_op_tpoint_reverse(self):
+        """
+        Test operations between a scalar value and a TPoint2D (addition, subtraction, multiplication, division)
+        Scalar x TPoint2D
+        """
+        # s = 2
+        # tp = (3, 4)
+        s = Scalar(2)
+        tp = TPoint2D(lambda: (3, 4))
+
+        # Test addition
+        # (3, 4) + 2 = (5, 6)
+        result = tp + s
+        self.assertIsInstance(result, TPoint2D)
+        self.assertEqual(result.x, 5)
+        self.assertEqual(result.y, 6)
+
+        # Test subtraction
+        # (3, 4) - 2 = (1, 2)
+        result = tp - s
+        self.assertIsInstance(result, TPoint2D)
+        self.assertEqual(result.x, 1)
+        self.assertEqual(result.y, 2)
+
+        # Test multiplication
+        # (3, 4) * 2 = (6, 8)
+        result = tp * s
+        self.assertIsInstance(result, TPoint2D)
+        self.assertEqual(result.x, 6)
+        self.assertEqual(result.y, 8)
+
+        # Test division
+        # (3, 4) / 2 = (3/2, 4/2)
+        result = tp / s
+        self.assertIsInstance(result, TPoint2D)
+        self.assertEqual(result.x, 3 / 2)
+        self.assertEqual(result.y, 4 / 2)
+    # end test_scalar_op_tpoint_reverse
+
     def test_scalar_op_matrix2d(self):
+        """
+        Test operations between a scalar value and a Matrix2D (addition, subtraction, multiplication, division)
+        Scalar x Matrix2D
+        """
+        # 2, [[1, 2], [3, 4]]
         s = Scalar(2)
         m = Matrix2D([[1, 2], [3, 4]])
 
@@ -154,6 +277,7 @@ class TestOperations(unittest.TestCase):
         self.assertTrue(np.array_equal(result.get(), np.array([[3, 4], [5, 6]])))
 
         # Test subtraction
+        # 2 - [[1, 2], [3, 4]] = [[1, 0], [-1, -2]]
         result = s - m
         self.assertIsInstance(result, Matrix2D)
         self.assertTrue(np.array_equal(result.get(), np.array([[1, 0], [-1, -2]])))
@@ -167,10 +291,48 @@ class TestOperations(unittest.TestCase):
         result = s / m
         self.assertIsInstance(result, Matrix2D)
         self.assertTrue(np.allclose(result.get(), np.array([[2 / 1, 2 / 2], [2 / 3, 2 / 4]])))
-
     # end test_scalar_op_matrix2d
 
+    def test_scalar_op_matrix2d_reverse(self):
+        """
+        Test operations between a scalar value and a Matrix2D (addition, subtraction, multiplication, division)
+        Scalar x Matrix2D
+        """
+        # s = 2
+        # m = [[1, 2], [3, 4]]
+        s = Scalar(2)
+        m = Matrix2D([[1, 2], [3, 4]])
+
+        # Test addition
+        # [[1, 2], [3, 4]] + 2 = [[3, 4], [5, 6]]
+        result = m + s
+        self.assertIsInstance(result, Matrix2D)
+        self.assertTrue(np.array_equal(result.get(), np.array([[3, 4], [5, 6]])))
+
+        # Test subtraction
+        # [[1, 2], [3, 4]] - 2 = [[-1, 0], [1, 2]]
+        result = m - s
+        self.assertIsInstance(result, Matrix2D)
+        self.assertTrue(np.array_equal(result.get(), np.array([[-1, 0], [1, 2]])))
+
+        # Test multiplication
+        # [[1, 2], [3, 4]] * 2 = [[2, 4], [6, 8]]
+        result = m * s
+        self.assertIsInstance(result, Matrix2D)
+        self.assertTrue(np.array_equal(result.get(), np.array([[2, 4], [6, 8]])))
+
+        # Test division
+        # [[1, 2], [3, 4]] / 2 = [[2/1, 2/2], [2/3, 2/4]]
+        result = m / s
+        self.assertIsInstance(result, Matrix2D)
+        self.assertTrue(np.allclose(result.get(), np.array([[1 / 2, 2 / 2], [3 / 2, 4 / 2]])))
+    # end test_scalar_op_matrix2d_reverse
+
     def test_scalar_op_tmatrix2d(self):
+        """
+        Test operations between a scalar value and a TMatrix2D (addition, subtraction, multiplication, division)
+        Scalar x TMatrix2D
+        """
         s = Scalar(2)
         tm = TMatrix2D(lambda: np.array([[1, 2], [3, 4]]))
 
@@ -194,6 +356,39 @@ class TestOperations(unittest.TestCase):
         self.assertIsInstance(result, TMatrix2D)
         self.assertTrue(np.allclose(result.get(), np.array([[2 / 1, 2 / 2], [2 / 3, 2 / 4]])))
     # end test_scalar_op_tmatrix2d
+
+    def test_scalar_op_tmatrix2d_reverse(self):
+        """
+        Test operations between a scalar value and a TMatrix2D (addition, subtraction, multiplication, division)
+        TMatrix2D x Scalar
+        """
+        s = Scalar(2)
+        tm = TMatrix2D(lambda: np.array([[1, 2], [3, 4]]))
+
+        # Test addition
+        result = tm + s
+        self.assertIsInstance(result, TMatrix2D)
+        self.assertTrue(np.array_equal(result.data, np.array([[3, 4], [5, 6]])))
+
+        # Test subtraction
+        # [[1, 2], [3, 4]] - 2 = [[-1, 0], [1, 2]]
+        result = tm - s
+        self.assertIsInstance(result, TMatrix2D)
+        self.assertTrue(np.array_equal(result.data, np.array([[-1, 0], [1, 2]])))
+
+        # Test multiplication
+        result = tm * s
+        self.assertIsInstance(result, TMatrix2D)
+        self.assertTrue(np.array_equal(result.data, np.array([[2, 4], [6, 8]])))
+
+        # Test division
+        # [[1, 2], [3, 4]] / 2 = [[2/1, 2/2], [2/3, 2/4]]
+        result = tm / s
+        self.assertIsInstance(result, TMatrix2D)
+        self.assertTrue(np.allclose(result.data, np.array([[1 / 2, 2 / 2], [3 / 2, 4 / 2]])))
+    # end test_scalar_op_tmatrix2d_reverse
+
+# end TestOperations
 
 
 # Run the tests

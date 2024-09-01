@@ -19,7 +19,6 @@
 # Imports
 from typing import Union
 import numpy as np
-
 from .scalar import Scalar
 from .events import ObjectChangedEvent
 from .data import Data
@@ -53,6 +52,8 @@ class Matrix2D(Data, EventMixin):
         }
     # end __init__
 
+    # region PROPERTIES
+
     @property
     def data(self):
         """
@@ -68,6 +69,10 @@ class Matrix2D(Data, EventMixin):
         """
         self.set(value)
     # end data
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     def set(self, value):
         """
@@ -90,6 +95,8 @@ class Matrix2D(Data, EventMixin):
         """
         return Matrix2D(self._data.copy())
     # end copy
+
+    # endregion PUBLIC
 
     # region OVERRIDE
 
@@ -129,14 +136,36 @@ class Matrix2D(Data, EventMixin):
         """
         Add two matrices.
         """
-        if isinstance(other, Matrix2D):
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # Matrix2D + scalar = Matrix2D
+            return Matrix2D(self.data + other)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # Matrix2D + TScalar = TMatrix2D
+            return TMatrix2D(lambda s, o: s.data + o.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Matrix2D + Scalar = Matrix2D
+            return Matrix2D(self.data + other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, Point2D):
+            # Matrix2D + Point2D = not defined
+            raise ValueError("Cannot add a matrix and a point.")
+        elif isinstance(other, TPoint2D):
+            # Matrix2D + TPoint2D = not defined
+            raise ValueError("Cannot add a matrix and a point.")
+        # Matrix2D
+        elif isinstance(other, TMatrix2D):
+            # Matrix2D + TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, o: m.data + o.data, m=self, o=other)
+        elif isinstance(other, Matrix2D):
+            # Matrix2D + Matrix2D = Matrix2D
             return Matrix2D(self.data + other.data)
         elif isinstance(other, np.ndarray):
-            return Matrix2D(self.data + other)
-        elif isinstance(other, (int, float)):
+            # Matrix2D + np.ndarray = Matrix2D
             return Matrix2D(self.data + other)
         else:
-            return Matrix2D(self.data + other)
+            raise TypeError("Unsupported operand type(s) for +: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __add__
 
@@ -151,14 +180,36 @@ class Matrix2D(Data, EventMixin):
         """
         Subtract two matrices.
         """
-        if isinstance(other, Matrix2D):
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # Matrix2D - scalar = Matrix2D
+            return Matrix2D(self.data - other)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # Matrix2D - TScalar = TMatrix2D
+            return TMatrix2D(lambda s, o: s.data - o.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Matrix2D - Scalar = Matrix2D
+            return Matrix2D(self.data - other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, Point2D):
+            # Matrix2D - Point2D = not defined
+            raise ValueError("Cannot substract a matrix and a point.")
+        elif isinstance(other, TPoint2D):
+            # Matrix2D - TPoint2D = not defined
+            raise ValueError("Cannot substract a matrix and a point.")
+        # Matrix2D
+        elif isinstance(other, TMatrix2D):
+            # Matrix2D - TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, o: m.data - o.data, m=self, o=other)
+        elif isinstance(other, Matrix2D):
+            # Matrix2D - Matrix2D = Matrix2D
             return Matrix2D(self.data - other.data)
         elif isinstance(other, np.ndarray):
-            return Matrix2D(self.data - other)
-        elif isinstance(other, (int, float)):
+            # Matrix2D - np.ndarray = Matrix2D
             return Matrix2D(self.data - other)
         else:
-            return Matrix2D(self.data - other)
+            raise TypeError("Unsupported operand type(s) for -: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __sub__
 
@@ -166,14 +217,36 @@ class Matrix2D(Data, EventMixin):
         """
         Subtract two matrices.
         """
-        if isinstance(other, Matrix2D):
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # scalar - Matrix2D = Matrix2D
+            return Matrix2D(other - self.data)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # TScalar - TScalar = TMatrix2D
+            return TMatrix2D(lambda s, o: o.value - s.data, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar - Scalar = Matrix2D
+            return Matrix2D(other.value - self.data)
+        # Point2D, TPoint2D
+        elif isinstance(other, Point2D):
+            # Point2D - Point2D = not defined
+            raise ValueError("Cannot substract a matrix and a point.")
+        elif isinstance(other, TPoint2D):
+            # TPoint2D - TPoint2D = not defined
+            raise ValueError("Cannot substract a matrix and a point.")
+        # Matrix2D
+        elif isinstance(other, TMatrix2D):
+            # TMatrix2D - TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, o: o.data - m.data, m=self, o=other)
+        elif isinstance(other, Matrix2D):
+            # Matrix2D - Matrix2D = Matrix2D
             return Matrix2D(other.data - self.data)
         elif isinstance(other, np.ndarray):
-            return Matrix2D(other - self.data)
-        elif isinstance(other, (int, float)):
+            # np.ndarray - Matrix2D = Matrix2D
             return Matrix2D(other - self.data)
         else:
-            return Matrix2D(other - self.data)
+            raise TypeError("Unsupported operand type(s) for -: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __rsub__
 
@@ -181,14 +254,36 @@ class Matrix2D(Data, EventMixin):
         """
         Multiply the matrix by another matrix or a scalar.
         """
-        if isinstance(other, Matrix2D):
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # Matrix2D * scalar = Matrix2D
+            return Matrix2D(self.data * other)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # Matrix2D * TScalar = TMatrix2D
+            return TMatrix2D(lambda s, o: s.data * o.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Matrix2D * Scalar = Matrix2D
+            return Matrix2D(self.data * other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, Point2D):
+            # Matrix2D * Point2D = not defined
+            raise ValueError("Cannot add a matrix and a point.")
+        elif isinstance(other, TPoint2D):
+            # Matrix2D * TPoint2D = not defined
+            raise ValueError("Cannot add a matrix and a point.")
+        # Matrix2D
+        elif isinstance(other, TMatrix2D):
+            # Matrix2D * TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, o: m.data * o.data, m=self, o=other)
+        elif isinstance(other, Matrix2D):
+            # Matrix2D * Matrix2D = Matrix2D
             return Matrix2D(self.data * other.data)
         elif isinstance(other, np.ndarray):
-            return Matrix2D(self.data * other)
-        elif isinstance(other, (int, float)):
+            # Matrix2D * np.ndarray = Matrix2D
             return Matrix2D(self.data * other)
         else:
-            return Matrix2D(self.data * other)
+            raise TypeError("Unsupported operand type(s) for *: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __mul__
 
@@ -196,15 +291,7 @@ class Matrix2D(Data, EventMixin):
         """
         Multiply the matrix by another matrix or a scalar.
         """
-        if isinstance(other, Matrix2D):
-            return Matrix2D(other.data * self.data)
-        elif isinstance(other, np.ndarray):
-            return Matrix2D(other * self.data)
-        elif isinstance(other, (int, float)):
-            return Matrix2D(other * self.data)
-        else:
-            return Matrix2D(other * self.data)
-        # end if
+        return self.__mul__(other)
     # end __rmul__
 
     def __matmul__(self, other):
@@ -212,9 +299,10 @@ class Matrix2D(Data, EventMixin):
         Matrix-matrix multiplication.
         """
         if isinstance(other, Matrix2D):
+            # Matrix2D @ Matrix2D = Matrix2D
             return Matrix2D(np.matmul(self.data, other.data))
         else:
-            raise ValueError("Unsupported operand type(s) for @: 'Matrix2D' and '{}'".format(type(other)))
+            raise TypeError("Unsupported operand type(s) for @: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __matmul__
 
@@ -224,9 +312,10 @@ class Matrix2D(Data, EventMixin):
         Matrix-matrix multiplication.
         """
         if isinstance(other, Matrix2D):
+            # Matrix2D @ Matrix2D = Matrix2D
             return Matrix2D(np.matmul(other.data, self.data))
         else:
-            raise ValueError("Unsupported operand type(s) for @: 'Matrix2D' and '{}'".format(type(other)))
+            raise TypeError("Unsupported operand type(s) for @: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __rmatmul__
 
@@ -234,16 +323,46 @@ class Matrix2D(Data, EventMixin):
         """
         Divide the matrix by a scalar.
         """
-        if isinstance(other, Matrix2D):
+        # float, int
+        if isinstance(other, float) or isinstance(other, int):
+            # Matrix2D / scalar = Matrix2D
+            return Matrix2D(self.data / other)
+        # Scalar, TScalar
+        elif isinstance(other, TScalar):
+            # Matrix2D / TScalar = TMatrix2D
+            return TMatrix2D(lambda s, o: s.data / o.value, s=self, o=other)
+        elif isinstance(other, Scalar):
+            # Matrix2D / Scalar = Matrix2D
+            return Matrix2D(self.data / other.value)
+        # Point2D, TPoint2D
+        elif isinstance(other, Point2D):
+            # Matrix2D / Point2D = not defined
+            raise ValueError("Cannot add a matrix and a point.")
+        elif isinstance(other, TPoint2D):
+            # Matrix2D / TPoint2D = not defined
+            raise ValueError("Cannot add a matrix and a point.")
+        # Matrix2D
+        elif isinstance(other, TMatrix2D):
+            # Matrix2D / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, o: m.data / o.data, m=self, o=other)
+        elif isinstance(other, Matrix2D):
+            # Matrix2D / Matrix2D = Matrix2D
             return Matrix2D(self.data / other.data)
         elif isinstance(other, np.ndarray):
-            return Matrix2D(self.data / other)
-        elif isinstance(other, (int, float)):
+            # Matrix2D / np.ndarray = Matrix2D
             return Matrix2D(self.data / other)
         else:
-            return Matrix2D(self.data / other)
+            raise TypeError("Unsupported operand type(s) for *: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __truediv__
+
+    # Override rtruediv
+    def __rtruediv__(self, other):
+        """
+        Divide the matrix by a scalar.
+        """
+        return other.__truediv__(self)
+    # end __rtruediv__
 
     def __eq__(self, other):
         """
@@ -330,6 +449,7 @@ class TMatrix2D(Matrix2D):
     # region PUBLIC
 
     # Override set to prevent manual setting
+
     def set(self, value):
         """
         Prevent manual setting of the matrix. It should be computed only.
@@ -344,17 +464,17 @@ class TMatrix2D(Matrix2D):
         return self._transform_func(**self._matrices)
     # end get
 
-    # enregion PUBLIC
+    # endregion PUBLIC
 
     # region EVENTS
 
-    def _on_source_changed(self, *args, **kwargs):
+    def _on_source_changed(self, event):
         """
         Update the matrix when a source Matrix2D changes.
         """
         new_value = self.get()
         self._data = new_value
-        self.dispatch_event("on_change", ObjectChangedEvent(self, data=self.data))
+        self.dispatch_event("on_change", ObjectChangedEvent(self, data=self.data, source=event.source))
     # end _on_source_changed
 
     # endregion EVENTS
@@ -398,18 +518,22 @@ class TMatrix2D(Matrix2D):
         """
         Add two matrices.
         """
-        if isinstance(other, Matrix2D):
+        if isinstance(other, (Matrix2D, TMatrix2D)):
+            # TMatrix2D + TMatrix2D = TMatrix2D
+            # TMatrix2D + Matrix2D = TMatrix2D
             return add_t(self, other)
         elif isinstance(other, np.ndarray):
+            # TMatrix2D + np.ndarray = TMatrix2D
             return add_t(self, Matrix2D(other))
         elif isinstance(other, (int, float)):
-            return add_t(self, Matrix2D(np.full(self.data.shape, other)))
-        elif isinstance(other, TMatrix2D):
-            return add_t(self, other)
-        elif isinstance(other, (TScalar, Scalar)):
-            return TMatrix2D(lambda m, s: m.data + s.value, m1=self, s=other)
+            # TMatrix2D + scalar = TMatrix2D
+            return TMatrix2D(lambda m, a: m.data + a, m=self, a=other)
+        elif isinstance(other, (Scalar, TScalar)):
+            # TMatrix2D + TScalar = TMatrix2D
+            # TMatrix2D + Scalar = TMatrix2D
+            return TMatrix2D(lambda m, s: m.data + s.value, m=self, s=other)
         else:
-            return add_t(self, other)
+            raise TypeError("Unsupported operand type(s) for +: 'TMatrix2D' and '{}'".format(type(other)))
         # end if
     # end __add__
 
@@ -426,18 +550,22 @@ class TMatrix2D(Matrix2D):
         """
         Subtract two matrices.
         """
-        if isinstance(other, Matrix2D):
+        if isinstance(other, (Matrix2D, TMatrix2D)):
+            # TMatrix2D - TMatrix2D = TMatrix2D
+            # TMatrix2D - Matrix2D = TMatrix2D
             return sub_t(self, other)
         elif isinstance(other, np.ndarray):
+            # TMatrix2D - np.ndarray = TMatrix2D
             return sub_t(self, Matrix2D(other))
         elif isinstance(other, (int, float)):
-            return sub_t(self, Matrix2D(np.full(self.data.shape, other)))
-        elif isinstance(other, TMatrix2D):
-            return sub_t(self, other)
-        elif isinstance(other, (TScalar, Scalar)):
-            return TMatrix2D(lambda m, s: m.data - s.value, m1=self, s=other)
+            # TMatrix2D - scalar = TMatrix2D
+            return TMatrix2D(lambda m, a: m.data - a, m=self, a=other)
+        elif isinstance(other, (Scalar, TScalar)):
+            # TMatrix2D - TScalar = TMatrix2D
+            # TMatrix2D - Scalar = TMatrix2D
+            return TMatrix2D(lambda m, s: m.data - s.value, m=self, s=other)
         else:
-            return sub_t(self, other)
+            raise TypeError("Unsupported operand type(s) for -: 'TMatrix2D' and '{}'".format(type(other)))
         # end if
     # end __sub__
 
@@ -446,18 +574,22 @@ class TMatrix2D(Matrix2D):
         """
         Subtract two matrices.
         """
-        if isinstance(other, Matrix2D):
+        if isinstance(other, (Matrix2D, TMatrix2D)):
+            # TMatrix2D - TMatrix2D = TMatrix2D
+            # Matrix2D - TMatrix2D = TMatrix2D
             return sub_t(other, self)
         elif isinstance(other, np.ndarray):
+            # np.ndarray - TMatrix2D = TMatrix2D
             return sub_t(Matrix2D(other), self)
         elif isinstance(other, (int, float)):
-            return sub_t(Matrix2D(np.full(self.data.shape, other)), self)
-        elif isinstance(other, TMatrix2D):
-            return sub_t(other, self)
-        elif isinstance(other, (TScalar, Scalar)):
-            return TMatrix2D(lambda s, m: s.value - m.data, s=other, m1=self)
+            # scalar - TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, a: a - m.data, m=self, a=other)
+        elif isinstance(other, (Scalar, TScalar)):
+            # TScalar - TMatrix2D = TMatrix2D
+            # Scalar - TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, s: s.value - m.data, m=self, s=other)
         else:
-            return sub_t(other, self)
+            raise TypeError("Unsupported operand type(s) for -: 'TMatrix2D' and '{}'".format(type(other)))
         # end if
     # end __rsub__
 
@@ -466,18 +598,22 @@ class TMatrix2D(Matrix2D):
         """
         Multiply the matrix by another matrix or a scalar.
         """
-        if isinstance(other, Matrix2D):
+        if isinstance(other, (Matrix2D, TMatrix2D)):
+            # TMatrix2D * TMatrix2D = TMatrix2D
+            # TMatrix2D * Matrix2D = TMatrix2D
             return mul_t(self, other)
         elif isinstance(other, np.ndarray):
+            # TMatrix2D * np.ndarray = TMatrix2D
             return mul_t(self, Matrix2D(other))
         elif isinstance(other, (int, float)):
+            # TMatrix2D * scalar = TMatrix2D
             return scalar_mul_t(self, Scalar(other))
-        elif isinstance(other, TScalar):
+        elif isinstance(other, (Scalar, TScalar)):
+            # TMatrix2D * TScalar = TMatrix2D
+            # TMatrix2D * Scalar = TMatrix2D
             return scalar_mul_t(self, other)
-        elif isinstance(other, TMatrix2D):
-            return mul_t(self, other)
         else:
-            return mul_t(self, other)
+            raise TypeError("Unsupported operand type(s) for *: 'TMatrix2D' and '{}'".format(type(other)))
         # end if
     # end __mul__
 
@@ -486,19 +622,7 @@ class TMatrix2D(Matrix2D):
         """
         Multiply the matrix by another matrix or a scalar.
         """
-        if isinstance(other, Matrix2D):
-            return mul_t(other, self)
-        elif isinstance(other, np.ndarray):
-            return mul_t(Matrix2D(other), self)
-        elif isinstance(other, (int, float)):
-            return scalar_mul_t(Scalar(other), self)
-        elif isinstance(other, TScalar):
-            return scalar_mul_t(other, self)
-        elif isinstance(other, TMatrix2D):
-            return mul_t(other, self)
-        else:
-            return mul_t(other, self)
-        # end if
+        self.__mul__(other)
     # end __rmul__
 
     def __matmul__(self, other):
@@ -506,9 +630,11 @@ class TMatrix2D(Matrix2D):
         Matrix-matrix multiplication.
         """
         if isinstance(other, (Matrix2D, TMatrix2D)):
+            # TMatrix2D @ TMatrix2D = TMatrix2D
+            # TMatrix2D @ Matrix2D = TMatrix2D
             return mm_t(self, other)
         else:
-            raise ValueError("Unsupported operand type(s) for @: 'Matrix2D' and '{}'".format(type(other)))
+            raise TypeError("Unsupported operand type(s) for @: 'Matrix2D' and '{}'".format(type(other)))
         # end if
     # end __matmul__
 
@@ -518,6 +644,8 @@ class TMatrix2D(Matrix2D):
         Matrix-matrix multiplication.
         """
         if isinstance(other, (Matrix2D, TMatrix2D)):
+            # Matrix2D @ TMatrix2D = TMatrix2D
+            # TMatrix2D @ TMatrix2D = TMatrix2D
             return mm_t(other, self)
         else:
             raise ValueError("Unsupported operand type(s) for @: 'Matrix2D' and '{}'".format(type(other)))
@@ -529,18 +657,22 @@ class TMatrix2D(Matrix2D):
         """
         Divide the matrix by a scalar.
         """
-        if isinstance(other, Matrix2D):
+        if isinstance(other, (Matrix2D, TMatrix2D)):
+            # TMatrix2D / TMatrix2D = TMatrix2D
+            # TMatrix2D / Matrix2D = TMatrix2D
             return TMatrix2D(lambda m1, m2: m1.data / m2.data, m1=self, m2=other)
         elif isinstance(other, np.ndarray):
+            # TMatrix2D / np.ndarray = TMatrix2D
             return TMatrix2D(lambda m, a: m.data / a, m=self, a=other)
         elif isinstance(other, (int, float)):
+            # TMatrix2D / scalar = TMatrix2D
             return TMatrix2D(lambda m, a: m.data / a, m=self, a=other)
-        elif isinstance(other, TMatrix2D):
-            return TMatrix2D(lambda m1, m2: m1.data / m2.data, m1=self, m2=other)
         elif isinstance(other, (TScalar, Scalar)):
+            # TMatrix2D / TScalar = TMatrix2D
+            # TMatrix2D / Scalar = TMatrix2D
             return TMatrix2D(lambda m, s: m.data / s.value, m=self, s=other)
         else:
-            return TMatrix2D(lambda m, a: m.data / a, m=self, a=other)
+            raise TypeError("Unsupported operand type(s) for /: 'TMatrix2D' and '{}'".format(type(other)))
         # end if
     # end __truediv__
 
@@ -549,18 +681,22 @@ class TMatrix2D(Matrix2D):
         """
         Divide the matrix by a scalar.
         """
-        if isinstance(other, Matrix2D):
-            return TMatrix2D(lambda m1, m2: m2.data / m1.data, m1=other, m2=self)
+        if isinstance(other, (Matrix2D, TMatrix2D)):
+            # TMatrix2D / TMatrix2D = TMatrix2D
+            # Matrix2D / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m1, m2: m1.data / m2.data, m1=other, m2=self)
         elif isinstance(other, np.ndarray):
-            return TMatrix2D(lambda a, m: a / m.data, m=self, a=other)
+            # np.ndarray / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, a: a / m.data, m=self, a=other)
         elif isinstance(other, (int, float)):
-            return TMatrix2D(lambda a, m: a / m.data, m=self, a=other)
-        elif isinstance(other, TMatrix2D):
-            return TMatrix2D(lambda m1, m2: m2.data / m1.data, m1=other, m2=self)
+            # scalar / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, a: a / m.data, m=self, a=other)
         elif isinstance(other, (TScalar, Scalar)):
-            return TMatrix2D(lambda s, m: s.value / m.data, s=other, m=self)
+            # TScalar / TMatrix2D = TMatrix2D
+            # Scalar / TMatrix2D = TMatrix2D
+            return TMatrix2D(lambda m, s: s.value / m.data, m=self, s=other)
         else:
-            return TMatrix2D(lambda a, m: a / m.data, m=self, a=other)
+            raise TypeError("Unsupported operand type(s) for /: 'TMatrix2D' and '{}'".format(type(other)))
         # end if
     # end __rtruediv__
 
@@ -575,8 +711,9 @@ class TMatrix2D(Matrix2D):
             return np.array_equal(self.data, other.data)
         elif isinstance(other, np.ndarray):
             return np.array_equal(self.data, other)
+        else:
+            raise TypeError("Unsupported operand type(s) for ==: 'TMatrix2D' and '{}'".format(type(other)))
         # end if
-        return False
     # end __eq__
 
     # Override ne
