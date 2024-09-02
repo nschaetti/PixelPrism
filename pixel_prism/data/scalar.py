@@ -592,7 +592,7 @@ class TScalar(Scalar):
             listener (function): Listener function
         """
         # Register to all sources
-        for scalar in self._scalars.values():
+        for scalar in self.scalars.values():
             scalar.add_event_listener(event_name, listener)
         # end for
     # end add_event_listener

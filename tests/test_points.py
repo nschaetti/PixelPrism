@@ -1023,15 +1023,12 @@ class TestPoint2D(unittest.TestCase):
         sp3 = tpoint2d(p3)
 
         # Operations
-        tp1 = sp1 + sp2
-        tp2 = tp1 * sp3
-        tp3 = tp2 / 2.0
-        tp4 = tp3 - sp1
+        tp1 = sp1 + sp2 # (2, 3) + (4, 5) = (6, 8)
+        tp2 = tp1 * sp3 # (6, 8) * (1, 1) = (6, 8)
+        tp3 = tp2 / 2.0 # (6, 8) / 2 = (3, 4)
+        tp4 = tp3 - sp1 # (3, 4) - (2, 3) = (1, 1)
 
-        # tp1  = (2, 3) + (4, 5) = (6, 8)
-        # tp2  = (6, 8) * (1, 1) = (6, 8)
-        # tp3  = (6, 8) / 2 = (3, 4)
-        # tp4  = (3, 4) - (2, 3) = (1.0, 1.0)
+        # Test
         self.assertEqual(tp4.x, 1.0)
         self.assertEqual(tp4.y, 1.0)
 

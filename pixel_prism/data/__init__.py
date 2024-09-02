@@ -37,9 +37,11 @@ from .colors import (
 from .matrices import (
     Matrix2D,
     TMatrix2D,
+    tmatrix2d,
     add_t,
     sub_t,
     mul_t,
+    mv_t,
     transpose_t,
     determinant_t,
     inverse_t,
@@ -136,6 +138,7 @@ __all__ = [
     # Matrices
     "Matrix2D",
     "TMatrix2D",
+    "tmatrix2d",
     "add_t",
     "sub_t",
     "mul_t",
@@ -144,7 +147,6 @@ __all__ = [
     "inverse_t",
     "scalar_mul_t",
     "trace_t",
-    "rotate_point_t",
     # Points
     "Point",
     "Point2D",
@@ -183,6 +185,7 @@ __all__ = [
     "Scalar",
     "TScalar",
     "tscalar",
+    "mv_t",
     "floor_t",
     "ceil_t",
     "trunc_t",

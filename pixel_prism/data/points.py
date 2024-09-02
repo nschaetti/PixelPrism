@@ -512,7 +512,7 @@ class Point2D(Point):
             return mul_t(self, other)
         elif isinstance(other, Point2D):
             # Point2D * Point2D = Point2D
-            return Point2D(self.x - other.x, self.y - other.y)
+            return Point2D(self.x * other.x, self.y * other.y)
         else:
             raise TypeError("Unsupported operand type(s) for -: 'Point2D' and '{}'".format(type(other)))
         # end if
@@ -908,6 +908,33 @@ class TPoint2D(Point2D):
         return self.transform_func(**self._points)
     # end get
 
+    def add_event_listener(self, event_name, listener):
+        """
+        Add an event listener to the data object.
+
+        Args:
+            event_name (str): Event to listen for
+            listener (function): Listener function
+        """
+        for point in self.points.values():
+            point.add_event_listener(event_name, listener)
+        # end for
+    # end add_event_listener
+
+    def remove_event_listener(self, event_name, listener):
+        """
+        Remove an event listener from the data object.
+
+        Args:
+            event_name (str): Event to remove listener from
+            listener (function): Listener function to remove
+        """
+        # Unregister from all sources
+        for point in self.points.values():
+            point.remove_event_listener(event_name, listener)
+        # end for
+    # end remove_event_listener
+
     # endregion PUBLIC
 
     # region EVENT
@@ -1086,7 +1113,7 @@ class TPoint2D(Point2D):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D * TPoint2D = TPoint2D
-            return sub_t(self, other)
+            return TPoint2D(lambda p, o: (p.x * o.x, p.y * o.y), p=self, o=other)
         elif isinstance(other, Point2D):
             # Point2D * Point2D = Point2D
             return TPoint2D(lambda p, o: (p.x * o.x, p.y * o.y), p=self, o=other)
