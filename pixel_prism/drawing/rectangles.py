@@ -18,7 +18,8 @@
 # Imports
 from typing import Tuple, Any
 from pixel_prism.data import Point2D, Scalar, Color
-from pixel_prism.animate.able import MovableMixin, BuildableMixin, DestroyableMixin
+from pixel_prism.animate.able import BuildableMixin, DestroyableMixin
+from pixel_prism.animate import MovableMixin
 import pixel_prism.utils as utils
 from .bounding_box import BoundingBox
 

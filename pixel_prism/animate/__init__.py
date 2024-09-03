@@ -30,13 +30,14 @@ from .interpolate import (
 # Transition animation
 from .animate import (
     Animate,
-    Move,
     Scale,
     Rotate,
-    FadeOut,
-    Range,
     Build,
     Destroy
+)
+
+from .animator import (
+    Animator
 )
 
 # Fade
@@ -45,6 +46,18 @@ from .fade import (
     FadeOutableMixin,
     FadeIn,
     FadeOut
+)
+
+# Move
+from .move import (
+    MovableMixin,
+    Move
+)
+
+# Range
+from .range import (
+    Range,
+    RangeableMixin
 )
 
 from .changes import (
@@ -61,8 +74,11 @@ __all__ = [
     # Mixin
     "FadeInableMixin",
     "FadeOutableMixin",
+    "RangeableMixin",
+    "MovableMixin",
     # Animate
     "Animate",
+    "Animator",
     "Move",
     "Scale",
     "Rotate",

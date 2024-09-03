@@ -23,7 +23,7 @@
 import math
 from typing import Any, Union
 import numpy as np
-from pixel_prism.animate.able import MovableMixin
+from pixel_prism.animate import MovableMixin
 from .data import Data
 from .scalar import Scalar, TScalar
 from .eventmixin import EventMixin

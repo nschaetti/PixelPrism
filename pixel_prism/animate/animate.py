@@ -18,12 +18,8 @@
 # Imports
 from enum import Enum
 from .able import (
-    MovableMixin,
     RotableMixin,
     ScalableMixin,
-    FadeInableMixin,
-    FadeOutableMixin,
-    RangeableMixin,
     BuildableMixin,
     DestroyableMixin
 )
@@ -214,92 +210,6 @@ class Animate:
 # end Animate
 
 
-class Move(Animate):
-    """
-    A transition that moves an object over time.
-    """
-
-    def __init__(
-            self,
-            obj,
-            start_time,
-            end_time,
-            target_value,
-            interpolator=LinearInterpolator(),
-            name="",
-            relative: bool = False,
-    ):
-        """
-        Initialize the move transition.
-
-        Args:
-            name (str): Name of the transition
-            obj (any): Object to move
-            start_time (float): Start time
-            end_time (float): End time
-            target_value (any): End position
-            interpolator (Interpolator): Interpolator
-            relative (bool): Relative movement
-        """
-        assert isinstance(obj, MovableMixin), "Object must be an instance of MovAble"
-        super().__init__(
-            obj,
-            start_time,
-            end_time,
-            None,
-            target_value,
-            name=name,
-            interpolator=interpolator,
-            relative=relative
-        )
-    # end __init__
-
-    # region PUBLIC
-
-    def update(
-            self,
-            t
-    ):
-        """
-        Update the object property at time t.
-
-        Args:
-            t (float): Time
-        """
-        if self.state == AnimationState.WAITING_START and t >= self.start_time:
-            self.start()
-        elif self.state == AnimationState.RUNNING and t > self.end_time:
-            self.stop()
-            return
-        elif self.state in [AnimationState.WAITING_START, AnimationState.FINISHED]:
-            return
-        # end if
-
-        # Relative time
-        relative_t = (t - self.start_time) / (self.end_time - self.start_time)
-
-        # Interpolate time
-        interpolated_t = self.interpolator.interpolate(0, 1, relative_t)
-
-        # Get the animate method
-        if hasattr(self.obj, self.animate_method):
-            animate_method = getattr(self.obj, self.animate_method)
-            animate_method(
-                t=relative_t,
-                duration=self.end_time - self.start_time,
-                interpolated_t=interpolated_t,
-                end_value=self.target_value,
-                relative=self.kwargs.get("relative", False)
-            )
-        else:
-            raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
-        # end if
-    # end update
-
-    # endregion PUBLIC
-
-# end Move
-
 
 class Rotate(Animate):
     """
@@ -471,106 +381,6 @@ class Scale(Animate):
     # end update
 
 # end Scale
-
-
-class Range(Animate):
-    """
-    A transition that changes a range of values over time.
-    """
-
-    def __init__(
-            self,
-            obj,
-            start_time,
-            end_time,
-            target_value,
-            interpolator=LinearInterpolator(),
-            name=""
-    ):
-        """
-        Initialize the range transition.
-
-        Args:
-            name (str): Name of the transition
-            obj (any): Object to range
-            start_time (float): Start time
-            end_time (float): End time
-            target_value (any): End value
-            interpolator (Interpolator): Interpolator
-        """
-        assert isinstance(obj, RangeableMixin), "Object must be an instance of RangeAble"
-        super().__init__(
-            obj,
-            start_time,
-            end_time,
-            None,
-            target_value,
-            interpolator=interpolator,
-            name=name
-        )
-    # end __init__
-
-# end Range
-
-
-# Fade in animation
-class FadeIn(Animate):
-    """
-    A transition that fades in an object over time.
-    """
-
-    def __init__(
-            self,
-            obj,
-            start_time,
-            end_time,
-            interpolator=LinearInterpolator(),
-            name="",
-    ):
-        """
-        Initialize the fade-in transition.
-
-        Args:
-            obj (any): Object to fade in
-            start_time (float): Start time
-            end_time (float): End time
-            interpolator (Interpolator): Interpolator
-        """
-        assert isinstance(obj, FadeInableMixin), "Object must be an instance of FadeInAble"
-        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
-    # end __init__
-
-# end FadeIn
-
-
-# Fade out animation
-class FadeOut(Animate):
-    """
-    A transition that fades in an object over time.
-    """
-
-    def __init__(
-            self,
-            obj,
-            start_time,
-            end_time,
-            interpolator=LinearInterpolator(),
-            name="",
-    ):
-        """
-        Initialize the fade-out transition.
-
-        Args:
-            obj (any): Object to fade in
-            start_time (float): Start time
-            end_time (float): End time
-            interpolator (Interpolator): Interpolator
-        """
-        assert isinstance(obj, FadeOutableMixin), "Object must be an instance of FadeInAble"
-        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
-    # end __init__
-
-# end FadeOut
 
 
 # Build animation

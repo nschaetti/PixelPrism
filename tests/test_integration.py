@@ -85,7 +85,6 @@ class TestComplexEquationIntegration(unittest.TestCase):
         Factory method to create hooks for a specific key.
         """
         def hook(event):
-            print(f"Hook called for {key}")
             self.hook_counts[key] += 1
         return hook
     # end make_hook

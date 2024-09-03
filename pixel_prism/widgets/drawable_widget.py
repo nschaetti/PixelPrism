@@ -73,7 +73,19 @@ class DrawableWidget(Widget):
         Args:
             drawable (Drawable): Drawable
         """
-        self.primitives.append(drawable)
+        if isinstance(drawable, DrawableMixin):
+            self.primitives.append(drawable)
+        elif isinstance(drawable, (list, tuple)):
+            for d in drawable:
+                self.add(d)
+            # end for
+        elif isinstance(drawable, dict):
+            for d in drawable.values():
+                self.add(d)
+            # end for
+        else:
+            raise ValueError(f"Drawable object of type {type(drawable)} is not supported.")
+        # end if
     # end add
 
 # end DrawableWidget

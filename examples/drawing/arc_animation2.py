@@ -31,7 +31,7 @@ from pixel_prism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class
-class ShapesAnimation(Animation):
+class ArcAnimation(Animation):
 
     # Arc line width and radius
     ARC_LINE_WIDTH = 0.02
@@ -221,6 +221,6 @@ class ShapesAnimation(Animation):
         return image_canvas
     # end process_frame
 
-# end MathTexAnimation
+# end ArcAnimation
 
 

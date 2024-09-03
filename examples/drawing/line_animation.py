@@ -19,18 +19,16 @@
 # Animation of an equation.
 # Build and highlight
 #
+
+# Imports
 import math
-
-from torch.mps.profiler import start
-
 from pixel_prism import utils
-# PixelPrism
 from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
+from pixel_prism.animate import Move, EaseInOutInterpolator, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
-from pixel_prism.drawing import MathTex, Line
+from pixel_prism.drawing import Line
 from pixel_prism.data import Point2D, Scalar
 
 

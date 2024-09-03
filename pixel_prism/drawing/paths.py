@@ -27,13 +27,11 @@ from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEv
 import pixel_prism.utils as utils
 from pixel_prism.drawing import BoundingBoxMixin, BoundingBox
 from pixel_prism.animate.able import (
-    MovableMixin,
-    FadeInableMixin,
-    FadeOutableMixin,
     BuildableMixin,
     DestroyableMixin,
     RotableMixin
 )
+from pixel_prism.animate import FadeInableMixin, FadeOutableMixin, MovableMixin
 from .rectangles import Rectangle
 from .arcs import Arc
 from .lines import Line

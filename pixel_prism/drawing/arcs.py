@@ -17,7 +17,7 @@
 
 # Imports
 import math
-from pixel_prism.animate.able import MovableMixin
+from pixel_prism.animate import MovableMixin
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin

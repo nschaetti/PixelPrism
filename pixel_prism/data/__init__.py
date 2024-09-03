@@ -84,7 +84,8 @@ from .points import (
     distance_sqeuclidean_t,
     round_t,
     rotate_t,
-    scale_t
+    scale_t,
+    meshgrid
 )
 
 # Scalar
@@ -181,6 +182,7 @@ __all__ = [
     "distance_sqeuclidean_t",
     "round_t",
     "rotate_t",
+    "meshgrid",
     # Scalar
     "Scalar",
     "TScalar",

@@ -15,9 +15,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 # Imports
-import importlib
-from pixel_prism.data import Point2D, Scalar, Color
+from pixel_prism.data import Point2D, TPoint2D, Scalar, TScalar, Color
 import pixel_prism.utils as utils
 
 
@@ -40,6 +40,25 @@ def p2(
 # end p2
 
 
+# Create a TPoint2D
+def t_p2(
+        func,
+        **kwargs
+) -> Point2D:
+    """
+    Create a TPoint2D.
+
+    Args:
+        func: Function
+        **kwargs: Keyword arguments
+
+    Returns:
+        Point2D: TPoint2D
+    """
+    return TPoint2D(func, **kwargs)
+# end t_p2
+
+
 # Create a scalar
 def s(
         value: float
@@ -55,6 +74,25 @@ def s(
     """
     return Scalar(value)
 # end s
+
+
+# Create a TScalar
+def t_s(
+        func,
+        **kwargs
+) -> Scalar:
+    """
+    Create a TScalar.
+
+    Args:
+        func: Function
+        **kwargs: Keyword arguments
+
+    Returns:
+        Scalar: TScalar
+    """
+    return TScalar(func, **kwargs)
+# end t_s
 
 
 # Get a color from name with importlib

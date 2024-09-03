@@ -1,8 +1,24 @@
-from typing import Union
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
 # Imports
 import numpy as np
-from pixel_prism.animate.able import MovableMixin
+from typing import Union, List
+from pixel_prism.animate import MovableMixin
 from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 from . import BoundingBoxMixin, BoundingBox
@@ -29,6 +45,7 @@ class Line(
             end: Point2D,
             line_width: Scalar = Scalar(1.0),
             line_color: Color = utils.WHITE,
+            line_dash: List[float] = None,
             on_change=None
     ):
         """
@@ -39,6 +56,7 @@ class Line(
             end (Point2D): End point of the line
             line_width (float): Width of the line
             line_color (Color): Color of the line
+            line_dash (List[float]): Line dash
             on_change (callable): On change event
         """
         # Init
@@ -50,6 +68,7 @@ class Line(
         self._end = end
         self._line_width = line_width
         self._line_color = line_color
+        self._line_dash = line_dash
 
         # Middle point
         self._middle_point = Point2D(0, 0)
@@ -181,6 +200,15 @@ class Line(
         """
         return self._line_color
     # end line_color
+
+    # Line dash
+    @property
+    def line_dash(self):
+        """
+        Get the line dash of the arc.
+        """
+        return self._line_dash
+    # end line_dash
 
     # endregion PROPERTIES
 
@@ -382,6 +410,11 @@ class Line(
         context.set_source_rgba(
             self.line_color
         )
+
+        # If dash
+        if self.line_dash is not None:
+            context.set_dash(self.line_dash)
+        # end if
 
         # Set line width
         context.set_line_width(self.line_width.value)

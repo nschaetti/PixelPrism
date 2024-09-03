@@ -22,8 +22,8 @@ from typing import List, Dict, Union
 
 # Imports
 import numpy as np
-from pixel_prism.animate.able import RangeableMixin
-from . import ObjectChangedEvent
+from pixel_prism.animate import RangeableMixin
+from .events import ObjectChangedEvent
 from .data import Data
 from .eventmixin import EventMixin
 

@@ -20,7 +20,7 @@ import math
 from typing import Any
 import numpy as np
 from pixel_prism import p2, s
-from pixel_prism.animate.able import MovableMixin
+from pixel_prism.animate import MovableMixin
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 

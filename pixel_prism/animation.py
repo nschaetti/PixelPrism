@@ -16,9 +16,7 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
-
-from pixel_prism.animate import Animate
-# Locals
+from pixel_prism.animate import Animate, Animator
 from pixel_prism.base.imagecanvas import ImageCanvas
 from pixel_prism.render_engine import RenderEngine
 from pixel_prism.utils import setup_logger
@@ -383,10 +381,16 @@ class Animation:
             transition (Transition): Transition object
         """
         if isinstance(transition, Animate):
-            self.transitions.extend(transition)
-        else:
+            self.transitions.append(transition)
+        elif isinstance(transition, list):
             for trans in transition:
-                self.transitions.extend(trans)
+                if isinstance(trans, Animate):
+                    self.transitions.append(trans)
+                # end if
+            # end for
+        elif isinstance(transition, Animator):
+            for anim in transition.animations:
+                self.transitions.append(anim)
             # end for
         # end if
     # end animate

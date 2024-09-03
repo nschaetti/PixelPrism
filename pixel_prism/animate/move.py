@@ -21,7 +21,10 @@
 
 # Imports
 from typing import Any
-from .animablemixin import AnimableMixin
+from .interpolate import Interpolator, LinearInterpolator, EaseInOutInterpolator
+from .able import AnimableMixin
+from .animate import Animate, AnimationState
+
 
 
 class MovableMixin(AnimableMixin):
@@ -67,6 +70,34 @@ class MovableMixin(AnimableMixin):
     # end PROPERTIES
 
     # region PUBLIC
+
+    # Create new move animation
+    def move(
+            self,
+            duration: float,
+            target_value: Any,
+            start_time: float = None,
+            interpolator=EaseInOutInterpolator()
+    ):
+        """
+        Create a move animation.
+
+        Args:
+            start_time (float): Start time
+            duration (float): End time
+            target_value (any): Target value
+            interpolator (Interpolator): Interpolator
+        """
+        from .animator import Animator
+        animator = Animator(self)
+        animator.move(
+            duration=duration,
+            target_value=target_value,
+            start_time=start_time,
+            interpolator=interpolator
+        )
+        return animator
+    # end move
 
     # Initialize position
     def init_move(self, *args, **kwargs):
@@ -242,4 +273,95 @@ class ScalableMixin(AnimableMixin):
     # end finish_scale
 
 # end ScalableMixin
+
+
+
+
+
+class Move(Animate):
+    """
+    A transition that moves an object over time.
+    """
+
+    def __init__(
+            self,
+            obj,
+            start_time,
+            end_time,
+            target_value,
+            interpolator=LinearInterpolator(),
+            name="",
+            relative: bool = False,
+    ):
+        """
+        Initialize the move transition.
+
+        Args:
+            name (str): Name of the transition
+            obj (any): Object to move
+            start_time (float): Start time
+            end_time (float): End time
+            target_value (any): End position
+            interpolator (Interpolator): Interpolator
+            relative (bool): Relative movement
+        """
+        assert isinstance(obj, MovableMixin), "Object must be an instance of MovAble"
+        super().__init__(
+            obj,
+            start_time,
+            end_time,
+            None,
+            target_value,
+            name=name,
+            interpolator=interpolator,
+            relative=relative
+        )
+    # end __init__
+
+    # region PUBLIC
+
+    def update(
+            self,
+            t
+    ):
+        """
+        Update the object property at time t.
+
+        Args:
+            t (float): Time
+        """
+        if self.state == AnimationState.WAITING_START and t >= self.start_time:
+            self.start()
+        elif self.state == AnimationState.RUNNING and t > self.end_time:
+            self.stop()
+            return
+        elif self.state in [AnimationState.WAITING_START, AnimationState.FINISHED]:
+            return
+        # end if
+
+        # Relative time
+        relative_t = (t - self.start_time) / (self.end_time - self.start_time)
+
+        # Interpolate time
+        interpolated_t = self.interpolator.interpolate(0, 1, relative_t)
+
+        # Get the animate method
+        if hasattr(self.obj, self.animate_method):
+            animate_method = getattr(self.obj, self.animate_method)
+            animate_method(
+                t=relative_t,
+                duration=self.end_time - self.start_time,
+                interpolated_t=interpolated_t,
+                end_value=self.target_value,
+                relative=self.kwargs.get("relative", False)
+            )
+        else:
+            raise NotImplementedError(f"{self.animate_method} not implemented for {self.obj.__class__.__name__}")
+        # end if
+    # end update
+
+    # endregion PUBLIC
+
+# end Move
+
 

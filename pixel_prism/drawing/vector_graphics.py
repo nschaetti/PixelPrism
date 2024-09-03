@@ -18,12 +18,10 @@
 # Imports
 from typing import Iterator, List, Optional, Any, Union
 from pixel_prism.animate.able import (
-    MovableMixin,
-    FadeInableMixin,
-    FadeOutableMixin,
     BuildableMixin,
     DestroyableMixin
 )
+from pixel_prism.animate import FadeInableMixin, FadeOutableMixin, MovableMixin
 from pixel_prism.data import Point2D, Color, EventMixin, ObjectChangedEvent
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path

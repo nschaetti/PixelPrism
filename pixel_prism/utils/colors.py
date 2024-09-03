@@ -46,6 +46,23 @@ colors = [
 ]
 
 
+# Get a color from hexadecimal string
+def from_hex(hex_string: str, alpha: float = 1.0):
+    """
+    Get a color from a hexadecimal string.
+
+    Args:
+        hex_string (str): Hexadecimal string
+        alpha (float): Alpha value
+
+    Returns:
+        Color: Color
+    """
+    return Color.from_hex(hex_string, alpha)
+# end from_hex
+
+
+
 # Get a random color
 def random_color():
     """

@@ -1,4 +1,21 @@
 #
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+#
 # This file contains the MathTex class, which is a widget that can be drawn
 #
 
@@ -7,15 +24,12 @@ from typing import List, Optional, Any
 import os
 import cairo
 import tempfile
-
 from pixel_prism.utils import render_latex_to_svg, draw_svg
 from pixel_prism.animate.able import (
-    FadeInableMixin,
-    FadeOutableMixin,
-    MovableMixin,
     BuildableMixin,
     DestroyableMixin
 )
+from pixel_prism.animate import FadeInableMixin, FadeOutableMixin, MovableMixin
 from pixel_prism.data import Point2D, Color
 import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin

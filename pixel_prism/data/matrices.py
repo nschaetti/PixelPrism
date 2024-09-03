@@ -383,6 +383,45 @@ class Matrix2D(Data, EventMixin):
 
     # endregion OVERRIDE
 
+    # region CLASS_METHODS
+
+    # Identity matrix
+    @classmethod
+    def identity(
+            cls,
+            on_change=None
+    ):
+        """
+        Return an identity matrix.
+        """
+        return cls(
+            matrix=np.identity(2),
+            on_change=on_change
+        )
+    # end identity
+
+    # Scale matrix
+    @classmethod
+    def stretching(
+            cls,
+            sx: Union[float, Scalar, TScalar],
+            sy: Union[float, Scalar, TScalar],
+            on_change=None
+    ):
+        """
+        Return a scale matrix.
+        """
+        return cls(
+            matrix=np.array([
+                [sx, 0],
+                [0, sy],
+            ]),
+            on_change=on_change
+        )
+    # end stretching
+
+    # endregion CLASS_METHODS
+
 # end Matrix2D
 
 
@@ -760,6 +799,109 @@ class TMatrix2D(Matrix2D):
     # end __abs__
 
     # endregion OVERRIDE
+
+    # region CLASS_METHODS
+
+    # Identity matrix
+    @classmethod
+    def identity(
+            cls,
+            on_change=None
+    ):
+        """
+        Return an identity matrix.
+        """
+        matrix = Matrix2D.identity()
+        return matrix, cls(lambda m: m.data, m=matrix)
+    # end identity
+
+    # Stretching matrix
+    @classmethod
+    def stretching(
+            cls,
+            sx: Union[float, Scalar, TScalar],
+            sy: Union[float, Scalar, TScalar],
+            *args,
+            **kwargs
+    ):
+        """
+        Return a stretching matrix.
+        """
+        # Scalar, TScalar
+        if isinstance(sx, (int, float)):
+            sx = Scalar(sx)
+        # end if
+
+        # Scalar, TScalar
+        if isinstance(sy, (int, float)):
+            sy = Scalar(sy)
+        # end if
+
+        return cls(
+            lambda scale_x, scale_y: np.array([[scale_x.value, 0], [0, scale_y.value]]),
+            scale_x=sx,
+            scale_y=sy
+        )
+    # end stretching
+
+    # Shear matrix
+    @classmethod
+    def shearing(
+            cls,
+            shx: Union[float, Scalar, TScalar],
+            shy: Union[float, Scalar, TScalar],
+    ):
+        """
+        Return a shear matrix.
+
+        Args:
+            shx (float/Scalar/TScalar): Shear factor in x-direction
+            shy (float/Scalar/TScalar): Shear factor in y-direction
+        """
+        # Scalar, TScalar
+        if isinstance(shx, (int, float)):
+            shx = Scalar(shx)
+        # end if
+
+        # Scalar, TScalar
+        if isinstance(shy, (int, float)):
+            shy = Scalar(shy)
+        # end if
+
+        return cls(
+            lambda shear_x, shear_y: np.array([[1, shear_x.value], [shear_y.value, 1]]),
+            shear_x=shx,
+            shear_y=shy
+        )
+    # end shearing
+
+    # Rotation matrix
+    @classmethod
+    def rotation(
+            cls,
+            angle: Union[float, Scalar, TScalar]
+    ):
+        """
+        Return a rotation matrix.
+
+        Args:
+            angle (float/Scalar/TScalar): Rotation angle in radians
+        """
+        # Scalar, TScalar
+        if isinstance(angle, (int, float)):
+            angle = Scalar(angle)
+        # end if
+
+        return cls(
+            lambda theta: np.array([
+                [np.cos(theta.value), -np.sin(theta.value)],
+                [np.sin(theta.value), np.cos(theta.value)]
+            ]),
+            theta=angle
+        )
+    # end rotation
+
+    # endregion CLASS_METHODS
 
 # end TMatrix2D
 

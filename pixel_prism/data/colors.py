@@ -21,7 +21,7 @@
 
 # Imports
 import numpy as np
-from pixel_prism.animate.able import RangeableMixin
+from pixel_prism.animate import RangeableMixin
 from .data import Data
 from .eventmixin import EventMixin
 
@@ -56,6 +56,8 @@ class Color(Data, EventMixin, RangeableMixin):
             "on_change": [] if on_change is None else [on_change]
         }
     # end __init__
+
+    # region PROPERTIES
 
     @property
     def value(self):
@@ -122,6 +124,10 @@ class Color(Data, EventMixin, RangeableMixin):
         return self.alpha
     # end opacity
 
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
     def set(self, value):
         """
         Set the scalar value.
@@ -163,6 +169,10 @@ class Color(Data, EventMixin, RangeableMixin):
         self.alpha = alpha
         return self
     # end change_alpha
+
+    # endregion PUBLIC
+
+    # region OVERRIDE
 
     # Add color
     def __add__(self, other):
@@ -249,5 +259,40 @@ class Color(Data, EventMixin, RangeableMixin):
         """
         return self.__str__()
     # end __repr__
+
+    # endregion OVERRIDE
+
+    # region CLASS_METHODS
+
+    # Create a color from a hex string
+    @classmethod
+    def from_hex(
+            cls,
+            hex_string: str,
+            alpha: float = 1.0
+    ):
+        """
+        Get a color from a hexadecimal string.
+
+        Args:
+            hex_string (str): Hexadecimal string
+            alpha (float): Alpha value
+
+        Returns:
+            Color: Color
+        """
+        hex_string = hex_string.lstrip("#")
+        red = int(hex_string[0:2], 16)
+        green = int(hex_string[2:4], 16)
+        blue = int(hex_string[4:6], 16)
+        return cls(
+            red / 255.0,
+            green / 255.0,
+            blue / 255.0,
+            alpha
+        )
+    # end from_hex
+
+    # endregion CLASS_METHODS
 
 # end Color
