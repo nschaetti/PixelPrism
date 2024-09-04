@@ -29,7 +29,7 @@ from pixel_prism.animate.able import (
     BuildableMixin,
     DestroyableMixin
 )
-from pixel_prism.animate import FadeInableMixin, FadeOutableMixin, MovableMixin
+from pixel_prism.animate import FadeableMixin, MovableMixin
 from pixel_prism.data import Point2D, Color
 import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin
@@ -50,8 +50,7 @@ def generate_temp_svg_filename():
 class MathTex(
     DrawableMixin,
     MovableMixin,
-    FadeInableMixin,
-    FadeOutableMixin,
+    FadeableMixin,
     BuildableMixin,
     DestroyableMixin
 ):

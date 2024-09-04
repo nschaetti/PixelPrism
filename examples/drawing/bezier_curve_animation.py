@@ -61,68 +61,23 @@ class CurveAnimation(Animation):
 
         # Animate start
         self.animate(
-            Move(
-                curve1.start,
-                start_time=0,
-                end_time=4,
-                target_value=coord_system.upper_left_square - p2(1.5, -1),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animate start
-        self.animate(
-            Move(
-                curve1.start,
-                start_time=4,
-                end_time=8,
-                target_value=coord_system.upper_left_square - p2(1.5, 1),
-                interpolator=EaseInOutInterpolator()
-            )
+            curve1.start
+            .move(4, coord_system.upper_left_square - p2(1.5, -1))
+            .move(4, coord_system.upper_left_square - p2(1.5, 1))
         )
 
         # Animate control2
         self.animate(
-            Move(
-                curve1.control2,
-                start_time=0,
-                end_time=4,
-                target_value=p2(0.5, 0.5),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animate control2
-        self.animate(
-            Move(
-                curve1.control2,
-                start_time=4,
-                end_time=8,
-                target_value=p2(-0.5, -0.5),
-                interpolator=EaseInOutInterpolator()
-            )
+            curve1.control2
+            .move(4, p2(0.5, 0.5))
+            .move(8, p2(-0.5, -0.5))
         )
 
         # Animate control1
         self.animate(
-            Move(
-                curve1.control1,
-                start_time=0,
-                end_time=4,
-                target_value=p2(-0.5, -0.5),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animate control1
-        self.animate(
-            Move(
-                curve1.control1,
-                start_time=4,
-                end_time=8,
-                target_value=p2(0.5, 0.5),
-                interpolator=EaseInOutInterpolator()
-            )
+            curve1.control1
+            .move(4, p2(-0.5, -0.5))
+            .move(4, p2(0.5, 0.5))
         )
 
         return curve1
@@ -148,24 +103,9 @@ class CurveAnimation(Animation):
 
         # Animate start
         self.animate(
-            Move(
-                curve2,
-                start_time=0,
-                end_time=4,
-                target_value=coord_system.upper_right_square - p2(2, 1) + p2(2, 0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animate start
-        self.animate(
-            Move(
-                curve2,
-                start_time=4,
-                end_time=8,
-                target_value=coord_system.upper_right_square - p2(2, 1),
-                interpolator=EaseInOutInterpolator()
-            )
+            curve2
+            .move(4, coord_system.upper_right_square - p2(2, 1) + p2(2, 0))
+            .move(4, coord_system.upper_right_square - p2(2, 1))
         )
 
         return curve2
@@ -195,38 +135,15 @@ class CurveAnimation(Animation):
             line_width=s(self.CURVE_LINE_WIDTH)
         )
 
-        # Animation position
+        # Animate position
         self.animate(
-            Range(
-                position,
-                start_time=0,
-                end_time=4,
-                target_value=s(0.5),
-                interpolator=EaseInOutInterpolator()
-            )
+            position
+            .range(4, s(0.5))
+            .range(4, s(0.0))
         )
 
-        # Animation position
-        self.animate(
-            Range(
-                position,
-                start_time=4,
-                end_time=8,
-                target_value=s(0.0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animation position
-        self.animate(
-            Range(
-                length,
-                start_time=4,
-                end_time=8,
-                target_value=s(1.0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
+        # Animate length
+        self.animate(length.range(4, s(1.0), 4))
 
         return curve3
     # end build_third_curve
@@ -254,43 +171,13 @@ class CurveAnimation(Animation):
             line_width=s(self.CURVE_LINE_WIDTH)
         )
 
-        # Translate
-        self.animate(
-            Call(
-                curve4.translate,
-                times=[2, 7],
-                values=[[p2(1.0, 0.0)], [p2(-1.0, 0.0)]],
-            )
-        )
+        # Translate, rotate and scale
+        self.animate(curve4.call([2, 7], 'translate', [[p2(1.0, 0.0)], [p2(-1.0, 0.0)]]))
+        self.animate(curve4.call([3, 6], 'rotate', [[s(math.pi / 4.0), p2(1.89, -1.67)], [s(-math.pi / 4.0), p2(1.89, -1.67)]]))
+        self.animate(curve4.call([4, 5], 'scale', [[s(1.5), p2(1.89, -1.67)], [s(0.6666666), p2(1.89, -1.67)]]))
 
-        # Translate
-        self.animate(
-            Call(
-                curve4.rotate,
-                times=[3, 6],
-                values=[[s(math.pi / 4.0), p2(1.89, -1.67)], [s(-math.pi / 4.0), p2(1.89, -1.67)]],
-            )
-        )
-
-        # Scale
-        self.animate(
-            Call(
-                curve4.scale,
-                times=[4, 5],
-                values=[[s(1.5), p2(1.89, -1.67)], [s(0.6666666), p2(1.89, -1.67)]],
-            )
-        )
-
-        # Animation position
-        self.animate(
-            Range(
-                length,
-                start_time=0,
-                end_time=8,
-                target_value=s(1.0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
+        # Animate position
+        self.animate(length.range(8, s(1.0)))
 
         return curve4
     # end build_fourth_curve

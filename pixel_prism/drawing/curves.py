@@ -20,7 +20,7 @@ import math
 from typing import Any
 import numpy as np
 from pixel_prism import p2, s
-from pixel_prism.animate import MovableMixin
+from pixel_prism.animate import MovableMixin, CallableMixin
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 
@@ -38,7 +38,8 @@ class CubicBezierCurve(
     DrawableMixin,
     BoundingBoxMixin,
     EventMixin,
-    MovableMixin
+    MovableMixin,
+    CallableMixin
 ):
     """
     A class to represent a cubic Bezier curve in 2D space.
@@ -1281,7 +1282,11 @@ class CubicBezierCurve(
 
     # region MOVABLE
 
-    def init_move(self):
+    def init_move(
+            self,
+            *args,
+            **kwargs
+    ):
         """
         Initialize the move.
         """
@@ -1293,7 +1298,9 @@ class CubicBezierCurve(
 
     def start_move(
             self,
-            start_value: Any
+            start_value: Any,
+            *args,
+            **kwargs
     ):
         """
         Start the move.
@@ -1309,7 +1316,9 @@ class CubicBezierCurve(
             t,
             duration,
             interpolated_t,
-            end_value
+            end_value,
+            *args,
+            **kwargs
     ):
         """
         Animate the move.
@@ -1325,17 +1334,31 @@ class CubicBezierCurve(
 
     def end_move(
             self,
-            end_value: Any
+            end_value: Any,
+            *args,
+            **kwargs
     ):
         """
         End the move.
         """
-        """self.start_position = None
-        self.start_control1 = None
-        self.start_control2 = None
-        self.start_end = None"""
         pass
     # end end_move
+
+    # Finish move
+    def finish_move(
+            self,
+            *args,
+            **kwargs
+    ):
+        """
+        Finish the move.
+
+        Args:
+            *args: Variable arguments
+            **kwargs: Arbitrary keyword arguments
+        """
+        pass
+    # end finish_move
 
     # endregion MOVABLE
 

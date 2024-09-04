@@ -17,44 +17,176 @@
 
 # Imports
 from typing import Callable, List, Any
+from pixel_prism.animate.able import AnimableMixin
+from .animate import Animate, AnimationState
 
 
-# Call a function at a specific time
-class Call:
+# CallableMixin
+class CallableMixin(AnimableMixin):
     """
-    A class to represent a function call.
+    Interface class for callable objects.
+    """
+
+    # Initialize
+    def __init__(self):
+        """
+        Initialize the callable object.
+        """
+        super().__init__()
+        self.callablemixin_state = AnimableMixin.AnimationRegister()
+    # end __init__
+
+    # region PUBLIC
+
+    # Create new call animation
+    def call(
+            self,
+            times: List[float],
+            func: str,
+            values: List[Any]
+    ):
+        """
+        Create a new call animation.
+
+        Args:
+            times (list): List of times to call the function
+            func (callable): Function to call
+            values (list): List of values to pass to the function
+        """
+        from .animator import Animator
+        animator = Animator(self)
+        animator.call(
+            func=func,
+            times=times,
+            values=values
+        )
+        return animator
+    # end call
+
+    # Initialize call
+    def init_call(self):
+        """
+        Initialize the call.
+        """
+        raise NotImplementedError("Method 'init_call' must be implemented in the derived class.")
+    # end init_call
+
+    # Start call
+    def start_call(self, *args, **kwargs):
+        """
+        Start the call.
+        """
+        raise NotImplementedError("Method 'start_call' must be implemented in the derived class.")
+    # end start_call
+
+    # Animate call
+    def animate_call(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            end_value
+    ):
+        """
+        Animate the call.
+        """
+        raise NotImplementedError("Method 'animate_call' must be implemented in the derived class.")
+    # end animate_call
+
+    # End call
+    def end_call(self):
+        """
+        End the call.
+        """
+        raise NotImplementedError("Method 'end_call' must be implemented in the derived class.")
+    # end end_call
+
+    # Finish call
+    def finish_call(self):
+        """
+        Finish the call.
+        """
+        raise NotImplementedError("Method 'finish_call' must be implemented in the derived class.")
+    # end finish_call
+
+# end CallableMixin
+
+
+# A Call animation
+class Call(Animate):
+    """
+    A transition that calls a function at specific times.
     """
 
     def __init__(
             self,
+            obj,
             func: Callable,
-            times: List[float],
-            values: List[Any]
+            start_time: float,
+            target_value: Any,
     ):
         """
-        Initialize the function call.
+        Initialize the call transition.
 
         Args:
+            obj (any): Object to call
             func (callable): Function to call
-            times (list): List of times to call the function
-            values (list): List of values to pass to the function
+            start_time (float): Start time
+            target_value (any): Target value
         """
-        # Check that "times" and "values" have the same size
-        assert len(times) == len(values), "Times and values must have the same size"
-
-        # Members of values must be list of dict
-        for value in values:
-            assert isinstance(value, dict) or isinstance(value, list), "Values must be a list of dict"
-        # end for
+        assert isinstance(obj, CallableMixin), "Object must be an instance of CallableMixin"
+        super().__init__(
+            obj,
+            start_time=start_time,
+            target_value=target_value
+        )
 
         # Properties
         self._func = func
-        self._times = times
-        self._values = values
 
         # List of boolean to keep states
-        self._states = [False] * len(times)
+        self._exec_state = False
     # end __init__
+
+    # region PROPERTIES
+
+    # Exec. states
+    @property
+    def exec_state(self):
+        """
+        Get the execution states.
+
+        Returns:
+            list: List of execution states
+        """
+        return self._exec_state
+    # end exec_state
+
+    @exec_state.setter
+    def exec_state(self, value):
+        """
+        Set the execution states.
+
+        Args:
+            value (list): List of execution states
+        """
+        self._exec_state = value
+    # end exec_state
+
+    @property
+    def func(self):
+        """
+        Get the function to call.
+
+        Returns:
+            callable: Function to call
+        """
+        return self._func
+    # end func
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     # Update
     def update(
@@ -67,17 +199,20 @@ class Call:
         Args:
             t (float): Time of the update
         """
-        for i, time in enumerate(self._times):
-            if t >= time and not self._states[i]:
-                # It's a list
-                if isinstance(self._values[i], list):
-                    self._func(*self._values[i])
-                else:
-                    self._func(self._values[i])
-                # end if
-                self._states[i] = True
+        if t >= self.start_time and not self.exec_state:
+            # It's a list
+            if isinstance(self.target_value, list):
+                self.func(*self.target_value)
+            elif isinstance(self.target_value, dict):
+                self.func(**self.target_value)
+            else:
+                self.func(self.target_value)
             # end if
-        # end for
+            self.exec_state = True
+        # end if
     # end update
 
+    # end PUBLIC
+
 # end Call
+

@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from typing import Any
+from typing import Any, List, Optional
 
 # Imports
 from . import LinearInterpolator, Interpolator, EaseInOutInterpolator
 from .move import Move
 from .fade import FadeIn, FadeOut
 from .range import Range
+from .changes import Call
 
 
 # Animator
@@ -158,7 +159,7 @@ class Animator:
             duration,
             target_value,
             start_time=None,
-            interpolator=LinearInterpolator(),
+            interpolator=EaseInOutInterpolator(),
             name: str = "",
             relative: bool = False
     ):
@@ -187,6 +188,10 @@ class Animator:
             relative=relative
         )
         self._animations.append(move_animation)
+
+        # Update the last start time
+        self._last_start_time = start_time + duration
+
         return self
     # end move
 
@@ -195,7 +200,7 @@ class Animator:
             self,
             duration,
             start_time=None,
-            interpolator=LinearInterpolator(),
+            interpolator=EaseInOutInterpolator(),
             name: str = ""
     ):
         """
@@ -219,6 +224,10 @@ class Animator:
             name=name
         )
         self._animations.append(fadein_animation)
+
+        # Update the last start time
+        self._last_start_time = start_time + duration
+
         return self
     # end fadein
 
@@ -226,8 +235,8 @@ class Animator:
     def fadeout(
             self,
             duration,
-            start_time=None,
-            interpolator=LinearInterpolator(),
+            start_time: Optional[float] = None,
+            interpolator=EaseInOutInterpolator(),
             name: str = ""
     ):
         """
@@ -250,8 +259,45 @@ class Animator:
             name=name
         )
         self._animations.append(fadeout_animation)
+
+        # Update the last start time
+        self._last_start_time = start_time + duration
+
         return self
     # end fadeout
+
+    # Call
+    def call(
+            self,
+            func: str,
+            times: List[float],
+            values: List[Any],
+    ):
+        """
+        Create a new call animation.
+
+        Args:
+            times (list): List of times to call the function
+            func (callable): Function to call
+            values (list): List of values to pass to the function
+        """
+        # times and values should have the same length
+        assert len(times) == len(values), "Times and values should have the same length."
+
+        # Create an animation for each times
+        for i in range(len(times)):
+            # Create the call animation
+            call_animation = Call(
+                obj=self.animated,
+                start_time=times[i],
+                func=getattr(self.animated, func),
+                target_value=values[i]
+            )
+            self._animations.append(call_animation)
+        # end for
+
+        return self
+    # end call
 
     # endregion CREATE_ANIMATIONS
 

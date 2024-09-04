@@ -17,8 +17,10 @@
 
 # Imports
 import math
+from typing import Any
+
 from pixel_prism.animate import MovableMixin
-from pixel_prism.animate import FadeOutableMixin, FadeInableMixin
+from pixel_prism.animate import FadeableMixin
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin
@@ -32,8 +34,7 @@ class Circle(
     BoundingBoxMixin,
     EventMixin,
     MovableMixin,
-    FadeInableMixin,
-    FadeOutableMixin
+    FadeableMixin
 ):
     """
     A simple circle class that can be drawn to a cairo context.
@@ -111,7 +112,8 @@ class Circle(
         Args:
             value (Point2D): Position of the circle
         """
-        self._position = value
+        self._position.x = value.x
+        self._position.y = value.y
         self.update_points()
         self._position.dispatch_event("on_change", ObjectChangedEvent(self, attribute="position", value=value))
     # end position
@@ -245,6 +247,30 @@ class Circle(
         return math.pi * self._radius.value ** 2
     # end area
 
+    # Movable position
+    @property
+    def movable_position(self) -> Point2D:
+        """
+        Get the movable position of the circle.
+
+        Returns:
+            Point2D: Movable position of the circle
+        """
+        return self._position
+    # end movable_position
+
+    # Movable position
+    @movable_position.setter
+    def movable_position(self, value: Point2D):
+        """
+        Set the movable position of the circle.
+
+        Args:
+            value (Point2D): Movable position of the circle
+        """
+        self.position = value
+    # end movable_position
+
     # endregion PROPERTIES
 
     # region PUBLIC
@@ -294,8 +320,9 @@ class Circle(
         # Fill color is set
         if self.fill_color is not None:
             # Set fill color
-            context.set_source_rgba(
-                self.fill_color
+            context.set_source_rgb_alpha(
+                color=self.fill_color,
+                alpha=self.fadablemixin_state.opacity
             )
 
             # Stroke or not
@@ -309,8 +336,9 @@ class Circle(
         # Stroke
         if self.line_width.value > 0:
             # Set line color
-            context.set_source_rgba(
-                self.line_color
+            context.set_source_rgb_alpha(
+                color=self.line_color,
+                alpha=self.fadablemixin_state.opacity
             )
 
             # Set line width

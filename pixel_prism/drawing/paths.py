@@ -31,7 +31,7 @@ from pixel_prism.animate.able import (
     DestroyableMixin,
     RotableMixin
 )
-from pixel_prism.animate import FadeInableMixin, FadeOutableMixin, MovableMixin
+from pixel_prism.animate import FadeableMixin, MovableMixin
 from .rectangles import Rectangle
 from .arcs import Arc
 from .lines import Line
@@ -1210,8 +1210,7 @@ class Path(
     MovableMixin,
     RotableMixin,
     ScalableMixin,
-    FadeInableMixin,
-    FadeOutableMixin,
+    FadeableMixin,
     BuildableMixin,
     DestroyableMixin
 ):
@@ -1256,8 +1255,7 @@ class Path(
         MovableMixin.__init__(self)
         RotableMixin.__init__(self)
         ScalableMixin.__init__(self)
-        FadeInableMixin.__init__(self)
-        FadeOutableMixin.__init__(self)
+        FadeableMixin.__init__(self)
         BuildableMixin.__init__(self)
         BoundingBoxMixin.__init__(self)
 

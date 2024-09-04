@@ -373,6 +373,17 @@ class Context:
         self.context.set_source_rgba(color.red, color.green, color.blue, color.alpha)
     # end set_source_rgba
 
+    def set_source_rgb_alpha(self, color: Color, alpha: float) -> None:
+        """
+        Set the source RGB with alpha.
+
+        Args:
+            color (Color): Color
+            alpha (float): Alpha
+        """
+        self.context.set_source_rgba(color.red, color.green, color.blue, alpha)
+    # end set_source_rgb_alpha
+
     # Setup context
     def setup_context(self):
         """

@@ -18,7 +18,7 @@
 # Imports
 import numpy as np
 from typing import Union, List
-from pixel_prism.animate import MovableMixin
+from pixel_prism.animate import MovableMixin, FadeableMixin
 from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 from . import BoundingBoxMixin, BoundingBox
@@ -33,7 +33,8 @@ class Line(
     DrawableMixin,
     BoundingBoxMixin,
     EventMixin,
-    MovableMixin
+    MovableMixin,
+    FadeableMixin
 ):
     """
     A class to represent a line in 2D space.
@@ -407,8 +408,9 @@ class Line(
         self.realize(context, move_to=True, build_ratio=1.0)
 
         # Set line color
-        context.set_source_rgba(
-            self.line_color
+        context.set_source_rgb_alpha(
+            color=self.line_color,
+            alpha=self.fadablemixin_state.opacity
         )
 
         # If dash

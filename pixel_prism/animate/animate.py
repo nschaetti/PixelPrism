@@ -17,6 +17,8 @@
 
 # Imports
 from enum import Enum
+from typing import Optional, Any
+
 from .able import (
     RotableMixin,
     ScalableMixin,
@@ -44,10 +46,10 @@ class Animate:
     def __init__(
             self,
             obj,
-            start_time,
-            end_time,
-            start_value,
-            target_value,
+            start_time: Optional[float] = None,
+            end_time: Optional[float] = None,
+            start_value: Optional[Any] = None,
+            target_value: Optional[Any] = None,
             interpolator=LinearInterpolator(),
             name="",
             **kwargs
@@ -66,24 +68,148 @@ class Animate:
             interpolator (Interpolator): Interpolator
             kwargs: Additional keyword arguments
         """
-        self.name = name
-        self.obj = obj
-        self.start_time = start_time
-        self.end_time = end_time
-        self.start_value = start_value
-        self.target_value = target_value
-        self.interpolator = interpolator
-        self.kwargs = kwargs
-        self.state = AnimationState.WAITING_START
+        self._name = name
+        self._obj = obj
+        self._start_time = start_time
+        self._end_time = end_time
+        self._start_value = start_value
+        self._target_value = target_value
+        self._interpolator = interpolator
+        self._kwargs = kwargs
+        self._state = AnimationState.WAITING_START
 
         # Animation
         animation_name = self.__class__.__name__.lower()
-        self.init_method = f"init_{animation_name}"
-        self.start_method = f"start_{animation_name}"
-        self.animate_method = f"animate_{animation_name}"
-        self.end_method = f"end_{animation_name}"
-        self.finish_method = f"finish_{animation_name}"
+        self._init_method = f"init_{animation_name}"
+        self._start_method = f"start_{animation_name}"
+        self._animate_method = f"animate_{animation_name}"
+        self._end_method = f"end_{animation_name}"
+        self._finish_method = f"finish_{animation_name}"
     # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def name(self):
+        """
+        Get the name of the transition.
+        """
+        return self._name
+    # end name
+
+    @property
+    def obj(self):
+        """
+        Get the object of the transition.
+        """
+        return self._obj
+    # end obj
+
+    @property
+    def start_time(self):
+        """
+        Get the start time of the transition.
+        """
+        return self._start_time
+    # end start_time
+
+    @property
+    def end_time(self):
+        """
+        Get the end time of the transition.
+        """
+        return self._end_time
+    # end end_time
+
+    @property
+    def start_value(self):
+        """
+        Get the start value of the transition.
+        """
+        return self._start_value
+    # end start_value
+
+    @property
+    def target_value(self):
+        """
+        Get the target value of the transition.
+        """
+        return self._target_value
+    # end target_value
+
+    @property
+    def interpolator(self):
+        """
+        Get the interpolator of the transition.
+        """
+        return self._interpolator
+    # end interpolator
+
+    @property
+    def kwargs(self):
+        """
+        Get the keyword arguments of the transition.
+        """
+        return self._kwargs
+    # end kwargs
+
+    @property
+    def state(self):
+        """
+        Get the state of the transition.
+        """
+        return self._state
+    # end state
+
+    @state.setter
+    def state(self, value):
+        """
+        Set the state of the transition.
+        """
+        self._state = value
+    # end state
+
+    @property
+    def init_method(self):
+        """
+        Get the init method of the transition.
+        """
+        return self._init_method
+    # end init_method
+
+    @property
+    def start_method(self):
+        """
+        Get the start method of the transition.
+        """
+        return self._start_method
+    # end start_method
+
+    @property
+    def animate_method(self):
+        """
+        Get the animate method of the transition.
+        """
+        return self._animate_method
+    # end animate_method
+
+    @property
+    def end_method(self):
+        """
+        Get the end method of the transition.
+        """
+        return self._end_method
+    # end end_method
+
+    @property
+    def finish_method(self):
+        """
+        Get the finish method of the transition.
+        """
+        return self._finish_method
+    # end finish_method
+
+    # endregion PROPERTIES
 
     # region PUBLIC
 
@@ -204,6 +330,22 @@ class Animate:
             f"interpolator={self.interpolator})"
         )
     # end __repr__
+
+    # Get item in kwargs
+    def __getitem__(self, key):
+        """
+        Get an item from the keyword arguments.
+        """
+        return self.kwargs[key]
+    # end __getitem__
+
+    # Set item in kwargs
+    def __setitem__(self, key, value):
+        """
+        Set an item in the keyword arguments.
+        """
+        self.kwargs[key] = value
+    # end __setitem__
 
     # endregion OVERRIDE
 

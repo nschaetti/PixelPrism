@@ -17,8 +17,10 @@
 
 # Imports
 import math
-from pixel_prism.animate import MovableMixin
-from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
+from typing import Optional
+
+from pixel_prism.animate import MovableMixin, CallableMixin
+from pixel_prism.data import Point2D, Scalar, Color, EventMixin
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
@@ -31,7 +33,8 @@ class Arc(
     DrawableMixin,
     BoundingBoxMixin,
     EventMixin,
-    MovableMixin
+    MovableMixin,
+    CallableMixin
 ):
     """
     A class to represent a cubic Bezier curve in 2D space.
@@ -629,8 +632,8 @@ class Arc(
     # Rotate object
     def _rotate_object(
             self,
-            center: Point2D,
-            angle: float
+            angle: float,
+            center: Optional[Point2D] = None
     ):
         """
         Rotate the object.
@@ -640,7 +643,9 @@ class Arc(
             angle (float): Angle to rotate the object by
         """
         # Rotate center
-        self._center.rotate_(center=center, angle=angle)
+        if center:
+            self._center.rotate_(center=center, angle=angle)
+        # end if
 
         # Change angles
         self._start_angle.value += angle

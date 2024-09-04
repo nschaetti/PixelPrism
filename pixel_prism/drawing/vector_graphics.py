@@ -21,7 +21,7 @@ from pixel_prism.animate.able import (
     BuildableMixin,
     DestroyableMixin
 )
-from pixel_prism.animate import FadeInableMixin, FadeOutableMixin, MovableMixin
+from pixel_prism.animate import FadeableMixin, MovableMixin
 from pixel_prism.data import Point2D, Color, EventMixin, ObjectChangedEvent
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path
@@ -515,8 +515,7 @@ class VectorGraphics(
     DrawableMixin,
     BoundingBoxMixin,
     MovableMixin,
-    FadeInableMixin,
-    FadeOutableMixin,
+    FadeableMixin,
     BuildableMixin,
     DestroyableMixin
 ):
@@ -542,8 +541,7 @@ class VectorGraphics(
         # Init of VectorGraphicsData
         DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
-        FadeInableMixin.__init__(self)
-        FadeOutableMixin.__init__(self)
+        FadeableMixin.__init__(self)
         BuildableMixin.__init__(self, True, 1.0)
 
         # Fadein, fadeout

@@ -40,10 +40,17 @@ from .animator import (
     Animator
 )
 
+# Build
+
+# Changes
+from .changes import (
+    CallableMixin,
+    Call
+)
+
 # Fade
 from .fade import (
-    FadeInableMixin,
-    FadeOutableMixin,
+    FadeableMixin,
     FadeIn,
     FadeOut
 )
@@ -60,10 +67,6 @@ from .range import (
     RangeableMixin
 )
 
-from .changes import (
-    Call
-)
-
 
 # ALL
 __all__ = [
@@ -72,10 +75,10 @@ __all__ = [
     "LinearInterpolator",
     "EaseInOutInterpolator",
     # Mixin
-    "FadeInableMixin",
-    "FadeOutableMixin",
+    "FadeableMixin",
     "RangeableMixin",
     "MovableMixin",
+    "CallableMixin",
     # Animate
     "Animate",
     "Animator",
@@ -85,9 +88,8 @@ __all__ = [
     "FadeIn",
     "FadeOut",
     "Range",
+    "Call",
     "Build",
-    "Destroy",
-    # Changes
-    "Call"
+    "Destroy"
 ]
 

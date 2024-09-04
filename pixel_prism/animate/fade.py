@@ -17,14 +17,14 @@
 
 
 # Imports
-from typing import Any
+from typing import Any, Optional
 from . import LinearInterpolator
 from .able import AnimableMixin
 from .animate import Animate
 
 
 # Interface class for fade-in support objects
-class FadeInableMixin(AnimableMixin):
+class FadeableMixin(AnimableMixin):
     """
     Interface class for fade-in animations
     """
@@ -35,14 +35,19 @@ class FadeInableMixin(AnimableMixin):
         Initialize the object.
         """
         super().__init__()
-        self.fadeinablemixin_state = AnimableMixin.AnimationRegister()
-        self.fadeinablemixin_state.opacity = None
+        self.fadablemixin_state = AnimableMixin.AnimationRegister()
+        self.fadablemixin_state.opacity = 0.0
     # end __init__
 
     # region PUBLIC
 
     # Create a fade-in effect
-    def fadein(self, start_time: float, duration: float, interpolator=LinearInterpolator()):
+    def fadein(
+            self,
+            duration: float,
+            start_time: Optional[float] = None,
+            interpolator=LinearInterpolator()
+    ):
         """
         Create a fade-in effect.
 
@@ -54,14 +59,50 @@ class FadeInableMixin(AnimableMixin):
         from .animator import Animator
 
         # Put into an animator
-        fadein_animator = Animator(self)
+        animator = Animator(self)
 
         # Create the fade-in animation
-        fadein_animator.fadein(start_time, duration, interpolator)
+        animator.fadein(
+            duration=duration,
+            start_time=start_time,
+            interpolator=interpolator
+        )
+
+        return animator
     # end fadein
 
+    # Create a fade-out effect
+    def fadeout(
+            self,
+            duration: float,
+            start_time: Optional[float] = None,
+            interpolator=LinearInterpolator()
+    ):
+        """
+        Create a fade-in effect.
+
+        Args:
+            start_time (float): Start time of the effect
+            duration (float): Duration of the effect
+            interpolator (Interpolator): Interpolator
+        """
+        from .animator import Animator
+
+        # Put into an animator
+        animator = Animator(self)
+
+        # Create the fade-in animation
+        animator.fadeout(
+            duration=duration,
+            start_time=start_time,
+            interpolator=interpolator
+        )
+
+        return animator
+    # end fadeout
+
     # Initialize fade-in animation
-    def init_fadein(self):
+    def init_fadein(self, *args, **kwargs):
         """
         Initialize the fade-in animation.
         """
@@ -69,14 +110,21 @@ class FadeInableMixin(AnimableMixin):
     # end init_fadein
 
     # Start fade-in animation
-    def start_fadein(self, start_value: Any):
+    def start_fadein(self, start_value: Any, *args, **kwargs):
         """
         Start the fade-in animation.
         """
         pass
     # end start_fadein
 
-    def animate_fadein(self, t, duration, interpolated_t, target_value):
+    def animate_fadein(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            *args,
+            **kwargs
+    ):
         """
         Animate the fade-in effect.
 
@@ -84,62 +132,18 @@ class FadeInableMixin(AnimableMixin):
             t (float): Relative time since the start of the animation
             duration (float): Duration of the animation
             interpolated_t (float): Time value adjusted by the interpolator
-            target_value (any): The target value of the animation
         """
-        self.fadeinablemixin_state.opacity = interpolated_t
+        self.fadablemixin_state.opacity = interpolated_t
     # end animate_fadein
 
-    def end_fadein(self, end_value: Any):
-        """
-        End the fade-in animation.
-        """
-        pass
-    # end end_fadein
-
-    # Finish fade-in animation
-    def finish_fadein(self):
-        """
-        Finish the fade-in animation.
-        """
-        pass
-    # end finish_fadein
-
-    # endregion PUBLIC
-
-# end FadeInableMixin
-
-
-class FadeOutableMixin(AnimableMixin):
-    """
-    Interface class for fade-out animations
-    """
-
-    # Constructor
-    def __init__(self):
-        """
-        Initialize the object.
-        """
-        super().__init__()
-        self.opacity = None
-    # end __init__
-
-    # Initialize fade-out animation
-    def init_fadeout(self):
-        """
-        Initialize the fade-out animation.
-        """
-        pass
-    # end init_fadeout
-
-    # Start fade-out animation
-    def start_fadeout(self, start_value: Any):
-        """
-        Start the fade-out animation.
-        """
-        pass
-    # end start_fadeout
-
-    def animate_fadeout(self, t, duration, interpolated_t, target_value):
+    def animate_fadeout(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            *args,
+            **kwargs
+    ):
         """
         Animate the fade-out effect.
 
@@ -147,28 +151,60 @@ class FadeOutableMixin(AnimableMixin):
             t (float): Relative time since the start of the animation
             duration (float): Duration of the animation
             interpolated_t (float): Time value adjusted by the interpolator
-            target_value (any): The target value of the animation
         """
-        self.opacity = 1.0 - interpolated_t
+        self.fadablemixin_state.opacity = 1.0 - interpolated_t
     # end animate_fadeout
 
-    def end_fadeout(self, end_value: Any):
+    def end_fadein(self, end_value: Any, *args, **kwargs):
+        """
+        End the fade-in animation.
+        """
+        pass
+    # end end_fadein
+
+    # Finish fade-in animation
+    def finish_fadein(self, *args, **kwargs):
+        """
+        Finish the fade-in animation.
+        """
+        pass
+    # end finish_fadein
+
+    # Initialize fade-out animation
+    def init_fadeout(self, *args, **kwargs):
+        """
+        Initialize the fade-out animation.
+        """
+        pass
+    # end init_fadeout
+
+    # Start fade-out animation
+    def start_fadeout(self, start_value: Any, *args, **kwargs):
+        """
+        Start the fade-out animation.
+        """
+        pass
+    # end start_fadeout
+
+    def end_fadeout(self, end_value: Any, *args, **kwargs):
         """
         End the fade-out animation.
         """
         pass
+
     # end end_fadeout
 
     # Finish fade-out animation
-    def finish_fadeout(self):
+    def finish_fadeout(self, *args, **kwargs):
         """
         Finish the fade-out animation.
         """
         pass
     # end finish_fadeout
 
-# end FadeOutAble
+    # endregion PUBLIC
 
+# end FadeableMixin
 
 
 # Fade in animation
@@ -194,12 +230,19 @@ class FadeIn(Animate):
             end_time (float): End time
             interpolator (Interpolator): Interpolator
         """
-        assert isinstance(obj, FadeInableMixin), "Object must be an instance of FadeInAble"
-        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
+        assert isinstance(obj, FadeableMixin), "Object must be an instance of FadeInAble"
+        super().__init__(
+            obj,
+            start_time,
+            end_time,
+            0,
+            1,
+            interpolator,
+            name=name
+        )
     # end __init__
 
 # end FadeIn
-
 
 
 # Fade out animation
@@ -225,8 +268,16 @@ class FadeOut(Animate):
             end_time (float): End time
             interpolator (Interpolator): Interpolator
         """
-        assert isinstance(obj, FadeOutableMixin), "Object must be an instance of FadeInAble"
-        super().__init__(obj, start_time, end_time, 0, 1, interpolator, name=name)
+        assert isinstance(obj, FadeableMixin), "Object must be an instance of FadeInAble"
+        super().__init__(
+            obj,
+            start_time,
+            end_time,
+            0,
+            1,
+            interpolator,
+            name=name
+        )
     # end __init__
 
 # end FadeOut

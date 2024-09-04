@@ -1,11 +1,27 @@
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
-# PixelPrism
+# Imports
+from pixel_prism import s, p2, c
 from pixel_prism.animation import Animation
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas
-from pixel_prism.drawing import Point, Line
-from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut
+from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
+from pixel_prism.drawing import Line, Circle
 
 
 # DrawableWidgetAnimation class
@@ -20,6 +36,13 @@ class DrawableWidgetAnimation(Animation):
         """
         Build the animation.
         """
+        # Coordinate system
+        coord_system = CoordSystem(
+            image_width=self.width,
+            image_height=self.height,
+            size=10
+        )
+
         # Create a Viewport
         viewport = Viewport()
 
@@ -27,101 +50,42 @@ class DrawableWidgetAnimation(Animation):
         drawable_widget = DrawableWidget()
         viewport.add_widget(drawable_widget)
 
+        # Position of the circle
+        circle_position = coord_system.upper_left_square.copy()
+
         # Add points and lines
-        point1 = Point(50, 50, radius=25)
-        line = Line((100, 540), (1820, 540))
+        circle1 = Circle(position=circle_position, radius=s(0.04), line_width=s(0.02), fill_color=c('RED').copy(), line_color=c('YELLOW').copy())
+        line = Line.from_objects(start=circle_position, end=coord_system.center, line_width=s(0.02))
 
-        drawable_widget.add(point1)
+        # Add the circle and line to the drawable widget
         drawable_widget.add(line)
+        drawable_widget.add(circle1)
 
-        # Keep the widget
-        self.add_object("viewport", viewport)
-        self.add_object("drawable_widget", drawable_widget)
-        self.add_object("point1", point1)
-        self.add_object("line", line)
-
-        # Fade in point 1
+        # Animate point 1
         self.animate(
-            FadeIn(
-                "FadeInPoint1",
-                point1,
-                start_time=0,
-                end_time=1,
-                interpolator=EaseInOutInterpolator()
-            )
+            circle1
+            .fadein(1)
+            .move(2, coord_system.upper_right_square)
+            .move(2, coord_system.lower_right_square)
+            .move(2, coord_system.lower_left_square)
+            .move(2, coord_system.upper_left_square)
+            .fadeout(1)
         )
 
-        # Add transitions for point1
+        # Animate line
         self.animate(
-            Move(
-                "Move1",
-                point1,
-                start_time=1,
-                end_time=3,
-                target_value=(1870, 50),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-        self.animate(
-            Move(
-                "Move2",
-                point1,
-                start_time=3,
-                end_time=5,
-                target_value=(1870, 1030),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-        self.animate(
-            Move(
-                "Move3",
-                point1,
-                start_time=5,
-                end_time=7,
-                target_value=(50, 1030),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-        self.animate(
-            Move(
-                "Move4",
-                point1,
-                start_time=7,
-                end_time=9,
-                target_value=(50, 50),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-        self.animate(
-            FadeOut(
-                "FadeOutPoint1",
-                point1,
-                start_time=9,
-                end_time=10,
-                interpolator=EaseInOutInterpolator()
-            )
+            line
+            .fadein(1)
+            .fadeout(1, 9)
         )
 
-        # Add fade-in transition for line
-        self.animate(
-            FadeIn(
-                "FadeIn1",
-                line,
-                start_time=0,
-                end_time=1,
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Add fade-out transition for line
-        self.animate(
-            FadeOut(
-                "FadeOut1",
-                line,
-                start_time=9,
-                end_time=10,
-                interpolator=EaseInOutInterpolator()
-            )
+        # Add objects
+        self.add(
+            coord_system=coord_system,
+            viewport=viewport,
+            drawable_widget=drawable_widget,
+            circle1=circle1,
+            line=line
         )
     # end build
 
@@ -141,7 +105,11 @@ class DrawableWidgetAnimation(Animation):
             frame_number (int): Frame number
         """
         # Create a DrawableImage
-        drawing_layer = DrawableImage.transparent(self.width, self.height)
+        drawing_layer = DrawableImage.transparent(
+            self.width,
+            self.height,
+            coord_system=self.obj("coord_system")
+        )
 
         # Get the viewport and drawable widget
         viewport = self.obj("viewport")
