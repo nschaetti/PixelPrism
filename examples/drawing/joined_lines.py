@@ -1,10 +1,11 @@
 
 # PixelPrism
 import numpy as np
+from pixel_prism import p2, s
 from pixel_prism.animation import Animation
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas
+from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixel_prism.drawing import Line
 from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut, Range
 from pixel_prism.data import Point2D, Scalar
@@ -22,6 +23,13 @@ class JoinedLinesAnimation(Animation):
         """
         Build the animation.
         """
+        # Coordinate system
+        coord_system = CoordSystem(
+            image_width=self.width,
+            image_height=self.height,
+            size=10
+        )
+
         # Create a Viewport
         viewport = Viewport()
 
@@ -30,32 +38,19 @@ class JoinedLinesAnimation(Animation):
         viewport.add_widget(drawable_widget)
 
         # Create a point and line
-        shared_point = Point2D(50, 50)
+        shared_point = coord_system.upper_left_square
 
-        # Shared scalar and thickness
-        opacity = Scalar(0.0)
-        thickness = Scalar(2)
-
-        # First line
-        line1 = Line(shared_point, Point2D(1820, 50), opacity=opacity, thickness=thickness)
-
-        # Second line
-        line2 = Line(shared_point, Point2D(1820, 1030), opacity=opacity, thickness=thickness)
+        # Two lines
+        line1 = Line.from_objects(shared_point, coord_system.upper_right_square)
+        line2 = Line.from_objects(shared_point, coord_system.lower_right_square)
 
         # Add the lines to the drawable widget
         drawable_widget.add(line1)
         drawable_widget.add(line2)
 
-        # Keep the widget
-        self.add_object("viewport", viewport)
-        self.add_object("drawable_widget", drawable_widget)
-        self.add_object("line1", line1)
-        self.add_object("line2", line2)
-
         # Animate shared point
-        self.animate(Move(shared_point, 1, 3, (1000, 540), EaseInOutInterpolator()))
-        self.animate(Move(shared_point,3, 5, (50, 1030), EaseInOutInterpolator()))
-        self.animate(Move(shared_point, 5, 7,(50, 50), EaseInOutInterpolator()))
+        anim = shared_point.move(2, coord_system.lower_left_square, 1).move(2, coord_system.center)
+        anim.move(2, coord_system.upper_left_square)
 
         # Animate opacity
         self.animate(Range(opacity, 0, 1, 1.0, EaseInOutInterpolator()))
@@ -64,6 +59,14 @@ class JoinedLinesAnimation(Animation):
         # Animate thickness
         self.animate(Range(thickness, 0, 4, 5, EaseInOutInterpolator()))
         self.animate(Range(thickness, 4, 8, 2, EaseInOutInterpolator()))
+
+        # Add
+        self.add(
+            viewport=viewport,
+            drawable_widget=drawable_widget,
+            line1=line1,
+            line2=line2
+        )
     # end build
 
     # Process frame

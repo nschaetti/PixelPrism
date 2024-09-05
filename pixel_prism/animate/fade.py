@@ -36,7 +36,7 @@ class FadeableMixin(AnimableMixin):
         """
         super().__init__()
         self.fadablemixin_state = AnimableMixin.AnimationRegister()
-        self.fadablemixin_state.opacity = 0.0
+        self.fadablemixin_state.opacity = None
     # end __init__
 
     # region PUBLIC
@@ -68,6 +68,9 @@ class FadeableMixin(AnimableMixin):
             interpolator=interpolator
         )
 
+        # Add to animation
+        self.animable_registry.add(animator)
+
         return animator
     # end fadein
 
@@ -97,6 +100,9 @@ class FadeableMixin(AnimableMixin):
             start_time=start_time,
             interpolator=interpolator
         )
+
+        # Add to animation
+        self.animable_registry.add(animator)
 
         return animator
     # end fadeout

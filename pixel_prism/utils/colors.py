@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+# Imports
 import random
 from pixel_prism.data import Color
 

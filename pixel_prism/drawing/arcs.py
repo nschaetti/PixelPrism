@@ -18,8 +18,7 @@
 # Imports
 import math
 from typing import Optional
-
-from pixel_prism.animate import MovableMixin, CallableMixin
+from pixel_prism.animate import MovableMixin, CallableMixin, FadeableMixin
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
@@ -34,7 +33,8 @@ class Arc(
     BoundingBoxMixin,
     EventMixin,
     MovableMixin,
-    CallableMixin
+    CallableMixin,
+    FadeableMixin
 ):
     """
     A class to represent a cubic Bezier curve in 2D space.
@@ -490,9 +490,16 @@ class Arc(
         # Fill color is set
         if self.fill_color is not None:
             # Set fill color
-            context.set_source_rgba(
-                self.fill_color
-            )
+            if self.fadablemixin_state.opacity:
+                context.set_source_rgb_alpha(
+                    self.fill_color,
+                    self.fadablemixin_state.opacity
+                )
+            else:
+                context.set_source_rgba(
+                    self.fill_color
+                )
+            # end if
 
             # Stroke or not
             if self.line_width.value == 0:
@@ -505,9 +512,13 @@ class Arc(
         # Stroke
         if self.line_width.value > 0:
             # Set line color
-            context.set_source_rgba(
-                self.line_color
-            )
+            if self.fadablemixin_state.opacity:
+                context.set_source_rgb_alpha(self.line_color, self.fadablemixin_state.opacity)
+            else:
+                context.set_source_rgba(
+                    self.line_color
+                )
+            # end if
 
             # Set line width
             context.set_line_width(self.line_width.value)

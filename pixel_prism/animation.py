@@ -17,6 +17,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 from pixel_prism.animate import Animate, Animator
+from pixel_prism.animate.able import AnimableMixin
 from pixel_prism.base.imagecanvas import ImageCanvas
 from pixel_prism.render_engine import RenderEngine
 from pixel_prism.utils import setup_logger
@@ -321,7 +322,15 @@ class Animation:
             **kwargs: Objects to add to the animation
         """
         for name, obj in kwargs.items():
+            # Add object
             self.add_object(name, obj)
+
+            # If AnimableMixin, add animations
+            if isinstance(obj, AnimableMixin):
+                for animator in obj.animable_registry:
+                    self.animate(animator)
+                # end for
+            # end if
         # end for
     # end add
 

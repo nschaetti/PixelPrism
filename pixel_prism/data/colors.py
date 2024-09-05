@@ -15,10 +15,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-#
-#
-#
-
 # Imports
 import numpy as np
 from pixel_prism.animate import RangeableMixin
@@ -127,6 +123,20 @@ class Color(Data, EventMixin, RangeableMixin):
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    def transparent(self):
+        """
+        Make the color transparent.
+        """
+        self.alpha = 0.0
+    # end transparent
+
+    def opaque(self):
+        """
+        Make the color opaque.
+        """
+        self.alpha = 1.0
+    # end opaque
 
     def set(self, value):
         """
