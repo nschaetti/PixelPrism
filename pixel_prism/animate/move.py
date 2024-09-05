@@ -37,7 +37,7 @@ class MovableMixin(AnimableMixin):
         """
         Initialize the movable object.
         """
-        super().__init__()
+        AnimableMixin.__init__(self)
         self.movablemixin_state = AnimableMixin.AnimationRegister()
         self.movablemixin_state.start_position = None
         self.movablemixin_state.last_position = None
@@ -91,7 +91,11 @@ class MovableMixin(AnimableMixin):
             relative (bool): Relative movement
         """
         from .animator import Animator
+
+        # Put into an animator
         animator = Animator(self)
+
+        # Create the move animation
         animator.move(
             duration=duration,
             target_value=target_value,
@@ -99,6 +103,11 @@ class MovableMixin(AnimableMixin):
             interpolator=interpolator,
             relative=relative
         )
+
+        # Add to animation
+        self.animable_registry.add(animator)
+
+        # Return animator
         return animator
     # end move
 

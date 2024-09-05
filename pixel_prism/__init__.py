@@ -16,7 +16,7 @@
 #
 
 # Imports
-from .animation import Animation, AnimationViewer
+from .animation import Animation, AnimationViewer, find_animable_mixins
 from .basic import (
     p2,
     t_p2,
@@ -37,6 +37,7 @@ __all__ = [
     'c',
     'Animation',
     'AnimationViewer',
+    'find_animable_mixins',
     'EffectPipeline',
     'RenderEngine',
     'LayerManager',

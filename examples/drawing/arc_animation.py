@@ -20,7 +20,7 @@
 # Build and highlight
 #
 import math
-from pixel_prism import utils
+from pixel_prism import utils, p2, s
 from pixel_prism.animation import Animation
 from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
 from pixel_prism.widgets.containers import Viewport
@@ -60,27 +60,9 @@ class ArcAnimation(Animation):
             fill_color=utils.GREEN.copy()
         )
 
-        # Animate end angle
-        self.animate(
-            Range(
-                arc1.start_angle,
-                start_time=0,
-                end_time=8,
-                target_value=math.pi * 2,
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animate end angle
-        self.animate(
-            Range(
-                arc1.end_angle,
-                start_time=0,
-                end_time=4,
-                target_value=math.pi * 2,
-                interpolator=EaseInOutInterpolator()
-            )
-        )
+        # Animate start and end angles
+        arc1.start_angle.range(8, math.pi * 2)
+        arc1.end_angle.range(4, math.pi * 2)
 
         return arc1
     # end build_first_arc
@@ -95,36 +77,18 @@ class ArcAnimation(Animation):
         """
         # Create an ARC on upper left
         arc2 = Arc.from_objects(
-            center=coord_system.upper_right_square - Point2D(1.0, 0.0),
-            radius=Scalar(self.ARC_RADIUS),
-            start_angle=Scalar(0.0),
-            end_angle=Scalar(math.pi),
+            center=coord_system.upper_right_square - p2(1.0, 0.0),
+            radius=s(self.ARC_RADIUS),
+            start_angle=s(0.0),
+            end_angle=s(math.pi),
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.ARC_LINE_WIDTH),
+            line_width=s(self.ARC_LINE_WIDTH),
             fill_color=utils.GREEN.copy()
         )
 
-        # Move the Arc
-        self.animate(
-            Move(
-                arc2.center,
-                start_time=0,
-                end_time=4,
-                target_value=coord_system.upper_right_square + Point2D(1.0, 0.0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Move the Arc
-        self.animate(
-            Move(
-                arc2.center,
-                start_time=4,
-                end_time=8,
-                target_value=coord_system.upper_right_square - Point2D(1.0, 0.0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
+        # Move the arc (by the center)
+        anim = arc2.center.move(4, coord_system.upper_right_square + p2(1.0, 0.0))
+        anim.move(4, coord_system.upper_right_square - p2(1.0, 0.0))
 
         return arc2
     # end build_second_arc
@@ -149,13 +113,7 @@ class ArcAnimation(Animation):
         )
 
         # Change value of scale
-        self.animate(
-            Call(
-                arc3.scale,
-                times=[2, 4, 6],
-                values=[[Scalar(2.0)], [Scalar(0.5)], [Scalar(2.0)]],
-            )
-        )
+        arc3.scale.call([2, 4, 6], [[Scalar(2.0)], [Scalar(0.5)], [Scalar(2.0)]])
 
         return arc3
     # end build_third_arc

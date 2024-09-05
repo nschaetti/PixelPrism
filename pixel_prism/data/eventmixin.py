@@ -24,8 +24,6 @@ class EventMixin:
         """
         Initialize the scalar value.
         """
-        super(object).__init__()
-
         # List of event listeners (per events)
         self.event_listeners = {}
     # end __init__

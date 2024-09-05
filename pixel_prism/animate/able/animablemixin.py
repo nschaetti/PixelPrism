@@ -67,6 +67,11 @@ class AnimableMixin:
             self._index = 0
         # end if
 
+        @property
+        def animators(self):
+            return self._animators
+        # end animators
+
         # Add
         def add(self, animator):
             self._animators.append(animator)

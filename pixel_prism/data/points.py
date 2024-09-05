@@ -35,7 +35,17 @@ class Point(Data, EventMixin, MovableMixin):
     """
     A generic point class.
     """
-    pass
+
+    # Constructor
+    def __init__(self):
+        """
+        Constructor
+        """
+        Data.__init__(self)
+        EventMixin.__init__(self)
+        MovableMixin.__init__(self)
+    # end __init__
+
 # end Point
 
 

@@ -34,6 +34,7 @@ class MovableMixin(AnimableMixin):
         """
         Initialize the movable object.
         """
+        print(f"MovableMixin {self.__class__.__name__}")
         super().__init__()
         self.movablemixin_state = AnimableMixin.AnimationRegister()
         self.movablemixin_state.start_position = None

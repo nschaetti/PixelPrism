@@ -16,7 +16,7 @@
 #
 
 
-class Data(object):
+class Data:
     """
     A data class that holds data.
     """

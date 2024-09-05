@@ -63,6 +63,7 @@ class Scalar(Data, EventMixin, RangeableMixin):
             on_change (function): Function to call when the value changes.
         """
         Data.__init__(self)
+        EventMixin.__init__(self)
         RangeableMixin.__init__(self, "value")
 
         # Value

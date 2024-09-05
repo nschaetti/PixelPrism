@@ -40,7 +40,8 @@ class Matrix2D(Data, EventMixin):
             matrix (list or np.array): Initial matrix values, defaults to identity matrix if None
             on_change (callable): Function to call when the matrix changes
         """
-        super().__init__()
+        Data.__init__(self)
+        EventMixin.__init__(self)
         if matrix is None:
             matrix = np.identity(3)
         # end if

@@ -22,7 +22,7 @@ from .data import Data
 from .eventmixin import EventMixin
 
 
-class Color(Data, EventMixin, RangeableMixin):
+class Color(Data, EventMixin):
     """
     A class to represent a scalar value
     """
@@ -44,7 +44,8 @@ class Color(Data, EventMixin, RangeableMixin):
             blue (float): Blue value
             alpha (float): Alpha value
         """
-        super().__init__()
+        Data.__init__(self)
+        EventMixin.__init__(self)
         self._value = np.array([red, green, blue, alpha])
 
         # List of event listeners (per events)

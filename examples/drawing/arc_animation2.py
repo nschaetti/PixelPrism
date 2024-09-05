@@ -61,8 +61,12 @@ class ArcAnimation(Animation):
         )
 
         # Animate angles
-        self.animate(arc1.start_angle.range(8, math.pi * 2))
-        self.animate(arc1.end_angle.range(4, math.pi * 2))
+        arc1.start_angle.range(8, math.pi * 2)
+        arc1.end_angle.range(4, math.pi * 2)
+
+        print("Arc1")
+        print(arc1.animable_registry.animators)
+        print(arc1.start_angle.animable_registry.animators)
 
         return arc1
     # end build_first_arc
@@ -87,11 +91,8 @@ class ArcAnimation(Animation):
         )
 
         # Move the arc
-        self.animate(
-            arc2.center
-            .move(4, coord_system.upper_right_square + p2(1.0, 0.0))
-            .move(4, coord_system.upper_right_square - p2(1.0, 0.0))
-        )
+        anim = arc2.center.move(4, coord_system.upper_right_square + p2(1.0, 0.0))
+        anim.move(4, coord_system.upper_right_square - p2(1.0, 0.0))
 
         return arc2
     # end build_second_arc
@@ -107,18 +108,16 @@ class ArcAnimation(Animation):
         # Create an ARC on upper left
         arc3 = Arc.from_objects(
             center=coord_system.lower_left_square,
-            radius=Scalar(self.ARC_RADIUS / 2.0),
-            start_angle=Scalar(0.0),
-            end_angle=Scalar(math.pi * 1.5),
+            radius=s(self.ARC_RADIUS / 2.0),
+            start_angle=s(0.0),
+            end_angle=s(math.pi * 1.5),
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.ARC_LINE_WIDTH),
+            line_width=s(self.ARC_LINE_WIDTH),
             fill_color=utils.GREEN.copy()
         )
 
         # Add animation
-        anim = arc3.call([2, 4], 'scale', [s(0.5), s(2.0)])
-        print(anim.animations)
-        self.animate(anim)
+        arc3.call([2, 4], 'scale', [s(0.5), s(2.0)])
 
         return arc3
     # end build_third_arc
@@ -134,18 +133,16 @@ class ArcAnimation(Animation):
         # Create an ARC on upper left
         arc4 = Arc.from_objects(
             center=coord_system.lower_right_square,
-            radius=Scalar(self.ARC_RADIUS),
-            start_angle=Scalar(0.0),
-            end_angle=Scalar(math.pi),
+            radius=s(self.ARC_RADIUS),
+            start_angle=s(0.0),
+            end_angle=s(math.pi),
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.ARC_LINE_WIDTH),
+            line_width=s(self.ARC_LINE_WIDTH),
             fill_color=utils.GREEN.copy()
         )
 
         # Add animation
-        anim = arc4.call([2, 4, 6], 'rotate', [s(math.pi / 2.0), s(math.pi / 2.0), s(math.pi / 2.0)])
-        print(anim.animations)
-        self.animate(anim)
+        arc4.call([2, 4, 6], 'rotate', [s(math.pi / 2.0), s(math.pi / 2.0), s(math.pi / 2.0)])
 
         return arc4
     # end build_fourth_arc

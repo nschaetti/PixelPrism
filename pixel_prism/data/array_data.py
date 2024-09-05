@@ -15,7 +15,7 @@ class ArrayData(Data):
             on_change (callable, optional): Function to call on change
             dtype (data-type, optional): Desired data type for the array
         """
-        super().__init__()
+        Data.__init__(self)
         self._data = np.array(data, dtype=dtype)
         self.event_listeners = {
             "on_change": [] if on_change is None else [on_change]

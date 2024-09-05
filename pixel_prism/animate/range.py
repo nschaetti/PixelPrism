@@ -36,7 +36,7 @@ class RangeableMixin(AnimableMixin):
         """
         Initialize the movable object.
         """
-        super().__init__()
+        AnimableMixin.__init__(self)
         self.rangeable_animated_attribute = rangeable_animated_attribute
         self.start_position = None
     # end __init__
@@ -59,13 +59,22 @@ class RangeableMixin(AnimableMixin):
             interpolator (Interpolator): Interpolator
         """
         from .animator import Animator
+
+        # Create the animator
         animator = Animator(self)
+
+        # Create the range animation
         animator.range(
             duration=duration,
             target_value=target_value,
             start_time=start_time,
             interpolator=interpolator
         )
+
+        # Add to animation
+        self.animable_registry.add(animator)
+
+        # Add to animation
         return animator
     # end create_range
 

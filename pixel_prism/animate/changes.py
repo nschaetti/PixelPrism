@@ -54,12 +54,21 @@ class CallableMixin(AnimableMixin):
             values (list): List of values to pass to the function
         """
         from .animator import Animator
+
+        # Create the animator
         animator = Animator(self)
+
+        # Call the function
         animator.call(
             func=func,
             times=times,
             values=values
         )
+
+        # Add to animation
+        self.animable_registry.add(animator)
+
+        # Return the animator
         return animator
     # end call
 

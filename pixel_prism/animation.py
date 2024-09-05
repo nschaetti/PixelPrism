@@ -1,4 +1,21 @@
 #
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+#
 # Description: Base class for creating animations.
 # Subclasses should implement the `process_frame` method.
 #
@@ -25,6 +42,59 @@ from pixel_prism.utils import setup_logger
 
 # Setup logger
 logger = setup_logger(__name__)
+
+
+def find_animable_mixins(obj, visited=None):
+    """
+    Find recursively all objects that are instances of AnimableMixin in the given object and its sub-attributes.
+
+    Args:
+        obj (object): Object to inspect.
+        visited (set): Set of visited objects to avoid infinite recursion.
+
+    Returns:
+        list: List of AnimableMixin objects found.
+    """
+    if visited is None:
+        visited = set()
+    # end if
+
+    # Avoid revisiting objects that have already been inspected (to prevent infinite recursion)
+    if id(obj) in visited:
+        return []
+    # end if
+
+    # Mark the object as visited
+    visited.add(id(obj))
+
+    # List of found objects
+    animable_objects = []
+
+    # Check if the current object is an instance of AnimableMixin
+    if isinstance(obj, AnimableMixin):
+        animable_objects.append(obj)
+    # end if
+
+    # Iterate over all attributes of the object
+    for attr_name in dir(obj):
+        try:
+            attr_value = getattr(obj, attr_name)
+
+            # If the attribute is an object and an instance of AnimableMixin, process it recursively
+            if isinstance(attr_value, AnimableMixin):
+                animable_objects.extend(find_animable_mixins(attr_value, visited))
+            # end if
+        except AttributeError:
+            # Ignore attributes that cannot be accessed
+            continue
+        except NotImplementedError:
+            # Ignore attributes that raise NotImplementedError
+            continue
+        # end try
+    # end for
+
+    return animable_objects
+# end find_animable_mixins
 
 
 class AnimationViewer(tk.Tk):
@@ -325,9 +395,12 @@ class Animation:
             # Add object
             self.add_object(name, obj)
 
-            # If AnimableMixin, add animations
-            if isinstance(obj, AnimableMixin):
-                for animator in obj.animable_registry:
+            # Find all animable objects
+            animable_objects = find_animable_mixins(obj)
+
+            # Add animations
+            for animable in animable_objects:
+                for animator in animable.animable_registry:
                     self.animate(animator)
                 # end for
             # end if
@@ -379,6 +452,19 @@ class Animation:
         self.effects.pop(name)
     # end remove_effect
 
+    # Append animation
+    def append_transition(self, transition):
+        """
+        Append a transition to the animation.
+
+        Args:
+            transition (Transition): Transition object
+        """
+        if transition not in self.transitions:
+            self.transitions.append(transition)
+        # end if
+    # end append_transition
+
     def animate(
             self,
             transition
@@ -390,16 +476,16 @@ class Animation:
             transition (Transition): Transition object
         """
         if isinstance(transition, Animate):
-            self.transitions.append(transition)
+            self.append_transition(transition)
         elif isinstance(transition, list):
             for trans in transition:
                 if isinstance(trans, Animate):
-                    self.transitions.append(trans)
+                    self.append_transition(transition)
                 # end if
             # end for
         elif isinstance(transition, Animator):
             for anim in transition.animations:
-                self.transitions.append(anim)
+                self.append_transition(anim)
             # end for
         # end if
     # end animate
