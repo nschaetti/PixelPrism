@@ -50,7 +50,6 @@ from .changes import (
 
 # Decorators
 from .decorators import (
-    animeclass,
     animeattr
 )
 
@@ -86,7 +85,6 @@ __all__ = [
     "MovableMixin",
     "CallableMixin",
     # Decorators
-    "animeclass",
     "animeattr",
     # Animate
     "Animate",

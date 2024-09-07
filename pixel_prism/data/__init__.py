@@ -21,11 +21,16 @@ from .array_data import ArrayData
 # Data
 from .data import Data
 
+# Decorators
+from .decorators import (
+    call_before,
+    call_after
+)
+
 # Events
-from .eventmixin import EventMixin
 from .events import (
     Event,
-    ObjectChangedEvent
+    EventType
 )
 
 # Colors
@@ -124,16 +129,22 @@ from .scalar import (
     degrees_t
 )
 
+from .transform import (
+    Transform
+)
+
 # ALL
 __all__ = [
     # Array data
     "ArrayData",
     # Data
     "Data",
+    # Decorators
+    "call_after",
+    "call_before",
     # Events
-    "EventMixin",
     "Event",
-    "ObjectChangedEvent",
+    "EventType",
     # Colors
     "Color",
     # Matrices
@@ -212,5 +223,7 @@ __all__ = [
     "asinh_t",
     "acosh_t",
     "atanh_t",
-    "degrees_t"
+    "degrees_t",
+    # Transform
+    "Transform"
 ]

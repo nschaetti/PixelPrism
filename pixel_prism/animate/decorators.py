@@ -16,32 +16,6 @@
 #
 
 
-# Class decorator
-def animeclass(cls):
-    """
-    Decorator to mark a class for inspection.
-    """
-    cls._inspect_for_propagation = True  # Mark the class for inspection
-    cls._attrs_to_inspect = []  # Initialize an empty list for attributes to inspect
-
-    # Add a public method to check if the class is inspectable
-    def is_animeclass(cls):
-        return getattr(cls, '_inspect_for_propagation', False)
-    # end is_animeclass
-
-    # Add a public method to get the list of inspectable attributes
-    def animeclass_attributes(cls):
-        return getattr(cls, '_attrs_to_inspect', [])
-    # end animeclass_attributes
-
-    # Attach the methods to the class
-    cls.is_animeclass = classmethod(is_animeclass)
-    cls.animeclass_attributes = classmethod(animeclass_attributes)
-
-    return cls
-# end animeclass
-
-
 # Attribute decorator
 def animeattr(attr_name):
     """
@@ -50,12 +24,32 @@ def animeattr(attr_name):
     Args:
         attr_name (str): The name of the attribute to inspect.
     """
-
     def decorator(cls):
         if hasattr(cls, '_attrs_to_inspect'):
-            cls._attrs_to_inspect.append(attr_name)  # Add the attribute to the list of attributes to inspect
-        else:
-            raise AttributeError("Class must be decorated with @animeclass before using @animeattribut.")
+            cls._attrs_to_inspect = []
+        # end if
+
+        # Add attributes
+        cls._attrs_to_inspect.append(attr_name)
+
+        # Add methods if not already present
+        if not hasattr(cls, 'animeclass_attributes'):
+            # Public method to get the list of inspectable attributes
+            def animeclass_attributes(cls):
+                return cls._attrs_to_inspect
+            # end animeclass_attributes
+            cls.animeclass_attributes = classmethod(animeclass_attributes)
+        # end if
+
+        # Add animation method
+        if not hasattr(cls, 'is_animeclass'):
+            # Add a public method to check if the class is inspectable
+            def is_animeclass(cls):
+                return getattr(cls, '_inspect_for_propagation', False)
+            # end is_animeclass
+            cls.is_animeclass = classmethod(is_animeclass)
+        # end if
+
         return cls
     # end decorator
 

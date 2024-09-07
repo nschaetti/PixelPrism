@@ -18,11 +18,9 @@
 # Imports
 import numpy as np
 from typing import Union, List
-from pixel_prism.animate import MovableMixin, FadeableMixin, animeattr, animeclass, CallableMixin
-from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent
-from pixel_prism.utils import random_color
+from pixel_prism.animate import MovableMixin, FadeableMixin, animeattr, CallableMixin
+from pixel_prism.data import Point2D, Color, Scalar, Event, call_after, EventType, tpoint2d
 from . import BoundingBoxMixin, BoundingBox
-
 from .drawablemixin import DrawableMixin
 from .. import utils
 from ..base import Context
@@ -34,11 +32,9 @@ from ..base import Context
 @animeattr("line_width")
 @animeattr("line_color")
 @animeattr("line_dash")
-@animeclass
 class Line(
     DrawableMixin,
     BoundingBoxMixin,
-    EventMixin,
     MovableMixin,
     FadeableMixin,
     CallableMixin
@@ -49,11 +45,17 @@ class Line(
 
     def __init__(
             self,
-            start: Point2D,
             end: Point2D,
+            start: Point2D = Point2D(0, 0),
             line_width: Scalar = Scalar(1.0),
             line_color: Color = utils.WHITE,
+            line_cap: str = None,
+            line_join: str = None,
             line_dash: List[float] = None,
+            position: Point2D = None,
+            scale: Point2D = None,
+            rotation: Scalar = None,
+            relative: bool = False,
             on_change=None
     ):
         """
@@ -64,24 +66,40 @@ class Line(
             end (Point2D): End point of the line
             line_width (float): Width of the line
             line_color (Color): Color of the line
+            line_cap (str): Line cap
+            line_join (str): Line join
             line_dash (List[float]): Line dash
+            position (Point2D): Position of the line (context)
+            scale (Scalar): Scale of the line (context)
+            rotation (Scalar): Rotation of the line (context)
+            relative (bool): Is the end position relative or absolute?
             on_change (callable): On change event
         """
-        # Init
-        DrawableMixin.__init__(self)
-        EventMixin.__init__(self)
+        # Init drawable
+        DrawableMixin.__init__(
+            self,
+            position=position,
+            scale=scale,
+            rotation=rotation,
+            fill_color=None,
+            line_color=line_color,
+            line_width=line_width,
+            line_cap=line_cap,
+            line_join=line_join,
+            line_dash=line_dash
+        )
+
+        # Init other
         MovableMixin.__init__(self)
         FadeableMixin.__init__(self)
 
         # Start and end points
         self._start = start
         self._end = end
-        self._line_width = line_width
-        self._line_color = line_color
-        self._line_dash = line_dash
+        self._relative = relative
 
         # Middle point
-        self._middle_point = Point2D(0, 0)
+        self._middle_point = (tpoint2d(self._start) + tpoint2d(self._end)) / 2.0
 
         # Bounding box
         BoundingBoxMixin.__init__(self)
@@ -89,13 +107,16 @@ class Line(
         # Update points
         self.update_points()
 
+        # Events
+        self._on_start_change = Event()
+        self._on_end_change = Event()
+
         # Set events
-        self._start.add_event_listener("on_change", self._start_changed)
-        self._end.add_event_listener("on_change", self._end_changed)
+        self._start.on_change.subscribe(self._on_start_changed)
+        self._end.on_change.subscribe(self._on_end_changed)
 
         # List of event listeners (per events)
-        self.add_event("on_change")
-        if on_change: self.add_event_listener("on_change", on_change)
+        if on_change: self._on_change += on_change
     # end __init__
 
     # region PROPERTIES
@@ -198,8 +219,7 @@ class Line(
         """
         Get the line width of the arc.
         """
-        return self._line_width
-
+        return self.style.line_width
     # end line_width
 
     # Line color
@@ -208,7 +228,7 @@ class Line(
         """
         Get the line color of the arc.
         """
-        return self._line_color
+        return self.style.line_color
     # end line_color
 
     # Line dash
@@ -217,8 +237,24 @@ class Line(
         """
         Get the line dash of the arc.
         """
-        return self._line_dash
+        return self.style.line_dash
     # end line_dash
+
+    @property
+    def line_cap(self):
+        """
+        Get the line cap of the arc.
+        """
+        return self.style.line_cap
+    # end line_cap
+
+    @property
+    def line_join(self):
+        """
+        Get the line join of the arc.
+        """
+        return self.style.line_join
+    # end line_join
 
     # endregion PROPERTIES
 
@@ -242,11 +278,7 @@ class Line(
         """
         Update the points of the line.
         """
-        # Update the middle point
-        self._middle_point.set(
-            (self._start.x + self._end.x) / 2,
-            (self._start.y + self._end.y) / 2
-        )
+        pass
     # end update_points
 
     # Update bounding box
@@ -270,70 +302,6 @@ class Line(
 
     # region DRAW
 
-    # Realize
-    def realize(
-            self,
-            context,
-            move_to: bool = False,
-            build_ratio: float = 1.0
-    ):
-        """
-        Realize the line to the context.
-
-        Args:
-            context (cairo.Context): Context to realize the line to
-            move_to (bool): Move to the start point
-            build_ratio (float): Build ratio
-        """
-        if move_to:
-            context.move_to(self.start.x, self.start.y)
-        # end if
-
-        # Realize the line
-        if build_ratio == 1.0:
-            context.line_to(self.end.x, self.end.y)
-        else:
-            context.line_to(
-                self.start.x + (self.end.x - self.start.x) * build_ratio,
-                self.start.y + (self.end.y - self.start.y) * build_ratio
-            )
-        # end if
-    # end realize
-
-    # Draw path (for debugging)
-    def draw_path(
-            self,
-            context: Context
-    ):
-        """
-        Draw the path to the context.
-
-        Args:
-            context (cairo.Context): Context to draw the path to
-        """
-        # Select a random int
-        color = random_color()
-
-        # Save the context
-        context.save()
-
-        # Set the color
-        context.set_source_rgb(color)
-
-        # Draw the path
-        context.move_to(self.start.x, self.start.y)
-        context.line_to(self.end.x, self.end.y)
-
-        # Set the line width
-        context.set_line_width(0.1)
-
-        # Stroke the path
-        context.stroke()
-
-        # Restore the context
-        context.restore()
-    # end draw_path
-
     # Draw points
     def draw_points(
             self,
@@ -353,8 +321,7 @@ class Line(
         # Draw the start point
         context.set_source_rgba(utils.GREEN)
         context.arc(
-            self.start.x,
-            self.start.y,
+            self.start,
             point_radius,
             0.0,
             2 * np.pi
@@ -364,8 +331,7 @@ class Line(
         # Draw the start point
         context.set_source_rgba(utils.YELLOW)
         context.arc(
-            self.end.x,
-            self.end.y,
+            self.end,
             point_radius,
             0.0,
             2 * np.pi
@@ -375,8 +341,7 @@ class Line(
         # Draw the middle point
         context.set_source_rgba(utils.RED)
         context.arc(
-            self.middle_point.x,
-            self.middle_point.y,
+            self.middle_point,
             point_radius,
             0.0,
             2 * np.pi
@@ -413,8 +378,12 @@ class Line(
         # Save context
         context.save()
 
+        # Apply context transformation
+        self.apply_context(context)
+
         # Realize the line
-        self.realize(context, move_to=True, build_ratio=1.0)
+        context.move_to(self.start)
+        context.line_to(self.end)
 
         # Set line color
         if self.fadablemixin_state.opacity:
@@ -435,6 +404,14 @@ class Line(
         context.set_line_width(self.line_width.value)
         context.stroke()
 
+        # Draw points
+        if draw_points:
+            self.draw_points(context)
+        # end if
+
+        # Restore
+        context.restore()
+
         # Draw bounding box
         if draw_bboxes:
             self.bounding_box.draw(context)
@@ -444,14 +421,6 @@ class Line(
         if draw_reference_point:
             self.draw_bbox_anchors(context)
         # end if
-
-        # Draw points
-        if draw_points:
-            self.draw_points(context)
-        # end if
-
-        # Restore
-        context.restore()
     # end draw
 
     # endregion DRAW
@@ -459,27 +428,45 @@ class Line(
     # region EVENTS
 
     # Start changed
-    def _start_changed(
+    @call_after('update_data')
+    def _on_start_changed(
             self,
-            event
+            sender,
+            event_type,
+            x,
+            y
     ):
         """
         Start point changed event.
+
+        Args:
+            sender (object): Sender of the event
+            event_type (EventType): Type of the event
+            x (float): X-coordinate of the point
+            y (float): Y-coordinate of the point
         """
-        self.update_data()
-        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="start", value=self.start))
+        self._on_start_change.trigger(self, event_type=event_type, x=x, y=y)
     # end _start_changed
 
     # End changed
-    def _end_changed(
+    @call_after('update_data')
+    def _on_end_changed(
             self,
-            event
+            sender,
+            event_type,
+            x,
+            y
     ):
         """
         End point changed event.
+
+        Args:
+            sender (object): Sender of the event
+            event_type (EventType): Type of the event
+            x (float): X-coordinate of the point
+            y (float): Y-coordinate of the point
         """
-        self.update_data()
-        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="end", value=self.end))
+        self._on_end_change.trigger(self, event_type=event_type, x=x, y=y)
     # end _end_changed
 
     # endregion EVENTS
@@ -493,8 +480,8 @@ class Line(
         """
         return BoundingBox.from_objects(
             upper_left=Point2D(
-                min(self.start.x, self.end.x),
-                min(self.start.y, self.end.y)
+                self.transform.position.x + min(self.start.x, self.end.x),
+                self.transform.position.y + min(self.start.y, self.end.y)
             ),
             width=Scalar(abs(self.end.x - self.start.x)),
             height=Scalar(abs(self.end.y - self.start.y))

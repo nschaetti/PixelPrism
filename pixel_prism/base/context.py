@@ -144,49 +144,51 @@ class Context:
     # region PUBLIC
 
     # Arc
-    def arc(self, xc: float, yc: float, radius: float, angle1: float, angle2: float) -> None:
+    def arc(self, pc: Point2D, radius: float, angle1: float, angle2: float) -> None:
         """
         Add an arc to the context.
 
         Args:
-            xc (float): X center
-            yc (float): Y center
+            pc (Point2D): Center point
             radius (float): Radius
             angle1 (float): Start angle
             angle2 (float): End angle
         """
-        self.context.arc(xc, yc, radius, angle1, angle2)
+        self.context.arc(pc.x, pc.y, radius, angle1, angle2)
     # end arc
 
     # Arc negative
-    def arc_negative(self, xc: float, yc: float, radius: float, angle1: float, angle2: float) -> None:
+    def arc_negative(self, pc: Point2D, radius: float, angle1: float, angle2: float) -> None:
         """
         Add a negative arc to the context.
 
         Args:
-            xc (float): X center
-            yc (float): Y center
+            pc (Point2D): Center point
             radius (float): Radius
             angle1 (float): Start angle
             angle2 (float): End angle
         """
-        self.context.arc_negative(xc, yc, radius, angle1, angle2)
+        self.context.arc_negative(pc.x, pc.y, radius, angle1, angle2)
     # end arc_negative
 
     # Curve to
-    def curve_to(self, x1: float, y1: float, x2: float, y2: float, x3: float, y3: float) -> None:
+    def curve_to(self, p1: Point2D, p2: Point2D, p3: Point2D) -> None:
         """
         Add a curve to the context.
 
         Args:
-            x1 (float): X1 coordinate
-            y1 (float): Y1 coordinate
-            x2 (float): X2 coordinate
-            y2 (float): Y2 coordinate
-            x3 (float): X3 coordinate
-            y3 (float): Y3 coordinate
+            p1 (Point2D): First control point
+            p2 (Point2D): Second control point
+            p3 (Point2D): End point
         """
-        self.context.curve_to(x1, y1, x2, y2, x3, y3)
+        self.context.curve_to(
+            p1.x,
+            p1.y,
+            p2.x,
+            p2.y,
+            p3.x,
+            p3.y
+        )
     # end curve_to
 
     def fill(self) -> None:
@@ -223,76 +225,68 @@ class Context:
         return self.context.get_line_width()
     # end get_line_width
 
-    def line_to(self, x: float, y: float) -> None:
+    def line_to(self, position: Point2D) -> None:
         """
         Add a line to the context.
 
         Args:
-            x (float): X coordinate
-            y (float): Y coordinate
+            position (Point2D): Position to line to.
         """
-        self.context.line_to(x, y)
+        self.context.line_to(position.x, position.y)
     # end line_to
 
-    def move_to(self, x: float, y: float) -> None:
+    def move_to(self, position: Point2D) -> None:
         """
         Move to a point in the context.
 
         Args:
-            x (float): X coordinate
-            y (float): Y coordinate
+            position (Point2D): Position to move to.
         """
-        self.context.move_to(x, y)
+        self.context.move_to(position.x, position.y)
     # end move_to
 
-    def rectangle(self, x: float, y: float, width: float, height: float) -> None:
+    def rectangle(self, position: Point2D, width: float, height: float) -> None:
         """
         Add a rectangle to the context.
 
         Args:
-            x (float): X coordinate
-            y (float): Y coordinate
+            position (Point2D): Position
             width (float): Width
             height (float): Height
         """
-        self.context.rectangle(x, y, width, height)
+        self.context.rectangle(position.x, position.y, width, height)
     # end rectangle
 
-    def rel_curve_to(self, dx1: float, dy1: float, dx2: float, dy2: float, dx3: float, dy3: float) -> None:
+    def rel_curve_to(self, dp1: Point2D, dp2: Point2D, dp3: Point2D) -> None:
         """
         Add a relative curve to the context.
 
         Args:
-            dx1 (float): X1 distance
-            dy1 (float): Y1 distance
-            dx2 (float): X2 distance
-            dy2 (float): Y2 distance
-            dx3 (float): X3 distance
-            dy3 (float): Y3 distance
+            dp1 (Point2D): First control point
+            dp2 (Point2D): Second control point
+            dp3 (Point2D): End point
         """
-        self.context.rel_curve_to(dx1, dy1, dx2, dy2, dx3, dy3)
+        self.context.rel_curve_to(dp1.x, dp1.y, dp2.x, dp2.y, dp3.x, dp3.y)
     # end rel_curve_to
 
-    def rel_line_to(self, dx: float, dy: float) -> None:
+    def rel_line_to(self, dp: Point2D) -> None:
         """
         Add a relative line to the context.
 
         Args:
-            dx (float): X distance
-            dy (float): Y distance
+            dp (Point2D): Relative point
         """
-        self.context.rel_line_to(dx, dy)
+        self.context.rel_line_to(dp.x, dp.y)
     # end rel_line_to
 
-    def rel_move_to(self, dx: float, dy: float) -> None:
+    def rel_move_to(self, dp: Point2D) -> None:
         """
         Move to a relative point in the context.
 
         Args:
-            dx (float): X distance
-            dy (float): Y distance
+            dp (Point2D): Relative point
         """
-        self.context.rel_move_to(dx, dy)
+        self.context.rel_move_to(dp.x, dp.y)
     # end rel_move_to
 
     def restore(self) -> None:
@@ -302,16 +296,6 @@ class Context:
         self.context.restore()
     # end restore
 
-    def rotate(self, angle: float) -> None:
-        """
-        Rotate the context.
-
-        Args:
-            angle (float): Angle
-        """
-        self.context.rotate(angle)
-    # end rotate
-
     def save(self) -> None:
         """
         Save the context.
@@ -319,16 +303,38 @@ class Context:
         self.context.save()
     # end save
 
-    def scale(self, sx: float, sy: float) -> None:
+    def translate(self, position: Point2D) -> None:
+        """
+        Translate the context.
+
+        Args:
+            position (Point2D): Position (x, y)
+        """
+        self.context.translate(position.x, position.y)
+    # end translate
+
+    def scale(self, sp: Point2D) -> None:
         """
         Scale the context.
 
         Args:
-            sx (float): X scale
-            sy (float): Y scale
+            sp (Point2D): Scale point (x, y)
         """
-        self.context.scale(sx, sy)
+        self.context.scale(sp.x, sp.y)
     # end scale
+
+    def rotate(self, angle: Union[float, Scalar]) -> None:
+        """
+        Rotate the context.
+
+        Args:
+            angle (float): Angle
+        """
+        if isinstance(angle, Scalar):
+            angle = angle.value
+        # end if
+        self.context.rotate(angle)
+    # end rotate
 
     def set_font_size(self, size: float) -> None:
         """

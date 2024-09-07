@@ -32,12 +32,15 @@ from .video_composer import VideoComposer
 
 # ALL
 __all__ = [
+    # Shortcuts
     'p2',
     's',
     'c',
+    # Animation
     'Animation',
     'AnimationViewer',
     'find_animable_mixins',
+    # Effect pipeline and others
     'EffectPipeline',
     'RenderEngine',
     'LayerManager',

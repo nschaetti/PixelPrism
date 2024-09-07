@@ -27,12 +27,11 @@ import numpy as np
 from pixel_prism.animate import MovableMixin
 from .data import Data
 from .scalar import Scalar, TScalar
-from .eventmixin import EventMixin
-from .events import ObjectChangedEvent
+from .events import Event
 
 
 # A generic point
-class Point(Data, EventMixin, MovableMixin):
+class Point(Data, MovableMixin):
     """
     A generic point class.
     """
@@ -46,7 +45,6 @@ class Point(Data, EventMixin, MovableMixin):
             readonly (bool): If the point is read-only
         """
         Data.__init__(self, readonly=readonly)
-        EventMixin.__init__(self)
         MovableMixin.__init__(self)
     # end __init__
 
@@ -79,13 +77,11 @@ class Point2D(Point):
         super().__init__(readonly=readonly)
         self._pos = np.array([x, y], dtype=dtype)
 
-        # Movable
-        self.start_position = None
+        # Events
+        self._on_change = Event()
 
         # List of event listeners (per events)
-        self.event_listeners = {
-            "on_change": [] if on_change is None else [on_change]
-        }
+        if on_change: self._on_change += on_change
     # end __init__
 
     # region PROPERTIES
@@ -147,6 +143,18 @@ class Point2D(Point):
         self.set(self.x, value)
     # end y
 
+    # On change event
+    @property
+    def on_change(self) -> Event:
+        """
+        Get the on change event.
+
+        Returns:
+            Event: On change event
+        """
+        return self._on_change
+    # end on_change
+
     # Movable position
     @property
     def movable_position(self) -> Any:
@@ -183,9 +191,22 @@ class Point2D(Point):
             y (float or Scalar): Y-coordinate of the point
         """
         self.check_closed()
-        self._pos[0] = x.value if type(x) is Scalar else x
-        self._pos[1] = y.value if type(y) is Scalar else y
-        self.dispatch_event("on_change", ObjectChangedEvent(self, x=self._pos[0], y=self._pos[1]))
+
+        # Scalar/float
+        if type(x) is Scalar or type(y) is Scalar:
+            x = x.value if type(x) is Scalar else x
+            y = y.value if type(y) is Scalar else y
+        # end if
+
+        # Update
+        if self._pos[0] != x or self._pos[1] != y:
+            # Update position
+            self._pos[0] = x
+            self._pos[1] = y
+
+            # Trigger change event
+            self._trigger_on_change()
+        # end if
     # end set
 
     def get(self):
@@ -289,6 +310,18 @@ class Point2D(Point):
 
     # endregion PUBLIC
 
+    # region PRIVATE
+
+    # Trigger position change
+    def _trigger_on_change(self):
+        """
+        Trigger the position change event.
+        """
+        self.on_change.trigger(self, event_type="position", x=self.x, y=self.y)
+    # end _trigger_on_change
+
+    # endregion PRIVATE
+
     # region MOVABLE
 
     def init_move(self, *args, **kwargs):
@@ -372,7 +405,7 @@ class Point2D(Point):
         """
         Return a string representation of the point.
         """
-        return f"Point2D(x={self.x}, y={self.y}, closed={self.data_closed})"
+        return f"Point2D(x={self.x}, y={self.y}, readonly={self.data_closed})"
     # end __str__
 
     # Return a string representation of the point.
@@ -833,8 +866,8 @@ class TPoint2D(Point2D):
         # Listen to changes in the original point
         if on_change is not None:
             for point in self._points.values():
-                point.add_event_listener("on_change", on_change)
-                point.add_event_listener("on_change", self._on_point_changed)
+                point.on_change += on_change
+                point.on_change += self._on_point_changed
             # end for
         # end if
     # end __init__
@@ -931,7 +964,7 @@ class TPoint2D(Point2D):
         return self.transform_func(**self._points)
     # end get
 
-    def add_event_listener(self, event_name, listener):
+    def register_event(self, event_name, listener):
         """
         Add an event listener to the data object.
 
@@ -940,11 +973,14 @@ class TPoint2D(Point2D):
             listener (function): Listener function
         """
         for point in self.points.values():
-            point.add_event_listener(event_name, listener)
+            if hasattr(point, event_name):
+                event_attr = getattr(point, event_name)
+                event_attr += listener
+            # end if
         # end for
-    # end add_event_listener
+    # end register_event
 
-    def remove_event_listener(self, event_name, listener):
+    def unregister_event(self, event_name, listener):
         """
         Remove an event listener from the data object.
 
@@ -954,22 +990,30 @@ class TPoint2D(Point2D):
         """
         # Unregister from all sources
         for point in self.points.values():
-            point.remove_event_listener(event_name, listener)
+            if hasattr(point, event_name):
+                event_attr = getattr(point, event_name)
+                event_attr -= listener
+            # end if
         # end for
-    # end remove_event_listener
+    # end unregister_event
 
     # endregion PUBLIC
 
     # region EVENT
 
-    def _on_point_changed(self, event):
+    def _on_point_changed(self, point, x, y):
         """
         Update the point when a source point changes.
+
+        Args:
+            point (Point2D): Point that changed
+            x (float): New X-coordinate of the point
+            y (float): New Y-coordinate of the point
         """
         x, y = self.get()
         self._pos[0] = x
         self._pos[1] = y
-        self.dispatch_event("on_change", ObjectChangedEvent(self, x=self.x, y=self.y))
+        self._trigger_on_change()
     # end _on_point_changed
 
     # endregion EVENT
@@ -1252,6 +1296,100 @@ class TPoint2D(Point2D):
     # endregion OVERRIDE
 
 # end TPoint2D
+
+
+class AffinePoint:
+    """
+    A class that synchronizes a relative point and an absolute point
+    using a given Transform object, while avoiding recursive updates.
+    """
+
+    def __init__(
+            self,
+            relative_point: Point2D,
+            absolute_point: Point2D,
+            transform: Transform
+    ):
+        """
+        Initialize the affine point.
+        """
+        self._relative_point = relative_point
+        self._absolute_point = absolute_point
+        self._transform = transform
+        self._lock = False  # Lock to prevent recursive updates
+
+        # Initial synchronization
+        self._update_absolute_from_relative()
+
+        # Subscribe to changes in relative and absolute points
+        self._relative_point.on_change.subscribe(self._on_relative_point_changed)
+        self._absolute_point.on_change.subscribe(self._on_absolute_point_changed)
+    # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def relative(self):
+        return self._relative_point
+    # end relative
+
+    @property
+    def absolute(self):
+        return self._absolute_point
+    # end absolute
+
+    # endregion PROPERTIES
+
+    # region PRIVATE
+
+    def _update_absolute_from_relative(self):
+        """
+        Update the absolute point based on the relative point and the transform.
+        """
+        if not self._lock:
+            self._lock = True
+            transformed_point = self._transform.apply(self._relative_point)
+            self._absolute_point.x = transformed_point.x
+            self._absolute_point.y = transformed_point.y
+            self._lock = False
+        # end if
+    # end _update_absolute_from_relative
+
+    def _update_relative_from_absolute(self):
+        """
+        Update the relative point based on the absolute point and the inverse transform.
+        """
+        if not self._lock:
+            self._lock = True
+            relative_x = (self._absolute_point.x - self._transform.position.x) / self._transform.scale.x
+            relative_y = (self._absolute_point.y - self._transform.position.y) / self._transform.scale.y
+            self._relative_point.x = relative_x
+            self._relative_point.y = relative_y
+            self._lock = False
+        # end if
+    # end _update_relative_from_absolute
+
+    # endregion PRIVATE
+
+    # region EVENT
+
+    def _on_relative_point_changed(self, point):
+        """
+        Triggered when the relative point changes, updates the absolute point.
+        """
+        self._update_absolute_from_relative()
+    # end _on_relative_point_changed
+
+    def _on_absolute_point_changed(self, point):
+        """
+        Triggered when the absolute point changes, updates the relative point.
+        """
+        self._update_relative_from_absolute()
+    # end _on_absolute_point_changed
+
+    # endregion EVENT
+
+# end AffinePoint
 
 
 # Basic TPoint2D (just return value of a point)
@@ -2055,8 +2193,8 @@ def randint(
     Returns:
         List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
     """
-    x_values = np.random.randint(low.x, high.x, size)
-    y_values = np.random.randint(low.y, high.y, size)
+    x_values = np.random.randint(int(low.x), int(high.x), size)
+    y_values = np.random.randint(int(low.y), int(high.y), size)
 
     if return_tpoint:
         return [

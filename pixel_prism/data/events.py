@@ -15,88 +15,97 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+# Imports
+import weakref
+from enum import Enum, auto
 
+
+# Type of events
+class EventType(Enum):
+    """
+    Type of events
+    """
+    POSITION_CHANGED = auto()
+    SCALE_CHANGED = auto()
+    ROTATION_CHANGED = auto()
+    FILL_COLOR_CHANGED = auto()
+    LINE_COLOR_CHANGED = auto()
+    LINE_WIDTH_CHANGED = auto()
+    LINE_CAP_CHANGED = auto()
+    LINE_JOIN_CHANGED = auto()
+    LINE_DASH_CHANGED = auto()
+# end EventType
+
+
+# Event class
 class Event:
     """
-    A basic event.
+    Represents an event.
     """
 
-    def __init__(
-            self,
-            name: str,
-            source: object,
-            **kwargs
-    ):
+    # Constructor
+    def __init__(self):
+        self._subscribers = weakref.WeakSet()
+    # end __init__
+
+    # Subscribe
+    def subscribe(self, callback):
         """
-        Initialize the event.
+        Subscribe to the event with a weak reference.
 
         Args:
-            name (str): Event name
+            callback: Callback function
         """
-        self._name = name
-        self._source = source
-        self._params = kwargs
-    # end __init__
+        self._subscribers.add(callback)
+    # end subscribe
 
-    # region PROPERTIES
-
-    @property
-    def name(self) -> str:
-        return self._name
-    # end name
-
-    @property
-    def source(self) -> object:
-        return self._source
-    # end source
-
-    @property
-    def params(self) -> dict:
-        return self._params
-    # end params
-
-    # endregion PROPERTIES
-
-    # region OVERRIDE
-
-    def __getattr__(self, item):
+    def unsubscribe(self, callback):
         """
-        Called when an attribute is not found in the usual places.
-        Looks for the attribute in the params dictionary.
+        Unsubscribe from the event.
+
+        Args:
+            callback: Callback function
         """
-        if item in self._params:
-            return self._params[item]
-        # end if
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
-    # end __getattr__
+        self._subscribers.discard(callback)
+    # end unsubscribe
 
-    def __str__(self) -> str:
-        return f"Event: {self.name}"
-    # end __str__
+    def trigger(self, *args, **kwargs):
+        """
+        Trigger the event, calling all subscribers.
+        """
+        for subscriber in self._subscribers:
+            subscriber(*args, **kwargs)
+        # end for
+    # end trigger
 
-    # endregion OVERRIDE
+    def listen(self):
+        """
+        Decorator to subscribe a method to the event.
+        """
+        def decorator(func):
+            self.subscribe(func)
+            return func
+        # end decorator
+        return decorator
+    # end listen
+
+    def __iadd__(self, callback):
+        """
+        Allows using `+=` to add a subscriber.
+        """
+        self.subscribe(callback)
+        return self
+    # end __iadd__
+
+    def __isub__(self, callback):
+        """
+        Allows using `-=` to remove a subscriber.
+        """
+        self.unsubscribe(callback)
+        return self
+    # end __isub__
 
 # end Event
-
-
-# Object changed event
-class ObjectChangedEvent(Event):
-    """
-    An object changed event.
-    """
-
-    def __init__(
-            self,
-            source: object,
-            **kwargs
-    ):
-        """
-        Initialize the object changed event.
-        """
-        super().__init__("object_changed", source, **kwargs)
-    # end __init__
-
-# end ObjectChangedEvent
 
 
 
