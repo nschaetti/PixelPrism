@@ -132,7 +132,7 @@ class MovableMixin(AnimableMixin):
         Args:
             start_value (any): The start position of the object
         """
-
+        self.movablemixin_state.running = True
         self.movablemixin_state.start_position = self.movable_position.copy()
     # end start_move
 
@@ -142,6 +142,7 @@ class MovableMixin(AnimableMixin):
             duration,
             interpolated_t,
             end_value,
+            relative: bool = False,
             *args,
             **kwargs
     ):
@@ -153,10 +154,17 @@ class MovableMixin(AnimableMixin):
             duration (float): Duration of the animation
             interpolated_t (float): Time value adjusted by the interpolator
             end_value (any): The end position of the object
+            relative (bool): Relative movement
         """
-        start_position = self.movablemixin_state.start_position
-        self.movable_position = start_position * (1 - interpolated_t) + end_value * interpolated_t
-        self.movablemixin_state.last_position = self.movable_position
+        # Not relative
+        if not relative:
+            start_position = self.movablemixin_state.start_position
+            self.movable_position = start_position * (1 - interpolated_t) + end_value * interpolated_t
+            self.movablemixin_state.last_position = self.movable_position
+        else:
+            # TODO: Implement relative movement
+            raise NotImplementedError("Relative movement not implemented yet.")
+        # end if
     # end animate_move
 
     # Stop animation
@@ -172,7 +180,8 @@ class MovableMixin(AnimableMixin):
         Args:
             end_value (any): The end position of the object
         """
-        pass
+        self.movablemixin_state.running = False
+        self.movable_position = end_value
     # end end_move
 
     # Finish animation

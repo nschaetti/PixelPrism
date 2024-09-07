@@ -73,7 +73,6 @@ class Arc(
         DrawableMixin.__init__(self)
         MovableMixin.__init__(self)
         EventMixin.__init__(self)
-        MovableMixin.__init__(self)
         CallableMixin.__init__(self)
         FadeableMixin.__init__(self)
 

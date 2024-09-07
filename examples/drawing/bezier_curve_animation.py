@@ -101,7 +101,7 @@ class CurveAnimation(Animation):
         """
         # Position and length
         position = Scalar(0.0)
-        length = Scalar(0.25)
+        path_length = Scalar(0.25)
 
         # Create an ARC on upper left
         curve3 = CubicBezierCurve.from_objects(
@@ -110,14 +110,14 @@ class CurveAnimation(Animation):
             control2=p2(0.0, -1.0),
             end=coord_system.lls + p2(1, 1),
             position=position,
-            length=length,
+            path_length=path_length,
             line_color=c('WHITE').copy(),
             line_width=s(self.CURVE_LINE_WIDTH)
         )
 
         # Animate position
         position.range(4, s(0.5)).range(4, s(0.0))
-        length.range(4, s(1.0), 4)
+        path_length.range(4, s(1.0), 4)
 
         return curve3
     # end build_third_curve
@@ -132,7 +132,7 @@ class CurveAnimation(Animation):
         """
         # Position and length
         position = s(0.0)
-        length = s(0.25)
+        path_length = s(0.25)
 
         curve4 = CubicBezierCurve.from_objects(
             start=coord_system.lrs - p2(1.5, 0.5),
@@ -140,7 +140,7 @@ class CurveAnimation(Animation):
             control2=p2(0.0, 1.0),
             end=coord_system.lrs + p2(0, -0.5),
             position=position,
-            length=length,
+            path_length=path_length,
             line_color=c('WHITE').copy(),
             line_width=s(self.CURVE_LINE_WIDTH)
         )
@@ -151,7 +151,7 @@ class CurveAnimation(Animation):
         curve4.call([4, 5], 'scale', [[s(1.5), p2(1.89, -1.67)], [s(0.6666666), p2(1.89, -1.67)]])
 
         # Animate position
-        length.range(8, s(1.0))
+        path_length.range(8, s(1.0))
 
         return curve4
     # end build_fourth_curve

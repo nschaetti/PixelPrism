@@ -34,7 +34,18 @@ class AnimableMixin:
             Constructor
             """
             self.__dict__['_vars'] = {}
+            self._running = False
         # end __init__
+
+        @property
+        def running(self):
+            return self._running
+        # end running
+
+        @running.setter
+        def running(self, value):
+            self._running = value
+        # end running
 
         def __getattr__(self, item):
             """

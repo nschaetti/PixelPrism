@@ -23,7 +23,7 @@
 from typing import List, Any, Tuple, Union
 import cairo
 import numpy as np
-from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent
+from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent, Event
 import pixel_prism.utils as utils
 from pixel_prism.drawing import BoundingBoxMixin, BoundingBox
 from pixel_prism.animate.able import (
@@ -31,7 +31,12 @@ from pixel_prism.animate.able import (
     DestroyableMixin,
     RotableMixin
 )
-from pixel_prism.animate import FadeableMixin, MovableMixin
+from pixel_prism.animate import (
+    FadeableMixin,
+    MovableMixin,
+    animeattr,
+    animeclass
+)
 from .rectangles import Rectangle
 from .arcs import Arc
 from .lines import Line
@@ -117,7 +122,7 @@ class PathLine(Line):
 # Path bezier cubic curve
 class PathBezierCubic(CubicBezierCurve):
     """
-    A simple cubic bezier curve class as an element of a path.
+    A simple cubic Bezier curve class as an element of a path.
     """
 
     # Constructor
@@ -128,17 +133,20 @@ class PathBezierCubic(CubicBezierCurve):
             control2: Point2D,
             end: Point2D,
             position: Scalar = Scalar(0.0),
-            length: Scalar = Scalar(1.0),
+            path_length: Scalar = Scalar(1.0),
             on_change=None
     ):
         """
-        Initialize the cubic bezier curve.
+        Initialize the cubic Bezier curve.
 
         Args:
             start (Point2D): Start point of the curve
             control1 (Point2D): First control point of the curve
             control2 (Point2D): Second control point of the curve
             end (Point2D): End point of the curve
+            position (Scalar): Position of the curve
+            path_length (Scalar): Length of the curve
+            on_change: On change event
         """
         super().__init__(
             start=start,
@@ -146,10 +154,12 @@ class PathBezierCubic(CubicBezierCurve):
             control2=control2,
             end=end,
             position=position,
-            length=length,
+            path_length=path_length,
             on_change=on_change
         )
     # end __init__
+
+    # region PUBLIC
 
     # Draw path
     def draw(
@@ -164,7 +174,7 @@ class PathBezierCubic(CubicBezierCurve):
         Args:
             context (cairo.Context): Context to draw the path to
         """
-        if self.length == 1.0:
+        if self.path_length == 1.0:
             context.curve_to(
                 x1=self.abs_control1.x,
                 y1=self.abs_control1.y,
@@ -185,6 +195,10 @@ class PathBezierCubic(CubicBezierCurve):
         # end if
     # end draw
 
+    # endregion PUBLIC
+
+    # region EVENTS
+
     # Start changed
     def _on_point_changed(self, x, y):
         """
@@ -198,6 +212,8 @@ class PathBezierCubic(CubicBezierCurve):
         raise ValueError("Start/end point of a bezier curve cannot be changed.")
     # end on_start_changed
 
+    # endregion EVENTS
+
     # region CLASS_METHODS
 
     @classmethod
@@ -208,13 +224,13 @@ class PathBezierCubic(CubicBezierCurve):
             control2: Point2D,
             end: Point2D,
             position: Scalar = Scalar(0.0),
-            length: Scalar = Scalar(1.0),
+            path_length: Scalar = Scalar(1.0),
             on_change=None,
             *args,
             **kwargs
     ):
         """
-        Create a cubic bezier curve from objects.
+        Create a cubic Bezier curve from objects.
 
         Args:
             start (Point2D): Start point of the curve
@@ -222,7 +238,7 @@ class PathBezierCubic(CubicBezierCurve):
             control2 (Point2D): Second control point of the curve
             end (Point2D): End point of the curve
             position (Scalar): Position of the curve
-            length (Scalar): Length of the curve
+            path_length (Scalar): Length of the curve
             on_change: On change event
         """
         return PathBezierCubic(
@@ -231,7 +247,7 @@ class PathBezierCubic(CubicBezierCurve):
             control2=control2,
             end=end,
             position=position,
-            length=length,
+            path_length=path_length,
             on_change=on_change
         )
     # end from_objects
@@ -479,11 +495,15 @@ class PathArc(Arc):
 
 
 # Path segment
+@animeattr("start")
+@animeattr("elements")
+@animeclass
 class PathSegment(
     DrawableMixin,
     BoundingBoxMixin,
     EventMixin,
     MovableMixin,
+    FadeableMixin,
     RotableMixin,
     BuildableMixin,
     DestroyableMixin
@@ -505,13 +525,14 @@ class PathSegment(
         self._elements = elements
         self._length = 0
 
-        # Movable
-        self.start_position = None
-
         # Constructors
         DrawableMixin.__init__(self)
+        EventMixin.__init__(self)
         MovableMixin.__init__(self)
+        FadeableMixin.__init__(self)
+        RotableMixin.__init__(self)
         BuildableMixin.__init__(self)
+        DestroyableMixin.__init__(self)
         BoundingBoxMixin.__init__(self)
 
         # Update points
@@ -614,25 +635,6 @@ class PathSegment(
         self.update_bbox()
         element.add_event_listener("on_change", self._on_element_updated)
     # end add
-
-    # Move segments
-    def move(
-            self,
-            dx: float,
-            dy: float
-    ):
-        """
-        Move the path segment by a given displacement.
-
-        Args:
-            dx (float): Displacement in the X-direction
-            dy (float): Displacement in the Y-direction
-        """
-        for element in self.elements:
-            element.move(dx, dy)
-        # end for
-        self.update_bbox()
-    # end move
 
     # endregion PUBLIC
 
@@ -1203,6 +1205,12 @@ class PathSegment(
 # end PathSegment
 
 
+@animeattr("line_width")
+@animeattr("line_color")
+@animeattr("fill_color")
+@animeattr("path")
+@animeattr("subpaths")
+@animeclass
 class Path(
     DrawableMixin,
     BoundingBoxMixin,
@@ -1261,16 +1269,6 @@ class Path(
 
         # Update points
         self.update_data()
-
-        # Debug circle
-        """self.debug_circle = Circle(
-            0,
-            0,
-            fill_color=utils.BLUE.copy(),
-            border_color=utils.WHITE.copy(),
-            radius=Scalar(0.2),
-            border_width=Scalar(0.01)
-        )"""
 
         # Events
         self.add_event("on_change")
@@ -2154,7 +2152,12 @@ class Path(
 
     # region FADE_IN
 
-    def start_fadein(self, start_value: Any):
+    def start_fadein(
+            self,
+            start_value: Any,
+            *args,
+            **kwargs
+    ):
         """
         Start fading in the path segment.
 
@@ -2164,14 +2167,27 @@ class Path(
         self.set_alpha(0)
     # end start_fadein
 
-    def end_fadein(self, end_value: Any):
+    def end_fadein(
+            self,
+            end_value: Any,
+            *args,
+            **kwargs
+    ):
         """
         End fading in the path segment.
         """
         self.set_alpha(1)
     # end end
 
-    def animate_fadein(self, t, duration, interpolated_t, env_value):
+    def animate_fadein(
+            self,
+            t,
+            duration,
+            interpolated_t,
+            env_value,
+            *args,
+            **kwargs
+    ):
         """
         Animate fading in the path segment.
         """

@@ -60,7 +60,7 @@ class CubicBezierCurve(
             control2: Point2D,
             end: Point2D,
             position: Scalar = Scalar(0.0),
-            length: Scalar = Scalar(1.0),
+            path_length: Scalar = Scalar(1.0),
             line_width: Scalar = Scalar(0.0),
             line_color: Color = utils.WHITE,
             on_change=None
@@ -74,7 +74,7 @@ class CubicBezierCurve(
             control2 (Point2D): Second control point of the curve
             end (Point2D): End point of the curve
             position (Scalar): Position of the curve
-            length (Scalar): Length of the curve
+            path_length (Scalar): Length of the curve
             line_width (Scalar): Width of the line
             line_color (Color): Color of the line
             on_change (callable): Function to call when the arc
@@ -89,7 +89,7 @@ class CubicBezierCurve(
         self._control2 = control2
         self._end = end
         self._position = position
-        self._length = length
+        self._path_length = path_length
 
         # Display properties
         self._line_width = line_width
@@ -122,18 +122,8 @@ class CubicBezierCurve(
         # Bounding box mixin
         BoundingBoxMixin.__init__(self)
 
-        # Update points
-        self.update_points()
-        self.update_curve_points()
-
-        # Calculate the length of the curve
-        self.path_length = self._recursive_bezier_length(
-            np.array([start.x, start.y]),
-            np.array([control1.x, control1.y]),
-            np.array([control2.x, control2.y]),
-            np.array([end.x, end.y]),
-            0
-        )
+        # Update points and length
+        self.update_data()
 
         # Movable
         self.start_control1 = None
@@ -146,7 +136,7 @@ class CubicBezierCurve(
         self._control2.add_event_listener("on_change", self._on_control2_changed)
         self._end.add_event_listener("on_change", self._on_end_changed)
         self._position.add_event_listener("on_change", self._on_position_changed)
-        self._length.add_event_listener("on_change", self._on_length_changed)
+        self._path_length.add_event_listener("on_change", self._on_path_length_changed)
 
         # Update data
         self.update_data()
@@ -240,6 +230,22 @@ class CubicBezierCurve(
     # end end
 
     @property
+    def length(self) -> float:
+        """
+        Get the length of the curve.
+        """
+        return self._length
+    # end length
+
+    @length.setter
+    def length(self, value: float):
+        """
+        Set the length of the curve.
+        """
+        raise ValueError(f"{self.__class__.__name__} is cannot be set !")
+    # end length
+
+    @property
     def position(self) -> Scalar:
         """
         Get the position of the curve.
@@ -261,25 +267,25 @@ class CubicBezierCurve(
     # end position
 
     @ property
-    def length(self) -> Scalar:
+    def path_length(self) -> Scalar:
         """
         Get the length of the curve.
         """
-        if self._length.value < 0.0:
+        if self._path_length.value < 0.0:
             return Scalar(0.0)
-        elif self._length.value > 1.0:
+        elif self._path_length.value > 1.0:
             return Scalar(1.0)
         # end if
-        return self._length
-    # end length
+        return self._path_length
+    # end path_length
 
-    @length.setter
-    def length(self, value: Scalar):
+    @path_length.setter
+    def path_length(self, value: Scalar):
         """
         Set the length of the curve.
         """
-        self._length.value = value
-    # end length
+        self._path_length.value = value
+    # end path_length
 
     @property
     def line_width(self) -> Scalar:
@@ -543,7 +549,7 @@ class CubicBezierCurve(
         # Get partial curve
         curve_start, curve_control1, curve_control2, curve_end = self.get_partial_curve(
             t1=self.position.value,
-            t2=min(self.position.value + self.length.value, 1.0)
+            t2=min(self.position.value + self.path_length.value, 1.0)
         )
 
         # Start point
@@ -562,16 +568,16 @@ class CubicBezierCurve(
         self._curve_control2.y = curve_control2.y - self._curve_end.y
 
         # Middle point
-        self._curve_middle_point.x = self.bezier(self.position.value + self.length.value * 0.5).x
-        self._curve_middle_point.y = self.bezier(self.position.value + self.length.value * 0.5).y
+        self._curve_middle_point.x = self.bezier(self.position.value + self.path_length.value * 0.5).x
+        self._curve_middle_point.y = self.bezier(self.position.value + self.path_length.value * 0.5).y
 
         # Q1 point
-        self._curve_q1_point.x = self.bezier(self.position.value + self.length.value * 0.25).x
-        self._curve_q1_point.y = self.bezier(self.position.value + self.length.value * 0.25).y
+        self._curve_q1_point.x = self.bezier(self.position.value + self.path_length.value * 0.25).x
+        self._curve_q1_point.y = self.bezier(self.position.value + self.path_length.value * 0.25).y
 
         # Q3 point
-        self._curve_q3_point.x = self.bezier(self.position.value + self.length.value * 0.75).x
-        self._curve_q3_point.y = self.bezier(self.position.value + self.length.value * 0.75).y
+        self._curve_q3_point.x = self.bezier(self.position.value + self.path_length.value * 0.75).x
+        self._curve_q3_point.y = self.bezier(self.position.value + self.path_length.value * 0.75).y
 
         # Compute extreme points
         x_min, x_max, y_min, y_max = self._compute_curve_extreme_points()
@@ -592,6 +598,23 @@ class CubicBezierCurve(
         self._curve_center.y = self._bounding_box.upper_left.y + self._bounding_box.height / 2.0
     # end update_curve_points
 
+    # Update length
+    def update_length(
+            self
+    ):
+        """
+        Update the length of the curve.
+        """
+        # Calculate the length of the curve
+        self._length = self._recursive_bezier_length(
+            np.array([self.start.x, self.start.y]),
+            np.array([self.abs_control1.x, self.abs_control1.y]),
+            np.array([self.abs_control2.x, self.abs_control2.y]),
+            np.array([self.end.x, self.end.y]),
+            0
+        )
+    # end update_length
+
     # Update data
     def update_data(self):
         """
@@ -602,6 +625,9 @@ class CubicBezierCurve(
 
         # Update curve points
         self.update_curve_points()
+
+        # Update length
+        self.update_length()
 
         # Update bounding box
         # self.update_bbox()
@@ -976,7 +1002,7 @@ class CubicBezierCurve(
         context.set_line_width(self._line_width.value)
 
         # Draw the curve
-        if self.position == 0.0 and self.length == 1.0:
+        if self.position == 0.0 and self.path_length == 1.0:
             context.curve_to(
                 x1=self.abs_control1.x,
                 y1=self.abs_control1.y,
@@ -1442,7 +1468,7 @@ class CubicBezierCurve(
         self.dispatch_event("on_change", ObjectChangedEvent(self, property="position", value=self.position))
     # end _on_position_changed
 
-    def _on_length_changed(
+    def _on_path_length_changed(
             self,
             event
     ):
@@ -1453,8 +1479,8 @@ class CubicBezierCurve(
             event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, property="length", value=self.length))
-    # end _on_length_changed
+        self.dispatch_event("on_change", ObjectChangedEvent(self, property="path_length", value=self.path_length))
+    # end _on_path_length_changed
 
     # endregion EVENTS
 
@@ -1594,7 +1620,7 @@ class CubicBezierCurve(
             end_x: float,
             end_y: float,
             position: float = 0.0,
-            length: float = 1.0,
+            path_length: float = 1.0,
             line_width: Scalar = Scalar(0.0),
             line_color: Color = utils.WHITE,
             on_change=None
@@ -1608,7 +1634,7 @@ class CubicBezierCurve(
             Point2D(control2_x, control2_y),
             Point2D(end_x, end_y),
             position=Scalar(position),
-            length=Scalar(length),
+            path_length=Scalar(path_length),
             line_width=line_width,
             line_color=line_color,
             on_change=on_change
@@ -1623,7 +1649,7 @@ class CubicBezierCurve(
             control2: Point2D,
             end: Point2D,
             position: Scalar = Scalar(0.0),
-            length: Scalar = Scalar(1.0),
+            path_length: Scalar = Scalar(1.0),
             line_width: Scalar = Scalar(0.0),
             line_color: Color = utils.WHITE,
             on_change=None
@@ -1637,7 +1663,7 @@ class CubicBezierCurve(
             control2,
             end,
             position=position,
-            length=length,
+            path_length=path_length,
             line_width=line_width,
             line_color=line_color,
             on_change=on_change

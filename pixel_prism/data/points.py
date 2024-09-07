@@ -74,7 +74,7 @@ class Point2D(Point):
             y (float): Y-coordinate of the point
             on_change (function): Function to call when the point changes
             readonly (bool): If the point is read-only
-            dtype (type): Data type of the point
+            dtype (dtype): Data type of the point
         """
         super().__init__(readonly=readonly)
         self._pos = np.array([x, y], dtype=dtype)
@@ -291,25 +291,17 @@ class Point2D(Point):
 
     # region MOVABLE
 
-    # Initialize position
-    def init_move(
-            self,
-            relative: bool = False
-    ):
+    def init_move(self, *args, **kwargs):
         """
         Initialize the move animation.
-
-        Args:
-            relative (bool): If the move is relative to the current position
         """
-        self.start_position = None
+        super().init_move(*args, **kwargs)
     # end init_move
 
     # Start animation
     def start_move(
             self,
             start_value: Any,
-            relative: bool = False,
             *args,
             **kwargs
     ):
@@ -318,9 +310,8 @@ class Point2D(Point):
 
         Args:
             start_value (any): The start position of the object
-            relative (bool): If the move is relative to the current position
         """
-        self.start_position = self.pos.copy()
+        super().start_move(start_value, *args, **kwargs)
     # end start_move
 
     def animate_move(
@@ -343,7 +334,7 @@ class Point2D(Point):
             end_value (any): The end position of the object
             relative (bool): If the move is relative to the current position
         """
-        self.movable_position = self.start_position * (1 - interpolated_t) + end_value.movable_position * interpolated_t
+        super().animate_move(t, duration, interpolated_t, end_value, relative, *args, **kwargs)
     # end animate_move
 
     # Stop animation
@@ -361,15 +352,15 @@ class Point2D(Point):
             end_value (any): The end position of the object
             relative (bool): If the move is relative to the current position
         """
-        pass
+        super().end_move(end_value, relative, *args, **kwargs)
     # end end_move
 
-    # Finish animation
-    def finish_move(self, relative: bool = False, *args, **kwargs):
+    # Finish move animation
+    def finish_move(self, *args, **kwargs):
         """
         Finish the move animation.
         """
-        pass
+        super().finish_move(*args, **kwargs)
     # end finish_move
 
     # endregion MOVABLE

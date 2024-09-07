@@ -77,9 +77,19 @@ class PathAnimation(Animation):
         path_segment = PathSegment.from_objects(
             start=control_points[0],
             elements=[
-                PathLine(control_points[0], control_points[1]),
-                PathArc(center=coord_system.uls, radius=s(self.PATH_SIZE), start_angle=s(math.pi / 2), end_angle=s(math.pi)),
-                PathBezierCubic(start=coord_system.uls + p2(-self.PATH_SIZE, 0), control1=control_points[2], control2=control_points[3], end=control_points[4])
+                PathLine.from_objects(control_points[0], control_points[1]),
+                PathArc.from_objects(
+                    center=coord_system.uls,
+                    radius=s(self.PATH_SIZE),
+                    start_angle=s(math.pi / 2),
+                    end_angle=s(math.pi)
+                ),
+                PathBezierCubic.from_objects(
+                    start=coord_system.uls + p2(-self.PATH_SIZE, 0),
+                    control1=control_points[2],
+                    control2=control_points[3],
+                    end=control_points[4]
+                )
             ]
         )
 
@@ -89,12 +99,12 @@ class PathAnimation(Animation):
             subpaths=[
                 PathSegment.rectangle(
                     lower_left=subpath_control_points[0],
-                    width=Scalar(self.PATH_SIZE),
-                    height=Scalar(self.PATH_SIZE / 2.0)
+                    width=s(self.PATH_SIZE),
+                    height=s(self.PATH_SIZE / 2.0)
                 )
             ],
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.PATH_LINE_WIDTH),
+            line_width=s(self.PATH_LINE_WIDTH),
             fill_color=utils.GREEN.copy(),
             closed_path=True
         )
@@ -125,17 +135,17 @@ class PathAnimation(Animation):
         path_segment = PathSegment.from_objects(
             start=coord_system.urs + p2(self.PATH_SIZE, 0),
             elements=[
-                PathLine(
+                PathLine.from_objects(
                     coord_system.urs + p2(self.PATH_SIZE, 0),
                     coord_system.urs + p2(0, self.PATH_SIZE)
                 ),
-                PathArc(
+                PathArc.from_objects(
                     center=coord_system.urs,
                     radius=s(self.PATH_SIZE),
                     start_angle=s(math.pi / 2),
                     end_angle=s(math.pi)
                 ),
-                PathBezierCubic(
+                PathBezierCubic.from_objects(
                     start=coord_system.urs + p2(-self.PATH_SIZE, 0),
                     control1=p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 2.0),
                     control2=p2(0, self.PATH_SIZE / 2.0),
@@ -147,8 +157,8 @@ class PathAnimation(Animation):
         # Rectangle
         rectangle = PathSegment.rectangle(
             lower_left=coord_system.urs + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
-            width=Scalar(self.PATH_SIZE),
-            height=Scalar(self.PATH_SIZE / 2.0)
+            width=s(self.PATH_SIZE),
+            height=s(self.PATH_SIZE / 2.0)
         )
 
         # Create path
@@ -156,32 +166,14 @@ class PathAnimation(Animation):
             path=path_segment,
             subpaths=[rectangle],
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.PATH_LINE_WIDTH),
+            line_width=s(self.PATH_LINE_WIDTH),
             fill_color=utils.GREEN.copy(),
             closed_path=True
         )
 
         # Moving rectangle
-        self.animate(
-            Move(
-                path_segment,
-                start_time=0,
-                end_time=8,
-                target_value=coord_system.urs + p2(self.PATH_SIZE - 0.5, 0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Moving rectangle
-        self.animate(
-            Move(
-                rectangle,
-                start_time=0,
-                end_time=8,
-                target_value=coord_system.urs + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0 + 0.4),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
+        # path_segment.move(8, coord_system.urs + p2(self.PATH_SIZE - 0.5, 0))
+        rectangle.move(8, coord_system.urs + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0 + 0.4))
 
         return path2
     # end build_second_path
@@ -238,28 +230,8 @@ class PathAnimation(Animation):
         )
 
         # Rotating internal path
-        self.animate(
-            Rotate(
-                rectangle,
-                start_time=0,
-                end_time=8,
-                target_value=math.pi * 2.0,
-                interpolator=EaseInOutInterpolator(),
-                center=coord_system.lls
-            )
-        )
-
-        # Rotating internal path
-        self.animate(
-            Rotate(
-                path_segment,
-                start_time=0,
-                end_time=8,
-                target_value=-math.pi * 2.0,
-                interpolator=EaseInOutInterpolator(),
-                center=coord_system.lls
-            )
-        )
+        rectangle.rotate(8, math.pi * 2.0, center=coord_system.lls)
+        path_segment.rotate(8, -math.pi * 2.0, center=coord_system.lls)
 
         return path3
     # end build_third_path
@@ -316,64 +288,15 @@ class PathAnimation(Animation):
         )
 
         # Moving path
-        self.animate(
-            Move(
-                path4,
-                start_time=0,
-                end_time=2,
-                target_value=p2(self.PATH_SIZE, 0.0),
-                interpolator=EaseInOutInterpolator(),
-                relative=True
-            )
-        )
+        anim = path4.move(2, p2(self.PATH_SIZE, 0.0), relative=True)
+        anim.move(2, p2(-self.PATH_SIZE, 0.0), 4, relative=True)
 
         # Rotate path
-        self.animate(
-            Rotate(
-                path4,
-                start_time=2,
-                end_time=4,
-                target_value=math.pi * 2.0,
-                interpolator=EaseInOutInterpolator(),
-                center=path4.path.start
-            )
-        )
-
-        # Moving path
-        self.animate(
-            Move(
-                path4,
-                start_time=4,
-                end_time=6,
-                target_value=p2(-self.PATH_SIZE, 0.0),
-                interpolator=EaseInOutInterpolator(),
-                relative=True
-            )
-        )
+        path4.rotate(2, math.pi * 2.0, 2, center=path4.path.start)
 
         # Scale path
-        self.animate(
-            Scale(
-                path4,
-                start_time=6,
-                end_time=8,
-                target_value=Scalar(2.0),
-                interpolator=EaseInOutInterpolator(),
-                center=path4.path.start
-            )
-        )
-
-        # Scale path
-        self.animate(
-            Scale(
-                path4,
-                start_time=8,
-                end_time=10,
-                target_value=Scalar(0.5),
-                interpolator=EaseInOutInterpolator(),
-                center=coord_system.lower_right_square + p2(self.PATH_SIZE, 0)
-            )
-        )
+        anim = path4.scale(2, Scalar(2.0), 6, center=path4.path.start)
+        anim.scale(2, Scalar(0.5), 8, center=coord_system.lower_right_square + p2(self.PATH_SIZE, 0))
 
         return path4
     # end build_fourth_path
@@ -399,14 +322,14 @@ class PathAnimation(Animation):
         # Create paths
         path1 = self.build_first_path(coord_system)
         path2 = self.build_second_path(coord_system)
-        path3 = self.build_third_path(coord_system)
-        path4 = self.build_fourth_path(coord_system)
+        """path3 = self.build_third_path(coord_system)
+        path4 = self.build_fourth_path(coord_system)"""
 
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(path1)
         drawable_widget.add(path2)
-        drawable_widget.add(path3)
-        drawable_widget.add(path4)
+        """drawable_widget.add(path3)
+        drawable_widget.add(path4)"""
 
         # Add objects
         self.add(
@@ -414,9 +337,7 @@ class PathAnimation(Animation):
             viewport=viewport,
             drawable_widget=drawable_widget,
             path1=path1,
-            path2=path2,
-            path3=path3,
-            path4=path4
+            path2=path2
         )
     # end build
 
