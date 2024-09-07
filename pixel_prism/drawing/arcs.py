@@ -18,7 +18,7 @@
 # Imports
 import math
 from typing import Optional
-from pixel_prism.animate import MovableMixin, CallableMixin, FadeableMixin
+from pixel_prism.animate import MovableMixin, CallableMixin, FadeableMixin, animeclass, animeattr
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
@@ -28,6 +28,11 @@ from ..base import Context
 
 
 # An arc
+@animeattr("center")
+@animeattr("radius")
+@animeattr("start_angle")
+@animeattr("end_angle")
+@animeclass
 class Arc(
     DrawableMixin,
     BoundingBoxMixin,

@@ -20,7 +20,7 @@ import math
 from typing import Any
 import numpy as np
 from pixel_prism import p2, s
-from pixel_prism.animate import MovableMixin, CallableMixin
+from pixel_prism.animate import MovableMixin, CallableMixin, animeclass, animeattr
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 
@@ -34,6 +34,14 @@ from ..base import Context
 
 
 # A Cubic Bezier curve
+@animeattr("start")
+@animeattr("control1")
+@animeattr("control2")
+@animeattr("end")
+@animeattr("position")
+@animeattr("length")
+@animeattr("line_width")
+@animeclass
 class CubicBezierCurve(
     DrawableMixin,
     BoundingBoxMixin,

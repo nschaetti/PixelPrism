@@ -18,7 +18,7 @@
 # Imports
 import numpy as np
 from typing import Union, List
-from pixel_prism.animate import MovableMixin, FadeableMixin
+from pixel_prism.animate import MovableMixin, FadeableMixin, animeattr, animeclass, CallableMixin
 from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent
 from pixel_prism.utils import random_color
 from . import BoundingBoxMixin, BoundingBox
@@ -29,12 +29,19 @@ from ..base import Context
 
 
 # A line
+@animeattr("start")
+@animeattr("end")
+@animeattr("line_width")
+@animeattr("line_color")
+@animeattr("line_dash")
+@animeclass
 class Line(
     DrawableMixin,
     BoundingBoxMixin,
     EventMixin,
     MovableMixin,
-    FadeableMixin
+    FadeableMixin,
+    CallableMixin
 ):
     """
     A class to represent a line in 2D space.
@@ -62,7 +69,9 @@ class Line(
         """
         # Init
         DrawableMixin.__init__(self)
+        EventMixin.__init__(self)
         MovableMixin.__init__(self)
+        FadeableMixin.__init__(self)
 
         # Start and end points
         self._start = start
@@ -408,10 +417,14 @@ class Line(
         self.realize(context, move_to=True, build_ratio=1.0)
 
         # Set line color
-        context.set_source_rgb_alpha(
-            color=self.line_color,
-            alpha=self.fadablemixin_state.opacity
-        )
+        if self.fadablemixin_state.opacity:
+            context.set_source_rgb_alpha(
+                color=self.line_color,
+                alpha=self.fadablemixin_state.opacity
+            )
+        else:
+            context.set_source_rgba(self.line_color)
+        # end if
 
         # If dash
         if self.line_dash is not None:

@@ -18,9 +18,11 @@
 # Imports
 import unittest
 from pixel_prism import find_animable_mixins
+from pixel_prism.animate import animeclass, animeattr
 from pixel_prism.animate.able import AnimableMixin
 
 
+# Non-animable object
 class NonAnimableObject:
     def __init__(self):
         self.data = "I am not animable"
@@ -32,6 +34,9 @@ class NonAnimableObject:
 class TestFindAnimableMixins(unittest.TestCase):
 
     def test_single_animable_object(self):
+        """
+        Test with a single animable object.
+        """
         class SingleAnimableObject(AnimableMixin):
             pass
         # end SingleAnimableObject
@@ -55,6 +60,8 @@ class TestFindAnimableMixins(unittest.TestCase):
             pass
         # end ChildAnimable
 
+        @animeattr('child')
+        @animeclass
         class ParentObject:
             def __init__(self):
                 self.child = ChildAnimable()
@@ -78,6 +85,8 @@ class TestFindAnimableMixins(unittest.TestCase):
             pass
         # end DeepAnimable
 
+        @animeattr('inner')
+        @animeclass
         class MiddleObject(AnimableMixin):
             def __init__(self):
                 super().__init__()
@@ -85,6 +94,8 @@ class TestFindAnimableMixins(unittest.TestCase):
             # end __init__
         # end MiddleObject
 
+        @animeattr('middle')
+        @animeclass
         class OuterObject(AnimableMixin):
             def __init__(self):
                 super().__init__()
@@ -111,63 +122,138 @@ class TestFindAnimableMixins(unittest.TestCase):
         """
         class AnimableA(AnimableMixin):
             pass
+        # end AnimableA
 
         class AnimableB(AnimableMixin):
             pass
+        # end AnimableB
 
+        @animeattr('a')
+        @animeattr('b')
+        @animeclass
         class ComplexObject:
             def __init__(self):
                 self.a = AnimableA()
                 self.b = AnimableB()
+            # end __init__
+        # end ComplexObject
 
+        # Create an object with multiple animable objects
         obj = ComplexObject()
-        animation = Animation()
 
         # Test with multiple animable objects
-        animable_objects = animation._find_animable_mixins(obj)
+        animable_objects = find_animable_mixins(obj)
         self.assertEqual(len(animable_objects), 2)
         self.assertIsInstance(animable_objects[0], AnimableMixin)
         self.assertIsInstance(animable_objects[1], AnimableMixin)
+    # end test_multiple_animable_objects
 
     def test_with_non_animable_objects(self):
+        """
+        Test with a mix of animable and non-animable objects.
+        """
+        @animeattr('animable')
+        @animeattr('nonanimable')
+        @animeclass
         class MixedObject:
             def __init__(self):
                 self.animable = AnimableMixin()
                 self.non_animable = NonAnimableObject()
+            # end __init__
+        # end MixedObject
 
+        # Create an object with a mix of animable and non-animable objects
         obj = MixedObject()
-        animation = Animation()
 
         # Test with a mix of animable and non-animable objects
-        animable_objects = animation._find_animable_mixins(obj)
+        animable_objects = find_animable_mixins(obj)
         self.assertEqual(len(animable_objects), 1)
         self.assertIsInstance(animable_objects[0], AnimableMixin)
+    # end test_with_non_animable_objects
 
     def test_no_animable_objects(self):
+        """
+        Test with no animable objects.
+        """
+        @animeattr('inner')
+        @animeclass
         class NoAnimableObject:
             def __init__(self):
                 self.inner = NonAnimableObject()
+            # end __init__
+        # end NoAnimableObject
 
+        # Create an object with no animable objects
         obj = NoAnimableObject()
-        animation = Animation()
 
         # Test with no animable objects
-        animable_objects = animation._find_animable_mixins(obj)
+        animable_objects = find_animable_mixins(obj)
         self.assertEqual(len(animable_objects), 0)
+    # end test_no_animable_objects
 
     def test_recursive_animable_objects(self):
+        """
+        Test with recursive animable objects.
+        """
+        @animeattr('child')
+        @animeclass
         class RecursiveAnimable(AnimableMixin):
             def __init__(self):
                 super().__init__()
                 self.child = self  # Circular reference to self
+            # end __init__
+        # end RecursiveAnimable
 
+        # Create an object with recursive animable objects
         obj = RecursiveAnimable()
-        animation = Animation()
 
         # Test with recursive reference
-        animable_objects = animation._find_animable_mixins(obj)
+        animable_objects = find_animable_mixins(obj)
         self.assertEqual(len(animable_objects), 1)  # Should only find one instance, avoiding recursion
+    # end test_recursive_animable_objects
 
+    def test_is_inspectable_and_get_inspectable_attributes(self):
+        """
+        Test if the class is inspectable and get the inspectable attributes.
+        """
+        @animeattr('children')
+        @animeattr('mapping')
+        @animeclass
+        class TestObject:
+            def __init__(self):
+                self.children = [AnimableMixin(), AnimableMixin()]  # List of animables
+                self.mapping = {
+                    "a": AnimableMixin(),
+                    "b": NonAnimableObject()  # Not animable
+                }
+            # end __init__
+        # end TestObject
+
+        # Check if the class is inspectable
+        self.assertTrue(TestObject.is_animeclass())
+
+        # Check the inspectable attributes
+        inspectable_attrs = TestObject.animeclass_attributes()
+        self.assertEqual(inspectable_attrs, ['mapping', 'children'])
+    # end test_is_inspectable_and_get_inspectable_attributes
+
+    def test_non_inspectable_class(self):
+        """
+        Test if the class is not inspectable.
+        """
+        class NonInspectableObject:
+            def __init__(self):
+                self.child = AnimableMixin()  # This will not be inspected
+            # end __init__
+        # end NonInspectableObject
+
+        # Check if the class is not inspectable
+        self.assertFalse(hasattr(NonInspectableObject, 'is_animeclass'))
+        self.assertFalse(hasattr(NonInspectableObject, 'animeclass_attributes'))
+    # end test_non_inspectable_class
+
+# end TestFindAnimableMixins
 
 if __name__ == '__main__':
     unittest.main()
+# end if

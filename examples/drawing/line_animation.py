@@ -22,14 +22,12 @@
 
 # Imports
 import math
-from pixel_prism import utils
+from pixel_prism import utils, p2, s
 from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixel_prism.drawing import Line
-from pixel_prism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class
@@ -52,33 +50,14 @@ class LineAnimation(Animation):
         """
         # Create an ARC on upper left
         line1 = Line.from_objects(
-            start=coord_system.upper_left_square - Point2D(1.5, 1),
-            end=coord_system.upper_left_square + Point2D(1.5, 1),
+            start=coord_system.uls - p2(1.5, 1),
+            end=coord_system.uls + p2(1.5, 1),
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.LINE_WIDTH)
+            line_width=s(self.LINE_WIDTH)
         )
 
-        # Animate end angle
-        self.animate(
-            Move(
-                line1.start,
-                start_time=0,
-                end_time=3,
-                target_value=coord_system.upper_left_square + Point2D(-1.5, 1),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Animate end angle
-        self.animate(
-            Move(
-                line1.start,
-                start_time=3,
-                end_time=6,
-                target_value=coord_system.upper_left_square - Point2D(1.5, 1),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
+        # Animate start
+        line1.start.move(3, coord_system.uls + p2(-1.5, 1)).move(3, coord_system.uls - p2(1.5, 1))
 
         return line1
     # end build_first_arc
@@ -93,20 +72,14 @@ class LineAnimation(Animation):
         """
         # Create an ARC on upper left
         line2 = Line.from_objects(
-            start=coord_system.upper_right_square - Point2D(1.5, 1),
-            end=coord_system.upper_right_square,
+            start=coord_system.urs - p2(1.5, 1),
+            end=coord_system.urs.copy(),
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.LINE_WIDTH)
+            line_width=s(self.LINE_WIDTH)
         )
 
         # Change value of scale
-        self.animate(
-            Call(
-                line2.scale,
-                times=[2, 4, 6],
-                values=[[Scalar(0.5)], [Scalar(2.0)], [Scalar(1.5)]],
-            )
-        )
+        line2.call([2, 4, 6], 'scale', [[s(0.5)], [s(2.0)], [s(1.5)]])
 
         return line2
     # end build_second_line
@@ -120,21 +93,15 @@ class LineAnimation(Animation):
         Build the three lines.
         """
         # Create an ARC on upper left
-        line3 = Line(
-            start=coord_system.lower_left_square - Point2D(0.75, 0.75),
-            end=coord_system.lower_left_square + Point2D(0.75, 0.75),
+        line3 = Line.from_objects(
+            start=coord_system.lls - p2(0.75, 0.75),
+            end=coord_system.lls + p2(0.75, 0.75),
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.LINE_WIDTH)
+            line_width=s(self.LINE_WIDTH)
         )
 
         # Change value of scale
-        self.animate(
-            Call(
-                line3.rotate,
-                times=[2, 4, 6],
-                values=[[Scalar(math.pi / 2.0)], [Scalar(math.pi / 2.0)], [Scalar(math.pi / 2.0)]],
-            )
-        )
+        line3.call([2, 4, 6], 'rotate', [[s(math.pi / 2.0)], [s(math.pi / 2.0)], [s(math.pi / 2.0)]])
 
         return line3
     # end build_three_lines
@@ -149,20 +116,14 @@ class LineAnimation(Animation):
         """
         # Create an ARC on upper left
         line4 = Line.from_objects(
-            start=coord_system.lower_right_square - Point2D(0.75, 0.75),
-            end=coord_system.lower_right_square + Point2D(0.75, 0.75),
+            start=coord_system.lrs - p2(0.75, 0.75),
+            end=coord_system.lrs + p2(0.75, 0.75),
             line_color=utils.RED.copy(),
-            line_width=Scalar(self.LINE_WIDTH)
+            line_width=s(self.LINE_WIDTH)
         )
 
         # Change value of scale
-        self.animate(
-            Call(
-                line4.translate,
-                times=[2, 4, 6],
-                values=[[Point2D(0.1, 0.1)], [Point2D(0.1, 0.1)], [Point2D(0.1, 0.1)]],
-            )
-        )
+        line4.call([2, 4, 6], 'translate', [[p2(0.1, 0.1)], [p2(0.1, 0.1)], [p2(0.1, 0.1)]])
 
         return line4
     # end build_fourth_line

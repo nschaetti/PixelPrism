@@ -61,16 +61,16 @@ class PathAnimation(Animation):
         """
         # Curve control points
         control_points = [
-            coord_system.upper_left_square + p2(self.PATH_SIZE, 0),
-            coord_system.upper_left_square + p2(0, self.PATH_SIZE),
+            coord_system.uls + p2(self.PATH_SIZE, 0),
+            coord_system.uls + p2(0, self.PATH_SIZE),
             p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 2.0),
             p2(0, self.PATH_SIZE / 2.0),
-            coord_system.upper_left_square + p2(0, -self.PATH_SIZE)
+            coord_system.uls + p2(0, -self.PATH_SIZE)
         ]
 
         # Subpath control points
         subpath_control_points = [
-            coord_system.upper_left_square +  p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0)
+            coord_system.uls +  p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0)
         ]
 
         # Create path segment
@@ -78,8 +78,8 @@ class PathAnimation(Animation):
             start=control_points[0],
             elements=[
                 PathLine(control_points[0], control_points[1]),
-                PathArc(center=coord_system.upper_left_square, radius=s(self.PATH_SIZE), start_angle=s(math.pi / 2), end_angle=s(math.pi)),
-                PathBezierCubic(start=coord_system.upper_left_square + p2(-self.PATH_SIZE, 0), control1=control_points[2], control2=control_points[3], end=control_points[4])
+                PathArc(center=coord_system.uls, radius=s(self.PATH_SIZE), start_angle=s(math.pi / 2), end_angle=s(math.pi)),
+                PathBezierCubic(start=coord_system.uls + p2(-self.PATH_SIZE, 0), control1=control_points[2], control2=control_points[3], end=control_points[4])
             ]
         )
 
@@ -99,71 +99,13 @@ class PathAnimation(Animation):
             closed_path=True
         )
 
-        # Moving rectangle
-        self.animate(
-            Move(
-                subpath_control_points[0],
-                start_time=0,
-                end_time=8,
-                target_value=coord_system.upper_left_square + p2(-self.PATH_SIZE * 1.5   , -self.PATH_SIZE / 4.0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Moving starting point
-        self.animate(
-            Move(
-                control_points[0],
-                start_time=0,
-                end_time=4,
-                target_value=coord_system.upper_left_square + p2(self.PATH_SIZE * 1.5, 0),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Moving point 2
-        self.animate(
-            Move(
-                control_points[1],
-                start_time=0,
-                end_time=4,
-                target_value=coord_system.upper_left_square + p2(0, self.PATH_SIZE * 1.5),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Moving control 1
-        self.animate(
-            Move(
-                control_points[2],
-                start_time=0,
-                end_time=4,
-                target_value=p2(0, -self.PATH_SIZE),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Moving control 1
-        self.animate(
-            Move(
-                control_points[3],
-                start_time=4,
-                end_time=8,
-                target_value=p2(0, -self.PATH_SIZE),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
-
-        # Moving end
-        self.animate(
-            Move(
-                control_points[4],
-                start_time=0,
-                end_time=8,
-                target_value=coord_system.upper_left_square + p2(self.PATH_SIZE * 0.5, -self.PATH_SIZE),
-                interpolator=EaseInOutInterpolator()
-            )
-        )
+        # Moving animation
+        subpath_control_points[0].move(8, coord_system.uls + p2(-self.PATH_SIZE * 1.5, -self.PATH_SIZE / 4.0))
+        control_points[0].move(4, coord_system.uls + p2(self.PATH_SIZE * 1.5, 0))
+        control_points[1].move(4, coord_system.uls + p2(0, self.PATH_SIZE * 1.5))
+        control_points[2].move(4, p2(0, -self.PATH_SIZE))
+        control_points[3].move(4, p2(0, -self.PATH_SIZE), 4)
+        control_points[4].move(8, coord_system.uls + p2(self.PATH_SIZE * 0.5, -self.PATH_SIZE))
 
         return path1
     # end build_first_path
@@ -181,30 +123,30 @@ class PathAnimation(Animation):
         """
         # Create path segment
         path_segment = PathSegment.from_objects(
-            start=coord_system.upper_right_square + p2(self.PATH_SIZE, 0),
+            start=coord_system.urs + p2(self.PATH_SIZE, 0),
             elements=[
                 PathLine(
-                    coord_system.upper_right_square + p2(self.PATH_SIZE, 0),
-                    coord_system.upper_right_square + p2(0, self.PATH_SIZE)
+                    coord_system.urs + p2(self.PATH_SIZE, 0),
+                    coord_system.urs + p2(0, self.PATH_SIZE)
                 ),
                 PathArc(
-                    center=coord_system.upper_right_square,
+                    center=coord_system.urs,
                     radius=s(self.PATH_SIZE),
                     start_angle=s(math.pi / 2),
                     end_angle=s(math.pi)
                 ),
                 PathBezierCubic(
-                    start=coord_system.upper_right_square + p2(-self.PATH_SIZE, 0),
+                    start=coord_system.urs + p2(-self.PATH_SIZE, 0),
                     control1=p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 2.0),
                     control2=p2(0, self.PATH_SIZE / 2.0),
-                    end=coord_system.upper_right_square + p2(0, -self.PATH_SIZE)
+                    end=coord_system.urs + p2(0, -self.PATH_SIZE)
                 )
             ]
         )
 
         # Rectangle
         rectangle = PathSegment.rectangle(
-            lower_left=coord_system.upper_right_square + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
+            lower_left=coord_system.urs + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
             width=Scalar(self.PATH_SIZE),
             height=Scalar(self.PATH_SIZE / 2.0)
         )
@@ -225,7 +167,7 @@ class PathAnimation(Animation):
                 path_segment,
                 start_time=0,
                 end_time=8,
-                target_value=coord_system.upper_right_square + p2(self.PATH_SIZE - 0.5, 0),
+                target_value=coord_system.urs + p2(self.PATH_SIZE - 0.5, 0),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -236,7 +178,7 @@ class PathAnimation(Animation):
                 rectangle,
                 start_time=0,
                 end_time=8,
-                target_value=coord_system.upper_right_square + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0 + 0.4),
+                target_value=coord_system.urs + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0 + 0.4),
                 interpolator=EaseInOutInterpolator()
             )
         )
@@ -257,30 +199,30 @@ class PathAnimation(Animation):
         """
         # Create path segment
         path_segment = PathSegment.from_objects(
-            start=coord_system.lower_left_square + p2(self.PATH_SIZE, 0),
+            start=coord_system.lls + p2(self.PATH_SIZE, 0),
             elements=[
                 PathLine(
-                    coord_system.lower_left_square + p2(self.PATH_SIZE, 0),
-                    coord_system.lower_left_square + p2(0, self.PATH_SIZE)
+                    coord_system.lls + p2(self.PATH_SIZE, 0),
+                    coord_system.lls + p2(0, self.PATH_SIZE)
                 ),
                 PathArc(
-                    center=coord_system.lower_left_square,
+                    center=coord_system.lls,
                     radius=s(self.PATH_SIZE),
                     start_angle=s(math.pi / 2),
                     end_angle=s(math.pi)
                 ),
                 PathBezierCubic(
-                    start=coord_system.lower_left_square + p2(-self.PATH_SIZE, 0),
+                    start=coord_system.lls + p2(-self.PATH_SIZE, 0),
                     control1=p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 2.0),
                     control2=p2(0, self.PATH_SIZE / 2.0),
-                    end=coord_system.lower_left_square + p2(0, -self.PATH_SIZE)
+                    end=coord_system.lls + p2(0, -self.PATH_SIZE)
                 )
             ]
         )
 
         # Rectangle
         rectangle = PathSegment.rectangle(
-            lower_left=coord_system.lower_left_square + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
+            lower_left=coord_system.lls + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
             width=Scalar(self.PATH_SIZE),
             height=Scalar(self.PATH_SIZE / 2.0)
         )
@@ -303,7 +245,7 @@ class PathAnimation(Animation):
                 end_time=8,
                 target_value=math.pi * 2.0,
                 interpolator=EaseInOutInterpolator(),
-                center=coord_system.lower_left_square
+                center=coord_system.lls
             )
         )
 
@@ -315,7 +257,7 @@ class PathAnimation(Animation):
                 end_time=8,
                 target_value=-math.pi * 2.0,
                 interpolator=EaseInOutInterpolator(),
-                center=coord_system.lower_left_square
+                center=coord_system.lls
             )
         )
 
@@ -335,30 +277,30 @@ class PathAnimation(Animation):
         """
         # Create path segment
         path_segment = PathSegment.from_objects(
-            start=coord_system.lower_right_square + p2(self.PATH_SIZE, 0),
+            start=coord_system.lrs + p2(self.PATH_SIZE, 0),
             elements=[
                 PathLine(
-                    coord_system.lower_right_square + p2(self.PATH_SIZE, 0),
-                    coord_system.lower_right_square + p2(0, self.PATH_SIZE)
+                    coord_system.lrs + p2(self.PATH_SIZE, 0),
+                    coord_system.lrs + p2(0, self.PATH_SIZE)
                 ),
                 PathArc(
-                    center=coord_system.lower_right_square.copy(),
+                    center=coord_system.lrs.copy(),
                     radius=s(self.PATH_SIZE),
                     start_angle=s(math.pi / 2),
                     end_angle=s(math.pi)
                 ),
                 PathBezierCubic(
-                    start=coord_system.lower_right_square + p2(-self.PATH_SIZE, 0),
+                    start=coord_system.lrs + p2(-self.PATH_SIZE, 0),
                     control1=p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 2.0),
                     control2=p2(0, self.PATH_SIZE / 2.0),
-                    end=coord_system.lower_right_square + p2(0, -self.PATH_SIZE)
+                    end=coord_system.lrs + p2(0, -self.PATH_SIZE)
                 )
             ]
         )
 
         # Rectangle
         rectangle = PathSegment.rectangle(
-            lower_left=coord_system.lower_right_square + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
+            lower_left=coord_system.lrs + p2(-self.PATH_SIZE / 2.0, -self.PATH_SIZE / 4.0),
             width=Scalar(self.PATH_SIZE),
             height=Scalar(self.PATH_SIZE / 2.0)
         )

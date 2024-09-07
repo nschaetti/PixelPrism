@@ -18,6 +18,7 @@
 #
 # This file contains the Point2D class, which is a simple class that
 # represents a point in 2D space.
+#
 
 # Imports
 import math
@@ -37,11 +38,14 @@ class Point(Data, EventMixin, MovableMixin):
     """
 
     # Constructor
-    def __init__(self):
+    def __init__(self, readonly: bool = False):
         """
         Constructor
+
+        Args:
+            readonly (bool): If the point is read-only
         """
-        Data.__init__(self)
+        Data.__init__(self, readonly=readonly)
         EventMixin.__init__(self)
         MovableMixin.__init__(self)
     # end __init__
@@ -59,6 +63,7 @@ class Point2D(Point):
             x=0,
             y=0,
             on_change=None,
+            readonly: bool = False,
             dtype=np.float32
     ):
         """
@@ -67,8 +72,11 @@ class Point2D(Point):
         Args:
             x (float): X-coordinate of the point
             y (float): Y-coordinate of the point
+            on_change (function): Function to call when the point changes
+            readonly (bool): If the point is read-only
+            dtype (type): Data type of the point
         """
-        super().__init__()
+        super().__init__(readonly=readonly)
         self._pos = np.array([x, y], dtype=dtype)
 
         # Movable
@@ -174,6 +182,7 @@ class Point2D(Point):
             x (float or Scalar): X-coordinate of the point
             y (float or Scalar): Y-coordinate of the point
         """
+        self.check_closed()
         self._pos[0] = x.value if type(x) is Scalar else x
         self._pos[1] = y.value if type(y) is Scalar else y
         self.dispatch_event("on_change", ObjectChangedEvent(self, x=self._pos[0], y=self._pos[1]))
@@ -189,11 +198,21 @@ class Point2D(Point):
         return self._pos[0], self._pos[1]
     # end get
 
-    def copy(self):
+    def copy(self, on_change = None, readonly: bool = False):
         """
         Return a copy of the point.
+
+        Args:
+            on_change: Copy changes also ?
+            readonly (bool): If the copy should be read-only
         """
-        return Point2D(x=self.x, y=self.y, dtype=self._pos.dtype)
+        return Point2D(
+            x=self.x,
+            y=self.y,
+            on_change=on_change,
+            readonly=readonly,
+            dtype=self._pos.dtype
+        )
     # end copy
 
     # Euclidian norm of the point
@@ -362,7 +381,7 @@ class Point2D(Point):
         """
         Return a string representation of the point.
         """
-        return f"Point2D(x={self.x}, y={self.y})"
+        return f"Point2D(x={self.x}, y={self.y}, closed={self.data_closed})"
     # end __str__
 
     # Return a string representation of the point.
@@ -682,16 +701,18 @@ class Point3D(Point):
     A class to represent a point in 3D space.
     """
 
-    def __init__(self, x=0, y=0, z=0, dtype=np.float32):
+    def __init__(self, x=0, y=0, z=0, readonly: bool = False, dtype=np.float32):
         """
         Initialize the point with its coordinates.
 
         Args:
             x (float): X-coordinate of the point
             y (float): Y-coordinate of the point
-            z (float): Z-coordinate of the point
+            z (float): Z-coordinate of the poin
+            readonly (bool): If the point is read-only
+            dtype (type): Data type of the point
         """
-        super().__init__()
+        super().__init__(readonly=readonly)
         self.pos = np.array([x, y, z], dtype=dtype)
     # end __init__
 
@@ -765,6 +786,7 @@ class Point3D(Point):
         Args:
             pos (np.array): Tuple containing the X, Y, and Z coordinates of the point
         """
+        self.check_closed()
         self.pos = pos
     # end set
 

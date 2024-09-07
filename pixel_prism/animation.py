@@ -61,6 +61,7 @@ def find_animable_mixins(obj, visited=None):
 
     # Avoid revisiting objects that have already been inspected (to prevent infinite recursion)
     if id(obj) in visited:
+        print(f"Already visited: {obj}")
         return []
     # end if
 
@@ -75,23 +76,45 @@ def find_animable_mixins(obj, visited=None):
         animable_objects.append(obj)
     # end if
 
-    # Iterate over all attributes of the object
-    for attr_name in dir(obj):
-        try:
-            attr_value = getattr(obj, attr_name)
+    # Check if object is for inspection
+    def is_animeclass(obj):
+        return hasattr(obj.__class__, '_inspect_for_propagation') and obj.__class__.is_animeclass()
+    # end is_animeclass
 
-            # If the attribute is an object and an instance of AnimableMixin, process it recursively
-            if isinstance(attr_value, AnimableMixin):
-                animable_objects.extend(find_animable_mixins(attr_value, visited))
-            # end if
-        except AttributeError:
-            # Ignore attributes that cannot be accessed
-            continue
-        except NotImplementedError:
-            # Ignore attributes that raise NotImplementedError
-            continue
-        # end try
-    # end for
+    # Get animeclass attributes
+    def animeclass_attributes(obj):
+        return obj.__class__.animeclass_attributes()
+    # end animaclass_attributes
+
+    # Check if the class of this object is marked for inspection with @animeclass
+    if is_animeclass(obj):
+        # Iterate over the attributes marked with @animeattribut in the class
+        for attr_name in animeclass_attributes(obj):
+            try:
+                # Get the attribute value
+                attr_value = getattr(obj, attr_name)
+
+                # If the attribute is a list, propagate through the list elements
+                if isinstance(attr_value, list):
+                    for item in attr_value:
+                        animable_objects.extend(find_animable_mixins(item, visited))
+                    # end for
+                # end if
+                # If the attribute is a dictionary, propagate through the values
+                elif isinstance(attr_value, dict):
+                    for key, value in attr_value.items():
+                        animable_objects.extend(find_animable_mixins(value, visited))
+                    # end for
+                # If the attribute itself is an animeclass, propagate it
+                else:
+                    animable_objects.extend(find_animable_mixins(attr_value, visited))
+                # end if
+            except AttributeError:
+                # Ignore attributes that cannot be accessed
+                continue
+            # end try
+        # end for
+    # end if
 
     return animable_objects
 # end find_animable_mixins
@@ -421,6 +444,9 @@ class Animation:
         Returns:
             object: Object
         """
+        if name not in self.objects:
+            raise ValueError(f"Object not found: {name}")
+        # end if
         return self.objects.get(name)
     # end get_object
 

@@ -23,6 +23,7 @@ from pixel_prism.animate import MovableMixin
 from pixel_prism.animate import FadeableMixin
 from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
 import pixel_prism.utils as utils
+from . import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
 from ..base import Context
@@ -64,8 +65,9 @@ class Circle(
         """
         # Constructors
         DrawableMixin.__init__(self)
-        MovableMixin.__init__(self)
         EventMixin.__init__(self)
+        MovableMixin.__init__(self)
+        FadeableMixin.__init__(self)
 
         # Position and radius
         self._position = position
@@ -76,6 +78,9 @@ class Circle(
         self._fill = fill
         self._line_color = line_color
         self._line_width = line_width
+
+        # Bounding box
+        BoundingBoxMixin.__init__(self)
 
         # Update points
         self.update_points()
@@ -284,6 +289,21 @@ class Circle(
     # end update_points
 
     # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _create_bbox(self):
+        """
+        Create the bounding box of the circle.
+        """
+        return BoundingBox(
+            upper_left=Point2D(self.position.x - self.radius.value, self.position.y - self.radius.value),
+            width=self.radius.value * 2.0,
+            height=self.radius.value * 2.0
+        )
+    # end _create_bbox
+
+    # endregion PRIVATE
 
     # region DRAW
 

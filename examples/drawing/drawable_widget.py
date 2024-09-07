@@ -51,7 +51,7 @@ class DrawableWidgetAnimation(Animation):
         viewport.add_widget(drawable_widget)
 
         # Position of the circle
-        circle_position = coord_system.upper_left_square.copy()
+        circle_position = coord_system.uls.copy()
 
         # Add points and lines
         circle1 = Circle(position=circle_position, radius=s(0.04), line_width=s(0.02), fill_color=c('RED').copy(), line_color=c('YELLOW').copy())
@@ -62,22 +62,11 @@ class DrawableWidgetAnimation(Animation):
         drawable_widget.add(circle1)
 
         # Animate point 1
-        self.animate(
-            circle1
-            .fadein(1)
-            .move(2, coord_system.upper_right_square)
-            .move(2, coord_system.lower_right_square)
-            .move(2, coord_system.lower_left_square)
-            .move(2, coord_system.upper_left_square)
-            .fadeout(1)
-        )
+        anim = circle1.fadein(1).move(2, coord_system.urs).move(2, coord_system.lrs).move(2, coord_system.lls)
+        anim.move(2, coord_system.uls).fadeout(1)
 
         # Animate line
-        self.animate(
-            line
-            .fadein(1)
-            .fadeout(1, 9)
-        )
+        line.fadein(1).fadeout(1, 9)
 
         # Add objects
         self.add(

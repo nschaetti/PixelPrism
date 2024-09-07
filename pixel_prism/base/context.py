@@ -360,7 +360,11 @@ class Context:
         Args:
             color (Color): Color
         """
-        self.context.set_source_rgb(color.red, color.green, color.blue)
+        self.context.set_source_rgb(
+            color.red.value,
+            color.green.value,
+            color.blue.value
+        )
     # end set_source_rgb
 
     def set_source_rgba(self, color: Color) -> None:
@@ -370,10 +374,15 @@ class Context:
         Args:
             color (Color): Color
         """
-        self.context.set_source_rgba(color.red, color.green, color.blue, color.alpha)
+        self.context.set_source_rgba(
+            color.red.value,
+            color.green.value,
+            color.blue.value,
+            color.alpha.value
+        )
     # end set_source_rgba
 
-    def set_source_rgb_alpha(self, color: Color, alpha: float) -> None:
+    def set_source_rgb_alpha(self, color: Color, alpha: Union[float, Scalar]) -> None:
         """
         Set the source RGB with alpha.
 
@@ -381,7 +390,12 @@ class Context:
             color (Color): Color
             alpha (float): Alpha
         """
-        self.context.set_source_rgba(color.red, color.green, color.blue, alpha)
+        self.context.set_source_rgba(
+            color.red.value,
+            color.green.value,
+            color.blue.value,
+            alpha if isinstance(alpha, float) else alpha.value
+        )
     # end set_source_rgb_alpha
 
     # Setup context

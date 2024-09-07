@@ -48,6 +48,12 @@ from .changes import (
     Call
 )
 
+# Decorators
+from .decorators import (
+    animeclass,
+    animeattr
+)
+
 # Fade
 from .fade import (
     FadeableMixin,
@@ -79,6 +85,9 @@ __all__ = [
     "RangeableMixin",
     "MovableMixin",
     "CallableMixin",
+    # Decorators
+    "animeclass",
+    "animeattr",
     # Animate
     "Animate",
     "Animator",

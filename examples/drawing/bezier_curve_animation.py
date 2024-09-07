@@ -14,21 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import math
 
 #
 # Animation of an equation.
 # Build and highlight
 #
+
+# Imports
+import math
 from pixel_prism import p2, s, c
-from pixel_prism import utils
 from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
-from pixel_prism.drawing import MathTex, Arc, QuadraticBezierCurve, CubicBezierCurve
-from pixel_prism.data import Point2D, Scalar
+from pixel_prism.drawing import CubicBezierCurve
+from pixel_prism.data import Scalar
 
 
 # DrawableWidgetAnimation class
@@ -51,34 +51,18 @@ class CurveAnimation(Animation):
         """
         # Create an ARC on upper left
         curve1 = CubicBezierCurve.from_objects(
-            start=coord_system.upper_left_square - p2(1.5, 1),
+            start=coord_system.uls - p2(1.5, 1),
             control1=p2(0.5, 0.5),
             control2=p2(-0.5, -0.5),
-            end=coord_system.upper_left_square + p2(1.5, 0),
+            end=coord_system.uls + p2(1.5, 0),
             line_color=c('WHITE').copy(),
             line_width=s(self.CURVE_LINE_WIDTH)
         )
 
         # Animate start
-        self.animate(
-            curve1.start
-            .move(4, coord_system.upper_left_square - p2(1.5, -1))
-            .move(4, coord_system.upper_left_square - p2(1.5, 1))
-        )
-
-        # Animate control2
-        self.animate(
-            curve1.control2
-            .move(4, p2(0.5, 0.5))
-            .move(8, p2(-0.5, -0.5))
-        )
-
-        # Animate control1
-        self.animate(
-            curve1.control1
-            .move(4, p2(-0.5, -0.5))
-            .move(4, p2(0.5, 0.5))
-        )
+        curve1.start.move(4, coord_system.uls - p2(1.5, -1)).move(4, coord_system.uls - p2(1.5, 1))
+        curve1.control2.move(4, p2(0.5, 0.5)).move(8, p2(-0.5, -0.5))
+        curve1.control1.move(4, p2(-0.5, -0.5)).move(4, p2(0.5, 0.5))
 
         return curve1
     # end build_first_curve
@@ -93,20 +77,16 @@ class CurveAnimation(Animation):
         """
         # Create an ARC on upper left
         curve2 = CubicBezierCurve.from_objects(
-            start=coord_system.upper_right_square - p2(2, 1),
+            start=coord_system.urs - p2(2, 1),
             control1=p2(0.0, 1.0),
             control2=p2(0.0, 1.0),
-            end=coord_system.upper_right_square + p2(0, -1),
+            end=coord_system.urs + p2(0, -1),
             line_color=c('WHITE').copy(),
             line_width=s(self.CURVE_LINE_WIDTH)
         )
 
         # Animate start
-        self.animate(
-            curve2
-            .move(4, coord_system.upper_right_square - p2(2, 1) + p2(2, 0))
-            .move(4, coord_system.upper_right_square - p2(2, 1))
-        )
+        curve2.move(4, coord_system.urs - p2(2, 1) + p2(2, 0)).move(4, coord_system.urs - p2(2, 1))
 
         return curve2
     # end build_second_curve
@@ -125,10 +105,10 @@ class CurveAnimation(Animation):
 
         # Create an ARC on upper left
         curve3 = CubicBezierCurve.from_objects(
-            start=coord_system.lower_left_square + p2(-1, -1),
+            start=coord_system.lls + p2(-1, -1),
             control1=p2(0.0, 1.0),
             control2=p2(0.0, -1.0),
-            end=coord_system.lower_left_square + p2(1, 1),
+            end=coord_system.lls + p2(1, 1),
             position=position,
             length=length,
             line_color=c('WHITE').copy(),
@@ -136,14 +116,8 @@ class CurveAnimation(Animation):
         )
 
         # Animate position
-        self.animate(
-            position
-            .range(4, s(0.5))
-            .range(4, s(0.0))
-        )
-
-        # Animate length
-        self.animate(length.range(4, s(1.0), 4))
+        position.range(4, s(0.5)).range(4, s(0.0))
+        length.range(4, s(1.0), 4)
 
         return curve3
     # end build_third_curve
@@ -161,10 +135,10 @@ class CurveAnimation(Animation):
         length = s(0.25)
 
         curve4 = CubicBezierCurve.from_objects(
-            start=coord_system.lower_right_square - p2(1.5, 0.5),
+            start=coord_system.lrs - p2(1.5, 0.5),
             control1=p2(0.0, 1.0),
             control2=p2(0.0, 1.0),
-            end=coord_system.lower_right_square + p2(0, -0.5),
+            end=coord_system.lrs + p2(0, -0.5),
             position=position,
             length=length,
             line_color=c('WHITE').copy(),
@@ -172,12 +146,12 @@ class CurveAnimation(Animation):
         )
 
         # Translate, rotate and scale
-        self.animate(curve4.call([2, 7], 'translate', [[p2(1.0, 0.0)], [p2(-1.0, 0.0)]]))
-        self.animate(curve4.call([3, 6], 'rotate', [[s(math.pi / 4.0), p2(1.89, -1.67)], [s(-math.pi / 4.0), p2(1.89, -1.67)]]))
-        self.animate(curve4.call([4, 5], 'scale', [[s(1.5), p2(1.89, -1.67)], [s(0.6666666), p2(1.89, -1.67)]]))
+        curve4.call([2, 7], 'translate', [[p2(1.0, 0.0)], [p2(-1.0, 0.0)]])
+        curve4.call([3, 6], 'rotate', [[s(math.pi / 4.0), p2(1.89, -1.67)], [s(-math.pi / 4.0), p2(1.89, -1.67)]])
+        curve4.call([4, 5], 'scale', [[s(1.5), p2(1.89, -1.67)], [s(0.6666666), p2(1.89, -1.67)]])
 
         # Animate position
-        self.animate(length.range(8, s(1.0)))
+        length.range(8, s(1.0))
 
         return curve4
     # end build_fourth_curve

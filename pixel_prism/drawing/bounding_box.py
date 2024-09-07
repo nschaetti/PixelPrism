@@ -17,6 +17,7 @@
 
 # Imports
 from typing import Tuple, Any
+from pixel_prism import c
 from pixel_prism.data import Point2D, Scalar, Color
 import pixel_prism.utils as utils
 from .drawablemixin import DrawableMixin
@@ -162,7 +163,8 @@ class BoundingBox(DrawableMixin):
             point_size,
             point_size
         )
-        context.set_source_rgba(Color(255, 255, 255, 1))
+        # context.set_source_rgba(Color.from_value(255, 255, 255, 1))
+        context.set_source_rgba(c('WHITE'))
         context.fill()
 
         # Draw upper left position
@@ -172,7 +174,7 @@ class BoundingBox(DrawableMixin):
             point_size,
             point_size
         )
-        context.set_source_rgba(Color(255, 255, 255, 1))
+        context.set_source_rgba(c('WHITE'))
         context.fill()
 
         # Draw text upper left

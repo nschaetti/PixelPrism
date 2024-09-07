@@ -21,6 +21,67 @@ class Data:
     A data class that holds data.
     """
 
+    def __init__(self, readonly: bool = False):
+        """
+        Initialize the data.
+        """
+        # Data closed ?
+        self._data_closed = readonly
+    # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def data_closed(self) -> bool:
+        """
+        Data closed property.
+        """
+        return self._data_closed
+    # end data_closed
+
+    @data_closed.setter
+    def data_closed(self, value: bool):
+        """
+        Data closed property.
+        """
+        self._data_closed = value
+    # end data_closed
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    # Check closed
+    def check_closed(self):
+        """
+        Check if the data is closed.
+
+        Args:
+            must_be_closed (bool): Must be closed
+        """
+        if self.data_closed:
+            raise ValueError(f"{self.__class__.__name__} is read only !")
+        # end if
+    # end check_closed
+
+    # Close data
+    def readonly(self):
+        """
+        Close the data.
+        """
+        self.data_closed = True
+    # end data_close
+
+    # Open data
+    def readwrite(self):
+        """
+        Open the data.
+        """
+        self.data_closed = False
+    # end data_open
+
+    # open
+
     def set(self, *args, **kwargs):
         """
         Set the scalar value.
@@ -38,12 +99,14 @@ class Data:
         raise NotImplementedError(f"{self.__class__.__name__}.get method must be implemented in subclass.")
     # end get
 
-    def copy(self):
+    def copy(self, *args, **kwargs):
         """
         Return a copy of the data.
         """
         raise NotImplementedError(f"{self.__class__.__name__}.copy method must be implemented in subclass.")
     # end copy
+
+    # endregion PUBLIC
 
     def __str__(self):
         """

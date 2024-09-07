@@ -17,7 +17,7 @@
 
 # Imports
 import cairo
-from pixel_prism.data import Point2D
+from pixel_prism.data import Point2D as p2
 
 
 # Coordinate system
@@ -46,15 +46,19 @@ class CoordSystem:
         self._x_range, self._y_range = self._compute_ranges()
 
         # Points
-        self.center = Point2D(0, 0)
-        self.upper_right = Point2D(self.width / 2, self.height / 2)
-        self.upper_right_square = Point2D(self.width / 4, self.height / 4)
-        self.lower_right = Point2D(self.width / 2, -self.height / 2)
-        self.lower_right_square = Point2D(self.width / 4, -self.height / 4)
-        self.lower_left = Point2D(-self.width / 2, -self.height / 2)
-        self.lower_left_square = Point2D(-self.width / 4, -self.height / 4)
-        self.upper_left = Point2D(-self.width / 2, self.height / 2)
-        self.upper_left_square = Point2D(-self.width / 4, self.height / 4)
+        self.center = p2(0, 0, readonly=True)
+        self.upper_right = self.ur = p2(self.width / 2, self.height / 2, readonly=True)
+        self.upper_right_square = self.urs = p2(self.width / 4, self.height / 4, readonly=True)
+        self.lower_right = self.lr = p2(self.width / 2, -self.height / 2, readonly=True)
+        self.lower_right_square = self.lrs = p2(self.width / 4, -self.height / 4, readonly=True)
+        self.lower_left = self.ll = p2(-self.width / 2, -self.height / 2, readonly=True)
+        self.lower_left_square = self.lls = p2(-self.width / 4, -self.height / 4, readonly=True)
+        self.upper_left = self.ul = p2(-self.width / 2, self.height / 2, readonly=True)
+        self.upper_left_square = self.uls = p2(-self.width / 4, self.height / 4, readonly=True)
+        self.middle_bottom = self.mb = p2(0, -self.height / 2, readonly=True)
+        self.middle_top = self.mt = p2(0, self.height / 2, readonly=True)
+        self.middle_left = self.ml = p2(-self.width / 2, 0, readonly=True)
+        self.middle_right = self.mr = p2(self.width / 2, 0, readonly=True)
     # end __init__
 
     # region PROPERTIES

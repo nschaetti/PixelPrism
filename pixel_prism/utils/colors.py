@@ -17,20 +17,37 @@
 
 # Imports
 import random
-from pixel_prism.data import Color
+from pixel_prism.data import Color, Scalar as s
 
 
 # Colors
-RED = Color(255, 0, 0)
-GREEN = Color(0, 255, 0)
-BLUE = Color(0, 0, 255)
-WHITE = Color(255, 255, 255)
-BLACK = Color(0, 0, 0)
-YELLOW = Color(255, 255, 0)
-MAGENTA = Color(255, 0, 255)
-DARK_CYAN = Color(0, 139, 139)
-TEAL = Color(0, 128, 128)
-DARK_SLATE_GRAY = Color(47, 79, 79)
+RED = Color.from_objects(s(255), s(0), s(0), readonly=True)
+GREEN = Color.from_objects(s(0), s(255), s(0), readonly=True)
+BLUE = Color.from_objects(s(0), s(0), s(255), readonly=True)
+WHITE = Color.from_objects(s(255), s(255), s(255), readonly=True)
+BLACK = Color.from_objects(s(0), s(0), s(0), readonly=True)
+YELLOW = Color.from_objects(s(255), s(255), s(0), readonly=True)
+MAGENTA = Color.from_objects(s(255), s(0), s(255), readonly=True)
+DARK_CYAN = Color.from_objects(s(0), s(139), s(139), readonly=True)
+TEAL = Color.from_objects(s(0), s(128), s(128), readonly=True)
+DARK_SLATE_GRAY = Color.from_objects(s(47), s(79), s(79), readonly=True)
+ORANGE = Color.from_objects(s(255), s(165), s(0), readonly=True)
+PURPLE = Color.from_objects(s(128), s(0), s(128), readonly=True)
+PINK = Color.from_objects(s(255), s(192), s(203), readonly=True)
+BROWN = Color.from_objects(s(165), s(42), s(42), readonly=True)
+LIGHT_GRAY = Color.from_objects(s(211), s(211), s(211), readonly=True)
+DARK_GRAY = Color.from_objects(s(169), s(169), s(169), readonly=True)
+CYAN = Color.from_objects(s(0), s(255), s(255), readonly=True)
+LIME = Color.from_objects(s(50), s(205), s(50), readonly=True)
+GOLD = Color.from_objects(s(255), s(215), s(0), readonly=True)
+INDIGO = Color.from_objects(s(75), s(0), s(130), readonly=True)
+SILVER = Color.from_objects(s(192), s(192), s(192), readonly=True)
+MAROON = Color.from_objects(s(128), s(0), s(0), readonly=True)
+NAVY = Color.from_objects(s(0), s(0), s(128), readonly=True)
+OLIVE = Color.from_objects(s(128), s(128), s(0), readonly=True)
+TURQUOISE = Color.from_objects(s(64), s(224), s(208), readonly=True)
+VIOLET = Color.from_objects(s(238), s(130), s(238), readonly=True)
+SALMON = Color.from_objects(s(250), s(128), s(114), readonly=True)
 
 # Colors
 colors = [
@@ -43,7 +60,24 @@ colors = [
     MAGENTA,
     DARK_CYAN,
     TEAL,
-    DARK_SLATE_GRAY
+    DARK_SLATE_GRAY,
+    ORANGE,
+    PURPLE,
+    PINK,
+    BROWN,
+    LIGHT_GRAY,
+    DARK_GRAY,
+    CYAN,
+    LIME,
+    GOLD,
+    INDIGO,
+    SILVER,
+    MAROON,
+    NAVY,
+    OLIVE,
+    TURQUOISE,
+    VIOLET,
+    SALMON
 ]
 
 

@@ -1,14 +1,30 @@
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
 # PixelPrism
 import numpy as np
-from pixel_prism import p2, s
+from pixel_prism import p2, s, c
 from pixel_prism.animation import Animation
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixel_prism.drawing import Line
 from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut, Range
-from pixel_prism.data import Point2D, Scalar
+from pixel_prism.data import Point2D, Scalar, Color
 
 
 # JoinedLinesAnimation class
@@ -38,30 +54,33 @@ class JoinedLinesAnimation(Animation):
         viewport.add_widget(drawable_widget)
 
         # Create a point and line
-        shared_point = coord_system.upper_left_square
+        shared_point = coord_system.uls.copy()
+
+        # Opacity and thickness
+        opacity = s(0.0)
+        thickness = s(0.02)
+        cyan = c("CYAN")
+        line_color = Color.from_objects(s(cyan.red), s(cyan.green), s(cyan.blue), opacity)
 
         # Two lines
-        line1 = Line.from_objects(shared_point, coord_system.upper_right_square)
-        line2 = Line.from_objects(shared_point, coord_system.lower_right_square)
+        line1 = Line.from_objects(shared_point, coord_system.urs, line_width=thickness, line_color=line_color)
+        line2 = Line.from_objects(shared_point, coord_system.lrs, line_width=thickness, line_color=line_color)
 
         # Add the lines to the drawable widget
         drawable_widget.add(line1)
         drawable_widget.add(line2)
 
         # Animate shared point
-        anim = shared_point.move(2, coord_system.lower_left_square, 1).move(2, coord_system.center)
-        anim.move(2, coord_system.upper_left_square)
+        anim = shared_point.move(2, coord_system.lls, 1).move(2, coord_system.center)
+        anim.move(2, coord_system.uls)
 
-        # Animate opacity
-        self.animate(Range(opacity, 0, 1, 1.0, EaseInOutInterpolator()))
-        self.animate(Range(opacity, 7, 8, 0.0, EaseInOutInterpolator()))
-
-        # Animate thickness
-        self.animate(Range(thickness, 0, 4, 5, EaseInOutInterpolator()))
-        self.animate(Range(thickness, 4, 8, 2, EaseInOutInterpolator()))
+        # Animate opacity and thickness
+        opacity.range(1, s(1.0)).range(1, s(0.0), 7)
+        thickness.range(4, s(0.08)).range(4, s(0.02), 4)
 
         # Add
         self.add(
+            coord_system=coord_system,
             viewport=viewport,
             drawable_widget=drawable_widget,
             line1=line1,
@@ -85,7 +104,11 @@ class JoinedLinesAnimation(Animation):
             frame_number (int): Frame number
         """
         # Create a DrawableImage
-        drawing_layer = DrawableImage.transparent(self.width, self.height)
+        drawing_layer = DrawableImage.transparent(
+            self.width,
+            self.height,
+            coord_system=self.obj("coord_system")
+        )
 
         # Get the viewport and drawable widget
         viewport = self.obj("viewport")

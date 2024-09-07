@@ -16,12 +16,18 @@
 #
 
 # Imports
-import numpy as np
-from pixel_prism.animate import RangeableMixin
+from typing import Union
+from pixel_prism.animate import animeclass, animeattr
 from .data import Data
+from .scalar import Scalar
 from .eventmixin import EventMixin
 
 
+@animeattr("red")
+@animeattr("green")
+@animeattr("blue")
+@animeattr("alpha")
+@animeclass
 class Color(Data, EventMixin):
     """
     A class to represent a scalar value
@@ -29,24 +35,32 @@ class Color(Data, EventMixin):
 
     def __init__(
             self,
-            red=0,
-            green=0,
-            blue=0,
-            alpha=1.0,
-            on_change=None
+            red: Scalar = 0,
+            green: Scalar = 0,
+            blue: Scalar = 0,
+            alpha: Scalar = 1.0,
+            on_change=None,
+            readonly: bool = False
     ):
         """
         Initialize the scalar value.
 
         Args:
-            red (float): Red value
-            green (float): Green value
-            blue (float): Blue value
-            alpha (float): Alpha value
+            red (Scalar): Red value
+            green (Scalar): Green value
+            blue (Scalar): Blue value
+            alpha (Scalar): Alpha value
+            on_change (function): On change event
+            readonly (bool): Read-only flag
         """
-        Data.__init__(self)
+        Data.__init__(self, readonly=readonly)
         EventMixin.__init__(self)
-        self._value = np.array([red, green, blue, alpha])
+
+        # Properties
+        self._red = red
+        self._green = green
+        self._blue = blue
+        self._alpha = alpha
 
         # List of event listeners (per events)
         self.event_listeners = {
@@ -57,62 +71,62 @@ class Color(Data, EventMixin):
     # region PROPERTIES
 
     @property
-    def value(self):
-        """
-        Get the scalar value.
-        """
-        return self.get()
-    # end value
-
-    @value.setter
-    def value(self, value):
-        """
-        Set the scalar value.
-        """
-        self.set(value)
-    # end value
-
-    @property
     def red(self):
-        return self._value[0]
+        return self._red
     # end red
 
     @red.setter
     def red(self, value):
-        self._value[0] = value
+        self.check_closed()
+        if isinstance(value, Scalar):
+            value = value.value
+        # end if
+        self._red.value = value
         self.dispatch_event("on_change", value)
     # end red
 
     @property
     def green(self):
-        return self._value[1]
+        return self._green
     # end green
 
     @green.setter
     def green(self, value):
-        self._value[1] = value
+        self.check_closed()
+        if isinstance(value, Scalar):
+            value = value.value
+        # end if
+        self._green.value = value
         self.dispatch_event("on_change", value)
     # end green
 
     @property
     def blue(self):
-        return self._value[2]
+        return self._blue
     # end blue
 
     @blue.setter
     def blue(self, value):
-        self._value[2] = value
+        self.check_closed()
+        if isinstance(value, Scalar):
+            value = value.value
+        # end if
+        self._blue.value = value
         self.dispatch_event("on_change", value)
     # end blue
 
     @property
     def alpha(self):
-        return self._value[3]
+        return self._alpha
     # end alpha
 
     @alpha.setter
     def alpha(self, value):
-        self._value[3] = value
+        self.check_closed()
+        if isinstance(value, Scalar):
+            value = value.value
+        # end if
+        self._alpha.value = value
         self.dispatch_event("on_change", value)
     # end alpha
 
@@ -129,14 +143,16 @@ class Color(Data, EventMixin):
         """
         Make the color transparent.
         """
-        self.alpha = 0.0
+        self.check_closed()
+        self._alpha.value = 0.0
     # end transparent
 
     def opaque(self):
         """
         Make the color opaque.
         """
-        self.alpha = 1.0
+        self.check_closed()
+        self._alpha.value = 1.0
     # end opaque
 
     def set(self, value):
@@ -146,12 +162,16 @@ class Color(Data, EventMixin):
         Args:
             value (Any): Value to set
         """
+        self.check_closed()
         if isinstance(value, Color):
-            value = value.get()
+            r, g, b, a = value.get()
         elif isinstance(value, list):
-            value = np.array(value)
+            r, g, b, a = value
         # end if
-        self._value = value
+        self._red = r
+        self._green = g
+        self._blue = b
+        self._alpha = a
         self.dispatch_event("on_change", value)
     # end set
 
@@ -159,14 +179,19 @@ class Color(Data, EventMixin):
         """
         Get the scalar value.
         """
-        return self._value[0], self._value[1], self._value[2], self._value[3]
+        return self.red, self.green, self.blue, self.alpha
     # end get
 
     def copy(self):
         """
         Return a copy of the data.
         """
-        return Color(self.red, self.green, self.blue, self.alpha)
+        return Color.from_objects(
+            self.red.copy(),
+            self.green.copy(),
+            self.blue.copy(),
+            self.alpha.copy()
+        )
     # end copy
 
     # Change alpha
@@ -185,89 +210,218 @@ class Color(Data, EventMixin):
 
     # region OVERRIDE
 
-    # Add color
+    # Addition
     def __add__(self, other):
+        """
+        Addition operator override for the scalar class.
+
+        Args:
+            other (Any): Other value
+        """
         if isinstance(other, Color):
-            return Color(*(self._value + other.value))
-        return Color(*(self._value + other))
+            return Color(
+                self.red + other.red,
+                self.green + other.green,
+                self.blue + other.blue,
+                self.alpha + other.alpha
+            )
+        # end if
+        return Color(
+            self.red + other,
+            self.green + other,
+            self.blue + other,
+            self.alpha
+        )
+
     # end __add__
 
+    # Right-side addition
+    def __radd__(self, other):
+        return self.__add__(other)
+    # end __radd__
+
+    # Subtraction
     def __sub__(self, other):
+        """
+        Subtraction operator override for the scalar class.
+
+        Args:
+            other (Any): Other value
+        """
         if isinstance(other, Color):
-            return Color(*(self._value - other.value))
-        return Color(*(self._value - other))
+            return Color(
+                self.red - other.red,
+                self.green - other.green,
+                self.blue - other.blue,
+                self.alpha - other.alpha
+            )
+        # end if
+        return Color(
+            self.red - other,
+            self.green - other,
+            self.blue - other,
+            self.alpha
+        )
     # end __sub__
 
+    # Right-side subtraction
+    def __rsub__(self, other):
+        # Reverse subtraction: (other - self) => -(self - other)
+        return Color(
+            other - self.red,
+            other - self.green,
+            other - self.blue,
+            1.0 if isinstance(other, (int, float)) else self.alpha
+        )
+    # end __rsub__
+
+    # Multiplication
     def __mul__(self, other):
         if isinstance(other, Color):
-            return Color(*(self._value * other.value))
-        return Color(*(self._value * other))
+            return Color(
+                self.red * other.red,
+                self.green * other.green,
+                self.blue * other.blue,
+                self.alpha * other.alpha
+            )
+        # end if
+        return Color(
+            self.red * other,
+            self.green * other,
+            self.blue * other,
+            self.alpha
+        )
     # end __mul__
 
+    # Right-side multiplication
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    # end __rmul__
+
+    # Division
     def __truediv__(self, other):
         if isinstance(other, Color):
-            return Color(*(self._value / other.value))
-        return Color(*(self._value / other))
+            return Color(
+                self.red / other.red,
+                self.green / other.green,
+                self.blue / other.blue,
+                self.alpha / other.alpha
+            )
+        # end if
+        return Color(
+            self.red / other,
+            self.green / other,
+            self.blue / other,
+            self.alpha
+        )
     # end __truediv__
 
+    # Right-side true division
+    def __rtruediv__(self, other):
+        # Reverse division: (other / self)
+        return Color(
+            other / self.red,
+            other / self.green,
+            other / self.blue,
+            1.0 if isinstance(other, (int, float)) else self.alpha
+        )
+    # end __rtruediv__
+
+    # In-place addition
     def __iadd__(self, other):
+        """
+        In-place addition
+
+        Args:
+            other (Any): Other value
+        """
         if isinstance(other, Color):
-            self._value += other.value
+            self.red += other.red
+            self.green += other.green
+            self.blue += other.blue
+            self.alpha += other.alpha
         else:
-            self._value += other
-        self.dispatch_event("on_change", self._value)
+            self.red += other
+            self.green += other
+            self.blue += other
+        # end if
+        self.dispatch_event("on_change", self.get())
         return self
     # end __iadd__
 
+    # In-place subtraction
     def __isub__(self, other):
         if isinstance(other, Color):
-            self._value -= other.value
+            self.red -= other.red
+            self.green -= other.green
+            self.blue -= other.blue
+            self.alpha -= other.alpha
         else:
-            self._value -= other
-        self.dispatch_event("on_change", self._value)
+            self.red -= other
+            self.green -= other
+            self.blue -= other
+        self.dispatch_event("on_change", self.get())
         return self
+
     # end __isub__
 
+    # In-place multiplication
     def __imul__(self, other):
         if isinstance(other, Color):
-            self._value *= other.value
+            self.red *= other.red
+            self.green *= other.green
+            self.blue *= other.blue
+            self.alpha *= other.alpha
         else:
-            self._value *= other
-        self.dispatch_event("on_change", self._value)
+            self.red *= other
+            self.green *= other
+            self.blue *= other
+        self.dispatch_event("on_change", self.get())
         return self
+
     # end __imul__
 
+    # In-place division
     def __itruediv__(self, other):
         if isinstance(other, Color):
-            self._value /= other.value
+            self.red /= other.red
+            self.green /= other.green
+            self.blue /= other.blue
+            self.alpha /= other.alpha
         else:
-            self._value /= other
-        self.dispatch_event("on_change", self._value)
+            self.red /= other
+            self.green /= other
+            self.blue /= other
+        self.dispatch_event("on_change", self.get())
         return self
+
     # end __itruediv__
 
     # Comparison operators
     def __eq__(self, other):
         if not isinstance(other, Color):
             return False
-        return np.array_equal(self._value, other.value)
+        return (
+                self.red == other.red and
+                self.green == other.green and
+                self.blue == other.blue and
+                self.alpha == other.alpha
+        )
+
     # end __eq__
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
     # end __ne__
 
+    # String representation
     def __str__(self):
-        """
-        Return a string representation of the scalar value.
-        """
         return f"Color(red={self.red}, green={self.green}, blue={self.blue}, alpha={self.alpha})"
+
     # end __str__
 
     def __repr__(self):
-        """
-        Return a string representation of the scalar value.
-        """
         return self.__str__()
     # end __repr__
 
@@ -303,6 +457,62 @@ class Color(Data, EventMixin):
             alpha
         )
     # end from_hex
+
+    # From objects
+    @classmethod
+    def from_objects(
+            cls,
+            red: Union[float, Scalar],
+            green: Union[float, Scalar],
+            blue: Union[float, Scalar],
+            alpha: Union[float, Scalar] = Scalar(1.0),
+            on_change=None,
+            readonly: bool = False
+    ):
+        """
+        Create a color from objects.
+
+        Args:
+            red (Union[float, Scalar]): Red value
+            green (Union[float, Scalar]): Green value
+            blue (Union[float, Scalar]): Blue value
+            alpha (Union[float, Scalar]): Alpha value
+            on_change (function): On change event
+            readonly (bool): Read-only flag
+
+        Returns:
+            Color: Color
+        """
+        return cls(red, green, blue, alpha, on_change, readonly)
+    # end from_objects
+
+    # From value
+    @classmethod
+    def from_value(
+            cls,
+            red: float,
+            green: float,
+            blue: float,
+            alpha: float = 1.0,
+            on_change=None,
+            readonly: bool = False
+    ):
+        """
+        Create a color from a value.
+
+        Args:
+            red (float): Red value
+            green (float): Green value
+            blue (float): Blue value
+            alpha (float): Alpha value
+            on_change (function): On change event
+            readonly (bool): Read-only flag
+
+        Returns:
+            Color: Color
+        """
+        return cls(Scalar(red), Scalar(green), Scalar(blue), Scalar(alpha), on_change, readonly)
+    # end from_value
 
     # endregion CLASS_METHODS
 

@@ -53,7 +53,8 @@ class Scalar(Data, EventMixin, RangeableMixin):
     def __init__(
             self,
             value=0,
-            on_change=None
+            on_change=None,
+            readonly: bool = False
     ):
         """
         Initialize the scalar value.
@@ -61,10 +62,16 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             value (any): Initial value of the scalar.
             on_change (function): Function to call when the value changes.
+            readonly (bool): Read only flag.
         """
-        Data.__init__(self)
+        Data.__init__(self, readonly=readonly)
         EventMixin.__init__(self)
         RangeableMixin.__init__(self, "value")
+
+        # Not a scalar in a scalar
+        if isinstance(value, Scalar):
+            value = value.get()
+        # end if
 
         # Value
         self._value = value
@@ -104,6 +111,7 @@ class Scalar(Data, EventMixin, RangeableMixin):
         Args:
             value (any): Value to set
         """
+        self.check_closed()
         if isinstance(value, Scalar):
             value = value.get()
         # end if

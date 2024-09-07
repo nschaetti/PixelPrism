@@ -21,12 +21,11 @@
 #
 import math
 from pixel_prism import utils, p2, s
-from pixel_prism.animation import Animation
+from pixel_prism.animation import Animation, find_animable_mixins
 from pixel_prism.widgets.containers import Viewport
 from pixel_prism.widgets import DrawableWidget
 from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixel_prism.drawing import Arc
-from pixel_prism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class
@@ -51,7 +50,7 @@ class ArcAnimation(Animation):
         """
         # Create an ARC on upper left
         arc1 = Arc.from_objects(
-            center=coord_system.upper_left_square,
+            center=coord_system.uls,
             radius=s(self.ARC_RADIUS),
             start_angle=s(0.0),
             end_angle=s(0.0),
@@ -67,6 +66,7 @@ class ArcAnimation(Animation):
         print("Arc1")
         print(arc1.animable_registry.animators)
         print(arc1.start_angle.animable_registry.animators)
+        print(find_animable_mixins(arc1))
 
         return arc1
     # end build_first_arc
@@ -81,7 +81,7 @@ class ArcAnimation(Animation):
         """
         # Create an ARC on upper left
         arc2 = Arc.from_objects(
-            center=coord_system.upper_right_square - p2(1.0, 0.0),
+            center=coord_system.urs - p2(1.0, 0.0),
             radius=s(self.ARC_RADIUS),
             start_angle=s(0.0),
             end_angle=s(math.pi),
@@ -91,8 +91,8 @@ class ArcAnimation(Animation):
         )
 
         # Move the arc
-        anim = arc2.center.move(4, coord_system.upper_right_square + p2(1.0, 0.0))
-        anim.move(4, coord_system.upper_right_square - p2(1.0, 0.0))
+        anim = arc2.center.move(4, coord_system.urs + p2(1.0, 0.0))
+        anim.move(4, coord_system.urs - p2(1.0, 0.0))
 
         return arc2
     # end build_second_arc
@@ -107,7 +107,7 @@ class ArcAnimation(Animation):
         """
         # Create an ARC on upper left
         arc3 = Arc.from_objects(
-            center=coord_system.lower_left_square,
+            center=coord_system.lls,
             radius=s(self.ARC_RADIUS / 2.0),
             start_angle=s(0.0),
             end_angle=s(math.pi * 1.5),
@@ -132,7 +132,7 @@ class ArcAnimation(Animation):
         """
         # Create an ARC on upper left
         arc4 = Arc.from_objects(
-            center=coord_system.lower_right_square,
+            center=coord_system.lrs,
             radius=s(self.ARC_RADIUS),
             start_angle=s(0.0),
             end_angle=s(math.pi),
