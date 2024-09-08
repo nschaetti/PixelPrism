@@ -28,6 +28,7 @@ class EventType(Enum):
     POSITION_CHANGED = auto()
     SCALE_CHANGED = auto()
     ROTATION_CHANGED = auto()
+    VALUE_CHANGED = auto()
     FILL_COLOR_CHANGED = auto()
     LINE_COLOR_CHANGED = auto()
     LINE_WIDTH_CHANGED = auto()
@@ -93,7 +94,9 @@ class Event:
         """
         Allows using `+=` to add a subscriber.
         """
-        self.subscribe(callback)
+        if callback:
+            self.subscribe(callback)
+        # end if
         return self
     # end __iadd__
 
@@ -101,7 +104,9 @@ class Event:
         """
         Allows using `-=` to remove a subscriber.
         """
-        self.unsubscribe(callback)
+        if callback:
+            self.unsubscribe(callback)
+        # end if
         return self
     # end __isub__
 

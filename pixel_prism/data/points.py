@@ -22,9 +22,10 @@
 
 # Imports
 import math
-from typing import Any, Union
+from typing import Any, Union, Optional
 import numpy as np
 from pixel_prism.animate import MovableMixin
+from . import Transform
 from .data import Data
 from .scalar import Scalar, TScalar
 from .events import Event
@@ -444,7 +445,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D + TPoint2D = TPoint2D
-            return add_t(self, other)
+            return TPoint2D.add_t(self, other)
         elif isinstance(other, Point2D):
             # Point2D + Point2D = Point2D
             return Point2D(self.x + other.x, self.y + other.y)
@@ -490,7 +491,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D - TPoint2D = TPoint2D
-            return sub_t(self, other)
+            return TPoint2D.sub_t(self, other)
         elif isinstance(other, Point2D):
             # Point2D - Point2D = Point2D
             return Point2D(self.x - other.x, self.y - other.y)
@@ -526,7 +527,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D - TPoint2D = TPoint2D
-            return sub_t(other, self)
+            return TPoint2D.sub_t(other, self)
         elif isinstance(other, Point2D):
             # Point2D - Point2D = Point2D
             return Point2D(other.x - self.x, other.y - self.y)
@@ -562,7 +563,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D * TPoint2D = TPoint2D
-            return mul_t(self, other)
+            return TPoint2D.mul_t(self, other)
         elif isinstance(other, Point2D):
             # Point2D * Point2D = Point2D
             return Point2D(self.x * other.x, self.y * other.y)
@@ -608,7 +609,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D / TPoint2D = TPoint2D
-            return mul_t(self, other)
+            return TPoint2D.mul_t(self, other)
         elif isinstance(other, Point2D):
             # Point2D / Point2D = Point2D
             return Point2D(self.x / other.x, self.y / other.y)
@@ -678,7 +679,7 @@ class Point2D(Point):
 
     # endregion OVERRIDE
 
-    # region CLASS_METHODS
+    # region CONSTRUCTORS
 
     @classmethod
     def from_tuple(cls, pos, dtype=np.float32):
@@ -715,7 +716,7 @@ class Point2D(Point):
         return cls(0, 0, dtype=dtype)
     # end null
 
-    # endregion CLASS_METHODS
+    # endregion CONSTRUCTORS
 
 # end Point2D
 
@@ -1065,7 +1066,7 @@ class TPoint2D(Point2D):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # TPoint2D + TPoint2D = TPoint2D
-            return add_t(self, other)
+            return TPoint2D.add_t(self, other)
         elif isinstance(other, Point2D):
             # TPoint2D + Point2D = TPoint2D
             return TPoint2D(lambda p, o: (p.x + o.x, p.y + o.y), p=self, o=other)
@@ -1111,7 +1112,7 @@ class TPoint2D(Point2D):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D - TPoint2D = TPoint2D
-            return sub_t(self, other)
+            return TPoint2D.sub_t(self, other)
         elif isinstance(other, Point2D):
             # Point2D - Point2D = Point2D
             return TPoint2D(lambda p, o: (p.x - o.x, p.y - o.y), p=self, o=other)
@@ -1147,7 +1148,7 @@ class TPoint2D(Point2D):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # TPoint2D - TPoint2D = TPoint2D
-            return sub_t(other, self)
+            return TPoint2D.sub_t(other, self)
         elif isinstance(other, Point2D):
             # Point2D - TPoint2D = TPoint2D
             return TPoint2D(lambda p, o: (o.x - p.x, o.y - p.y), p=self, o=other)
@@ -1295,6 +1296,320 @@ class TPoint2D(Point2D):
 
     # endregion OVERRIDE
 
+    # region CONSTRUCTORS
+
+    # Basic TPoint2D (just return value of a point)
+    @classmethod
+    def tpoint2d(
+            cls,
+            point: Union[Point2D, 'TPoint2D', tuple]
+    ):
+        """
+        Create a TPoint2D that represents a point.
+
+        Args:
+            point (Union[Point2D, TPoint2D, tuple]): Point to track
+
+        """
+        if isinstance(point, Point2D):
+            return cls(lambda p: (p.x, p.y), p=point)
+        elif isinstance(point, tuple):
+            return cls(lambda p: (point[0], point[1]))
+        else:
+            return point
+        # end if
+    # end tpoint2d
+
+    # endregion CONSTRUCTORS
+
+    # region OPERATORS
+
+    # Function to create a new tracked point
+    @classmethod
+    def add_t(
+            cls,
+            point: Union[Point2D, 'TPoint2D'],
+            delta: Union[Point2D, 'TPoint2D']
+    ):
+        """
+        Create a TPoint2D that represents point + delta.
+
+        Args:
+            point (Union[Point2D, TPoint2D]): Point to add to.
+            delta (Union[Point2D, TPoint2D]): Point to add.
+        """
+        return cls(lambda p, d: (p.x + d.x, p.y + d.y), p=point, d=delta)
+    # end add_t
+
+    @classmethod
+    def sub_t(
+            cls,
+            point: Union[Point2D, 'TPoint2D'],
+            delta: Union[Point2D, 'TPoint2D']
+    ):
+        """
+        Create a TPoint2D that represents point - delta.
+
+        Args:
+            point (Union[Point2D, TPoint2D]): Point to subtract from.
+            delta (Union[Point2D, TPoint2D]): Point to subtract.
+        """
+        return cls(lambda p: (p.x - delta.x, p.y - delta.y), p=point)
+    # end sub_t
+
+    @classmethod
+    def mul_t(
+            cls,
+            point1: Union[Point2D, 'TPoint2D'],
+            point2: Union[Point2D, 'TPoint2D'],
+    ):
+        """
+        Create a TPoint2D that represents point * scalar.
+
+        Args:
+            point1 (Union[Point2D, TPoint2D]): Point to multiply.
+            point2 (Union[Point2D, TPoint2D]): Point to multiply by.
+        """
+        if isinstance(point1, cls) or isinstance(point2, cls):
+            return cls(lambda p1, p2: (p1.x * p2.x, p1.y * p2.y), p1=point1, p2=point2)
+        else:
+            return Point2D(point1.x * point2.x, point1.y * point2.y)
+        # end if
+    # end mul_t
+
+    @classmethod
+    def scalar_mul_t(
+            cls,
+            point: [Point2D, 'TPoint2D'],
+            scalar: [Scalar, TScalar, float, int]
+    ) -> 'TPoint2D':
+        """
+        Multiply a matrix by a scalar.
+
+        Args:
+            point (Point2D): Point to multiply
+            scalar (Scalar/TScalar): Scalar
+        """
+        if isinstance(scalar, (int, float)):
+            scalar = Scalar(scalar)
+        # end if
+        return cls(lambda p, s: (p.x * s.value, p.y * s.value), p=point, s=scalar)
+    # end scalar_mul_t
+
+    @classmethod
+    def div_t(
+            cls,
+            point: Union[Point2D, 'TPoint2D'],
+            scalar: Union[Scalar, float]
+    ):
+        """
+        Create a TPoint2D that represents point / scalar.
+
+        Args:
+            point (Union[Point2D, TPoint2D]): Point to divide.
+            scalar (Union[Scalar, float]): Scalar to divide by.
+        """
+        if isinstance(scalar, Scalar):
+            return cls(lambda p, s: (p.x / s.value, p.y / s.value), p=point, s=scalar)
+        else:
+            return cls(lambda p: (p.x / scalar, p.y / scalar), p=point)
+        # end if
+    # end div_t
+
+    @classmethod
+    def neg_t(
+            cls,
+            point: Union[Point2D, 'TPoint2D']
+    ):
+        """
+        Create a TPoint2D that represents -point (negation).
+        """
+        return cls(lambda p: (-p.x, -p.y), p=point)
+    # end neg_t
+
+    @classmethod
+    def abs_t(
+            cls,
+            point: Union[Point2D, 'TPoint2D']
+    ):
+        """
+        Create a TPoint2D that represents the absolute value of the point.
+        """
+        return cls(lambda p: (abs(p.x), abs(p.y)), p=point)
+    # end abs_t
+
+    # endregion OPERATORS
+
+    # region METHODS
+
+    @classmethod
+    def round_t(
+            cls,
+            point: Union[Point2D, 'TPoint2D'],
+            ndigits: int = 0
+    ):
+        """
+        Create a TPoint2D that represents the rounded value of the point.
+        """
+        return cls(lambda p: (round(p.x, ndigits=ndigits), round(p.y, ndigits=ndigits)), p=point)
+    # end round_t
+
+    def rotate_t(
+            point: Union[Point2D, TPoint2D],
+            angle: Union[Scalar, float],
+            center: Union[Point2D, TPoint2D] = None
+    ):
+        """
+        Create a TPoint2D that represents the point rotated around another point by a given angle.
+
+        Args:
+            point (Point2D): The point to rotate.
+            angle (Scalar): The angle of rotation (in radians).
+            center (Point2D): The center of rotation. If None, rotate around the origin.
+        """
+        if center is None:
+            center = Point2D(0, 0)
+        # end if
+
+        if isinstance(angle, Scalar):
+            return TPoint2D(
+                lambda p, a, c: (
+                    c.x + (p.x - c.x) * math.cos(a.value) - (p.y - c.y) * math.sin(a.value),
+                    c.y + (p.x - c.x) * math.sin(a.value) + (p.y - c.y) * math.cos(a.value)
+                ),
+                p=point,
+                a=angle,
+                c=center
+            )
+        else:
+            return TPoint2D(
+                lambda p, c: (
+                    c.x + (p.x - c.x) * math.cos(angle) - (p.y - c.y) * math.sin(angle),
+                    c.y + (p.x - c.x) * math.sin(angle) + (p.y - c.y) * math.cos(angle)
+                ),
+                p=point,
+                c=center
+            )
+        # end if
+
+    # end rotate_t
+
+    def scale_t(
+            point: Union[Point2D, TPoint2D],
+            scale: Union[Scalar, float],
+            center: Union[Point2D, TPoint2D] = None
+    ):
+        """
+        Create a TPoint2D that represents the point scaled away from another point by a given scale factor.
+
+        Args:
+            point (Point2D): The point to scale.
+            scale (Union[Scalar, float]): The scale factor.
+            center (Point2D): The center of scaling. If None, scale from the origin.
+        """
+        if center is None:
+            center = Point2D(0, 0)
+        # end if
+
+        if isinstance(scale, Scalar):
+            return TPoint2D(
+                lambda p, c, s: (
+                    c.x + (p.x - c.x) * s.value,
+                    c.y + (p.y - c.y) * s.value
+                ),
+                p=point,
+                c=center,
+                s=scale
+            )
+        else:
+            return TPoint2D(
+                lambda p, c: (
+                    c.x + (p.x - c.x) * scale,
+                    c.y + (p.y - c.y) * scale
+                ),
+                p=point,
+                c=center
+            )
+        # end if
+
+    # end scale_t
+
+    def dot_t(
+            point1: Union[Point2D, TPoint2D],
+            point2: Union[Point2D, TPoint2D]
+    ):
+        """
+        Create a TScalar representing the dot product of two points.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        return TScalar(lambda p1, p2: p1.x * p2.x + p1.y * p2.y, p1=point1, p2=point2)
+
+    # end dot_t
+
+    def cross_t(
+            point1: Union[Point2D, TPoint2D],
+            point2: Union[Point2D, TPoint2D]
+    ):
+        """
+        Create a TScalar representing the cross product of two points in 2D.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        return TScalar(lambda p1, p2: p1.x * p2.y - p1.y * p2.x, p1=point1, p2=point2)
+
+    # end cross_t
+
+    def norm_t(
+            point: Union[Point2D, TPoint2D]
+    ):
+        """
+        Create a TScalar representing the norm (magnitude) of a point.
+
+        Args:
+            point (Point2D): The point.
+        """
+        return TScalar(lambda p: math.sqrt(point.x ** 2 + point.y ** 2), p=point)
+
+    # end norm_t
+
+    def normalize_t(
+            point: Union[Point2D, TPoint2D]
+    ):
+        """
+        Create a TPoint2D representing the normalized (unit vector) of a point.
+
+        Args:
+            point (Point2D): The point to normalize.
+        """
+        norm = norm_t(point)
+        return TPoint2D(lambda p: (p.x / norm.value, p.y / norm.value), p=point)
+
+    # end normalize_t
+
+    def angle_t(
+            point1: Union[Point2D, TPoint2D],
+            point2: Union[Point2D, TPoint2D]
+    ):
+        """
+        Create a TScalar representing the angle between two points.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        dot = dot_t(point1, point2)
+        norm1 = norm_t(point1)
+        norm2 = norm_t(point2)
+        return TScalar(lambda p1, p2: math.acos(dot.value / (norm1.value * norm2.value)), p1=point1, p2=point2)
+    # end angle_t
+
+    # endregion METHODS
+
 # end TPoint2D
 
 
@@ -1308,7 +1623,7 @@ class AffinePoint:
             self,
             relative_point: Point2D,
             absolute_point: Point2D,
-            transform: Transform
+            transform: Optional[Transform] = None
     ):
         """
         Initialize the affine point.
@@ -1390,306 +1705,6 @@ class AffinePoint:
     # endregion EVENT
 
 # end AffinePoint
-
-
-# Basic TPoint2D (just return value of a point)
-def tpoint2d(
-        point: Union[Point2D, TPoint2D, tuple]
-):
-    """
-    Create a TPoint2D that represents a point.
-    """
-    if isinstance(point, Point2D):
-        return TPoint2D(lambda p: (p.x, p.y), p=point)
-    elif isinstance(point, tuple):
-        return TPoint2D(lambda p: (point[0], point[1]))
-    else:
-        return point
-    # end if
-# end tpoint2d
-
-
-# region OPERATORS
-
-
-# Function to create a new tracked point
-def add_t(
-        point: Union[Point2D, TPoint2D],
-        delta: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TPoint2D that represents point + delta.
-
-    Args:
-        point (Union[Point2D, TPoint2D]): Point to add to.
-        delta (Union[Point2D, TPoint2D]): Point to add.
-    """
-    return TPoint2D(lambda p, d: (p.x + d.x, p.y + d.y), p=point, d=delta)
-# end add_t
-
-
-def sub_t(
-        point: Union[Point2D, TPoint2D],
-        delta: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TPoint2D that represents point - delta.
-
-    Args:
-        point (Union[Point2D, TPoint2D]): Point to subtract from.
-        delta (Union[Point2D, TPoint2D]): Point to subtract.
-    """
-    return TPoint2D(lambda p: (p.x - delta.x, p.y - delta.y), p=point)
-# end sub_t
-
-
-def mul_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D],
-):
-    """
-    Create a TPoint2D that represents point * scalar.
-
-    Args:
-        point1 (Union[Point2D, TPoint2D]): Point to multiply.
-        point2 (Union[Point2D, TPoint2D]): Point to multiply by.
-    """
-    if isinstance(point1, TPoint2D) or isinstance(point2, TPoint2D):
-        return TPoint2D(lambda p1, p2: (p1.x * p2.x, p1.y * p2.y), p1=point1, p2=point2)
-    else:
-        return Point2D(point1.x * point2.x, point1.y * point2.y)
-    # end if
-# end mul_t
-
-def scalar_mul_t(
-        point: [Point2D, TPoint2D],
-        scalar: [Scalar, TScalar, float, int]
-) -> TPoint2D:
-    """
-    Multiply a matrix by a scalar.
-
-    Args:
-        point (Point2D): Point to multiply
-        scalar (Scalar/TScalar): Scalar
-    """
-    if isinstance(scalar, (int, float)):
-        scalar = Scalar(scalar)
-    # end if
-    return TPoint2D(lambda p, s: (p.x * s.value, p.y * s.value), p=point, s=scalar)
-# end scalar_mul_t
-
-def div_t(
-        point: Union[Point2D, TPoint2D],
-        scalar: Union[Scalar, float]
-):
-    """
-    Create a TPoint2D that represents point / scalar.
-
-    Args:
-        point (Union[Point2D, TPoint2D]): Point to divide.
-        scalar (Union[Scalar, float]): Scalar to divide by.
-    """
-    if isinstance(scalar, Scalar):
-        return TPoint2D(lambda p, s: (p.x / s.value, p.y / s.value), p=point, s=scalar)
-    else:
-        return TPoint2D(lambda p: (p.x / scalar, p.y / scalar), p=point)
-    # end if
-# end div_t
-
-
-def neg_t(
-        point: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TPoint2D that represents -point (negation).
-    """
-    return TPoint2D(lambda p: (-p.x, -p.y), p=point)
-# end neg_t
-
-
-def abs_t(
-        point: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TPoint2D that represents the absolute value of the point.
-    """
-    return TPoint2D(lambda p: (abs(p.x), abs(p.y)), p=point)
-# end abs_t
-
-
-# endregion OPERATORS
-
-
-# region METHODS
-
-
-def round_t(
-        point: Union[Point2D, TPoint2D],
-        ndigits: int = 0
-):
-    """
-    Create a TPoint2D that represents the rounded value of the point.
-    """
-    return TPoint2D(lambda p: (round(p.x, ndigits=ndigits), round(p.y, ndigits=ndigits)), p=point)
-# end round_t
-
-
-def rotate_t(
-        point: Union[Point2D, TPoint2D],
-        angle: Union[Scalar, float],
-        center: Union[Point2D, TPoint2D] = None
-):
-    """
-    Create a TPoint2D that represents the point rotated around another point by a given angle.
-
-    Args:
-        point (Point2D): The point to rotate.
-        angle (Scalar): The angle of rotation (in radians).
-        center (Point2D): The center of rotation. If None, rotate around the origin.
-    """
-    if center is None:
-        center = Point2D(0, 0)
-    # end if
-
-    if isinstance(angle, Scalar):
-        return TPoint2D(
-            lambda p, a, c: (
-                c.x + (p.x - c.x) * math.cos(a.value) - (p.y - c.y) * math.sin(a.value),
-                c.y + (p.x - c.x) * math.sin(a.value) + (p.y - c.y) * math.cos(a.value)
-            ),
-            p=point,
-            a=angle,
-            c=center
-        )
-    else:
-        return TPoint2D(
-            lambda p, c: (
-                c.x + (p.x - c.x) * math.cos(angle) - (p.y - c.y) * math.sin(angle),
-                c.y + (p.x - c.x) * math.sin(angle) + (p.y - c.y) * math.cos(angle)
-            ),
-            p=point,
-            c=center
-        )
-    # end if
-# end rotate_t
-
-
-def scale_t(
-        point: Union[Point2D, TPoint2D],
-        scale: Union[Scalar, float],
-        center: Union[Point2D, TPoint2D] = None
-):
-    """
-    Create a TPoint2D that represents the point scaled away from another point by a given scale factor.
-
-    Args:
-        point (Point2D): The point to scale.
-        scale (Union[Scalar, float]): The scale factor.
-        center (Point2D): The center of scaling. If None, scale from the origin.
-    """
-    if center is None:
-        center = Point2D(0, 0)
-    # end if
-
-    if isinstance(scale, Scalar):
-        return TPoint2D(
-            lambda p, c, s: (
-                c.x + (p.x - c.x) * s.value,
-                c.y + (p.y - c.y) * s.value
-            ),
-            p=point,
-            c=center,
-            s=scale
-        )
-    else:
-        return TPoint2D(
-            lambda p, c: (
-                c.x + (p.x - c.x) * scale,
-                c.y + (p.y - c.y) * scale
-            ),
-            p=point,
-            c=center
-        )
-    # end if
-# end scale_t
-
-
-def dot_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the dot product of two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: p1.x * p2.x + p1.y * p2.y, p1=point1, p2=point2)
-# end dot_t
-
-
-def cross_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the cross product of two points in 2D.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: p1.x * p2.y - p1.y * p2.x, p1=point1, p2=point2)
-# end cross_t
-
-
-def norm_t(
-        point: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the norm (magnitude) of a point.
-
-    Args:
-        point (Point2D): The point.
-    """
-    return TScalar(lambda p: math.sqrt(point.x ** 2 + point.y ** 2), p=point)
-# end norm_t
-
-
-def normalize_t(
-        point: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TPoint2D representing the normalized (unit vector) of a point.
-
-    Args:
-        point (Point2D): The point to normalize.
-    """
-    norm = norm_t(point)
-    return TPoint2D(lambda p: (p.x / norm.value, p.y / norm.value), p=point)
-# end normalize_t
-
-
-def angle_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the angle between two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    dot = dot_t(point1, point2)
-    norm1 = norm_t(point1)
-    norm2 = norm_t(point2)
-    return TScalar(lambda p1, p2: math.acos(dot.value / (norm1.value * norm2.value)), p1=point1, p2=point2)
-# end angle_t
-
-
-# endregion METHODS
 
 
 # region DISTANCES

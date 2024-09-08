@@ -171,30 +171,22 @@ class DrawableMixin:
     # Init
     def __init__(
             self,
-            position: Point2D,
-            scale: Point2D = p2(1.0, 1.0),
-            rotation: Scalar = s(0.0),
-            fill_color: Optional[Color] = Color.from_value(0, 0, 0),
-            line_color: Optional[Color] = Color.from_value(0, 0, 0),
-            line_width: Optional[Scalar] = s(1.0),
-            line_cap: Optional[str] = "round",
-            line_join: Optional[str] = "round",
-            line_dash: Optional[list] = None
+            transform: Transform,
+            style: Style
     ):
         """
         Initialize the drawable mixin.
 
         Args:
-            position (Point2D): Position
-            scale (Scalar): Scale
-            rotation (Scalar): Rotation
+            transform (Transform): Transform
+            style (Style): Style
         """
         # EventMixin.__init__()
         super().__init__()
 
         # Properties
-        self._transform = Transform(position, scale, rotation)
-        self._style = self.Style(fill_color, line_color, line_width, line_cap, line_join, line_dash)
+        self._transform = transform
+        self._style = style
 
         # Events
         self._on_change = Event()
@@ -241,6 +233,8 @@ class DrawableMixin:
         return self._on_change
     # end on_change
 
+    # endregion PROPERTIES
+
     # region PUBLIC
 
     # Apply transformation from context
@@ -251,9 +245,7 @@ class DrawableMixin:
         Args:
             context (Context): Context
         """
-        context.translate(self.transform.position)
-        context.rotate(self.transform.rotation)
-        context.scale(self.transform.scale)
+        self.transform.apply_context(context)
     # end apply_context
 
     # Update object data

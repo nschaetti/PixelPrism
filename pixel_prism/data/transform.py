@@ -22,6 +22,7 @@ from typing import Optional
 from .points import Point2D
 from .scalar import Scalar
 from .events import Event, EventType
+from ..base import Context
 
 
 # Transform
@@ -33,7 +34,7 @@ class Transform:
             self,
             position: Point2D,
             scale: Point2D = Point2D(1.0, 1.0),
-            rotation: Scalar = Scalar(0.0),
+            rotation: Scalar = Scalar(0.0)
     ):
         """
         Initialize the context.
@@ -141,6 +142,19 @@ class Transform:
         absolute_point.x = point.x
         absolute_point.y = point.y
     # end reverse_
+
+    # Apply transformation from context
+    def apply_context(self, context: Context):
+        """
+        Apply transformation from context.
+
+        Args:
+            context (Context): Context
+        """
+        context.translate(self.position)
+        context.rotate(self.rotation)
+        context.scale(self.scale)
+    # end apply_context
 
     # endregion PUBLIC
 

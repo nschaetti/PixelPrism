@@ -17,11 +17,11 @@
 
 # Imports
 import math
-from typing import Any
+from typing import Any, List
 
 from pixel_prism.animate import MovableMixin
 from pixel_prism.animate import FadeableMixin
-from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
+from pixel_prism.data import Point2D, Scalar, Color, Event, Transform, call_after, EventType
 import pixel_prism.utils as utils
 from . import BoundingBox
 from .drawablemixin import DrawableMixin
@@ -33,7 +33,6 @@ from ..base import Context
 class Circle(
     DrawableMixin,
     BoundingBoxMixin,
-    EventMixin,
     MovableMixin,
     FadeableMixin
 ):
@@ -43,41 +42,36 @@ class Circle(
 
     def __init__(
             self,
-            position: Point2D,
+            center: Point2D,
             radius: Scalar,
-            fill_color: Color = utils.WHITE,
-            line_color: Color = utils.WHITE,
-            line_width: Scalar = Scalar(1),
-            fill: bool = True,
+            style: DrawableMixin.Style,
+            transform: Transform = None,
             on_change=None
     ):
         """
         Initialize the point.
 
         Args:
-            position (Point2D): Position of the point
-            radius (Scalar): Radius of the point
-            fill_color (Color): Fill color of the point
-            line_color (Color): Border color of the point
-            line_width (Scalar): Border width of the point
-            fill (bool): Fill the circle or not
-            on_change (function): On change event
+            center (Point2D): Center of the circle
+            radius (Scalar): Radius of the circle
+            style (DrawableMixin.Style): Style of the circle
+            transform (Transform): Transform of the circle
+            on_change (function): On change event callback
         """
         # Constructors
-        DrawableMixin.__init__(self)
-        EventMixin.__init__(self)
+        DrawableMixin.__init__(
+            self,
+            transform=transform,
+            style=style
+        )
+
+        # Constructors for animation mixins
         MovableMixin.__init__(self)
         FadeableMixin.__init__(self)
 
         # Position and radius
-        self._position = position
+        self._center = center
         self._radius = radius
-
-        # Properties
-        self._fill_color = fill_color
-        self._fill = fill
-        self._line_color = line_color
-        self._line_width = line_width
 
         # Bounding box
         BoundingBoxMixin.__init__(self)
@@ -85,13 +79,13 @@ class Circle(
         # Update points
         self.update_points()
 
-        # Set events
-        self._position.add_event_listener("on_change", self._on_position_changed)
-        self._radius.add_event_listener("on_change", self._on_radius_changed)
+        # Events
+        self._on_change = Event()
+        self._on_change += on_change
 
-        # List of event listeners (per events)
-        self.add_event("on_change")
-        if on_change: self.add_event_listener("on_change", on_change)
+        # Set events
+        self._center.on_change.subscribe(self._on_center_changed)
+        self._radius.on_change.subscribe(self._on_radius_changed)
     # end __init__
 
     # region PROPERTIES
@@ -374,31 +368,35 @@ class Circle(
 
     # region EVENTS
 
-    # On position changed
-    def _on_position_changed(self, event):
+    # On center changed
+    @call_after('update_data')
+    def _on_center_changed(self, sender, event_type, x, y):
         """
-        On position changed event.
+        On center changed event.
 
         Args:
-            event (ObjectChangedEvent): Event
+            sender (Any): Sender
+            event_type (EventType): Event type
+            x (float): X position
+            y (float): Y position
         """
-        # Update points
-        self.update_points()
-
         # Dispatch event
-        self.dispatch_event("on_change", ObjectChangedEvent(self, attribute="position", value=self._position))
-    # end _on_position_changed
+        self._on_change.trigger(self, event_type=EventType.POSITION_CHANGED, x=x, y=y)
+    # end _on_center_changed
 
     # On radius changed
-    def _on_radius_changed(self, event):
+    @call_after('update_data')
+    def _on_radius_changed(self, sender, event_type, radius):
         """
         On radius changed event.
 
         Args:
-            event (ObjectChangedEvent): Event
+            sender (Any): Sender
+            event_type (EventType): Event type
+            radius (Scalar): Radius
         """
-        self.update_points()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, attribute="radius", value=self._radius))
+        # Dispatch event
+        self._on_change.trigger(self, event_type=EventType.VALUE_CHANGED, radius=radius)
     # end _on_radius_changed
 
     # endregion EVENTS
