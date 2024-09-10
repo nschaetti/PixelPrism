@@ -25,10 +25,9 @@ import math
 from typing import Any, Union, Optional
 import numpy as np
 from pixel_prism.animate import MovableMixin
-from . import Transform
 from .data import Data
 from .scalar import Scalar, TScalar
-from .events import Event
+from .events import Event, EventType
 
 
 # A generic point
@@ -220,6 +219,35 @@ class Point2D(Point):
         return self._pos[0], self._pos[1]
     # end get
 
+    def register_event(self, event_name, listener):
+        """
+        Add an event listener to the data object.
+
+        Args:
+            event_name (str): Event to listen for
+            listener (function): Listener function
+        """
+        if hasattr(self, event_name):
+            event_attr = getattr(self, event_name)
+            event_attr += listener
+        # end if
+    # end register_event
+
+    def unregister_event(self, event_name, listener):
+        """
+        Remove an event listener from the data object.
+
+        Args:
+            event_name (str): Event to remove listener from
+            listener (function): Listener function to remove
+        """
+        # Unregister from all sources
+        if hasattr(self, event_name):
+            event_attr = getattr(self, event_name)
+            event_attr -= listener
+        # end if
+    # end unregister_event
+
     def copy(self, on_change = None, readonly: bool = False):
         """
         Return a copy of the point.
@@ -318,7 +346,7 @@ class Point2D(Point):
         """
         Trigger the position change event.
         """
-        self.on_change.trigger(self, event_type="position", x=self.x, y=self.y)
+        self.on_change.trigger(self, event_type=EventType.POSITION_CHANGED, x=self.x, y=self.y)
     # end _trigger_on_change
 
     # endregion PRIVATE
@@ -445,7 +473,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D + TPoint2D = TPoint2D
-            return TPoint2D.add_t(self, other)
+            return TPoint2D.add(self, other)
         elif isinstance(other, Point2D):
             # Point2D + Point2D = Point2D
             return Point2D(self.x + other.x, self.y + other.y)
@@ -491,7 +519,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D - TPoint2D = TPoint2D
-            return TPoint2D.sub_t(self, other)
+            return TPoint2D.sub(self, other)
         elif isinstance(other, Point2D):
             # Point2D - Point2D = Point2D
             return Point2D(self.x - other.x, self.y - other.y)
@@ -527,7 +555,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D - TPoint2D = TPoint2D
-            return TPoint2D.sub_t(other, self)
+            return TPoint2D.sub(other, self)
         elif isinstance(other, Point2D):
             # Point2D - Point2D = Point2D
             return Point2D(other.x - self.x, other.y - self.y)
@@ -563,7 +591,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D * TPoint2D = TPoint2D
-            return TPoint2D.mul_t(self, other)
+            return TPoint2D.mul(self, other)
         elif isinstance(other, Point2D):
             # Point2D * Point2D = Point2D
             return Point2D(self.x * other.x, self.y * other.y)
@@ -609,7 +637,7 @@ class Point2D(Point):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D / TPoint2D = TPoint2D
-            return TPoint2D.mul_t(self, other)
+            return TPoint2D.mul(self, other)
         elif isinstance(other, Point2D):
             # Point2D / Point2D = Point2D
             return Point2D(self.x / other.x, self.y / other.y)
@@ -733,7 +761,7 @@ class Point3D(Point):
         Args:
             x (float): X-coordinate of the point
             y (float): Y-coordinate of the point
-            z (float): Z-coordinate of the poin
+            z (float): Z-coordinate of the point
             readonly (bool): If the point is read-only
             dtype (type): Data type of the point
         """
@@ -848,7 +876,12 @@ class TPoint2D(Point2D):
     A class that tracks transformations applied to a Point2D and updates dynamically.
     """
 
-    def __init__(self, transform_func, on_change=None, **points):
+    def __init__(
+            self,
+            transform_func,
+            on_change=None,
+            **points
+    ):
         """
         Initialize the tracked point.
 
@@ -857,6 +890,7 @@ class TPoint2D(Point2D):
             on_change (function): Function to call when the point changes
             **points (Any): Points to track
         """
+        # Properties
         self._points = points
         self._transform_func = transform_func
 
@@ -864,13 +898,13 @@ class TPoint2D(Point2D):
         x, y = self._transform_func(**self._points)
         super().__init__(x, y)
 
+        # Listen to sources
+        for point in self._points.values():
+            point.on_change.subscribe(self._on_point_changed)
+        # end for
+
         # Listen to changes in the original point
-        if on_change is not None:
-            for point in self._points.values():
-                point.on_change += on_change
-                point.on_change += self._on_point_changed
-            # end for
-        # end if
+        self._on_change += on_change
     # end __init__
 
     # region PROPERTIES
@@ -965,49 +999,15 @@ class TPoint2D(Point2D):
         return self.transform_func(**self._points)
     # end get
 
-    def register_event(self, event_name, listener):
-        """
-        Add an event listener to the data object.
-
-        Args:
-            event_name (str): Event to listen for
-            listener (function): Listener function
-        """
-        for point in self.points.values():
-            if hasattr(point, event_name):
-                event_attr = getattr(point, event_name)
-                event_attr += listener
-            # end if
-        # end for
-    # end register_event
-
-    def unregister_event(self, event_name, listener):
-        """
-        Remove an event listener from the data object.
-
-        Args:
-            event_name (str): Event to remove listener from
-            listener (function): Listener function to remove
-        """
-        # Unregister from all sources
-        for point in self.points.values():
-            if hasattr(point, event_name):
-                event_attr = getattr(point, event_name)
-                event_attr -= listener
-            # end if
-        # end for
-    # end unregister_event
-
     # endregion PUBLIC
 
     # region EVENT
 
-    def _on_point_changed(self, point, x, y):
+    def _on_point_changed(self, sender, event_type, x, y):
         """
         Update the point when a source point changes.
 
         Args:
-            point (Point2D): Point that changed
             x (float): New X-coordinate of the point
             y (float): New Y-coordinate of the point
         """
@@ -1066,7 +1066,7 @@ class TPoint2D(Point2D):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # TPoint2D + TPoint2D = TPoint2D
-            return TPoint2D.add_t(self, other)
+            return TPoint2D.add(self, other)
         elif isinstance(other, Point2D):
             # TPoint2D + Point2D = TPoint2D
             return TPoint2D(lambda p, o: (p.x + o.x, p.y + o.y), p=self, o=other)
@@ -1112,7 +1112,7 @@ class TPoint2D(Point2D):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # Point2D - TPoint2D = TPoint2D
-            return TPoint2D.sub_t(self, other)
+            return TPoint2D.sub(self, other)
         elif isinstance(other, Point2D):
             # Point2D - Point2D = Point2D
             return TPoint2D(lambda p, o: (p.x - o.x, p.y - o.y), p=self, o=other)
@@ -1148,7 +1148,7 @@ class TPoint2D(Point2D):
         # Point2D, TPoint2D
         elif isinstance(other, TPoint2D):
             # TPoint2D - TPoint2D = TPoint2D
-            return TPoint2D.sub_t(other, self)
+            return TPoint2D.sub(other, self)
         elif isinstance(other, Point2D):
             # Point2D - TPoint2D = TPoint2D
             return TPoint2D(lambda p, o: (o.x - p.x, o.y - p.y), p=self, o=other)
@@ -1326,63 +1326,63 @@ class TPoint2D(Point2D):
 
     # Function to create a new tracked point
     @classmethod
-    def add_t(
+    def add(
             cls,
-            point: Union[Point2D, 'TPoint2D'],
-            delta: Union[Point2D, 'TPoint2D']
+            point: Point2D,
+            delta: Point2D
     ):
         """
         Create a TPoint2D that represents point + delta.
 
         Args:
-            point (Union[Point2D, TPoint2D]): Point to add to.
-            delta (Union[Point2D, TPoint2D]): Point to add.
+            point (Point2D): Point to add to.
+            delta (Point2D): Point to add.
         """
         return cls(lambda p, d: (p.x + d.x, p.y + d.y), p=point, d=delta)
-    # end add_t
+    # end add
 
     @classmethod
-    def sub_t(
+    def sub(
             cls,
-            point: Union[Point2D, 'TPoint2D'],
-            delta: Union[Point2D, 'TPoint2D']
+            point: Point2D,
+            delta: Point2D
     ):
         """
         Create a TPoint2D that represents point - delta.
 
         Args:
-            point (Union[Point2D, TPoint2D]): Point to subtract from.
-            delta (Union[Point2D, TPoint2D]): Point to subtract.
+            point (Point2D): Point to subtract from.
+            delta (Point2D): Point to subtract.
         """
         return cls(lambda p: (p.x - delta.x, p.y - delta.y), p=point)
-    # end sub_t
+    # end sub
 
     @classmethod
-    def mul_t(
+    def mul(
             cls,
-            point1: Union[Point2D, 'TPoint2D'],
-            point2: Union[Point2D, 'TPoint2D'],
+            point1: Point2D,
+            point2: Point2D
     ):
         """
         Create a TPoint2D that represents point * scalar.
 
         Args:
-            point1 (Union[Point2D, TPoint2D]): Point to multiply.
-            point2 (Union[Point2D, TPoint2D]): Point to multiply by.
+            point1 (Point2D): Point to multiply.
+            point2 (Point2D): Point to multiply by.
         """
         if isinstance(point1, cls) or isinstance(point2, cls):
             return cls(lambda p1, p2: (p1.x * p2.x, p1.y * p2.y), p1=point1, p2=point2)
         else:
             return Point2D(point1.x * point2.x, point1.y * point2.y)
         # end if
-    # end mul_t
+    # end mul
 
     @classmethod
-    def scalar_mul_t(
+    def scalar_mul(
             cls,
-            point: [Point2D, 'TPoint2D'],
-            scalar: [Scalar, TScalar, float, int]
-    ) -> 'TPoint2D':
+            point: Point2D,
+            scalar: Union[Scalar, TScalar, float, int]
+    ):
         """
         Multiply a matrix by a scalar.
 
@@ -1394,12 +1394,12 @@ class TPoint2D(Point2D):
             scalar = Scalar(scalar)
         # end if
         return cls(lambda p, s: (p.x * s.value, p.y * s.value), p=point, s=scalar)
-    # end scalar_mul_t
+    # end scalar_mul
 
     @classmethod
-    def div_t(
+    def div(
             cls,
-            point: Union[Point2D, 'TPoint2D'],
+            point: Point2D,
             scalar: Union[Scalar, float]
     ):
         """
@@ -1414,50 +1414,52 @@ class TPoint2D(Point2D):
         else:
             return cls(lambda p: (p.x / scalar, p.y / scalar), p=point)
         # end if
-    # end div_t
+    # end div
 
     @classmethod
-    def neg_t(
+    def neg(
             cls,
-            point: Union[Point2D, 'TPoint2D']
+            point: Point2D
     ):
         """
         Create a TPoint2D that represents -point (negation).
         """
         return cls(lambda p: (-p.x, -p.y), p=point)
-    # end neg_t
+    # end neg
 
     @classmethod
-    def abs_t(
+    def abs(
             cls,
-            point: Union[Point2D, 'TPoint2D']
+            point: Point2D
     ):
         """
         Create a TPoint2D that represents the absolute value of the point.
         """
         return cls(lambda p: (abs(p.x), abs(p.y)), p=point)
-    # end abs_t
+    # end abs
 
     # endregion OPERATORS
 
     # region METHODS
 
     @classmethod
-    def round_t(
+    def round(
             cls,
-            point: Union[Point2D, 'TPoint2D'],
+            point: Point2D,
             ndigits: int = 0
     ):
         """
         Create a TPoint2D that represents the rounded value of the point.
         """
         return cls(lambda p: (round(p.x, ndigits=ndigits), round(p.y, ndigits=ndigits)), p=point)
-    # end round_t
+    # end round
 
-    def rotate_t(
-            point: Union[Point2D, TPoint2D],
+    @classmethod
+    def rotate(
+            cls,
+            point: Point2D,
             angle: Union[Scalar, float],
-            center: Union[Point2D, TPoint2D] = None
+            center: Point2D = None
     ):
         """
         Create a TPoint2D that represents the point rotated around another point by a given angle.
@@ -1491,13 +1493,14 @@ class TPoint2D(Point2D):
                 c=center
             )
         # end if
+    # end rotate
 
-    # end rotate_t
-
-    def scale_t(
-            point: Union[Point2D, TPoint2D],
+    @classmethod
+    def scale(
+            cls,
+            point: Point2D,
             scale: Union[Scalar, float],
-            center: Union[Point2D, TPoint2D] = None
+            center: Point2D = None
     ):
         """
         Create a TPoint2D that represents the point scaled away from another point by a given scale factor.
@@ -1531,12 +1534,13 @@ class TPoint2D(Point2D):
                 c=center
             )
         # end if
+    # end scale
 
-    # end scale_t
-
-    def dot_t(
-            point1: Union[Point2D, TPoint2D],
-            point2: Union[Point2D, TPoint2D]
+    @classmethod
+    def dot(
+            cls,
+            point1: Point2D,
+            point2: Point2D
     ):
         """
         Create a TScalar representing the dot product of two points.
@@ -1546,12 +1550,13 @@ class TPoint2D(Point2D):
             point2 (Point2D): The second point.
         """
         return TScalar(lambda p1, p2: p1.x * p2.x + p1.y * p2.y, p1=point1, p2=point2)
+    # end dot
 
-    # end dot_t
-
-    def cross_t(
-            point1: Union[Point2D, TPoint2D],
-            point2: Union[Point2D, TPoint2D]
+    @classmethod
+    def cross(
+            cls,
+            point1: Point2D,
+            point2: Point2D
     ):
         """
         Create a TScalar representing the cross product of two points in 2D.
@@ -1561,11 +1566,12 @@ class TPoint2D(Point2D):
             point2 (Point2D): The second point.
         """
         return TScalar(lambda p1, p2: p1.x * p2.y - p1.y * p2.x, p1=point1, p2=point2)
+    # end cross
 
-    # end cross_t
-
-    def norm_t(
-            point: Union[Point2D, TPoint2D]
+    @classmethod
+    def norm(
+            cls,
+            point: Point2D
     ):
         """
         Create a TScalar representing the norm (magnitude) of a point.
@@ -1574,11 +1580,12 @@ class TPoint2D(Point2D):
             point (Point2D): The point.
         """
         return TScalar(lambda p: math.sqrt(point.x ** 2 + point.y ** 2), p=point)
+    # end norm
 
-    # end norm_t
-
-    def normalize_t(
-            point: Union[Point2D, TPoint2D]
+    @classmethod
+    def normalize(
+            cls,
+            point: Point2D
     ):
         """
         Create a TPoint2D representing the normalized (unit vector) of a point.
@@ -1586,14 +1593,15 @@ class TPoint2D(Point2D):
         Args:
             point (Point2D): The point to normalize.
         """
-        norm = norm_t(point)
+        norm = TPoint2D.norm(point)
         return TPoint2D(lambda p: (p.x / norm.value, p.y / norm.value), p=point)
+    # end normalize
 
-    # end normalize_t
-
-    def angle_t(
-            point1: Union[Point2D, TPoint2D],
-            point2: Union[Point2D, TPoint2D]
+    @classmethod
+    def angle(
+            cls,
+            point1: Point2D,
+            point2: Point2D
     ):
         """
         Create a TScalar representing the angle between two points.
@@ -1602,732 +1610,663 @@ class TPoint2D(Point2D):
             point1 (Point2D): The first point.
             point2 (Point2D): The second point.
         """
-        dot = dot_t(point1, point2)
-        norm1 = norm_t(point1)
-        norm2 = norm_t(point2)
+        dot = TPoint2D.dot(point1, point2)
+        norm1 = TPoint2D.norm(point1)
+        norm2 = TPoint2D.norm(point2)
         return TScalar(lambda p1, p2: math.acos(dot.value / (norm1.value * norm2.value)), p1=point1, p2=point2)
-    # end angle_t
+    # end angle
 
     # endregion METHODS
 
-# end TPoint2D
+    # region DISTANCES
 
-
-class AffinePoint:
-    """
-    A class that synchronizes a relative point and an absolute point
-    using a given Transform object, while avoiding recursive updates.
-    """
-
-    def __init__(
-            self,
-            relative_point: Point2D,
-            absolute_point: Point2D,
-            transform: Optional[Transform] = None
+    @classmethod
+    def distance(
+            cls,
+            point1: Point2D,
+            point2: Point2D
     ):
         """
-        Initialize the affine point.
+        Create a TScalar representing the Euclidean distance between two points.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
         """
-        self._relative_point = relative_point
-        self._absolute_point = absolute_point
-        self._transform = transform
-        self._lock = False  # Lock to prevent recursive updates
+        return TScalar(lambda p1, p2: math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2), p1=point1, p2=point2)
+    # end distance
 
-        # Initial synchronization
-        self._update_absolute_from_relative()
-
-        # Subscribe to changes in relative and absolute points
-        self._relative_point.on_change.subscribe(self._on_relative_point_changed)
-        self._absolute_point.on_change.subscribe(self._on_absolute_point_changed)
-    # end __init__
-
-    # region PROPERTIES
-
-    @property
-    def relative(self):
-        return self._relative_point
-    # end relative
-
-    @property
-    def absolute(self):
-        return self._absolute_point
-    # end absolute
-
-    # endregion PROPERTIES
-
-    # region PRIVATE
-
-    def _update_absolute_from_relative(self):
+    @classmethod
+    def distance_squared(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
         """
-        Update the absolute point based on the relative point and the transform.
+        Create a TScalar representing the squared Euclidean distance between two points.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
         """
-        if not self._lock:
-            self._lock = True
-            transformed_point = self._transform.apply(self._relative_point)
-            self._absolute_point.x = transformed_point.x
-            self._absolute_point.y = transformed_point.y
-            self._lock = False
-        # end if
-    # end _update_absolute_from_relative
+        return TScalar(lambda p1, p2: (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2, p1=point1, p2=point2)
+    # end distance_squared
 
-    def _update_relative_from_absolute(self):
+    @classmethod
+    def distance_manhattan(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
         """
-        Update the relative point based on the absolute point and the inverse transform.
+        Create a TScalar representing the Manhattan distance between two points.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
         """
-        if not self._lock:
-            self._lock = True
-            relative_x = (self._absolute_point.x - self._transform.position.x) / self._transform.scale.x
-            relative_y = (self._absolute_point.y - self._transform.position.y) / self._transform.scale.y
-            self._relative_point.x = relative_x
-            self._relative_point.y = relative_y
-            self._lock = False
-        # end if
-    # end _update_relative_from_absolute
+        return TScalar(lambda p1, p2: abs(p1.x - point2.x) + abs(p1.y - p2.y), p1=point1, p2=point2)
+    # end distance_manhattan
 
-    # endregion PRIVATE
-
-    # region EVENT
-
-    def _on_relative_point_changed(self, point):
+    @classmethod
+    def distance_chebyshev(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
         """
-        Triggered when the relative point changes, updates the absolute point.
+        Create a TScalar representing the Chebyshev distance between two points.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
         """
-        self._update_absolute_from_relative()
-    # end _on_relative_point_changed
+        return TScalar(lambda p1, p2: max(abs(point1.x - point2.x), abs(point1.y - point2.y)), p1=point1, p2=point2)
+    # end distance_chebyshev
 
-    def _on_absolute_point_changed(self, point):
+    @classmethod
+    def distance_canberra(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
         """
-        Triggered when the absolute point changes, updates the relative point.
+        Create a TScalar representing the Canberra distance between two points.
+
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
         """
-        self._update_relative_from_absolute()
-    # end _on_absolute_point_changed
-
-    # endregion EVENT
-
-# end AffinePoint
-
-
-# region DISTANCES
-
-
-def distance_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Euclidean distance between two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2), p1=point1, p2=point2)
-# end distance_t
-
-
-def distance_squared_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the squared Euclidean distance between two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2, p1=point1, p2=point2)
-# end distance_squared_t
-
-
-def distance_manhattan_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Manhattan distance between two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: abs(p1.x - point2.x) + abs(p1.y - p2.y), p1=point1, p2=point2)
-# end distance_manhattan_t
-
-
-def distance_chebyshev_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Chebyshev distance between two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: max(abs(point1.x - point2.x), abs(point1.y - point2.y)), p1=point1, p2=point2)
-# end distance_chebyshev_t
-
-
-def distance_canberra_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Canberra distance between two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(
-        lambda p1, p2: abs(p1.x - p2.x) / (abs(p1.x) + abs(p2.x)) + abs(p1.y - p2.y) / (abs(p1.y) + abs(p2.y)),
-        p1=point1,
-        p2=point2
-    )
-# end distance_canberra_t
-
-
-def distance_minkowski_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D],
-        p: Union[Scalar, float]
-):
-    """
-    Create a TScalar representing the Minkowski distance between two points.
-
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-        p (float): The order of the Minkowski distance (p=1 is Manhattan, p=2 is Euclidean).
-    """
-    if isinstance(p, Scalar):
         return TScalar(
-            lambda p1, p2, s: ((abs(p1.x - p2.x) ** s.value + abs(p1.y - p2.y) ** s.value) ** (1 / s.value)),
-            p1=point1,
-            p2=point2,
-            s=p
-        )
-    else:
-        return TScalar(
-            lambda p1, p2: ((abs(p1.x - p2.x) ** p + abs(p1.y - p2.y) ** p) ** (1 / p)),
+            lambda p1, p2: abs(p1.x - p2.x) / (abs(p1.x) + abs(p2.x)) + abs(p1.y - p2.y) / (abs(p1.y) + abs(p2.y)),
             p1=point1,
             p2=point2
         )
-    # end if
-# end distance_minkowski_t
+    # end distance_canberra
 
+    @classmethod
+    def distance_minkowski(
+            cls,
+            point1: Point2D,
+            point2: Point2D,
+            p: Union[Scalar, float]
+    ):
+        """
+        Create a TScalar representing the Minkowski distance between two points.
 
-def distance_hamming_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Hamming distance between two points.
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+            p (float): The order of the Minkowski distance (p=1 is Manhattan, p=2 is Euclidean).
+        """
+        if isinstance(p, Scalar):
+            return TScalar(
+                lambda p1, p2, s: ((abs(p1.x - p2.x) ** s.value + abs(p1.y - p2.y) ** s.value) ** (1 / s.value)),
+                p1=point1,
+                p2=point2,
+                s=p
+            )
+        else:
+            return TScalar(
+                lambda p1, p2: ((abs(p1.x - p2.x) ** p + abs(p1.y - p2.y) ** p) ** (1 / p)),
+                p1=point1,
+                p2=point2
+            )
+        # end if
+    # end distance_minkowski
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: int(p1.x != p2.x) + int(p1.y != p2.y), p1=point1, p2=point2)
-# end distance_hamming_t
+    @classmethod
+    def distance_hamming(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
+        """
+        Create a TScalar representing the Hamming distance between two points.
 
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        return TScalar(lambda p1, p2: int(p1.x != p2.x) + int(p1.y != p2.y), p1=point1, p2=point2)
+    # end distance_hamming
 
-def distance_jaccard_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Jaccard distance between two points.
+    @classmethod
+    def distance_jaccard(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
+        """
+        Create a TScalar representing the Jaccard distance between two points.
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    intersection = min(point1.x, point2.x) + min(point1.y, point2.y)
-    union = max(point1.x, point2.x) + max(point1.y, point2.y)
-    return TScalar(lambda p1, p2: 1 - intersection / union if union != 0 else 0, p1=point1, p2=point2)
-# end distance_jaccard_t
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        intersection = min(point1.x, point2.x) + min(point1.y, point2.y)
+        union = max(point1.x, point2.x) + max(point1.y, point2.y)
+        return TScalar(lambda p1, p2: 1 - intersection / union if union != 0 else 0, p1=point1, p2=point2)
+    # end distance_jaccard
 
+    @classmethod
+    def distance_braycurtis(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
+        """
+        Create a TScalar representing the Bray-Curtis distance between two points.
 
-def distance_braycurtis_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Bray-Curtis distance between two points.
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        numerator = abs(point1.x - point2.x) + abs(point1.y - point2.y)
+        denominator = abs(point1.x + point2.x) + abs(point1.y + point2.y)
+        return TScalar(lambda p1, p2: numerator / denominator if denominator != 0 else 0, p1=point1, p2=point2)
+    # end distance_braycurtis
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    numerator = abs(point1.x - point2.x) + abs(point1.y - point2.y)
-    denominator = abs(point1.x + point2.x) + abs(point1.y + point2.y)
-    return TScalar(lambda p1, p2: numerator / denominator if denominator != 0 else 0, p1=point1, p2=point2)
-# end distance_braycurtis_t
+    @classmethod
+    def distance_cosine(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
+        """
+        Create a TScalar representing the cosine distance between two points.
 
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        dot = TPoint2D.dot(point1, point2)
+        norm1 = TPoint2D.norm(point1)
+        norm2 = TPoint2D.norm(point2)
+        return TScalar(
+            lambda p1, p2: 1 - (
+                        dot.value / (norm1.value * norm2.value)) if norm1.value != 0 and norm2.value != 0 else 1,
+            p1=point1,
+            p2=point2
+        )
+    # end distance_cosine
 
-def distance_cosine_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the cosine distance between two points.
+    @classmethod
+    def distance_correlation(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
+        """
+        Create a TScalar representing the correlation distance between two points.
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    dot = dot_t(point1, point2)
-    norm1 = norm_t(point1)
-    norm2 = norm_t(point2)
-    return TScalar(
-        lambda p1, p2: 1 - (dot.value / (norm1.value * norm2.value)) if norm1.value != 0 and norm2.value != 0 else 1,
-        p1=point1,
-        p2=point2
-    )
-# end distance_cosine_t
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        mean1 = (point1.x + point1.y) / 2
+        mean2 = (point2.x + point2.y) / 2
+        numerator = (point1.x - mean1) * (point2.x - mean2) + (point1.y - mean1) * (point2.y - mean2)
+        denominator = math.sqrt(((point1.x - mean1) ** 2 + (point1.y - mean1) ** 2) *
+                                ((point2.x - mean2) ** 2 + (point2.y - mean2) ** 2))
+        return TScalar(
+            lambda p1, p2: 1 - (numerator / denominator) if denominator != 0 else 1,
+            p1=point1,
+            p2=point2
+        )
+    # end distance_correlation
 
+    @classmethod
+    def distance_euclidean(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
+        """
+        Create a TScalar representing the Euclidean distance between two points.
 
-def distance_correlation_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the correlation distance between two points.
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        return TScalar(lambda p1, p2: np.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2), p1=point1, p2=point2)
+    # end distance_euclidean
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    mean1 = (point1.x + point1.y) / 2
-    mean2 = (point2.x + point2.y) / 2
-    numerator = (point1.x - mean1) * (point2.x - mean2) + (point1.y - mean1) * (point2.y - mean2)
-    denominator = math.sqrt(((point1.x - mean1) ** 2 + (point1.y - mean1) ** 2) *
-                            ((point2.x - mean2) ** 2 + (point2.y - mean2) ** 2))
-    return TScalar(
-        lambda p1, p2: 1 - (numerator / denominator) if denominator != 0 else 1,
-        p1=point1,
-        p2=point2
-    )
-# end distance_correlation_t
+    @classmethod
+    def distance_mahalanobis(
+            cls,
+            point1: Point2D,
+            point2: Point2D,
+            cov_matrix
+    ):
+        """
+        Create a TScalar representing the Mahalanobis distance between two points.
 
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+            cov_matrix (Matrix2D): Covariance matrix of the dataset.
+        """
+        return TScalar(
+            lambda p1, p2, cov: np.sqrt(
+                np.array([p1.x - p2.x, p1.y - p2.y]).T @ np.linalg.inv(cov) @ np.array([p1.x - p2.x, p1.y - p2.y])),
+            p1=point1,
+            p2=point2,
+            cov=cov_matrix
+        )
+    # end distance_mahalanobis
 
-def distance_euclidean_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the Euclidean distance between two points.
+    @classmethod
+    def distance_seuclidean(
+            cls,
+            point1: Point2D,
+            point2: Point2D,
+            std_devs
+    ):
+        """
+        Create a TScalar representing the standardized Euclidean distance between two points.
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: np.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2), p1=point1, p2=point2)
-# end distance_euclidean_t
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+            std_devs (np.ndarray): Standard deviations of the dimensions.
+        """
+        return TScalar(
+            lambda p1, p2: np.sqrt(np.sum((np.array([p1.x - p2.x, p1.y - p2.y]) / std_devs) ** 2)),
+            p1=point1,
+            p2=point2
+        )
+    # end distance_seuclidean
 
+    @classmethod
+    def distance_sqeuclidean(
+            cls,
+            point1: Point2D,
+            point2: Point2D
+    ):
+        """
+        Create a TScalar representing the squared Euclidean distance between two points.
 
-def distance_mahalanobis_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D],
-        cov_matrix
-):
-    """
-    Create a TScalar representing the Mahalanobis distance between two points.
+        Args:
+            point1 (Point2D): The first point.
+            point2 (Point2D): The second point.
+        """
+        return TScalar(lambda p1, p2: (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2, p1=point1, p2=point2)
+    # end distance_sqeuclidean
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-        cov_matrix (np.ndarray): Covariance matrix of the dataset.
-    """
-    return TScalar(
-        lambda p1, p2, cov: np.sqrt(np.array([p1.x - p2.x, p1.y - p2.y]).T @ np.linalg.inv(cov) @ np.array([p1.x - p2.x, p1.y - p2.y])),
-        p1=point1,
-        p2=point2,
-        cov=cov_matrix
-    )
-# end distance_mahalanobis_t
+    # endregion DISTANCES
 
+    # region GENERATION
 
-def distance_seuclidean_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D],
-        std_devs
-):
-    """
-    Create a TScalar representing the standardized Euclidean distance between two points.
+    @classmethod
+    def point_range(
+            cls,
+            start: Point2D,
+            stop: Point2D,
+            step: Point2D,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D or TPoint2D objects using a range-like function for 2D points.
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-        std_devs (np.ndarray): Standard deviations of the dimensions.
-    """
-    return TScalar(
-        lambda p1, p2: np.sqrt(np.sum((np.array([p1.x - p2.x, p1.y - p2.y]) / std_devs) ** 2)),
-        p1=point1,
-        p2=point2
-    )
-# end distance_seuclidean_t
+        Args:
+            start (Point2D): Starting point.
+            stop (Point2D): Stopping point.
+            step (Point2D): Step sizes for x and y coordinates.
+            return_tpoint (bool): If True, return a list of TPoint2D objects.
 
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        x_range = np.arange(start.x, stop.x, step.x)
+        y_range = np.arange(start.y, stop.y, step.y)
 
-def distance_sqeuclidean_t(
-        point1: Union[Point2D, TPoint2D],
-        point2: Union[Point2D, TPoint2D]
-):
-    """
-    Create a TScalar representing the squared Euclidean distance between two points.
+        if return_tpoint:
+            return [
+                TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+                for x, y in zip(x_range, y_range)
+            ]
+        else:
+            return [Point2D(x, y) for x, y in zip(x_range, y_range)]
+        # end if
+    # end point_range
 
-    Args:
-        point1 (Point2D): The first point.
-        point2 (Point2D): The second point.
-    """
-    return TScalar(lambda p1, p2: (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2, p1=point1, p2=point2)
-# end distance_sqeuclidean_t
+    @classmethod
+    def linspace(
+            cls,
+            start: Point2D,
+            stop: Point2D,
+            num: int = 50,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D or TPoint2D objects using numpy's linspace for 2D points.
 
+        Args:
+            start (Point2D): Starting point.
+            stop (Point2D): Stopping point.
+            num (int, optional): Number of points.
+            return_tpoint (bool): If True, return a list of TPoint2D objects.
 
-# endregion DISTANCES
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        x_values = np.linspace(start.x, stop.x, num)
+        y_values = np.linspace(start.y, stop.y, num)
 
+        if return_tpoint:
+            return [
+                TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+                for x, y in zip(x_values, y_values)
+            ]
+        else:
+            return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+        # end if
+    # end linspace
 
-# region GENERATION
+    @classmethod
+    def logspace(
+            cls,
+            start: Point2D,
+            stop: Point2D,
+            num: int = 50,
+            base: float = 10.0,
+            return_tpoint: bool = False):
+        """
+        Create a list of Point2D or TPoint2D objects using numpy's logspace for 2D points.
 
+        Args:
+            start (Point2D): Starting point.
+            stop (Point2D): Stopping point.
+            num (int, optional): Number of points.
+            base (float, optional): Base of the logarithm.
+            return_tpoint (bool): If True, return a list of TPoint2D objects.
 
-def point_range(
-        start: Union[Point2D, TPoint2D],
-        stop: Union[Point2D, TPoint2D],
-        step: Union[Point2D, TPoint2D],
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D or TPoint2D objects using a range-like function for 2D points.
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        x_values = np.logspace(np.log10(start.x), np.log10(stop.x), num, base=base)
+        y_values = np.logspace(np.log10(start.y), np.log10(stop.y), num, base=base)
 
-    Args:
-        start (Point2D): Starting point.
-        stop (Point2D): Stopping point.
-        step (Point2D): Step sizes for x and y coordinates.
-        return_tpoint (bool): If True, return a list of TPoint2D objects.
+        if return_tpoint:
+            return [
+                TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+                for x, y in zip(x_values, y_values)
+            ]
+        else:
+            return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+        # end if
+    # end logspace
 
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    x_range = np.arange(start.x, stop.x, step.x)
-    y_range = np.arange(start.y, stop.y, step.y)
+    @classmethod
+    def uniform(
+            cls,
+            low=(0.0, 0.0),
+            high=(1.0, 1.0),
+            size=None,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D or TPoint2D objects with uniform distribution, allowing different ranges for x and y.
 
-    if return_tpoint:
-        return [
-            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
-            for x, y in zip(x_range, y_range)
+        Args:
+            low (tuple): Lower bounds of the uniform distribution for x and y.
+            high (tuple): Upper bounds of the uniform distribution for x and y.
+            size (int, optional): Number of samples to generate.
+            return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        if size is None:
+            size = 1
+        # end if
+
+        points = [
+            (np.random.uniform(low[0], high[0]), np.random.uniform(low[1], high[1]))
+            for _ in range(size)
         ]
-    else:
-        return [Point2D(x, y) for x, y in zip(x_range, y_range)]
-    # end if
-# end point_range
 
+        if return_tpoint:
+            return [
+                TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(p[0]), y=Scalar(p[1]))
+                for p in points
+            ]
+        else:
+            return [Point2D(p[0], p[1]) for p in points]
+        # end if
+    # end uniform
 
-def linspace(
-        start: Union[Point2D, TPoint2D],
-        stop: Union[Point2D, TPoint2D],
-        num: int = 50,
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D or TPoint2D objects using numpy's linspace for 2D points.
+    @classmethod
+    def normal(
+            cls,
+            loc: Point2D,
+            scale: Point2D,
+            size=None,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D or TPoint2D objects with normal distribution.
 
-    Args:
-        start (Point2D): Starting point.
-        stop (Point2D): Stopping point.
-        num (int, optional): Number of points.
-        return_tpoint (bool): If True, return a list of TPoint2D objects.
+        Args:
+            loc (Point2D): Mean of the distribution.
+            scale (Point2D): Standard deviation of the distribution.
+            size (int, optional): Number of samples to generate.
+            return_tpoint (bool): If True, return a list of TPoint2D objects.
 
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    x_values = np.linspace(start.x, stop.x, num)
-    y_values = np.linspace(start.y, stop.y, num)
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        x_values = np.random.normal(loc.x, scale.x, size)
+        y_values = np.random.normal(loc.y, scale.y, size)
 
-    if return_tpoint:
-        return [
-            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
-            for x, y in zip(x_values, y_values)
-        ]
-    else:
-        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
-    # end if
-# end linspace
+        if return_tpoint:
+            return [
+                TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+                for x, y in zip(x_values, y_values)
+            ]
+        else:
+            return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+        # end if
+    # end normal
 
+    @classmethod
+    def poisson(
+            cls,
+            lam: Point2D,
+            size=None,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D or TPoint2D objects with Poisson distribution.
 
-def logspace(
-        start: Union[Point2D, TPoint2D],
-        stop: Union[Point2D, TPoint2D],
-        num: int = 50,
-        base: float = 10.0,
-        return_tpoint: bool = False):
-    """
-    Create a list of Point2D or TPoint2D objects using numpy's logspace for 2D points.
+        Args:
+            lam (Point2D): Expected number of events (lambda) for x and y.
+            size (int, optional): Number of samples to generate.
+            return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
 
-    Args:
-        start (Point2D): Starting point.
-        stop (Point2D): Stopping point.
-        num (int, optional): Number of points.
-        base (float, optional): Base of the logarithm.
-        return_tpoint (bool): If True, return a list of TPoint2D objects.
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        x_values = np.random.poisson(lam.x, size)
+        y_values = np.random.poisson(lam.y, size)
 
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    x_values = np.logspace(np.log10(start.x), np.log10(stop.x), num, base=base)
-    y_values = np.logspace(np.log10(start.y), np.log10(stop.y), num, base=base)
+        if return_tpoint:
+            return [
+                TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+                for x, y in zip(x_values, y_values)
+            ]
+        else:
+            return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+        # end if
+    # end poisson
 
-    if return_tpoint:
-        return [
-            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
-            for x, y in zip(x_values, y_values)
-        ]
-    else:
-        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
-    # end if
-# end logspace
+    @classmethod
+    def randint(
+            cls,
+            low: Point2D,
+            high: Point2D,
+            size=None,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D or TPoint2D objects with random integers from low to high for x and y coordinates.
 
+        Args:
+            low (Point2D): Lower bound for x and y.
+            high (Point2D): Upper bound for x and y.
+            size (int, optional): Number of samples to generate.
+            return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
 
-def uniform(
-        low=(0.0, 0.0),
-        high=(1.0, 1.0),
-        size=None,
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D or TPoint2D objects with uniform distribution, allowing different ranges for x and y.
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        x_values = np.random.randint(int(low.x), int(high.x), size)
+        y_values = np.random.randint(int(low.y), int(high.y), size)
 
-    Args:
-        low (tuple): Lower bounds of the uniform distribution for x and y.
-        high (tuple): Upper bounds of the uniform distribution for x and y.
-        size (int, optional): Number of samples to generate.
-        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+        if return_tpoint:
+            return [
+                TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+                for x, y in zip(x_values, y_values)
+            ]
+        else:
+            return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+        # end if
+    # end randint
 
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    if size is None:
-        size = 1
-    # end if
+    @classmethod
+    def choice(
+            cls,
+            points: list,
+            size=None,
+            replace=True,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D or TPoint2D objects by randomly choosing from a given list of points.
 
-    points = [
-        (np.random.uniform(low[0], high[0]), np.random.uniform(low[1], high[1]))
-        for _ in range(size)
-    ]
+        Args:
+            points (list): List of Point2D objects to choose from.
+            size (int, optional): Number of samples to generate.
+            replace (bool, optional): Whether to sample with replacement.
+            return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
 
-    if return_tpoint:
-        return [
-            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(p[0]), y=Scalar(p[1]))
-            for p in points
-        ]
-    else:
-        return [Point2D(p[0], p[1]) for p in points]
-    # end if
-# end uniform
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        choices = np.random.choice(points, size=size, replace=replace)
 
+        if return_tpoint:
+            return [TPoint2D(lambda p: (p.x, p.y), p=choice) for choice in choices]
+        else:
+            return list(choices)
+        # end if
+    # end choice
 
-def normal(
-        loc: Union[Point2D, TPoint2D],
-        scale: Union[Point2D, TPoint2D],
-        size=None,
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D or TPoint2D objects with normal distribution.
+    @classmethod
+    def shuffle(
+            cls,
+            points: list,
+            return_tpoint: bool = False
+    ):
+        """
+        Shuffle a list of Point2D objects in place.
 
-    Args:
-        loc (Point2D): Mean of the distribution.
-        scale (Point2D): Standard deviation of the distribution.
-        size (int, optional): Number of samples to generate.
-        return_tpoint (bool): If True, return a list of TPoint2D objects.
+        Args:
+            points (list): List of Point2D objects to shuffle.
+            return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
 
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    x_values = np.random.normal(loc.x, scale.x, size)
-    y_values = np.random.normal(loc.y, scale.y, size)
+        Returns:
+            List[Point2D] or List[TPoint2D]: Shuffled list of Point2D or TPoint2D objects.
+        """
+        np.random.shuffle(points)
 
-    if return_tpoint:
-        return [
-            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
-            for x, y in zip(x_values, y_values)
-        ]
-    else:
-        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
-    # end if
-# end normal
+        if return_tpoint:
+            return [TPoint2D(lambda p: (p.x, p.y), p=point) for point in points]
+        else:
+            return points
+        # end if
+    # end shuffle
 
+    @classmethod
+    def point_arange(
+            cls,
+            start: Point2D,
+            stop: Point2D,
+            step: Point2D,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a list of Point2D objects using numpy's arange function for 2D points.
 
-def poisson(
-        lam: Union[Point2D, TPoint2D],
-        size=None,
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D or TPoint2D objects with Poisson distribution.
+        Args:
+            start (Point2D): Start point.
+            stop (Point2D): Stop point.
+            step (Point2D): Step sizes for x and y coordinates.
+            return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
 
-    Args:
-        lam (Point2D): Expected number of events (lambda) for x and y.
-        size (int, optional): Number of samples to generate.
-        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+        Returns:
+            List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
+        """
+        x_values = np.arange(start.x, stop.x, step.x)
+        y_values = np.arange(start.y, stop.y, step.y)
 
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    x_values = np.random.poisson(lam.x, size)
-    y_values = np.random.poisson(lam.y, size)
+        if return_tpoint:
+            return [TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y)) for x, y in
+                    zip(x_values, y_values)]
+        else:
+            return [Point2D(x, y) for x, y in zip(x_values, y_values)]
+        # end if
+    # end point_arange
 
-    if return_tpoint:
-        return [
-            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
-            for x, y in zip(x_values, y_values)
-        ]
-    else:
-        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
-    # end if
-# end poisson
+    @classmethod
+    def meshgrid(
+            cls,
+            x_values,
+            y_values,
+            return_tpoint: bool = False
+    ):
+        """
+        Create a meshgrid of Point2D objects from x and y values.
 
+        Args:
+            x_values (array-like): The x-coordinates.
+            y_values (array-like): The y-coordinates.
+            return_tpoint (bool, optional): If True, return a grid of TPoint2D objects.
 
-def randint(
-        low: Union[Point2D, TPoint2D],
-        high: Union[Point2D, TPoint2D],
-        size=None,
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D or TPoint2D objects with random integers from low to high for x and y coordinates.
+        Returns:
+            List[List[Point2D]]: A 2D list of Point2D or TPoint2D objects representing the meshgrid.
+        """
+        x_grid, y_grid = np.meshgrid(x_values, y_values)
+        if return_tpoint:
+            return [[TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y)) for x, y in zip(x_row, y_row)]
+                    for x_row, y_row in zip(x_grid, y_grid)]
+        else:
+            return [[Point2D(x, y) for x, y in zip(x_row, y_row)] for x_row, y_row in zip(x_grid, y_grid)]
+        # end if
+    # end meshgrid
 
-    Args:
-        low (Point2D): Lower bound for x and y.
-        high (Point2D): Upper bound for x and y.
-        size (int, optional): Number of samples to generate.
-        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
+    # endregion GENERATION
 
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    x_values = np.random.randint(int(low.x), int(high.x), size)
-    y_values = np.random.randint(int(low.y), int(high.y), size)
-
-    if return_tpoint:
-        return [
-            TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
-            for x, y in zip(x_values, y_values)
-        ]
-    else:
-        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
-    # end if
-# end randint
-
-
-def choice(
-        points: list,
-        size=None,
-        replace=True,
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D or TPoint2D objects by randomly choosing from a given list of points.
-
-    Args:
-        points (list): List of Point2D objects to choose from.
-        size (int, optional): Number of samples to generate.
-        replace (bool, optional): Whether to sample with replacement.
-        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
-
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    choices = np.random.choice(points, size=size, replace=replace)
-
-    if return_tpoint:
-        return [TPoint2D(lambda p: (p.x, p.y), p=choice) for choice in choices]
-    else:
-        return list(choices)
-    # end if
-# end choice
-
-
-def shuffle(
-        points: list,
-        return_tpoint: bool = False
-):
-    """
-    Shuffle a list of Point2D objects in place.
-
-    Args:
-        points (list): List of Point2D objects to shuffle.
-        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
-
-    Returns:
-        List[Point2D] or List[TPoint2D]: Shuffled list of Point2D or TPoint2D objects.
-    """
-    np.random.shuffle(points)
-
-    if return_tpoint:
-        return [TPoint2D(lambda p: (p.x, p.y), p=point) for point in points]
-    else:
-        return points
-    # end if
-# end shuffle
-
-
-def point_arange(
-        start: Union[Point2D, TPoint2D],
-        stop: Union[Point2D, TPoint2D],
-        step: Union[Point2D, TPoint2D],
-        return_tpoint: bool = False
-):
-    """
-    Create a list of Point2D objects using numpy's arange function for 2D points.
-
-    Args:
-        start (Point2D): Start point.
-        stop (Point2D): Stop point.
-        step (Point2D): Step sizes for x and y coordinates.
-        return_tpoint (bool, optional): If True, return a list of TPoint2D objects.
-
-    Returns:
-        List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
-    """
-    x_values = np.arange(start.x, stop.x, step.x)
-    y_values = np.arange(start.y, stop.y, step.y)
-
-    if return_tpoint:
-        return [TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y)) for x, y in zip(x_values, y_values)]
-    else:
-        return [Point2D(x, y) for x, y in zip(x_values, y_values)]
-    # end if
-# end point_arange
-
-
-def meshgrid(
-        x_values,
-        y_values,
-        return_tpoint: bool = False
-):
-    """
-    Create a meshgrid of Point2D objects from x and y values.
-
-    Args:
-        x_values (array-like): The x-coordinates.
-        y_values (array-like): The y-coordinates.
-        return_tpoint (bool, optional): If True, return a grid of TPoint2D objects.
-
-    Returns:
-        List[List[Point2D]]: A 2D list of Point2D or TPoint2D objects representing the meshgrid.
-    """
-    x_grid, y_grid = np.meshgrid(x_values, y_values)
-    if return_tpoint:
-        return [[TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y)) for x, y in zip(x_row, y_row)]
-                for x_row, y_row in zip(x_grid, y_grid)]
-    else:
-        return [[Point2D(x, y) for x, y in zip(x_row, y_row)] for x_row, y_row in zip(x_grid, y_grid)]
-    # end if
-# end meshgrid
-
-
-# endregion GENERATION
+# end TPoint2D
 

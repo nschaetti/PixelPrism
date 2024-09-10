@@ -19,17 +19,6 @@
 import unittest
 import numpy as np
 from pixel_prism.data import Point2D, TPoint2D, Scalar, TScalar
-from pixel_prism.data.points import (
-    add_t, sub_t, mul_t, div_t, rotate_t, scale_t, dot_t,
-    cross_t, norm_t, normalize_t, angle_t, distance_t, distance_squared_t,
-    distance_manhattan_t, distance_chebyshev_t, distance_canberra_t, distance_minkowski_t,
-    distance_hamming_t, distance_jaccard_t, distance_braycurtis_t,
-    distance_cosine_t, distance_correlation_t,
-    distance_euclidean_t, distance_mahalanobis_t, distance_seuclidean_t,
-    distance_sqeuclidean_t, tpoint2d,
-    point_range, linspace, logspace, uniform, logspace, poisson, randint, shuffle, point_arange,
-    normal, choice, point_arange, meshgrid, scalar_mul_t
-)
 
 
 class TestPoint2D(unittest.TestCase):
@@ -55,8 +44,8 @@ class TestPoint2D(unittest.TestCase):
         """
         changes = []
 
-        def on_change(event):
-            changes.append((event.x, event.y))
+        def on_change(sender, event_type, x, y):
+            changes.append((x, y))
         # end on_change
 
         # Test set
@@ -320,7 +309,7 @@ class TestPoint2D(unittest.TestCase):
         # (1, 2), (3, 4)
         point1 = Point2D(1, 2)
         point2 = Point2D(3, 4)
-        tpoint = add_t(point1, point2)
+        tpoint = TPoint2D.add(point1, point2)
 
         # (1, 2) + (3, 4) = (4, 6)
         self.assertEqual(tpoint.x, 4)
@@ -338,7 +327,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 2)
         point2 = Point2D(3, 4)
-        tpoint = add_t(point1, point2)
+        tpoint = TPoint2D.add(point1, point2)
 
         with self.assertRaises(AttributeError):
             tpoint.x = 10
@@ -353,7 +342,7 @@ class TestPoint2D(unittest.TestCase):
         # 3, 4
         point1 = Point2D(1, 2)
         point2 = Point2D(3, 4)
-        tpoint = add_t(point1, point2)
+        tpoint = TPoint2D.add(point1, point2)
 
         # 4 = 1 + 3
         # 6 = 2 + 4
@@ -387,7 +376,7 @@ class TestPoint2D(unittest.TestCase):
         # 2, 3
         point1 = Point2D(5, 7)
         point2 = Point2D(2, 3)
-        tpoint = sub_t(point1, point2)
+        tpoint = TPoint2D.sub(point1, point2)
 
         # 3 = 5 - 2
         # 4 = 7 - 3
@@ -419,7 +408,7 @@ class TestPoint2D(unittest.TestCase):
         # 2, 3
         point1 = Point2D(2, 3)
         scalar = Scalar(2)
-        tpoint = scalar_mul_t(point1, scalar)
+        tpoint = TPoint2D.scalar_mul(point1, scalar)
 
         # 4 = 2 * 2
         # 6 = 3 * 2
@@ -450,7 +439,7 @@ class TestPoint2D(unittest.TestCase):
         # 2, 3
         point1 = Point2D(2, 3)
         scalar = 2.0
-        tpoint = scalar_mul_t(point1, scalar)
+        tpoint = TPoint2D.scalar_mul(point1, scalar)
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 6)
 
@@ -466,7 +455,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(8, 6)
         scalar = Scalar(2)
-        tpoint = div_t(point1, scalar)
+        tpoint = TPoint2D.div(point1, scalar)
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 3)
 
@@ -490,7 +479,7 @@ class TestPoint2D(unittest.TestCase):
 
         # (8, 6) / 2 = (4, 3)
         scalar = 2.0
-        tpoint = div_t(point1, scalar)
+        tpoint = TPoint2D.div(point1, scalar)
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 3)
 
@@ -511,7 +500,7 @@ class TestPoint2D(unittest.TestCase):
         angle = Scalar(np.pi / 2)
 
         # Rotate the point 90 degrees around the origin
-        tpoint = rotate_t(point, angle, center)
+        tpoint = TPoint2D.rotate(point, angle, center)
         self.assertAlmostEqual(tpoint.x, 0, places=5)
         self.assertAlmostEqual(tpoint.y, 1, places=5)
 
@@ -538,7 +527,7 @@ class TestPoint2D(unittest.TestCase):
         angle = np.pi / 2.0
 
         # Rotate the point 90 degrees around the origin
-        tpoint = rotate_t(point, angle, center)
+        tpoint = TPoint2D.rotate(point, angle, center)
         self.assertAlmostEqual(tpoint.x, 0, places=5)
         self.assertAlmostEqual(tpoint.y, 1, places=5)
 
@@ -557,7 +546,7 @@ class TestPoint2D(unittest.TestCase):
         point = Point2D(2, 3)
         center = Point2D(0, 0)
         scale = Scalar(2)
-        tpoint = scale_t(point, scale, center)
+        tpoint = TPoint2D.scale(point, scale, center)
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 6)
 
@@ -581,7 +570,7 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
 
         # (1, 2) . (3, 4) = 1 * 3 + 2 * 4 = 11
-        result = dot_t(point1, point2)
+        result = TPoint2D.dot(point1, point2)
         self.assertEqual(result.value, 11)
 
         # Modify one of the points and check the updated result
@@ -599,7 +588,7 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
 
         # (1, 2) x (3, 4) = 1 * 4 - 2 * 3 = -2
-        result = cross_t(point1, point2)
+        result = TPoint2D.cross(point1, point2)
         self.assertEqual(result.value, -2)
 
         # Modify one of the points and check the updated result
@@ -616,7 +605,7 @@ class TestPoint2D(unittest.TestCase):
         point = Point2D(3, 4)
 
         # ||(3, 4)|| = sqrt(3^2 + 4^2) = 5
-        result = norm_t(point)
+        result = TPoint2D.norm(point)
         self.assertEqual(result.value, 5)
 
         # Modify the point and check the updated result
@@ -633,7 +622,7 @@ class TestPoint2D(unittest.TestCase):
         point = Point2D(3, 4)
 
         # (3, 4) / 5 = (0.6, 0.8)
-        result = normalize_t(point)
+        result = TPoint2D.normalize(point)
         self.assertAlmostEqual(result.x, 0.6, places=5)
         self.assertAlmostEqual(result.y, 0.8, places=5)
 
@@ -652,7 +641,7 @@ class TestPoint2D(unittest.TestCase):
         # 0, 1
         point1 = Point2D(1, 0)
         point2 = Point2D(0, 1)
-        result = angle_t(point1, point2)
+        result = TPoint2D.angle(point1, point2)
 
         # The angle between the two points is pi/2
         self.assertAlmostEqual(result.value, np.pi / 2, places=5)
@@ -671,7 +660,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(0, 0)
         point2 = Point2D(3, 4)
-        result = distance_t(point1, point2)
+        result = TPoint2D.distance(point1, point2)
         self.assertEqual(result.value, 5)
 
         # Modify one of the points and check the updated result
@@ -688,7 +677,7 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
 
         # ||(0, 0) - (3, 4)||^2 = 3^2 + 4^2 = 25
-        result = distance_squared_t(point1, point2)
+        result = TPoint2D.distance_squared(point1, point2)
         self.assertEqual(result.value, 25)
 
         # Modify one of the points and check the updated result
@@ -707,7 +696,7 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
 
         # |1 - 3| + |1 - 4| = 2 + 3 = 5
-        result = distance_manhattan_t(point1, point2)
+        result = TPoint2D.distance_manhattan(point1, point2)
         self.assertEqual(result.value, 5)
     # end test_distance_manhattan_t
 
@@ -718,7 +707,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)
-        result = distance_chebyshev_t(point1, point2)
+        result = TPoint2D.distance_chebyshev(point1, point2)
         self.assertEqual(result.value, 3)
     # end test_distance_chebyshev_t
 
@@ -729,7 +718,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 2)
         point2 = Point2D(3, 4)
-        result = distance_canberra_t(point1, point2)
+        result = TPoint2D.distance_canberra(point1, point2)
         self.assertAlmostEqual(result.value, 0.8333, places=4)
     # end test_distance_canberra_t
 
@@ -740,7 +729,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)
-        result = distance_minkowski_t(point1, point2, p=3)
+        result = TPoint2D.distance_minkowski(point1, point2, p=3)
         self.assertAlmostEqual(result.value, 3.2710664, places=4)
     # end test_distance_minkowski_t
 
@@ -751,7 +740,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)
-        result = distance_minkowski_t(point1, point2, p=Scalar(3))
+        result = TPoint2D.distance_minkowski(point1, point2, p=Scalar(3))
         self.assertAlmostEqual(result.value, 3.2710664, places=4)
     # end test_distance_minkowski_t
 
@@ -762,7 +751,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 1)
         point2 = Point2D(1, 4)
-        result = distance_hamming_t(point1, point2)
+        result = TPoint2D.distance_hamming(point1, point2)
         self.assertEqual(result.value, 1.0)
     # end test_distance_hamming_t
 
@@ -770,7 +759,7 @@ class TestPoint2D(unittest.TestCase):
     def test_distance_jaccard_t(self):
         point1 = Point2D(1, 1)
         point2 = Point2D(1, 4)
-        result = distance_jaccard_t(point1, point2)
+        result = TPoint2D.distance_jaccard(point1, point2)
         self.assertEqual(result.value, 0.6)
     # end test_distance_jaccard_t
 
@@ -781,7 +770,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)
-        result = distance_braycurtis_t(point1, point2)
+        result = TPoint2D.distance_braycurtis(point1, point2)
         self.assertEqual(result.value, 0.5555556)
     # end test_distance_braycurtis_t
 
@@ -791,7 +780,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 0)
         point2 = Point2D(0, 1)
-        result = distance_cosine_t(point1, point2)
+        result = TPoint2D.distance_cosine(point1, point2)
         self.assertEqual(result.value, 1)
     # end test_distance_cosine_t
 
@@ -801,7 +790,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 2)
         point2 = Point2D(3, 4)
-        result = distance_correlation_t(point1, point2)
+        result = TPoint2D.distance_correlation(point1, point2)
         self.assertAlmostEqual(result.value, 0)
     # end test_distance_correlation_t
 
@@ -819,7 +808,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(0, 0)
         point2 = Point2D(3, 4)
-        result = distance_euclidean_t(point1, point2)
+        result = TPoint2D.distance_euclidean(point1, point2)
         self.assertEqual(result.value, 5)
     # end test_angle_euclidean_t
 
@@ -827,14 +816,16 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the Mahalanobis distance between two points.
         """
+        from pixel_prism.data import Matrix2D
+
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)
 
         # Example of a 2x2 covariance matrix
-        cov_matrix = np.array([[1, 0], [0, 1]])
+        cov_matrix = Matrix2D(np.array([[1, 0], [0, 1]]))
 
         # Calculate the Mahalanobis distance
-        result = distance_mahalanobis_t(point1, point2, cov_matrix)
+        result = TPoint2D.distance_mahalanobis(point1, point2, cov_matrix)
 
         # The expected result is the Euclidean distance
         expected_result = np.sqrt((2 ** 2) + (3 ** 2))  # sqrt(4 + 9) = sqrt(13)
@@ -849,7 +840,7 @@ class TestPoint2D(unittest.TestCase):
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)
         std_devs = np.array([1, 1])  # Assuming standard deviations of 1 for both dimensions
-        result = distance_seuclidean_t(point1, point2, std_devs)
+        result = TPoint2D.distance_seuclidean(point1, point2, std_devs)
         self.assertAlmostEqual(result.value, 3.6056, places=4)
     # end test_distance_seuclidean_t
 
@@ -859,7 +850,7 @@ class TestPoint2D(unittest.TestCase):
         """
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)
-        result = distance_sqeuclidean_t(point1, point2)
+        result = TPoint2D.distance_sqeuclidean(point1, point2)
         self.assertEqual(result.value, 13)
     # end test_distance_sqeuclidean_t
 
@@ -877,7 +868,7 @@ class TestPoint2D(unittest.TestCase):
         p2 = Point2D(3, 4)
 
         # (1, 2) + (3, 4) = (4, 6)
-        tp = add_t(p1, p2)
+        tp = TPoint2D.add(p1, p2)
 
         # Check addition is correct
         self.assertEqual(tp.x, 4)
@@ -907,8 +898,8 @@ class TestPoint2D(unittest.TestCase):
         p2 = Point2D(2, 3)
 
         # tpoint
-        tp1 = tpoint2d(p1)
-        tp2 = tpoint2d(p2)
+        tp1 = TPoint2D.tpoint2d(p1)
+        tp2 = TPoint2D.tpoint2d(p2)
 
         # (5, 7) - (2, 3) = (3, 4)
         tp = tp1 - tp2
@@ -935,7 +926,7 @@ class TestPoint2D(unittest.TestCase):
         p1 = Point2D(2, 3)
 
         # tpoint
-        tp1 = tpoint2d(p1)
+        tp1 = TPoint2D.tpoint2d(p1)
 
         # Scalar multiplication
         scalar = 2.0
@@ -958,7 +949,7 @@ class TestPoint2D(unittest.TestCase):
         p1 = Point2D(8, 6)
 
         # tpoint
-        tp1 = tpoint2d(p1)
+        tp1 = TPoint2D.tpoint2d(p1)
 
         # Scalar division
         scalar = 2.0
@@ -985,9 +976,9 @@ class TestPoint2D(unittest.TestCase):
         p3 = Point2D(1, 1)
 
         # TPoint2D
-        tp1 = tpoint2d(p1)
-        tp2 = tpoint2d(p2)
-        tp3 = tpoint2d(p3)
+        tp1 = TPoint2D.tpoint2d(p1)
+        tp2 = TPoint2D.tpoint2d(p2)
+        tp3 = TPoint2D.tpoint2d(p3)
 
         # (2, 3) + (4, 5) = (6, 8)
         tp4 = tp1 + tp2
@@ -1018,9 +1009,9 @@ class TestPoint2D(unittest.TestCase):
         p3 = Point2D(1, 1)
 
         # TPoint2D
-        sp1 = tpoint2d(p1)
-        sp2 = tpoint2d(p2)
-        sp3 = tpoint2d(p3)
+        sp1 = TPoint2D.tpoint2d(p1)
+        sp2 = TPoint2D.tpoint2d(p2)
+        sp3 = TPoint2D.tpoint2d(p3)
 
         # Operations
         tp1 = sp1 + sp2 # (2, 3) + (4, 5) = (6, 8)
@@ -1061,7 +1052,7 @@ class TestPoint2D(unittest.TestCase):
         p1 = Point2D(2, 3)
 
         # TPoint2D
-        sp1 = tpoint2d(p1)
+        sp1 = TPoint2D.tpoint2d(p1)
 
         # Scalar multiplication
         scalar = 2.0
@@ -1213,7 +1204,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a range.
         """
-        points = point_range(Point2D(0, 0), Point2D(5, 10), Point2D(1, 2), return_tpoint=False)
+        points = TPoint2D.point_range(Point2D(0, 0), Point2D(5, 10), Point2D(1, 2), return_tpoint=False)
         expected_points = [
             Point2D(0, 0),
             Point2D(1, 2),
@@ -1228,7 +1219,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a range.
         """
-        tpoints = point_range(Point2D(0, 0), Point2D(5, 10), Point2D(1, 2), return_tpoint=True)
+        tpoints = TPoint2D.point_range(Point2D(0, 0), Point2D(5, 10), Point2D(1, 2), return_tpoint=True)
         expected_points = [
             Point2D(0, 0),
             Point2D(1, 2),
@@ -1247,7 +1238,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using linspace.
         """
-        points = linspace(Point2D(0, 0), Point2D(4, 8), num=5, return_tpoint=False)
+        points = TPoint2D.linspace(Point2D(0, 0), Point2D(4, 8), num=5, return_tpoint=False)
         expected_points = [
             Point2D(0, 0),
             Point2D(1, 2),
@@ -1262,7 +1253,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using linspace.
         """
-        tpoints = linspace(Point2D(0, 0), Point2D(4, 8), num=5, return_tpoint=True)
+        tpoints = TPoint2D.linspace(Point2D(0, 0), Point2D(4, 8), num=5, return_tpoint=True)
         expected_points = [
             Point2D(0, 0),
             Point2D(1, 2),
@@ -1280,7 +1271,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using logspace.
         """
-        points = logspace(Point2D(1, 1), Point2D(100, 1000), num=5, return_tpoint=False)
+        points = TPoint2D.logspace(Point2D(1, 1), Point2D(100, 1000), num=5, return_tpoint=False)
         expected_points = [
             Point2D(1.0, 1.0),
             Point2D(3.1622776601683795, 5.623414039611816),
@@ -1298,7 +1289,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using logspace.
         """
-        tpoints = logspace(Point2D(1, 1), Point2D(100, 1000), num=5, return_tpoint=True)
+        tpoints = TPoint2D.logspace(Point2D(1, 1), Point2D(100, 1000), num=5, return_tpoint=True)
         expected_points = [
             Point2D(1.0, 1.0),
             Point2D(3.1622776601683795, 5.623414039611816),
@@ -1318,7 +1309,7 @@ class TestPoint2D(unittest.TestCase):
         """
         low = (0, 0)
         high = (10, 10)
-        points = uniform(low, high, size=5)
+        points = TPoint2D.uniform(low, high, size=5)
         self.assertEqual(len(points), 5)
         self.assertTrue(all(0 <= p.x <= 10 for p in points))
     # end test_point_uniform
@@ -1327,7 +1318,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a uniform distribution with different ranges.
         """
-        points = uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=True)
+        points = TPoint2D.uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=True)
         self.assertEqual(len(points), 5)
         for point in points:
             self.assertTrue(isinstance(point, TPoint2D))
@@ -1340,7 +1331,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a uniform distribution.
         """
-        points = uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=False)
+        points = TPoint2D.uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=False)
         self.assertEqual(len(points), 5)
         for point in points:
             self.assertTrue(isinstance(point, Point2D))
@@ -1353,7 +1344,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a uniform distribution.
         """
-        tpoints = uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=True)
+        tpoints = TPoint2D.uniform(low=(0, 10), high=(5, 15), size=5, return_tpoint=True)
         self.assertEqual(len(tpoints), 5)
         for tpoint in tpoints:
             self.assertTrue(isinstance(tpoint, TPoint2D))
@@ -1366,7 +1357,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a normal distribution.
         """
-        points = normal(Point2D(0, 0), Point2D(1, 1), size=5, return_tpoint=False)
+        points = TPoint2D.normal(Point2D(0, 0), Point2D(1, 1), size=5, return_tpoint=False)
         self.assertEqual(len(points), 5)
         for p in points:
             self.assertIsInstance(p, Point2D)
@@ -1377,7 +1368,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a normal distribution.
         """
-        tpoints = normal(Point2D(0, 0), Point2D(1, 1), size=5, return_tpoint=True)
+        tpoints = TPoint2D.normal(Point2D(0, 0), Point2D(1, 1), size=5, return_tpoint=True)
         self.assertEqual(len(tpoints), 5)
         for tp in tpoints:
             self.assertIsInstance(tp, TPoint2D)
@@ -1388,7 +1379,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a Poisson distribution.
         """
-        points = poisson(Point2D(3, 5), size=5, return_tpoint=False)
+        points = TPoint2D.poisson(Point2D(3, 5), size=5, return_tpoint=False)
         self.assertEqual(len(points), 5)
         for p in points:
             self.assertIsInstance(p, Point2D)
@@ -1399,7 +1390,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using a Poisson distribution.
         """
-        tpoints = poisson(Point2D(3, 5), size=5, return_tpoint=True)
+        tpoints = TPoint2D.poisson(Point2D(3, 5), size=5, return_tpoint=True)
         self.assertEqual(len(tpoints), 5)
         for tp in tpoints:
             self.assertIsInstance(tp, TPoint2D)
@@ -1410,7 +1401,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using randint.
         """
-        points = randint(Point2D(0, 0), Point2D(10, 10), size=5, return_tpoint=False)
+        points = TPoint2D.randint(Point2D(0, 0), Point2D(10, 10), size=5, return_tpoint=False)
         self.assertEqual(len(points), 5)
         for p in points:
             self.assertIsInstance(p, Point2D)
@@ -1425,7 +1416,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the generation of points using randint.
         """
-        tpoints = randint(Point2D(0, 0), Point2D(10, 10), size=5, return_tpoint=True)
+        tpoints = TPoint2D.randint(Point2D(0, 0), Point2D(10, 10), size=5, return_tpoint=True)
         self.assertEqual(len(tpoints), 5)
         for tp in tpoints:
             self.assertIsInstance(tp, TPoint2D)
@@ -1441,7 +1432,7 @@ class TestPoint2D(unittest.TestCase):
         Test the choice of points.
         """
         points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
-        chosen_points = choice(points, size=2, replace=False, return_tpoint=False)
+        chosen_points = TPoint2D.choice(points, size=2, replace=False, return_tpoint=False)
         self.assertEqual(len(chosen_points), 2)
         for p in chosen_points:
             self.assertIn(p, points)
@@ -1454,7 +1445,7 @@ class TestPoint2D(unittest.TestCase):
         Test the choice of points.
         """
         points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
-        tpoints = choice(points, size=2, replace=False, return_tpoint=True)
+        tpoints = TPoint2D.choice(points, size=2, replace=False, return_tpoint=True)
         self.assertEqual(len(tpoints), 2)
         for tp in tpoints:
             self.assertIsInstance(tp, TPoint2D)
@@ -1467,7 +1458,7 @@ class TestPoint2D(unittest.TestCase):
         Test the shuffling of points.
         """
         points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
-        shuffled_points = shuffle(points, return_tpoint=False)
+        shuffled_points = TPoint2D.shuffle(points, return_tpoint=False)
         self.assertEqual(len(shuffled_points), 3)
         self.assertCountEqual(shuffled_points,
                               points)  # Vérifie que les éléments sont les mêmes, indépendamment de l'ordre
@@ -1481,7 +1472,7 @@ class TestPoint2D(unittest.TestCase):
         Test the shuffling of TPoints.
         """
         points = [Point2D(1, 1), Point2D(2, 2), Point2D(3, 3)]
-        tpoints = shuffle(points, return_tpoint=True)
+        tpoints = TPoint2D.shuffle(points, return_tpoint=True)
         self.assertEqual(len(tpoints), 3)
         self.assertCountEqual([(tp.x, tp.y) for tp in tpoints],
                               [(1, 1), (2, 2), (3, 3)])  # Vérifie que les valeurs sont correctes
@@ -1497,7 +1488,7 @@ class TestPoint2D(unittest.TestCase):
         start = Point2D(0, 0)
         stop = Point2D(5, 5)
         step = Point2D(1, 1)
-        points = point_arange(start, stop, step, return_tpoint=False)
+        points = TPoint2D.point_arange(start, stop, step, return_tpoint=False)
 
         self.assertEqual(len(points), 5)
         self.assertEqual(points[0].x, 0)
@@ -1516,7 +1507,7 @@ class TestPoint2D(unittest.TestCase):
         start = Point2D(0, 0)
         stop = Point2D(5, 5)
         step = Point2D(1, 1)
-        tpoints = point_arange(start, stop, step, return_tpoint=True)
+        tpoints = TPoint2D.point_arange(start, stop, step, return_tpoint=True)
 
         self.assertEqual(len(tpoints), 5)
         self.assertEqual(tpoints[0].x, 0)
@@ -1534,7 +1525,7 @@ class TestPoint2D(unittest.TestCase):
         """
         x_values = np.linspace(0, 2, 3)
         y_values = np.linspace(0, 2, 3)
-        grid = meshgrid(x_values, y_values, return_tpoint=False)
+        grid = TPoint2D.meshgrid(x_values, y_values, return_tpoint=False)
 
         self.assertEqual(len(grid), 3)  # 3 rows
         self.assertEqual(len(grid[0]), 3)  # 3 columns
@@ -1559,7 +1550,7 @@ class TestPoint2D(unittest.TestCase):
         """
         x_values = np.linspace(0, 2, 3)
         y_values = np.linspace(0, 2, 3)
-        grid = meshgrid(x_values, y_values, return_tpoint=True)
+        grid = TPoint2D.meshgrid(x_values, y_values, return_tpoint=True)
 
         self.assertEqual(len(grid), 3)  # 3 rows
         self.assertEqual(len(grid[0]), 3)  # 3 columns

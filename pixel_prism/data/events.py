@@ -16,7 +16,6 @@
 #
 
 # Imports
-import weakref
 from enum import Enum, auto
 
 
@@ -25,16 +24,21 @@ class EventType(Enum):
     """
     Type of events
     """
+    # Position and transformations
     POSITION_CHANGED = auto()
     SCALE_CHANGED = auto()
     ROTATION_CHANGED = auto()
+    # Scalars
     VALUE_CHANGED = auto()
+    # Style
     FILL_COLOR_CHANGED = auto()
     LINE_COLOR_CHANGED = auto()
     LINE_WIDTH_CHANGED = auto()
     LINE_CAP_CHANGED = auto()
     LINE_JOIN_CHANGED = auto()
     LINE_DASH_CHANGED = auto()
+    # Matrices
+    MATRIX_CHANGED = auto()
 # end EventType
 
 
@@ -46,7 +50,7 @@ class Event:
 
     # Constructor
     def __init__(self):
-        self._subscribers = weakref.WeakSet()
+        self._subscribers = set()
     # end __init__
 
     # Subscribe

@@ -17,7 +17,7 @@
 
 # Imports
 from typing import Union
-from pixel_prism.animate import animeclass, animeattr
+from pixel_prism.animate import animeattr
 from .data import Data
 from .scalar import Scalar
 from .eventmixin import EventMixin
@@ -27,7 +27,6 @@ from .eventmixin import EventMixin
 @animeattr("green")
 @animeattr("blue")
 @animeattr("alpha")
-@animeclass
 class Color(Data, EventMixin):
     """
     A class to represent a scalar value

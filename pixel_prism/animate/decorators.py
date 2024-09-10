@@ -25,7 +25,7 @@ def animeattr(attr_name):
         attr_name (str): The name of the attribute to inspect.
     """
     def decorator(cls):
-        if hasattr(cls, '_attrs_to_inspect'):
+        if not hasattr(cls, '_attrs_to_inspect'):
             cls._attrs_to_inspect = []
         # end if
 

@@ -25,7 +25,6 @@ import numpy as np
 from pixel_prism.animate import RangeableMixin
 from .events import Event, EventType
 from .data import Data
-from .eventmixin import EventMixin
 
 
 # Type hint for addition
@@ -98,6 +97,14 @@ class Scalar(Data, RangeableMixin):
         self.set(value)
     # end value
 
+    @property
+    def on_change(self):
+        """
+        Get the on change event.
+        """
+        return self._on_change
+    # end on_change
+
     # endregion PROPERTIES
 
     # region PUBLIC
@@ -130,6 +137,35 @@ class Scalar(Data, RangeableMixin):
         """
         return Scalar(self._value)
     # end copy
+
+    def register_event(self, event_name, listener):
+        """
+        Add an event listener to the data object.
+
+        Args:
+            event_name (str): Event to listen for
+            listener (function): Listener function
+        """
+        if hasattr(self, event_name):
+            event_attr = getattr(self, event_name)
+            event_attr += listener
+        # end if
+    # end register_event
+
+    def unregister_event(self, event_name, listener):
+        """
+        Remove an event listener from the data object.
+
+        Args:
+            event_name (str): Event to remove listener from
+            listener (function): Listener function to remove
+        """
+        # Unregister from all sources
+        if hasattr(self, event_name):
+            event_attr = getattr(self, event_name)
+            event_attr -= listener
+        # end if
+    # end unregister_event
 
     # endregion PUBLIC
 
@@ -516,17 +552,19 @@ class TScalar(Scalar):
         self._func = func
         self._scalars = scalars
 
-        # Initialize the base class with the computed value
+        # Initialize the base class with t§he computed value
         initial_value = self._func(**self._scalars)
         super().__init__(initial_value)
 
+        # Listen to sources
+        for scalar in self._scalars.values():
+            assert hasattr(scalar, "on_change"), \
+                "All sources must have an on_change event. Transform your scalar/point/matrix to a Data object."
+            scalar.on_change.subscribe(self._on_source_changed)
+        # end for
+
         # Listen to changes in the original point
-        if on_change is not None:
-            for scalar in self._scalars.values():
-                scalar.on_change.subscribe(on_change)
-                scalar.on_change.subscribe(self._on_source_changed)
-            # end for
-        # end if
+        self._on_change += on_change
     # end __init__
 
     # region PROPERTIES
@@ -590,39 +628,11 @@ class TScalar(Scalar):
         return Scalar(self._func(**self._scalars))
     # end get
 
-    def add_event_listener(self, event_name, listener):
-        """
-        Add an event listener to the data object.
-
-        Args:
-            event_name (str): Event to listen for
-            listener (function): Listener function
-        """
-        # Register to all sources
-        for scalar in self.scalars.values():
-            scalar.add_event_listener(event_name, listener)
-        # end for
-    # end add_event_listener
-
-    def remove_event_listener(self, event_name, listener):
-        """
-        Remove an event listener from the data object.
-
-        Args:
-            event_name (str): Event to remove listener from
-            listener (function): Listener function to remove
-        """
-        # Unregister from all sources
-        for scalar in self._scalars.values():
-            scalar.remove_event_listener(event_name, listener)
-        # end for
-    # end remove_event_listener
-
     # endregion PUBLIC
 
     # region EVENTS
 
-    def _on_source_changed(self, event):
+    def _on_source_changed(self, sender, event_type, **kwargs):
         """
         Called when the source scalar changes.
         """
@@ -667,7 +677,7 @@ class TScalar(Scalar):
             # TScalar + TScalar = TScalar
             # TScalar + float = TScalar
             # TScalar + int = TScalar
-            return TScalar.add_t(self, other)
+            return TScalar.add(self, other)
         elif isinstance(other, (TPoint2D, Point2D)):
             # TScalar + TPoint2D = TPoint2D
             return TPoint2D(lambda s, p: (s.value + p.x, s.value + p.y), s=self, p=other)
@@ -703,7 +713,7 @@ class TScalar(Scalar):
             # TScalar - TScalar = TScalar
             # TScalar - float = TScalar
             # TScalar - int = TScalar
-            return TScalar.sub_t(self, other)
+            return TScalar.sub(self, other)
         elif isinstance(other, (TPoint2D, Point2D)):
             # TScalar - TPoint2D = TPoint2D
             return TPoint2D(lambda s, p: (s.value - p.x, s.value - p.y), s=self, p=other)
@@ -732,7 +742,7 @@ class TScalar(Scalar):
             # int - TScalar = TScalar
             # Scalar - TScalar = TScalar
             # TSclar - TScalar = TScalar
-            return TScalar.sub_t(other, self)
+            return TScalar.sub(other, self)
         elif isinstance(other, (TPoint2D, Point2D)):
             # TPoint2D - TScalar = TPoint2D
             # Point2D - TScalar = TPoint2D
@@ -762,7 +772,7 @@ class TScalar(Scalar):
             # TScalar * TScalar = TScalar
             # TScalar * float = TScalar
             # TScalar * int = TScalar
-            return TScalar.mul_t(self, other)
+            return TScalar.mul(self, other)
         elif isinstance(other, (TPoint2D, Point2D)):
             # TScalar * TPoint2D = TPoint2D
             return TPoint2D(lambda s, p: (s.value * p.x, s.value * p.y), s=self, p=other)
@@ -801,7 +811,7 @@ class TScalar(Scalar):
             # TScalar / TScalar = TScalar
             # TScalar / float = TScalar
             # TScalar / int = TScalar
-            return TScalar.div_t(self, other)
+            return TScalar.div(self, other)
         elif isinstance(other, (TPoint2D, Point2D)):
             # TScalar / TPoint2D = TPoint2D
             return TPoint2D(lambda s, p: (s.value / p.x, s.value / p.y), s=self, p=other)
@@ -830,7 +840,7 @@ class TScalar(Scalar):
             # int / TScalar = TScalar
             # Scalar / TScalar = TScalar
             # TSclar / TScalar = TScalar
-            return TScalar.div_t(other, self)
+            return TScalar.div(other, self)
         elif isinstance(other, (TPoint2D, Point2D)):
             # TPoint2D / TScalar = TPoint2D
             # Point2D / TScalar = TPoint2D
@@ -947,7 +957,7 @@ class TScalar(Scalar):
 
     # Add to scalar
     @classmethod
-    def add_t(cls, scalar1: Union[Scalar, float, int], scalar2: Union[Scalar, float, int]):
+    def add(cls, scalar1: Union[Scalar, float, int], scalar2: Union[Scalar, float, int]):
         """
         Create a TScalar that adds two scalar values.
 
@@ -964,10 +974,10 @@ class TScalar(Scalar):
         # end if
 
         return cls(lambda s1, s2: s1.value + s2.value, s1=scalar1, s2=scalar2)
-    # end add_t
+    # end add
 
     @classmethod
-    def sub_t(cls, scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
+    def sub(cls, scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
         """
         Create a TScalar that subtracts two scalar values.
 
@@ -984,11 +994,10 @@ class TScalar(Scalar):
         # end if
 
         return cls(lambda s1, s2: s1.value - s2.value, s1=scalar1, s2=scalar2)
-
-    # end sub_t
+    # end sub
 
     @classmethod
-    def mul_t(cls, scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
+    def mul(cls, scalar1: Union[Scalar, float], scalar2: Union[Scalar, float]):
         """
         Create a TScalar that multiplies two scalar values.
 
@@ -1005,11 +1014,10 @@ class TScalar(Scalar):
         # end if
 
         return cls(lambda s1, s2: s1.value * s2.value, s1=scalar1, s2=scalar2)
-
-    # end mul_t
+    # end mul
 
     @classmethod
-    def div_t(cls, scalar1: Union[Scalar, float, int], scalar2: Union[Scalar, float, int]):
+    def div(cls, scalar1: Union[Scalar, float, int], scalar2: Union[Scalar, float, int]):
         """
         Create a TScalar that divides two scalar values.
 
@@ -1026,14 +1034,14 @@ class TScalar(Scalar):
         # end if
 
         return cls(lambda s1, s2: s1.value / s2.value, s1=scalar1, s2=scalar2)
-    # end div_t
+    # end div
 
     # endregion OPERATORS
 
     # region MATH
 
     @classmethod
-    def floor_t(cls, scalar: Scalar):
+    def floor(cls, scalar: Scalar):
         """
         Create a TScalar that applies the floor function to the scalar.
 
@@ -1041,10 +1049,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the floor function to.
         """
         return cls(lambda s: np.floor(s.value), s=scalar)
-    # end floor_t
+    # end floor
 
     @classmethod
-    def ceil_t(cls, scalar: Scalar):
+    def ceil(cls, scalar: Scalar):
         """
         Create a TScalar that applies the ceil function to the scalar.
 
@@ -1052,10 +1060,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the ceil function to.
         """
         return cls(lambda s: np.ceil(s.value), s=scalar)
-    # end ceil_t
+    # end ceil
 
     @classmethod
-    def trunc_t(cls, scalar: Scalar):
+    def trunc(cls, scalar: Scalar):
         """
         Create a TScalar that applies the trunc function to the scalar.
 
@@ -1063,10 +1071,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the trunc function to.
         """
         return cls(lambda s: np.trunc(s.value), s=scalar)
-    # end trunc_t
+    # end trunc
 
     @classmethod
-    def frac_t(cls, scalar: Scalar):
+    def frac(cls, scalar: Scalar):
         """
         Create a TScalar that returns the fractional part of the scalar.
 
@@ -1074,10 +1082,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to get the fractional part of.
         """
         return cls(lambda s: s.value - np.floor(s.value), s=scalar)
-    # end frac_t
+    # end frac
 
     @classmethod
-    def sqrt_t(cls, scalar: Scalar):
+    def sqrt(cls, scalar: Scalar):
         """
         Create a TScalar that applies the sqrt function to the scalar.
 
@@ -1085,10 +1093,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the sqrt function to.
         """
         return cls(lambda s: np.sqrt(s.value), s=scalar)
-    # end sqrt_t
+    # end sqrt
 
     @classmethod
-    def exp_t(cls, scalar: Scalar):
+    def exp(cls, scalar: Scalar):
         """
         Create a TScalar that applies the exp function to the scalar.
 
@@ -1096,10 +1104,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the exp function to.
         """
         return cls(lambda s: np.exp(s.value), s=scalar)
-    # end exp_t
+    # end exp
 
     @classmethod
-    def expm1_t(cls, scalar: Scalar):
+    def expm1(cls, scalar: Scalar):
         """
         Create a TScalar that applies the expm1 function to the scalar.
 
@@ -1107,10 +1115,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the expm1 function to.
         """
         return cls(lambda s: np.expm1(s.value), s=scalar)
-    # end expm1_t
+    # end expm1
 
     @classmethod
-    def log_t(cls, scalar: Scalar):
+    def log(cls, scalar: Scalar):
         """
         Create a TScalar that applies the log function to the scalar.
 
@@ -1118,10 +1126,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the log function to.
         """
         return cls(lambda s: np.log(s.value), s=scalar)
-    # end log_t
+    # end log
 
     @classmethod
-    def log1p_t(cls, scalar: Scalar):
+    def log1p(cls, scalar: Scalar):
         """
         Create a TScalar that applies the log1p function to the scalar.
 
@@ -1129,10 +1137,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the log1p function to.
         """
         return cls(lambda s: np.log1p(s.value), s=scalar)
-    # end log1p_t
+    # end log1p
 
     @classmethod
-    def log2_t(cls, scalar: Scalar):
+    def log2(cls, scalar: Scalar):
         """
         Create a TScalar that applies the log2 function to the scalar.
 
@@ -1140,10 +1148,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the log2 function to.
         """
         return cls(lambda s: np.log2(s.value), s=scalar)
-    # end log2_t
+    # end log2
 
     @classmethod
-    def log10_t(cls, scalar: Scalar):
+    def log10(cls, scalar: Scalar):
         """
         Create a TScalar that applies the log10 function to the scalar.
 
@@ -1151,10 +1159,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the log10 function to.
         """
         return cls(lambda s: np.log10(s.value), s=scalar)
-    # end log10_t
+    # end log10
 
     @classmethod
-    def sin_t(cls, scalar: Scalar):
+    def sin(cls, scalar: Scalar):
         """
         Create a TScalar that applies the sin function to the scalar.
 
@@ -1162,10 +1170,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the sin function to.
         """
         return cls(lambda s: np.sin(s.value), s=scalar)
-    # end sin_t
+    # end sin
 
     @classmethod
-    def cos_t(cls, scalar: Scalar):
+    def cos(cls, scalar: Scalar):
         """
         Create a TScalar that applies the cos function to the scalar.
 
@@ -1173,10 +1181,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the cos function to.
         """
         return cls(lambda s: np.cos(s.value), s=scalar)
-    # end cos_t
+    # end cos
 
     @classmethod
-    def tan_t(cls, scalar: Scalar):
+    def tan(cls, scalar: Scalar):
         """
         Create a TScalar that applies the tan function to the scalar.
 
@@ -1184,10 +1192,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the tan function to.
         """
         return cls(lambda s: np.tan(s.value), s=scalar)
-    # end tan_t
+    # end tan
 
     @classmethod
-    def asin_t(cls, scalar: Scalar):
+    def asin(cls, scalar: Scalar):
         """
         Create a TScalar that applies the asin function to the scalar.
 
@@ -1195,10 +1203,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the asin function
         """
         return cls(lambda s: np.arcsin(s.value), s=scalar)
-    # end asin_t
+    # end asin
 
     @classmethod
-    def acos_t(cls, scalar: Scalar):
+    def acos(cls, scalar: Scalar):
         """
         Create a TScalar that applies the acos function to the scalar.
 
@@ -1206,10 +1214,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the acos function
         """
         return cls(lambda s: np.arccos(s.value), s=scalar)
-    # end acos_t
+    # end acos
 
     @classmethod
-    def atan_t(cls, scalar: Scalar):
+    def atan(cls, scalar: Scalar):
         """
         Create a TScalar that applies the atan function to the scalar.
 
@@ -1217,10 +1225,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the atan function
         """
         return cls(lambda s: np.arctan(s.value), s=scalar)
-    # end atan_t
+    # end atan
 
     @classmethod
-    def atan2_t(cls, y: Scalar, x: Scalar):
+    def atan2(cls, y: Scalar, x: Scalar):
         """
         Create a TScalar that applies the atan2 function to the scalar.
 
@@ -1229,10 +1237,10 @@ class TScalar(Scalar):
             x (Scalar): The x-coordinate of the point.
         """
         return cls(lambda p1, p2: np.arctan2(p1.value, p2.value), p1=y, p2=x)
-    # end atan2_t
+    # end atan2
 
     @classmethod
-    def sinh_t(cls, scalar: Scalar):
+    def sinh(cls, scalar: Scalar):
         """
         Create a TScalar that applies the sinh function to the scalar.
 
@@ -1240,10 +1248,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the sinh function
         """
         return cls(lambda s: np.sinh(s.value), s=scalar)
-    # end sinh_t
+    # end sinh
 
     @classmethod
-    def cosh_t(cls, scalar: Scalar):
+    def cosh(cls, scalar: Scalar):
         """
         Create a TScalar that applies the cosh function to the scalar.
 
@@ -1251,10 +1259,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the cosh function
         """
         return cls(lambda s: np.cosh(s.value), s=scalar)
-    # end cosh_t
+    # end cosh
 
     @classmethod
-    def tanh_t(cls, scalar: Scalar):
+    def tanh(cls, scalar: Scalar):
         """
         Create a TScalar that applies the tanh function to the scalar.
 
@@ -1262,10 +1270,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the tanh function
         """
         return cls(lambda s: np.tanh(s.value), s=scalar)
-    # end tanh_t
+    # end tanh
 
     @classmethod
-    def asinh_t(cls, scalar: Scalar):
+    def asinh(cls, scalar: Scalar):
         """
         Create a TScalar that applies the asinh function to the scalar.
 
@@ -1273,10 +1281,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the asinh function
         """
         return cls(lambda s: np.arcsinh(s.value), s=scalar)
-    # end asinh_t
+    # end asinh
 
     @classmethod
-    def acosh_t(cls, scalar: Scalar):
+    def acosh(cls, scalar: Scalar):
         """
         Create a TScalar that applies the acosh function to the scalar.
 
@@ -1284,10 +1292,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the acosh function
         """
         return cls(lambda s: np.arccosh(s.value), s=scalar)
-    # end acosh_t
+    # end acosh
 
     @classmethod
-    def atanh_t(cls, scalar: Scalar):
+    def atanh(cls, scalar: Scalar):
         """
         Create a TScalar that applies the atanh function to the scalar.
 
@@ -1295,10 +1303,10 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar to apply the atanh function
         """
         return cls(lambda s: np.arctanh(s.value), s=scalar)
-    # end atanh_t
+    # end atanh
 
     @classmethod
-    def degrees_t(cls, scalar: Scalar):
+    def degrees(cls, scalar: Scalar):
         """
         Create a TScalar that converts the scalar value from radians to degrees.
 
@@ -1306,7 +1314,7 @@ class TScalar(Scalar):
             scalar (Scalar): The scalar
         """
         return cls(lambda s: np.degrees(s.value), s=scalar)
-    # end degrees_t
+    # end degrees
 
     # endregion MATH
 

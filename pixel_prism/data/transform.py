@@ -19,79 +19,109 @@
 # Imports
 import math
 from typing import Optional
+
 from .points import Point2D
 from .scalar import Scalar
 from .events import Event, EventType
-from ..base import Context
 
 
 # Transform
-# represents the transformation of the drawable object.
+# represents the cumulative transformations of the drawable object.
 class Transform:
+    """
+    A class representing a series of transformations with position, scale, and rotation,
+    which can be part of a hierarchy of transformations.
+    """
 
-    # Init
     def __init__(
             self,
-            position: Point2D,
+            position: Point2D = Point2D(0.0, 0.0),
             scale: Point2D = Point2D(1.0, 1.0),
-            rotation: Scalar = Scalar(0.0)
+            rotation: Scalar = Scalar(0.0),
+            parent: 'Transform' = None
     ):
         """
-        Initialize the context.
+        Initialize the transform with optional parent transform.
+
+        Args:
+            position (Point2D): Position of the transform.
+            scale (Point2D): Scale of the transform.
+            rotation (Scalar): Rotation of the transform.
+            parent (Transform): Parent transform in the hierarchy.
         """
         # Properties
         self._position = position
         self._scale = scale
         self._rotation = rotation
+        self._parent = parent  # Parent transform (can be None)
 
-        # Event
+        # Object changed
         self._on_change = Event()
+
+        # Subscribe to changes in parent transform
+        if self._parent:
+            self._parent.on_change.subscribe(self._on_parent_changed)
+        # end if
     # end __init__
 
     # region PROPERTIES
 
-    # Properties
     @property
     def position(self) -> Point2D:
+        """
+        Get the position of the transform.
+        """
         return self._position
     # end position
 
     @position.setter
     def position(self, value: Point2D):
-        self._position.x = value.x
-        self._position.y = value.y
-        self.on_change.trigger(self, event_type=EventType.POSITION_CHANGED, x=value.x, y=value.y)
+        """
+        Set the position of the transform.
+        """
+        self._position = value
+        self._on_change.trigger(self)
     # end position
 
     @property
     def scale(self) -> Point2D:
+        """
+        Get the scale of the transform.
+        """
         return self._scale
     # end scale
 
     @scale.setter
     def scale(self, value: Point2D):
-        self._scale.x = value
-        self._scale.y = value
-        self.on_change.trigger(self, event_type=EventType.SCALE_CHANGED, sx=value.x, sy=value.y)
+        """
+        Set the scale of the transform.
+        """
+        self._scale = value
+        self._on_change.trigger(self)
     # end scale
 
     @property
     def rotation(self) -> Scalar:
+        """
+        Get the rotation of the transform.
+        """
         return self._rotation
     # end rotation
 
     @rotation.setter
-    def rotation(self, value: Optional[Scalar, float]):
-        if isinstance(value, float):
-            self._rotation.value = value
-        else:
-            self._rotation.value = value.value
-        # end if
-        self.on_change.trigger(self, event_type=EventType.ROTATION_CHANGED, angle=self._rotation.value)
+    def rotation(self, value: Scalar):
+        """
+        Set rotation of the transform.
+        """
+        self._rotation = value
+        self._on_change.trigger(self)
     # end rotation
 
     @property
     def on_change(self) -> Event:
+        """
+        On object changed.
+        """
         return self._on_change
     # end on_change
 
@@ -99,74 +129,58 @@ class Transform:
 
     # region PUBLIC
 
-    # Apply transformation
-    def apply(self, relative_point: Point2D) -> Point2D:
+    # Apply cumulative transformation
+    def forward(self, relative_point: Point2D) -> Point2D:
         """
-        Apply transformation to a point.
+        Apply the cumulative transformation (including parent's transform) to a point.
+        """
+        if self._parent:
+            # Apply parent's transformation first
+            relative_point = self._parent.forward(relative_point)
+        # end if
 
-        Args:
-            relative_point (Point2D): Relative point
-        """
-        return self._apply(relative_point)
+        # Then apply the current transformation
+        return self._forward_local(relative_point)
     # end apply
 
-    # Reverse transformation
-    def reverse(self, absolute_point: Point2D) -> Point2D:
+    def backward(self, absolute_point: Point2D) -> Point2D:
         """
-        Reverse transformation to a point.
+        Reverse the cumulative transformation to a point.
 
         Args:
-            absolute_point (Point2D): Absolute point
+            absolute_point (Point2D): Absolute point.
+
+        Returns:
+            Point2D: Reversed point.
         """
-        return self._reverse(absolute_point)
+        # Apply the local transformation in reverse
+        point = self._backward_local(absolute_point)
+
+        if self._parent:
+            # Reverse the parent's transformation
+            return self._parent.backward(point)
+        # end if
+
+        return point
     # end reverse
-
-    # Apply transformation (in-place)
-    def apply_(self, relative_point: Point2D):
-        """
-        Apply transformation to a point in-place.
-        """
-        # Transform
-        point = self._apply(relative_point)
-        relative_point.x = point.x
-        relative_point.y = point.y
-    # end apply_
-
-    # Reverse transformation (in-place)
-    def reverse_(self, absolute_point: Point2D):
-        """
-        Reverse transformation to a point in-place.
-        """
-        # Transform
-        point = self._reverse(absolute_point)
-        absolute_point.x = point.x
-        absolute_point.y = point.y
-    # end reverse_
-
-    # Apply transformation from context
-    def apply_context(self, context: Context):
-        """
-        Apply transformation from context.
-
-        Args:
-            context (Context): Context
-        """
-        context.translate(self.position)
-        context.rotate(self.rotation)
-        context.scale(self.scale)
-    # end apply_context
 
     # endregion PUBLIC
 
-    # region PRIVATE
+    # region EVENTS
 
-    # Apply transformation
-    def _apply(self, relative_point: Point2D) -> Point2D:
+    def _on_parent_changed(self, _):
         """
-        Apply transformation to a point.
+        Triggered when the parent transform changes.
+        """
+        self._on_change.trigger(self)
+    # end _on_parent_changed
 
-        Args:
-            relative_point (Point2D): Relative point
+    # endregion EVENTS
+
+    # Local apply function (for this transform only)
+    def _forward_local(self, relative_point: Point2D) -> Point2D:
+        """
+        Apply the current transform (position, scale, rotation) to a point.
         """
         # Apply scale
         abs_x = relative_point.x * self.scale.x
@@ -187,21 +201,17 @@ class Transform:
         new_y = self.position.y + rot_abs_y
 
         return Point2D(new_x, new_y)
-    # end _apply
+    # end _forward_local
 
-    # Reverse transformation
-    def _reverse(self, absolute_point: Point2D) -> Point2D:
+    def _backward_local(self, absolute_point: Point2D) -> Point2D:
         """
-        Reverse transformation to a point.
-
-        Args:
-            absolute_point (Point2D): Absolute point
+        Reverse the current transform (position, scale, rotation) on a point.
         """
         # Apply translation
         rel_x = absolute_point.x - self.position.x
         rel_y = absolute_point.y - self.position.y
 
-        # Apply rotation
+        # Apply rotation in reverse
         angle = -self.rotation.value
         if angle != 0.0:
             rot_rel_x = rel_x * math.cos(angle) - rel_y * math.sin(angle)
@@ -211,14 +221,106 @@ class Transform:
             rot_rel_y = rel_y
         # end if
 
-        # Apply scale
+        # Apply scale in reverse
         new_x = rot_rel_x / self.scale.x
         new_y = rot_rel_y / self.scale.y
 
         return Point2D(new_x, new_y)
-    # end _reverse
+    # end _backward_local
+
+# end Transform
+
+
+class AffinePoint:
+    """
+    A class that synchronizes a relative point and an absolute point
+    using a given Transform object, while avoiding recursive updates.
+    """
+
+    def __init__(
+            self,
+            relative_point: Point2D,
+            absolute_point: Point2D,
+            transform: Optional[Transform] = None
+    ):
+        """
+        Initialize the affine point.
+        """
+        self._relative_point = relative_point
+        self._absolute_point = absolute_point
+        self._transform = transform
+        self._lock = False  # Lock to prevent recursive updates
+
+        # Initial synchronization
+        self._update_absolute_from_relative()
+
+        # Subscribe to changes in relative and absolute points
+        self._relative_point.on_change.subscribe(self._on_relative_point_changed)
+        self._absolute_point.on_change.subscribe(self._on_absolute_point_changed)
+    # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def relative(self):
+        return self._relative_point
+    # end relative
+
+    @property
+    def absolute(self):
+        return self._absolute_point
+    # end absolute
+
+    # endregion PROPERTIES
+
+    # region PRIVATE
+
+    def _update_absolute_from_relative(self):
+        """
+        Update the absolute point based on the relative point and the transform.
+        """
+        if not self._lock:
+            self._lock = True
+            transformed_point = self._transform.forward(self._relative_point)
+            self._absolute_point.x = transformed_point.x
+            self._absolute_point.y = transformed_point.y
+            self._lock = False
+        # end if
+    # end _update_absolute_from_relative
+
+    def _update_relative_from_absolute(self):
+        """
+        Update the relative point based on the absolute point and the inverse transform.
+        """
+        if not self._lock:
+            self._lock = True
+            relative_x = (self._absolute_point.x - self._transform.position.x) / self._transform.scale.x
+            relative_y = (self._absolute_point.y - self._transform.position.y) / self._transform.scale.y
+            self._relative_point.x = relative_x
+            self._relative_point.y = relative_y
+            self._lock = False
+        # end if
+    # end _update_relative_from_absolute
 
     # endregion PRIVATE
 
-# end Transform
+    # region EVENT
+
+    def _on_relative_point_changed(self, point):
+        """
+        Triggered when the relative point changes, updates the absolute point.
+        """
+        self._update_absolute_from_relative()
+    # end _on_relative_point_changed
+
+    def _on_absolute_point_changed(self, point):
+        """
+        Triggered when the absolute point changes, updates the relative point.
+        """
+        self._update_relative_from_absolute()
+    # end _on_absolute_point_changed
+
+    # endregion EVENT
+
+# end AffinePoint
 
