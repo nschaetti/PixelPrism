@@ -231,96 +231,96 @@ class Transform:
 # end Transform
 
 
-class AffinePoint:
-    """
-    A class that synchronizes a relative point and an absolute point
-    using a given Transform object, while avoiding recursive updates.
-    """
-
-    def __init__(
-            self,
-            relative_point: Point2D,
-            absolute_point: Point2D,
-            transform: Optional[Transform] = None
-    ):
-        """
-        Initialize the affine point.
-        """
-        self._relative_point = relative_point
-        self._absolute_point = absolute_point
-        self._transform = transform
-        self._lock = False  # Lock to prevent recursive updates
-
-        # Initial synchronization
-        self._update_absolute_from_relative()
-
-        # Subscribe to changes in relative and absolute points
-        self._relative_point.on_change.subscribe(self._on_relative_point_changed)
-        self._absolute_point.on_change.subscribe(self._on_absolute_point_changed)
-    # end __init__
-
-    # region PROPERTIES
-
-    @property
-    def relative(self):
-        return self._relative_point
-    # end relative
-
-    @property
-    def absolute(self):
-        return self._absolute_point
-    # end absolute
-
-    # endregion PROPERTIES
-
-    # region PRIVATE
-
-    def _update_absolute_from_relative(self):
-        """
-        Update the absolute point based on the relative point and the transform.
-        """
-        if not self._lock:
-            self._lock = True
-            transformed_point = self._transform.forward(self._relative_point)
-            self._absolute_point.x = transformed_point.x
-            self._absolute_point.y = transformed_point.y
-            self._lock = False
-        # end if
-    # end _update_absolute_from_relative
-
-    def _update_relative_from_absolute(self):
-        """
-        Update the relative point based on the absolute point and the inverse transform.
-        """
-        if not self._lock:
-            self._lock = True
-            relative_x = (self._absolute_point.x - self._transform.position.x) / self._transform.scale.x
-            relative_y = (self._absolute_point.y - self._transform.position.y) / self._transform.scale.y
-            self._relative_point.x = relative_x
-            self._relative_point.y = relative_y
-            self._lock = False
-        # end if
-    # end _update_relative_from_absolute
-
-    # endregion PRIVATE
-
-    # region EVENT
-
-    def _on_relative_point_changed(self, point):
-        """
-        Triggered when the relative point changes, updates the absolute point.
-        """
-        self._update_absolute_from_relative()
-    # end _on_relative_point_changed
-
-    def _on_absolute_point_changed(self, point):
-        """
-        Triggered when the absolute point changes, updates the relative point.
-        """
-        self._update_relative_from_absolute()
-    # end _on_absolute_point_changed
-
-    # endregion EVENT
-
-# end AffinePoint
+# class AffinePoint:
+#     """
+#     A class that synchronizes a relative point and an absolute point
+#     using a given Transform object, while avoiding recursive updates.
+#     """
+#
+#     def __init__(
+#             self,
+#             relative_point: Point2D,
+#             absolute_point: Point2D,
+#             transform: Optional[Transform] = None
+#     ):
+#         """
+#         Initialize the affine point.
+#         """
+#         self._relative_point = relative_point
+#         self._absolute_point = absolute_point
+#         self._transform = transform
+#         self._lock = False  # Lock to prevent recursive updates
+#
+#         # Initial synchronization
+#         self._update_absolute_from_relative()
+#
+#         # Subscribe to changes in relative and absolute points
+#         self._relative_point.on_change.subscribe(self._on_relative_point_changed)
+#         self._absolute_point.on_change.subscribe(self._on_absolute_point_changed)
+#     # end __init__
+#
+#     # region PROPERTIES
+#
+#     @property
+#     def relative(self):
+#         return self._relative_point
+#     # end relative
+#
+#     @property
+#     def absolute(self):
+#         return self._absolute_point
+#     # end absolute
+#
+#     # endregion PROPERTIES
+#
+#     # region PRIVATE
+#
+#     def _update_absolute_from_relative(self):
+#         """
+#         Update the absolute point based on the relative point and the transform.
+#         """
+#         if not self._lock:
+#             self._lock = True
+#             transformed_point = self._transform.forward(self._relative_point)
+#             self._absolute_point.x = transformed_point.x
+#             self._absolute_point.y = transformed_point.y
+#             self._lock = False
+#         # end if
+#     # end _update_absolute_from_relative
+#
+#     def _update_relative_from_absolute(self):
+#         """
+#         Update the relative point based on the absolute point and the inverse transform.
+#         """
+#         if not self._lock:
+#             self._lock = True
+#             relative_x = (self._absolute_point.x - self._transform.position.x) / self._transform.scale.x
+#             relative_y = (self._absolute_point.y - self._transform.position.y) / self._transform.scale.y
+#             self._relative_point.x = relative_x
+#             self._relative_point.y = relative_y
+#             self._lock = False
+#         # end if
+#     # end _update_relative_from_absolute
+#
+#     # endregion PRIVATE
+#
+#     # region EVENT
+#
+#     def _on_relative_point_changed(self, point):
+#         """
+#         Triggered when the relative point changes, updates the absolute point.
+#         """
+#         self._update_absolute_from_relative()
+#     # end _on_relative_point_changed
+#
+#     def _on_absolute_point_changed(self, point):
+#         """
+#         Triggered when the absolute point changes, updates the relative point.
+#         """
+#         self._update_relative_from_absolute()
+#     # end _on_absolute_point_changed
+#
+#     # endregion EVENT
+#
+# # end AffinePoint
 

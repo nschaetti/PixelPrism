@@ -1346,17 +1346,17 @@ class TPoint2D(Point2D):
     @classmethod
     def sub(
             cls,
-            point: Point2D,
-            delta: Point2D
+            point1: Point2D,
+            point2: Point2D
     ):
         """
         Create a TPoint2D that represents point - delta.
 
         Args:
-            point (Point2D): Point to subtract from.
-            delta (Point2D): Point to subtract.
+            point1 (Point2D): Point to subtract from.
+            point2 (Point2D): Point to subtract.
         """
-        return cls(lambda p: (p.x - delta.x, p.y - delta.y), p=point)
+        return cls(lambda p1, p2: (p1.x - p2.x, p1.y - p2.y), p1=point1, p2=point2)
     # end sub
 
     @classmethod

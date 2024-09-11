@@ -39,6 +39,8 @@ class EventType(Enum):
     LINE_DASH_CHANGED = auto()
     # Matrices
     MATRIX_CHANGED = auto()
+    # Draw object
+    CIRCLE_CHANGED = auto()
 # end EventType
 
 

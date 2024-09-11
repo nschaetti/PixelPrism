@@ -171,8 +171,8 @@ class DrawableMixin:
     # Init
     def __init__(
             self,
-            transform: Transform,
-            style: Style
+            style: Style,
+            transform: Transform = None,
     ):
         """
         Initialize the drawable mixin.
@@ -192,7 +192,7 @@ class DrawableMixin:
         self._on_change = Event()
 
         # Subscribe to transform and style events
-        self._transform.on_change.subscribe(self._on_transform_change)
+        if transform: self._transform.on_change.subscribe(self._on_transform_change)
         self._style.on_change.subscribe(self._on_style_change)
     # end __init__
 

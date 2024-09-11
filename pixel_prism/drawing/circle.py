@@ -17,12 +17,9 @@
 
 # Imports
 import math
-from typing import Any, List
-
 from pixel_prism.animate import MovableMixin
 from pixel_prism.animate import FadeableMixin
-from pixel_prism.data import Point2D, Scalar, Color, Event, Transform, call_after, EventType
-import pixel_prism.utils as utils
+from pixel_prism.data import Point2D, Scalar, Event, Transform, call_after, EventType
 from . import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
@@ -46,7 +43,9 @@ class Circle(
             radius: Scalar,
             style: DrawableMixin.Style,
             transform: Transform = None,
-            on_change=None
+            on_change=None,
+            on_center_change=None,
+            on_radius_change=None
     ):
         """
         Initialize the point.
@@ -57,6 +56,8 @@ class Circle(
             style (DrawableMixin.Style): Style of the circle
             transform (Transform): Transform of the circle
             on_change (function): On change event callback
+            on_center_change (function): On center change event callback
+            on_radius_change (function): On radius change event callback
         """
         # Constructors
         DrawableMixin.__init__(
@@ -79,9 +80,17 @@ class Circle(
         # Update points
         self.update_points()
 
-        # Events
+        # On change
         self._on_change = Event()
         self._on_change += on_change
+
+        # On center change
+        self._on_center_change = Event()
+        self._on_center_change += on_center_change
+
+        # On radius change
+        self._on_radius_change = Event()
+        self._on_radius_change += on_radius_change
 
         # Set events
         self._center.on_change.subscribe(self._on_center_changed)
@@ -90,32 +99,33 @@ class Circle(
 
     # region PROPERTIES
 
-    # Get position
+    # Get center
     @property
-    def position(self) -> Point2D:
+    def center(self) -> Point2D:
         """
-        Get the position of the circle.
+        Get the center of the circle.
 
         Returns:
             Point2D: Position of the circle
         """
-        return self._position
-    # end position
+        return self._center
+    # end center
 
-    # Set position
-    @position.setter
-    def position(self, value: Point2D):
+    # Set center
+    @center.setter
+    def center(self, value: Point2D):
         """
-        Set the position of the circle.
+        Set the center of the circle.
 
         Args:
-            value (Point2D): Position of the circle
+            value (Point2D): Center of the circle
         """
-        self._position.x = value.x
-        self._position.y = value.y
+        self._center.x = value.x
+        self._center.y = value.y
         self.update_points()
-        self._position.dispatch_event("on_change", ObjectChangedEvent(self, attribute="position", value=value))
-    # end position
+        self._trigger_on_change()
+        self._trigger_on_center_change()
+    # end center
 
     # Get radius
     @property
@@ -140,7 +150,8 @@ class Circle(
         """
         self._radius = value
         self.update_points()
-        self._radius.dispatch_event("on_change", ObjectChangedEvent(self, attribute="radius", value=value))
+        self._trigger_on_change()
+        self._trigger_on_radius_change()
     # end radius
 
     # X position
@@ -152,7 +163,7 @@ class Circle(
         Returns:
             float: X position of the circle
         """
-        return self._position.x
+        return self._center.x
     # end x
 
     # Set x position
@@ -164,9 +175,10 @@ class Circle(
         Args:
             value (float): X position of the circle
         """
-        self._position.x = value
+        self._center.x = value
         self.update_points()
-        self._position.dispatch_event("on_change", ObjectChangedEvent(self, attribute="position", value=self._position))
+        self._trigger_on_change()
+        self._trigger_on_center_change()
     # end x
 
     # Y position
@@ -178,7 +190,7 @@ class Circle(
         Returns:
             float: Y position of the circle
         """
-        return self._position.y
+        return self._center.y
     # end y
 
     # Set y position
@@ -190,9 +202,10 @@ class Circle(
         Args:
             value (float): Y position of the circle
         """
-        self._position.y = value
+        self._center.y = value
         self.update_points()
-        self._position.dispatch_event("on_change", ObjectChangedEvent(self, attribute="position", value=self._position))
+        self._trigger_on_change()
+        self._trigger_on_center_change()
     # end y
 
     # Line width
@@ -297,6 +310,27 @@ class Circle(
         )
     # end _create_bbox
 
+    def _trigger_on_change(self):
+        """
+        Trigger the on change event.
+        """
+        self._on_change.trigger(self, event_type=EventType.CIRCLE_CHANGED, center=self._center, radius=self._radius)
+    # end _trigger_on_change
+
+    def _trigger_on_center_change(self):
+        """
+        Trigger the on center change event.
+        """
+        self._on_center_change.trigger(self, event_type=EventType.POSITION_CHANGED, center=self._center)
+    # end _trigger_on_center_change
+
+    def _trigger_on_radius_change(self):
+        """
+        Trigger the on radius change event.
+        """
+        self._on_radius_change.trigger(self, event_type=EventType.VALUE_CHANGED, radius=self._radius)
+    # end _trigger_on_radius_change
+
     # endregion PRIVATE
 
     # region DRAW
@@ -321,6 +355,9 @@ class Circle(
         """
         # Save context
         context.save()
+
+        # Apply transformation
+        context.set_transform(self.transform)
 
         # Create arc path
         context.arc(
@@ -381,7 +418,8 @@ class Circle(
             y (float): Y position
         """
         # Dispatch event
-        self._on_change.trigger(self, event_type=EventType.POSITION_CHANGED, x=x, y=y)
+        self._trigger_on_change()
+        self._trigger_on_center_change()
     # end _on_center_changed
 
     # On radius changed
@@ -396,7 +434,8 @@ class Circle(
             radius (Scalar): Radius
         """
         # Dispatch event
-        self._on_change.trigger(self, event_type=EventType.VALUE_CHANGED, radius=radius)
+        self._trigger_on_change()
+        self._trigger_on_radius_change()
     # end _on_radius_changed
 
     # endregion EVENTS

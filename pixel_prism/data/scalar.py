@@ -121,7 +121,7 @@ class Scalar(Data, RangeableMixin):
             value = value.get()
         # end if
         self._value = value
-        self._on_change.trigger(self, event_type=EventType.VALUE_CHANGED, value=value)
+        self._trigger_on_change()
     # end set
 
     def get(self):
@@ -168,6 +168,18 @@ class Scalar(Data, RangeableMixin):
     # end unregister_event
 
     # endregion PUBLIC
+
+    # region PRIVATE
+
+    # Trigger on change event
+    def _trigger_on_change(self):
+        """
+        Trigger the on change event.
+        """
+        self._on_change.trigger(self, event_type=EventType.VALUE_CHANGED, value=self.value)
+    # end _trigger_on_change
+
+    # endregion PRIVATE
 
     # region OVERRIDE
 
@@ -638,7 +650,7 @@ class TScalar(Scalar):
         """
         new_value = self.get()
         self._value = new_value
-        self._on_change.trigger(self, event_type=EventType.VALUE_CHANGED, value=new_value)
+        self._trigger_on_change()
     # end _on_source_changed
 
     # endregion EVENTS
