@@ -470,29 +470,44 @@ class TestTMatrix2D(unittest.TestCase):
         """
         Test that the on_change event is triggered when one of the source matrices in a chain of TMatrix2D objects is changed.
         """
-        changes = []
+        changes1 = []
+        changes2 = []
 
-        def on_change(sender, event_type, matrix):
-            changes.append((event_type, matrix))
+        def on_change_tmatrix1(sender, event_type, matrix):
+            changes1.append((event_type, matrix))
+        # end on_change
+
+        def on_change_tmatrix2(sender, event_type, matrix):
+            changes2.append((event_type, matrix))
         # end on_change
 
         # Create three source matrices
+        # [[1, 0], [0, 1]]
+        # [[1, 1], [1, 1]]
         matrix1 = Matrix2D(matrix=np.identity(2))
         matrix2 = Matrix2D(matrix=np.ones((2, 2)))
 
         # Create a first TMatrix2D that adds the two matrices
-        t_matrix1 = TMatrix2D(lambda m1, m2: m1.data + m2.data, on_change=on_change, m1=matrix1, m2=matrix2)
+        # [[2, 1], [1, 2]]
+        t_matrix1 = TMatrix2D(lambda m1, m2: m1.data + m2.data, on_change=on_change_tmatrix1, m1=matrix1, m2=matrix2)
 
         # Create a second TMatrix2D that multiplies the result by a scalar
+        # 2 * [[2, 1], [1, 2]] = [[4, 2], [2, 4]]
         scalar = Scalar(2)
-        t_matrix2 = TMatrix2D(lambda m, s: m.data * s.value, on_change=on_change, m=t_matrix1, s=scalar)
+        t_matrix2 = TMatrix2D(lambda m, s: m.data * s.value, on_change=on_change_tmatrix2, m=t_matrix1, s=scalar)
+
+        self.assertEqual(len(changes1), 0)
+        self.assertEqual(len(changes2), 0)
+        np.testing.assert_array_equal(t_matrix2.data, np.array([[4, 2], [2, 4]]))  # Check computed matrix
 
         # Modify matrix1
         matrix1.data = np.array([[2, 2], [2, 2]])
 
         # Verify that the on_change event was triggered and matrix was updated in the second TMatrix2D
-        self.assertEqual(len(changes), 1)
-        self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        self.assertEqual(len(changes1), 1)
+        self.assertEqual(len(changes2), 1)
+        self.assertEqual(changes1[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        self.assertEqual(changes2[0][0], EventType.MATRIX_CHANGED)  # Check event type
         np.testing.assert_array_equal(t_matrix2.data, (matrix1.data + matrix2.data) * scalar.value)  # Check computed matrix
     # end test_on_change_chained_matrices
 
