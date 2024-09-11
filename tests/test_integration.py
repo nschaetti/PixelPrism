@@ -18,7 +18,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import Scalar, Point2D, Matrix2D, tscalar, tpoint2d, tmatrix2d, mv_t
+from pixel_prism.data import Scalar, Point2D, Matrix2D, TScalar, TMatrix2D, TPoint2D
 
 
 class TestComplexEquationIntegration(unittest.TestCase):
@@ -41,17 +41,17 @@ class TestComplexEquationIntegration(unittest.TestCase):
         self.m2 = Matrix2D(np.array([[2, 0], [1, 2]]))
 
         # TScalars
-        self.ts1 = tscalar(self.s1)
-        self.ts2 = tscalar(self.s2)
-        self.ts3 = tscalar(self.s3)
+        self.ts1 = TScalar.tscalar(self.s1)
+        self.ts2 = TScalar.tscalar(self.s2)
+        self.ts3 = TScalar.tscalar(self.s3)
 
         # TPoints
-        self.tp1 = tpoint2d(self.p1)
-        self.tp2 = tpoint2d(self.p2)
+        self.tp1 = TPoint2D.tpoint2d(self.p1)
+        self.tp2 = TPoint2D.tpoint2d(self.p2)
 
         # TMatrices
-        self.tm1 = tmatrix2d(self.m1)
-        self.tm2 = tmatrix2d(self.m2)
+        self.tm1 = TMatrix2D.tmatrix2d(self.m1)
+        self.tm2 = TMatrix2D.tmatrix2d(self.m2)
 
         # Hook counters
         self.hook_counts = {
@@ -71,20 +71,20 @@ class TestComplexEquationIntegration(unittest.TestCase):
         }
 
         # Register hooks
-        self.ts1.add_event_listener("on_change", self.make_hook('ts1'))
-        self.ts2.add_event_listener("on_change", self.make_hook('ts2'))
-        self.ts3.add_event_listener("on_change", self.make_hook('ts3'))
-        self.tp1.add_event_listener("on_change", self.make_hook('tp1'))
-        self.tp2.add_event_listener("on_change", self.make_hook('tp2'))
-        self.tm1.add_event_listener("on_change", self.make_hook('tm1'))
-        self.tm2.add_event_listener("on_change", self.make_hook('tm2'))
+        self.ts1.on_change.subscribe(self.make_hook('ts1'))
+        self.ts2.on_change.subscribe(self.make_hook('ts2'))
+        self.ts3.on_change.subscribe(self.make_hook('ts3'))
+        self.tp1.on_change.subscribe(self.make_hook('tp1'))
+        self.tp2.on_change.subscribe(self.make_hook('tp2'))
+        self.tm1.on_change.subscribe(self.make_hook('tm1'))
+        self.tm2.on_change.subscribe(self.make_hook('tm2'))
     # end setUp
 
     def make_hook(self, key):
         """
         Factory method to create hooks for a specific key.
         """
-        def hook(event):
+        def hook(sender, event_type, **kwargs):
             self.hook_counts[key] += 1
         return hook
     # end make_hook
@@ -96,22 +96,22 @@ class TestComplexEquationIntegration(unittest.TestCase):
         # Create a complex equation involving TScalar, TPoint2D, and TMatrix2D
         # Equation: (ts1 + ts2) * (tp1 - tp2) + mv_t(tm1 @ tm2, tp1) - ts3
         matrix_product = self.tm1 @ self.tm2
-        matrix_product.add_event_listener("on_change", self.make_hook('matrix_product'))
+        matrix_product.on_change.subscribe(self.make_hook('matrix_product'))
 
-        mv_result = mv_t(matrix_product, self.tp1)
-        mv_result.add_event_listener("on_change", self.make_hook('mv_result'))
+        mv_result = TMatrix2D.mv(matrix_product, self.tp1)
+        mv_result.on_change.subscribe(self.make_hook('mv_result'))
 
         eq_part11 = self.ts1 + self.ts2
-        eq_part11.add_event_listener("on_change", self.make_hook('eq_part11'))
+        eq_part11.on_change.subscribe(self.make_hook('eq_part11'))
 
         eq_part12 = self.tp1 - self.tp2
-        eq_part12.add_event_listener("on_change", self.make_hook('eq_part12'))
+        eq_part12.on_change.subscribe(self.make_hook('eq_part12'))
 
         eq_part1 = eq_part11 * eq_part12
-        eq_part1.add_event_listener("on_change", self.make_hook('eq_part1'))
+        eq_part1.on_change.subscribe(self.make_hook('eq_part1'))
 
         equation = eq_part1 + mv_result - self.ts3
-        equation.add_event_listener("on_change", self.make_hook('equation'))
+        equation.on_change.subscribe(self.make_hook('equation'))
 
         # (2 + 3) * ([1, 2] - [3, 4]) + ([[1, 2], [3, 4]] @ [[2, 0], [1, 2]]) x [1, 2] - 4
         # 5 * ([-2, -2]) + ([[1, 2], [3, 4]] @ [[2, 0], [1, 2]]) x [1, 2] - 4
@@ -146,10 +146,10 @@ class TestComplexEquationIntegration(unittest.TestCase):
         # [[4, 4], [10, 8]] x [1, 2] = [12, 26]
         # [-12, -12] + [12, 26] - 4 = [0, 14] - 4 = [-4, 10]
         self.s2.value = 1
-        # ts2 is modified
-        # eq_part11 is modified
-        # eq_part1 is modified
-        # equation is modified
+        # ts2 is modified (1)
+        # eq_part11 is modified (2)
+        # eq_part1 is modified  (2)
+        # equation is modified (2)
         self.assertAlmostEqual(equation.x, -4)  # Expected x value after modification
         self.assertAlmostEqual(equation.y, 10)  # Expected y value after modification
         self.assertEqual(self.hook_counts['ts2'], 1)  # s1 changed once
@@ -163,8 +163,8 @@ class TestComplexEquationIntegration(unittest.TestCase):
         # [[4, 4], [10, 8]] x [1, 2] = [12, 26]
         # [-12, -12] + [12, 26] - 0 = [0, 14] - 0 = [0, 14]
         self.s3.value = 0
-        # ts3 is modified
-        # equation is modified
+        # ts3 is modified (1)
+        # equation is modified (3)
         self.assertAlmostEqual(equation.x, 0)  # Expected x value after modification
         self.assertAlmostEqual(equation.y, 14) # Expected y value after modification
         self.assertEqual(self.hook_counts['ts3'], 1)  # s1 changed once
@@ -179,7 +179,7 @@ class TestComplexEquationIntegration(unittest.TestCase):
         self.p1.x = 4
         # tp1 is modified
         # mv_result is modified
-        # equation is modified
+        # equation is modified (4)
         self.assertAlmostEqual(equation.x, 30)  # Expected x value after modification
         self.assertEqual(self.hook_counts['tp1'], 1)  # s1 changed once
         self.assertEqual(self.hook_counts['mv_result'], 1)
