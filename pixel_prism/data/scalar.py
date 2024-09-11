@@ -558,9 +558,9 @@ class TScalar(Scalar):
 
         # Listen to sources
         for scalar in self._scalars.values():
-            assert hasattr(scalar, "on_change"), \
-                "All sources must have an on_change event. Transform your scalar/point/matrix to a Data object."
-            scalar.on_change.subscribe(self._on_source_changed)
+            if hasattr(scalar, "on_change"):
+                scalar.on_change.subscribe(self._on_source_changed)
+            # end if
         # end for
 
         # Listen to changes in the original point

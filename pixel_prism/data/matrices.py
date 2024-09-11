@@ -188,7 +188,7 @@ class Matrix2D(Data):
         Set an element of the matrix.
         """
         self._data[key] = value
-        self.dispatch_event("on_change", self._data)
+        self._trigger_on_change()
     # end __setitem__
 
     # Operator overloads
@@ -488,8 +488,8 @@ class Matrix2D(Data):
     @classmethod
     def add(
             cls,
-            matrix1: 'Matrix2D',
-            matrix2: 'Matrix2D'
+            matrix1,
+            matrix2
     ):
         """
         Add two matrices.
@@ -507,8 +507,8 @@ class Matrix2D(Data):
     @classmethod
     def sub(
             cls,
-            matrix1: 'Matrix2D',
-            matrix2: 'Matrix2D'
+            matrix1,
+            matrix2
     ):
         """
         Subtract two matrices.
@@ -523,8 +523,8 @@ class Matrix2D(Data):
     @classmethod
     def mul(
             cls,
-            matrix1: Matrix2D,
-            matrix2: Matrix2D
+            matrix1,
+            matrix2
     ):
         """
         Multiply two matrices.
@@ -541,8 +541,8 @@ class Matrix2D(Data):
     @classmethod
     def mm(
             cls,
-            matrix1: Matrix2D,
-            matrix2: Matrix2D,
+            matrix1,
+            matrix2,
     ):
         """
         Multiply two matrices.
@@ -558,7 +558,7 @@ class Matrix2D(Data):
     @classmethod
     def scalar_mul(
             cls,
-            matrix: Matrix2D,
+            matrix,
             scalar: Union[Scalar, TScalar, float, int]
     ):
         """
@@ -578,7 +578,7 @@ class Matrix2D(Data):
     @classmethod
     def transpose(
             cls,
-            matrix: Matrix2D
+            matrix
     ):
         """
         Transpose a matrix.
@@ -593,7 +593,7 @@ class Matrix2D(Data):
     @classmethod
     def inverse(
             cls,
-            matrix: Matrix2D
+            matrix
     ):
         """
         Inverse a matrix.
@@ -609,7 +609,7 @@ class Matrix2D(Data):
     @classmethod
     def mv(
             cls,
-            matrix: Matrix2D,
+            matrix,
             point: Point2D,
     ) -> TPoint2D:
         """
@@ -627,7 +627,7 @@ class Matrix2D(Data):
     @classmethod
     def determinant(
             cls,
-            matrix: Matrix2D
+            matrix
     ) -> TScalar:
         """
         Compute the determinant of a matrix.
@@ -643,7 +643,7 @@ class Matrix2D(Data):
     @classmethod
     def trace(
             cls,
-            matrix: Matrix2D
+            matrix
     ) -> TScalar:
         """
         Compute the trace of a matrix.
@@ -687,8 +687,10 @@ class TMatrix2D(Matrix2D):
         super().__init__(data)
 
         # Listen to sources
-        for _, s in self._matrices:
-            s.on_change.subscribe(self._on_source_changed)
+        for _, s in self._matrices.items():
+            if hasattr(s, "on_change"):
+                s.on_change.subscribe(self._on_source_changed)
+            # end if
         # end for
 
         # Attach listeners to the source matrices
@@ -747,7 +749,7 @@ class TMatrix2D(Matrix2D):
 
     # region EVENTS
 
-    def _on_source_changed(self, event):
+    def _on_source_changed(self, sender, event_type, **kwargs):
         """
         Update the matrix when a source Matrix2D changes.
         """

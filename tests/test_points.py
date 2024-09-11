@@ -54,6 +54,34 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(changes, [(3, 4)])
     # end test_on_change
 
+    def test_on_change2(self):
+        """
+        Test that the on_change event is triggered with the correct parameters
+        when the point is changed.
+        """
+        from pixel_prism.data import EventType
+        changes = []
+
+        def on_change(sender, event_type, x, y):
+            # Append all parameters of the callback to the changes list
+            changes.append((sender, event_type, x, y))
+
+        # end on_change
+
+        # Create the Point2D object with an initial callback
+        point = Point2D(1, 2, on_change=on_change)
+
+        # Change the point's values, which should trigger the on_change event
+        point.set(3, 4)
+
+        # Verify that the on_change event was triggered with the correct parameters
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][0], point)  # Verify sender is the point object
+        self.assertEqual(changes[0][1], EventType.POSITION_CHANGED)  # Replace with actual event_type if needed
+        self.assertEqual(changes[0][2], 3)  # Verify x coordinate
+        self.assertEqual(changes[0][3], 4)  # Verify y coordinate
+    # end test_on_change2
+
     def test_addition(self):
         """
         Test that two points can be added together.
@@ -286,8 +314,8 @@ class TestPoint2D(unittest.TestCase):
         """
         changes = []
 
-        def on_change(event):
-            changes.append((event.params['x'], event.params['y']))
+        def on_change(sender, event_type, x, y):
+            changes.append((x, y))
         # end on_change
 
         # (1, 2)
@@ -334,7 +362,7 @@ class TestPoint2D(unittest.TestCase):
         # end with
     # end test_tpoint2d_restriction
 
-    def test_add_t(self):
+    def test_add(self):
         """
         Test that two points can be added together.
         """
@@ -366,9 +394,9 @@ class TestPoint2D(unittest.TestCase):
         # 7 = 2 + 5
         self.assertEqual(tpoint.x, 5)
         self.assertEqual(tpoint.y, 7)
-    # end test_add_t
+    # end test_add
 
-    def test_sub_t(self):
+    def test_sub(self):
         """
         Test that two points can be subtracted.
         """
@@ -399,9 +427,9 @@ class TestPoint2D(unittest.TestCase):
         # 5 = 8 - 3
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 5)
-    # end test_sub_t
+    # end test_sub
 
-    def test_mul_t(self):
+    def test_mul(self):
         """
         Test that a point can be multiplied by a scalar.
         """
@@ -430,9 +458,9 @@ class TestPoint2D(unittest.TestCase):
         # 9 = 3 * 3
         self.assertEqual(tpoint.x, 12)
         self.assertEqual(tpoint.y, 9)
-    # end test_mul_t
+    # end test_mul
 
-    def test_mul_t2(self):
+    def test_mul2(self):
         """
         Test that a point can be multiplied by a scalar.
         """
@@ -447,9 +475,9 @@ class TestPoint2D(unittest.TestCase):
         point1.y = 4
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 8)
-    # end test_mul_t2
+    # end test_mul2
 
-    def test_div_t(self):
+    def test_div(self):
         """
         Test that a point can be divided by a scalar.
         """
@@ -468,9 +496,9 @@ class TestPoint2D(unittest.TestCase):
         point1.x = 16
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 1.5)
-    # end test_div_t
+    # end test_div
 
-    def test_div_t2(self):
+    def test_div2(self):
         """
         Test that a point can be divided by a scalar.
         """
@@ -488,9 +516,9 @@ class TestPoint2D(unittest.TestCase):
         point1.y = 12
         self.assertEqual(tpoint.x, 4)
         self.assertEqual(tpoint.y, 6)
-    # end test_div_t2
+    # end test_div2
 
-    def test_rotate_t(self):
+    def test_rotate2(self):
         """
         Test that a point can be rotated.
         """
@@ -515,9 +543,9 @@ class TestPoint2D(unittest.TestCase):
         point.x = 0
         self.assertAlmostEqual(tpoint.x, 0, places=5)
         self.assertAlmostEqual(tpoint.y, 0, places=5)
-    # end test_rotate_t
+    # end test_rotate2
 
-    def test_rotate_t2(self):
+    def test_rotate3(self):
         """
         Test that a point can be rotated.
         """
@@ -536,9 +564,9 @@ class TestPoint2D(unittest.TestCase):
         point.y = 1
         self.assertAlmostEqual(tpoint.x, -1, places=5)
         self.assertAlmostEqual(tpoint.y, 1, places=5)
-    # end test_rotate_t2
+    # end test_rotate3
 
-    def test_scale_t(self):
+    def test_scale2(self):
         """
         Test that a point can be scaled.
         """
@@ -559,9 +587,9 @@ class TestPoint2D(unittest.TestCase):
         point.x = 4
         self.assertEqual(tpoint.x, 12)
         self.assertEqual(tpoint.y, 9)
-    # end test_scale_t
+    # end test_scale2
 
-    def test_dot_t(self):
+    def test_dot(self):
         """
         Test the dot product of two points.
         """
@@ -577,9 +605,9 @@ class TestPoint2D(unittest.TestCase):
         # (1, 3) . (3, 4) = 1 * 3 + 3 * 4 = 15
         point1.y = 3
         self.assertEqual(result.value, 15)
-    # end test_dot_t
+    # end test_dot
 
-    def test_cross_t(self):
+    def test_cross(self):
         """
         Test the cross product of two points.
         """
@@ -595,9 +623,9 @@ class TestPoint2D(unittest.TestCase):
         # (1, 2) x (3, 3) = 1 * 3 - 3 * 2 = -3
         point2.y = 3
         self.assertEqual(result.value, -3)
-    # end test_cross_t
+    # end test_cross
 
-    def test_norm_t(self):
+    def test_norm(self):
         """
         Test the norm of a point.
         """
@@ -612,9 +640,9 @@ class TestPoint2D(unittest.TestCase):
         # ||(6, 4)|| = sqrt(6^2 + 4^2) = 7.211102550927978
         point.x = 6
         self.assertAlmostEqual(result.value, np.sqrt(36 + 16), places=5)
-    # end test_norm_t
+    # end test_norm
 
-    def test_normalize_t(self):
+    def test_normalize(self):
         """
         Test the normalization of a point.
         """
@@ -631,9 +659,9 @@ class TestPoint2D(unittest.TestCase):
         point.x = 0
         self.assertAlmostEqual(result.x, 0.0, places=5)
         self.assertAlmostEqual(result.y, 1.0, places=5)
-    # end test_normalize_t
+    # end test_normalize
 
-    def test_angle_t(self):
+    def test_angle(self):
         """
         Test the angle between two points.
         """
@@ -652,9 +680,9 @@ class TestPoint2D(unittest.TestCase):
         point2.x = -1
         point2.y = 0
         self.assertAlmostEqual(result.value, np.pi, places=5)
-    # end test_angle_t
+    # end test_angle
 
-    def test_distance_t(self):
+    def test_distance(self):
         """
         Test the distance between two points.
         """
@@ -666,9 +694,9 @@ class TestPoint2D(unittest.TestCase):
         # Modify one of the points and check the updated result
         point2.x = 6
         self.assertEqual(result.value, 7.211102550927978)
-    # end test_distance_t
+    # end test_distance
 
-    def test_distance_squared_t(self):
+    def test_distance_squared(self):
         """
         Test the squared distance between two points.
         """
@@ -684,10 +712,10 @@ class TestPoint2D(unittest.TestCase):
         # ||(1, 0) - (3, 4)||^2 = (-2)^2 + (-4)^2 = 4 + 16 = 20
         point1.x = 1
         self.assertEqual(result.value, 20)
-    # end test_distance_squared_t
+    # end test_distance_squared
 
     # TODO: check that the value of the output
-    def test_distance_manhattan_t(self):
+    def test_distance_manhattan(self):
         """
         Test the Manhattan distance between two points.
         """
@@ -698,10 +726,10 @@ class TestPoint2D(unittest.TestCase):
         # |1 - 3| + |1 - 4| = 2 + 3 = 5
         result = TPoint2D.distance_manhattan(point1, point2)
         self.assertEqual(result.value, 5)
-    # end test_distance_manhattan_t
+    # end test_distance_manhattan
 
     # TODO: check that the value of the output
-    def test_distance_chebyshev_t(self):
+    def test_distance_chebyshev(self):
         """
         Test the Chebyshev distance between two points.
         """
@@ -709,10 +737,10 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_chebyshev(point1, point2)
         self.assertEqual(result.value, 3)
-    # end test_distance_chebyshev_t
+    # end test_distance_chebyshev
 
     # TODO: check that the value of the output
-    def test_distance_canberra_t(self):
+    def test_distance_canberra(self):
         """
         Test the Canberra distance between two points.
         """
@@ -720,10 +748,10 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_canberra(point1, point2)
         self.assertAlmostEqual(result.value, 0.8333, places=4)
-    # end test_distance_canberra_t
+    # end test_distance_canberra
 
     # TODO: check that the value of the output
-    def test_distance_minkowski_t(self):
+    def test_distance_minkowski(self):
         """
         Test the Minkowski distance between two points.
         """
@@ -731,10 +759,10 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_minkowski(point1, point2, p=3)
         self.assertAlmostEqual(result.value, 3.2710664, places=4)
-    # end test_distance_minkowski_t
+    # end test_distance_minkowski
 
     # TODO: check that the value of the output
-    def test_distance_minkowski_t2(self):
+    def test_distance_minkowski2(self):
         """
         Test the Minkowski distance between two points.
         """
@@ -742,10 +770,10 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_minkowski(point1, point2, p=Scalar(3))
         self.assertAlmostEqual(result.value, 3.2710664, places=4)
-    # end test_distance_minkowski_t
+    # end test_distance_minkowski2
 
     # TODO: check that the value of the output
-    def test_distance_hamming_t(self):
+    def test_distance_hamming(self):
         """
         Test the Hamming distance between two points.
         """
@@ -753,18 +781,18 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(1, 4)
         result = TPoint2D.distance_hamming(point1, point2)
         self.assertEqual(result.value, 1.0)
-    # end test_distance_hamming_t
+    # end test_distance_hamming
 
     # TODO: check that the value of the output
-    def test_distance_jaccard_t(self):
+    def test_distance_jaccard(self):
         point1 = Point2D(1, 1)
         point2 = Point2D(1, 4)
         result = TPoint2D.distance_jaccard(point1, point2)
         self.assertEqual(result.value, 0.6)
-    # end test_distance_jaccard_t
+    # end test_distance_jaccard
 
     # TODO: check that the value of the output
-    def test_distance_braycurtis_t(self):
+    def test_distance_braycurtis(self):
         """
         Test the Bray-Curtis distance between two points.
         """
@@ -772,9 +800,9 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_braycurtis(point1, point2)
         self.assertEqual(result.value, 0.5555556)
-    # end test_distance_braycurtis_t
+    # end test_distance_braycurtis
 
-    def test_distance_cosine_t(self):
+    def test_distance_cosine(self):
         """
         Test the cosine distance between two points.
         """
@@ -782,9 +810,9 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(0, 1)
         result = TPoint2D.distance_cosine(point1, point2)
         self.assertEqual(result.value, 1)
-    # end test_distance_cosine_t
+    # end test_distance_cosine
 
-    def test_distance_correlation_t(self):
+    def test_distance_correlation(self):
         """
         Test the correlation distance between two points.
         """
@@ -792,17 +820,9 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_correlation(point1, point2)
         self.assertAlmostEqual(result.value, 0)
-    # end test_distance_correlation_t
+    # end test_distance_correlation
 
-    # TODO: Does not work
-    # def test_distance_haversine_t(self):
-    #     point1 = Point2D(0, 0)
-    #     point2 = Point2D(0, 90)
-    #     result = distance_haversine_t(point1, point2)
-    #     self.assertAlmostEqual(result.value, np.pi / 2)
-    # end test_distance_haversine_t
-
-    def test_angle_euclidean_t(self):
+    def test_angle_euclidean(self):
         """
         Test the Euclidean distance between two points.
         """
@@ -810,9 +830,9 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_euclidean(point1, point2)
         self.assertEqual(result.value, 5)
-    # end test_angle_euclidean_t
+    # end test_angle_euclidean
 
-    def test_distance_mahalanobis_t(self):
+    def test_distance_mahalanobis(self):
         """
         Test the Mahalanobis distance between two points.
         """
@@ -831,9 +851,10 @@ class TestPoint2D(unittest.TestCase):
         expected_result = np.sqrt((2 ** 2) + (3 ** 2))  # sqrt(4 + 9) = sqrt(13)
 
         self.assertAlmostEqual(result.value, expected_result, places=4)
-    # end test_distance_mahalanobis_t
+    # end test_distance_mahalanobis
 
-    def test_distance_seuclidean_t(self):
+    # Test the standardized Euclidean distance between two points
+    def test_distance_seuclidean(self):
         """
         Test the standardized Euclidean distance between two points.
         """
@@ -842,9 +863,10 @@ class TestPoint2D(unittest.TestCase):
         std_devs = np.array([1, 1])  # Assuming standard deviations of 1 for both dimensions
         result = TPoint2D.distance_seuclidean(point1, point2, std_devs)
         self.assertAlmostEqual(result.value, 3.6056, places=4)
-    # end test_distance_seuclidean_t
+    # end test_distance_seuclidean
 
-    def test_distance_sqeuclidean_t(self):
+    # Test the squared Euclidean distance between two points
+    def test_distance_sqeuclidean(self):
         """
         Test the squared Euclidean distance between two points.
         """
@@ -852,13 +874,14 @@ class TestPoint2D(unittest.TestCase):
         point2 = Point2D(3, 4)
         result = TPoint2D.distance_sqeuclidean(point1, point2)
         self.assertEqual(result.value, 13)
-    # end test_distance_sqeuclidean_t
+    # end test_distance_sqeuclidean
 
     # endregion TPOINT2D
 
     # region OPERATORS
 
-    def test_add_t2(self):
+    # Test addition (a second time)
+    def test_add2(self):
         """
         Test that two points can be added together.
         """
@@ -887,9 +910,9 @@ class TestPoint2D(unittest.TestCase):
         p2.y = 1
         self.assertEqual(tp.x, 3)
         self.assertEqual(tp.y, 4)
-    # end test_add_t
+    # end test_add
 
-    def test_sub_t2(self):
+    def test_sub2(self):
         """
         Test that two points can be subtracted.
         """
@@ -916,9 +939,9 @@ class TestPoint2D(unittest.TestCase):
         p2.y = 1
         self.assertEqual(tp.x, 7)
         self.assertEqual(tp.y, 8)
-    # end test_sub_t
+    # end test_sub2
 
-    def test_mul_t3(self):
+    def test_mul3(self):
         """
         Test that a point can be multiplied by a scalar.
         """
@@ -940,9 +963,10 @@ class TestPoint2D(unittest.TestCase):
         p1.y = 4
         self.assertEqual(tp.x, 6)
         self.assertEqual(tp.y, 8)
-    # end test_mul_t
+    # end test_mul3
 
-    def test_div_t3(self):
+    # Test multiplication
+    def test_div3(self):
         """
         Test that a point can be divided by a scalar.
         """
@@ -963,9 +987,9 @@ class TestPoint2D(unittest.TestCase):
         p1.y = 8
         self.assertEqual(tp.x, 5)
         self.assertEqual(tp.y, 4)
+    # end test_div3
 
-    # end test_div_t
-
+    # Test nested operations
     def test_nested_tpoint2d_operations(self):
         """
         Test that nested operations can be performed on TPoint2D objects.
@@ -999,6 +1023,7 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp5.y, 6)  # (4+2)*1 = 6
     # end test_nested_tpoint2d_operations
 
+    # Test multiple nested operations
     def test_multiple_nested_tpoint2d_operations(self):
         """
         Test that multiple nested operations can be performed on TPoint2D objects.
@@ -1044,6 +1069,7 @@ class TestPoint2D(unittest.TestCase):
         self.assertAlmostEqual(tp4.y, -1)
     # end test_multiple_nested_tpoint2d_operations
 
+    # Test mixed tpoin2d and scalar operations
     def test_mixed_tpoint2d_and_scalar_operations(self):
         """
         Test that mixed operations can be performed on TPoint
@@ -1076,6 +1102,7 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp2.y, 8)
     # end test_mixed_tpoint2d_and_scalar_operations
 
+    # Test mixed tpoin2d and tscalar operations
     def test_mixed_tpoint2d_and_tscalar_operations(self):
         """
         Test that mixed operations can be performed on TPoint
@@ -1098,6 +1125,7 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp.y, 12)
     # end test_mixed_tpoint2d_and_tscalar_operations
 
+    # Test mixed tpoin2d and tscalar addition
     def test_mixed_tpoint2d_and_tscalar_addition(self):
         """
         Test that mixed operations can be performed on TPoint
@@ -1122,6 +1150,7 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp_reverse.y, 7)
     # end test_mixed_tpoint2d_and_tscalar_addition
 
+    # Test mixed tpoin2d and tscalar subtraction
     def test_mixed_tpoint2d_and_tscalar_subtraction(self):
         """
         Test that mixed operations can be performed on TPoint
@@ -1146,6 +1175,7 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp_reverse.y, -4)
     # end test_mixed_tpoint2d_and_tscalar_subtraction
 
+    # Test mixed tpoin2d and tscalar multiplication
     def test_mixed_tpoint2d_and_tscalar_multiplication(self):
         """
         Test that mixed operations can be performed on TPoint
@@ -1173,6 +1203,7 @@ class TestPoint2D(unittest.TestCase):
         self.assertEqual(tp_reverse.y, 12)
     # end test_mixed_tpoint2d_and_tscalar_multiplication
 
+    # Test mixed tpoin2d and tscalar division
     def test_mixed_tpoint2d_and_tscalar_division(self):
         """
         Test that mixed operations can be performed on TPoint
@@ -1200,6 +1231,7 @@ class TestPoint2D(unittest.TestCase):
 
     # region GENERATION
 
+    # Test the generation of points using a range
     def test_point_range_point2d(self):
         """
         Test the generation of points using a range.
@@ -1276,8 +1308,8 @@ class TestPoint2D(unittest.TestCase):
             Point2D(1.0, 1.0),
             Point2D(3.1622776601683795, 5.623414039611816),
             Point2D(10.0, 31.622785568237305),
-            Point2D(31.622776601683793, 177.82803344726562),
-            Point2D(100.00005340576172, 1000.0005493164062)
+            Point2D(31.622776601683793, 177.82794),
+            Point2D(100.0, 1000.0)
         ]
         for p, expected in zip(points, expected_points):
             self.assertAlmostEqual(p.x, expected.x, places=4)
@@ -1294,8 +1326,8 @@ class TestPoint2D(unittest.TestCase):
             Point2D(1.0, 1.0),
             Point2D(3.1622776601683795, 5.623414039611816),
             Point2D(10.0, 31.622785568237305),
-            Point2D(31.622776601683793, 177.82803344726562),
-            Point2D(100.00005, 1000.0005493164062)
+            Point2D(31.622776601683793, 177.82794),
+            Point2D(100.0, 1000.0)
         ]
         for tp, expected in zip(tpoints, expected_points):
             self.assertAlmostEqual(tp.x, expected.x, places=4)

@@ -900,7 +900,9 @@ class TPoint2D(Point2D):
 
         # Listen to sources
         for point in self._points.values():
-            point.on_change.subscribe(self._on_point_changed)
+            if hasattr(point, "on_change"):
+                point.on_change.subscribe(self._on_source_changed)
+            # end if
         # end for
 
         # Listen to changes in the original point
@@ -1003,19 +1005,19 @@ class TPoint2D(Point2D):
 
     # region EVENT
 
-    def _on_point_changed(self, sender, event_type, x, y):
+    def _on_source_changed(self, sender, event_type, **kwargs):
         """
         Update the point when a source point changes.
 
         Args:
-            x (float): New X-coordinate of the point
-            y (float): New Y-coordinate of the point
+            sender (Any): Sender of the event
+            event_type (EventType): Type of event that occurred
         """
         x, y = self.get()
         self._pos[0] = x
         self._pos[1] = y
         self._trigger_on_change()
-    # end _on_point_changed
+    # end _on_source_changed
 
     # endregion EVENT
 
@@ -1867,9 +1869,12 @@ class TPoint2D(Point2D):
             point2 (Point2D): The second point.
             cov_matrix (Matrix2D): Covariance matrix of the dataset.
         """
+        from .matrices import TMatrix2D
+        cov_matrix = TMatrix2D.inverse(cov_matrix)
         return TScalar(
             lambda p1, p2, cov: np.sqrt(
-                np.array([p1.x - p2.x, p1.y - p2.y]).T @ np.linalg.inv(cov) @ np.array([p1.x - p2.x, p1.y - p2.y])),
+                (np.expand_dims((p1 - p2).pos, axis=0) @ cov.data @ np.expand_dims((p1 - p2).pos, axis=0).T)[0, 0]
+            ),
             p1=point1,
             p2=point2,
             cov=cov_matrix

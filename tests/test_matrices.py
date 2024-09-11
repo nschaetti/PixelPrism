@@ -19,13 +19,9 @@
 import unittest
 import numpy as np
 from pixel_prism.data import (
-    Matrix2D, TMatrix2D, scalar_mul_t, transpose_t,
-    inverse_t, determinant_t, trace_t
+    Matrix2D, TMatrix2D, EventType
 )
-from pixel_prism.data.matrices import (
-    add_t, sub_t, mul_t
-)
-from pixel_prism.data import Point2D, Scalar, TScalar
+from pixel_prism.data import Scalar
 
 
 class TestMatrix2D(unittest.TestCase):
@@ -152,7 +148,7 @@ class TestMatrix2D(unittest.TestCase):
         """
         # Test matrix transpose
         matrix = Matrix2D([[1, 2], [3, 4]])
-        result = transpose_t(matrix)
+        result = TMatrix2D.transpose(matrix)
         expected = Matrix2D([[1, 3], [2, 4]])
         self.assertTrue(np.array_equal(result.get(), expected.get()))
     # end test_transpose
@@ -173,7 +169,7 @@ class TestMatrix2D(unittest.TestCase):
         """
         # Test the inverse of a matrix
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
-        result = inverse_t(matrix)
+        result = TMatrix2D.inverse(matrix)
         expected = np.array([[-2, 1], [1.5, -0.5]])
         np.testing.assert_array_almost_equal(result.get(), expected)
     # end test_inverse
@@ -184,7 +180,7 @@ class TestMatrix2D(unittest.TestCase):
         """
         # Test the determinant of a matrix
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
-        result = determinant_t(matrix)
+        result = TMatrix2D.determinant(matrix)
         expected = -2.0
         self.assertAlmostEqual(result.get(), expected)
     # end test_determinant
@@ -195,10 +191,84 @@ class TestMatrix2D(unittest.TestCase):
         """
         # Test the trace of a matrix
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
-        result = trace_t(matrix)
+        result = TMatrix2D.trace(matrix)
         expected = 5.0
         self.assertAlmostEqual(result.get(), expected)
     # end test_trace
+
+    def test_on_change_set_matrix(self):
+        """
+        Test that the on_change event is triggered when the matrix is set.
+        """
+        changes = []
+
+        def on_change(sender, event_type, matrix):
+            changes.append((event_type, matrix))
+        # end on_change
+
+        # Initialize the Matrix2D with an on_change callback
+        matrix = Matrix2D(matrix=np.identity(3), on_change=on_change)
+
+        # Change the matrix
+        new_matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float32)
+        matrix.data = new_matrix
+
+        # Check if the on_change event was triggered with the correct matrix
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        np.testing.assert_array_equal(changes[0][1], new_matrix)  # Check matrix data
+    # end test_on_change_set_matrix
+
+    def test_on_change_modify_matrix_element(self):
+        """
+        Test that the on_change event is triggered when an element of the matrix is modified.
+        """
+        changes = []
+
+        def on_change(sender, event_type, matrix):
+            changes.append((event_type, matrix))
+        # end on_change
+
+        # Initialize the Matrix2D with an on_change callback
+        matrix = Matrix2D(matrix=np.identity(3), on_change=on_change)
+
+        # Modify an element of the matrix
+        matrix[0, 0] = 5.0
+
+        # Check if the on_change event was triggered with the updated matrix
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        self.assertEqual(matrix[0, 0], 5.0)  # Check that the element was updated
+    # end test_on_change_modify_matrix_element
+
+    def test_on_change_addition(self):
+        """
+        Test that the on_change event is triggered when matrices are added.
+        """
+        changes = []
+
+        def on_change(sender, event_type, matrix):
+            changes.append((event_type, matrix))
+        # end on_change
+
+        # Initialize two Matrix2D objects with an on_change callback
+        matrix1 = Matrix2D(matrix=np.identity(3), on_change=on_change)
+        matrix2 = Matrix2D(matrix=np.ones((3, 3)), on_change=on_change)
+
+        # Add the two matrices
+        result_matrix = matrix1 + matrix2
+
+        # Since adding matrices does not modify the original matrices, we expect no on_change event
+        self.assertEqual(len(changes), 0)
+
+        # Now update one of the matrices and check for the event
+        matrix1.data = matrix1.data + matrix2.data
+
+        # Check if the on_change event was triggered
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        np.testing.assert_array_equal(matrix1.data, np.identity(3) + np.ones((3, 3)))  # Check new matrix data
+    # end test_on_change_addition
 
 # end TestMatrix2D
 
@@ -212,7 +282,7 @@ class TestTMatrix2D(unittest.TestCase):
         # Test TMatrix2D initialization
         matrix1 = Matrix2D([[1, 2], [3, 4]])
         matrix2 = Matrix2D([[5, 6], [7, 8]])
-        t_matrix = add_t(matrix1, matrix2)
+        t_matrix = TMatrix2D.add(matrix1, matrix2)
         expected = Matrix2D([[6, 8], [10, 12]])
         self.assertTrue(np.array_equal(t_matrix.get(), expected.get()))
     # end test_tmatrix_initialization
@@ -224,7 +294,7 @@ class TestTMatrix2D(unittest.TestCase):
         # Test dynamic update in TMatrix2D
         matrix1 = Matrix2D([[1, 2], [3, 4]])
         matrix2 = Matrix2D([[5, 6], [7, 8]])
-        t_matrix = add_t(matrix1, matrix2)
+        t_matrix = TMatrix2D.add(matrix1, matrix2)
 
         # Initial check
         expected = Matrix2D([[6, 8], [10, 12]])
@@ -236,7 +306,7 @@ class TestTMatrix2D(unittest.TestCase):
         self.assertTrue(np.array_equal(t_matrix.data, expected_after_update.data))
     # end test_tmatrix_dynamic_update
 
-    def test_add_t(self):
+    def test_add(self):
         """
         Test TMatrix2D addition
         """
@@ -244,7 +314,7 @@ class TestTMatrix2D(unittest.TestCase):
         matrix1 = Matrix2D(np.array([[1, 2], [3, 4]]))
         matrix2 = Matrix2D(np.array([[5, 6], [7, 8]]))
 
-        result = add_t(matrix1, matrix2)
+        result = TMatrix2D.add(matrix1, matrix2)
 
         expected = np.array([[6, 8], [10, 12]])
 
@@ -254,9 +324,9 @@ class TestTMatrix2D(unittest.TestCase):
         matrix1[0, 0] = 5
         expected_updated = np.array([[10, 8], [10, 12]])
         np.testing.assert_array_equal(result.get(), expected_updated)
-    # end test_add_t
+    # end test_add
 
-    def test_sub_t(self):
+    def test_sub(self):
         """
         Test TMatrix2D subtraction
         """
@@ -264,7 +334,7 @@ class TestTMatrix2D(unittest.TestCase):
         matrix1 = Matrix2D(np.array([[5, 6], [7, 8]]))
         matrix2 = Matrix2D(np.array([[1, 2], [3, 4]]))
 
-        result = sub_t(matrix1, matrix2)
+        result = TMatrix2D.sub(matrix1, matrix2)
 
         expected = np.array([[4, 4], [4, 4]])
 
@@ -274,78 +344,161 @@ class TestTMatrix2D(unittest.TestCase):
         matrix1.data = np.array([[6, 6], [6, 6]])
         expected_updated = np.array([[5, 4], [3, 2]])
         np.testing.assert_array_equal(result.data, expected_updated.data)
-    # end test_sub_t
+    # end test_sub
 
-    def test_mul_t(self):
+    def test_mul(self):
         """
         Test TMatrix2D multiplication
         """
         # Test TMatrix2D multiplication
         matrix1 = Matrix2D(np.array([[1, 2], [3, 4]]))
         matrix2 = Matrix2D(np.array([[2, 0], [1, 2]]))
-        result = mul_t(matrix1, matrix2)
+        result = TMatrix2D.mul(matrix1, matrix2)
         expected = np.array([[2, 0], [3, 8]])
         np.testing.assert_array_equal(result.data, expected.data)
-    # end test_mul_t
+    # end test_mul
 
-    def test_scalar_mul_t(self):
+    def test_scalar_mul(self):
         """
         Test TMatrix2D scalar multiplication
         """
         # Test TMatrix2D scalar multiplication
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
         scalar = Scalar(2)
-        result = scalar_mul_t(matrix, scalar)
+        result = TMatrix2D.scalar_mul(matrix, scalar)
         expected = np.array([[2, 4], [6, 8]])
         np.testing.assert_array_equal(result.data, expected.data)
-    # end test_scalar_mul_t
+    # end test_scalar_mul
 
-    def test_transpose_t(self):
+    def test_transpose(self):
         """
         Test TMatrix2D transpose
         """
         # Test TMatrix2D transpose
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
-        result = transpose_t(matrix)
+        result = TMatrix2D.transpose(matrix)
         expected = np.array([[1, 3], [2, 4]])
         np.testing.assert_array_equal(result.get(), expected)
-    # end test_transpose_t
+    # end test_transpose
 
-    def test_inverse_t(self):
+    def test_inverse(self):
         """
         Test TMatrix2D inverse
         """
         # Test TMatrix2D inverse
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
-        result = inverse_t(matrix)
+        result = TMatrix2D.inverse(matrix)
         expected = np.array([[-2, 1], [1.5, -0.5]])
         np.testing.assert_array_almost_equal(result.get(), expected)
-    # end test_inverse_t
+    # end test_inverse
 
-    def test_determinant_t(self):
+    def test_determinant(self):
         """
         Test TMatrix2D determinant
         """
         # Test TMatrix2D determinant
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
-        result = determinant_t(matrix)
+        result = TMatrix2D.determinant(matrix)
         expected = -2.0
         self.assertAlmostEqual(result.get(), expected)
-    # end test_determinant_t
+    # end test_determinant
 
-    def test_trace_t(self):
+    def test_trace(self):
         """
         Test TMatrix2D trace
         """
         # Test TMatrix2D trace
         matrix = Matrix2D(np.array([[1, 2], [3, 4]]))
-        result = trace_t(matrix)
+        result = TMatrix2D.trace(matrix)
         expected = 5.0
         self.assertAlmostEqual(result.get(), expected)
-    # end test_trace_t
+    # end test_trace
+
+    def test_on_change_sources(self):
+        """
+        Test that the on_change event is triggered when one of the source matrices is changed.
+        """
+        changes = []
+
+        def on_change(sender, event_type, matrix):
+            changes.append((event_type, matrix))
+        # end on_change
+
+        # Create two source matrices
+        matrix1 = Matrix2D(matrix=np.identity(3))
+        matrix2 = Matrix2D(matrix=np.ones((3, 3)))
+
+        # Create a TMatrix2D that adds the two matrices
+        t_matrix = TMatrix2D(lambda m1, m2: m1.data + m2.data, on_change=on_change, m1=matrix1, m2=matrix2)
+
+        # Modify matrix1
+        matrix1.data = np.array([[2, 2, 2], [2, 2, 2], [2, 2, 2]])
+
+        # Verify that the on_change event was triggered and matrix was updated
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        np.testing.assert_array_equal(t_matrix.data, matrix1.data + matrix2.data)  # Check computed matrix
+    # end test_on_change_sources
+
+    def test_on_change_scalar_in_matrix(self):
+        """
+        Test that the on_change event is triggered when a scalar in one of the source matrices is changed.
+        """
+        changes = []
+
+        def on_change(sender, event_type, matrix):
+            changes.append((event_type, matrix))
+        # end on_change
+
+        # Create a scalar and a matrix
+        scalar = Scalar(2)
+        matrix1 = Matrix2D(matrix=np.identity(3))
+
+        # Create a TMatrix2D that multiplies the matrix by the scalar
+        t_matrix = TMatrix2D(lambda m, s: m.data * s.value, on_change=on_change, m=matrix1, s=scalar)
+
+        # Modify the scalar
+        scalar.value = 3
+
+        # Verify that the on_change event was triggered and matrix was updated
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        np.testing.assert_array_equal(t_matrix.data, matrix1.data * scalar.value)  # Check computed matrix
+    # end test_on_change_scalar_in_matrix
+
+    def test_on_change_chained_matrices(self):
+        """
+        Test that the on_change event is triggered when one of the source matrices in a chain of TMatrix2D objects is changed.
+        """
+        changes = []
+
+        def on_change(sender, event_type, matrix):
+            changes.append((event_type, matrix))
+        # end on_change
+
+        # Create three source matrices
+        matrix1 = Matrix2D(matrix=np.identity(2))
+        matrix2 = Matrix2D(matrix=np.ones((2, 2)))
+
+        # Create a first TMatrix2D that adds the two matrices
+        t_matrix1 = TMatrix2D(lambda m1, m2: m1.data + m2.data, on_change=on_change, m1=matrix1, m2=matrix2)
+
+        # Create a second TMatrix2D that multiplies the result by a scalar
+        scalar = Scalar(2)
+        t_matrix2 = TMatrix2D(lambda m, s: m.data * s.value, on_change=on_change, m=t_matrix1, s=scalar)
+
+        # Modify matrix1
+        matrix1.data = np.array([[2, 2], [2, 2]])
+
+        # Verify that the on_change event was triggered and matrix was updated in the second TMatrix2D
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
+        np.testing.assert_array_equal(t_matrix2.data, (matrix1.data + matrix2.data) * scalar.value)  # Check computed matrix
+    # end test_on_change_chained_matrices
 
 # end TestTMatrix2D
 
 
 if __name__ == '__main__':
     unittest.main()
+# end if

@@ -18,8 +18,6 @@
 # Imports
 import unittest
 import numpy as np
-
-
 from pixel_prism.data import Scalar, TScalar, Point2D, TPoint2D, Matrix2D, TMatrix2D
 
 
