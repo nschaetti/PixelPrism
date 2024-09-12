@@ -167,6 +167,14 @@ class Scalar(Data, RangeableMixin):
         # end if
     # end unregister_event
 
+    # To list
+    def to_list(self):
+        """
+        Convert the scalar to a list.
+        """
+        return [self._value]
+    # end to_list
+
     # endregion PUBLIC
 
     # region PRIVATE
@@ -182,6 +190,22 @@ class Scalar(Data, RangeableMixin):
     # endregion PRIVATE
 
     # region OVERRIDE
+
+    # Override the integer conversion
+    def __int__(self):
+        """
+        Return the integer representation of the scalar value.
+        """
+        return int(self._value)
+    # end __int__
+
+    # Override the float conversion
+    def __float__(self):
+        """
+        Return the float representation of the scalar value.
+        """
+        return float(self._value)
+    # end __float__
 
     def __str__(self):
         """

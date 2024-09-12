@@ -18,20 +18,19 @@
 # Imports
 import numpy as np
 from typing import Union, List
+from pixel_prism.base import Context
+import pixel_prism.utils as utils
 from pixel_prism.animate import MovableMixin, FadeableMixin, animeattr, CallableMixin
-from pixel_prism.data import Point2D, Color, Scalar, Event, call_after, EventType, tpoint2d
+from pixel_prism.data import Point2D, Color, Scalar, Event, call_after, EventType, Style, Transform, TPoint2D
 from . import BoundingBoxMixin, BoundingBox
 from .drawablemixin import DrawableMixin
-from .. import utils
-from ..base import Context
 
 
 # A line
 @animeattr("start")
 @animeattr("end")
-@animeattr("line_width")
-@animeattr("line_color")
-@animeattr("line_dash")
+@animeattr("style")
+@animeattr("transform")
 class Line(
     DrawableMixin,
     BoundingBoxMixin,
@@ -46,15 +45,9 @@ class Line(
     def __init__(
             self,
             end: Point2D,
-            start: Point2D = Point2D(0, 0),
-            line_width: Scalar = Scalar(1.0),
-            line_color: Color = utils.WHITE,
-            line_cap: str = None,
-            line_join: str = None,
-            line_dash: List[float] = None,
-            position: Point2D = None,
-            scale: Point2D = None,
-            rotation: Scalar = None,
+            start: Point2D,
+            style: Style,
+            transform: Transform = None,
             relative: bool = False,
             on_change=None
     ):
@@ -64,34 +57,22 @@ class Line(
         Args:
             start (Point2D): Start point of the line
             end (Point2D): End point of the line
-            line_width (float): Width of the line
-            line_color (Color): Color of the line
-            line_cap (str): Line cap
-            line_join (str): Line join
-            line_dash (List[float]): Line dash
-            position (Point2D): Position of the line (context)
-            scale (Scalar): Scale of the line (context)
-            rotation (Scalar): Rotation of the line (context)
+            style (Style): Style of the line
+            transform (Transform): Transform of the line
             relative (bool): Is the end position relative or absolute?
             on_change (callable): On change event
         """
         # Init drawable
         DrawableMixin.__init__(
             self,
-            position=position,
-            scale=scale,
-            rotation=rotation,
-            fill_color=None,
-            line_color=line_color,
-            line_width=line_width,
-            line_cap=line_cap,
-            line_join=line_join,
-            line_dash=line_dash
+            style=style,
+            transform=transform
         )
 
         # Init other
         MovableMixin.__init__(self)
         FadeableMixin.__init__(self)
+        CallableMixin.__init__(self)
 
         # Start and end points
         self._start = start
@@ -99,7 +80,7 @@ class Line(
         self._relative = relative
 
         # Middle point
-        self._middle_point = (tpoint2d(self._start) + tpoint2d(self._end)) / 2.0
+        self._middle_point = (TPoint2D.tpoint2d(self._start) + TPoint2D.tpoint2d(self._end)) / 2.0
 
         # Bounding box
         BoundingBoxMixin.__init__(self)
@@ -378,8 +359,8 @@ class Line(
         # Save context
         context.save()
 
-        # Apply context transformation
-        self.apply_context(context)
+        # Transform
+        context.set_transform(self.transform)
 
         # Realize the line
         context.move_to(self.start)
@@ -388,20 +369,20 @@ class Line(
         # Set line color
         if self.fadablemixin_state.opacity:
             context.set_source_rgb_alpha(
-                color=self.line_color,
+                color=self.style.line_color,
                 alpha=self.fadablemixin_state.opacity
             )
         else:
-            context.set_source_rgba(self.line_color)
+            context.set_source_rgba(self.style.line_color)
         # end if
 
         # If dash
         if self.line_dash is not None:
-            context.set_dash(self.line_dash)
+            context.set_dash(self.style.line_dash)
         # end if
 
         # Set line width
-        context.set_line_width(self.line_width.value)
+        context.set_line_width(self.style.line_width.value)
         context.stroke()
 
         # Draw points
@@ -480,8 +461,8 @@ class Line(
         """
         return BoundingBox.from_objects(
             upper_left=Point2D(
-                self.transform.position.x + min(self.start.x, self.end.x),
-                self.transform.position.y + min(self.start.y, self.end.y)
+                min(self.start.x, self.end.x),
+                min(self.start.y, self.end.y)
             ),
             width=Scalar(abs(self.end.x - self.start.x)),
             height=Scalar(abs(self.end.y - self.start.y))

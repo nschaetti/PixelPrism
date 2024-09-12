@@ -19,7 +19,7 @@
 import math
 from typing import Tuple, Union
 import cairo
-from pixel_prism.data import Color, Point2D, Scalar, Transform
+from pixel_prism.data import Color, Point2D, Scalar, Transform, Style
 from .coordsystem import CoordSystem
 
 
@@ -362,6 +362,16 @@ class Context:
         self.context.line_to(position.x, position.y)
     # end line_to
 
+    def cairo_line_to(self, position: Point2D) -> None:
+        """
+        Add a line to the context.
+
+        Args:
+            position (Point2D): Position to line to.
+        """
+        self.context.line_to(position.x, position.y)
+    # end cairo_line_to
+
     def move_to(self, position: Point2D) -> None:
         """
         Move to a point in the context.
@@ -374,6 +384,16 @@ class Context:
         # end if
         self.context.move_to(position.x, position.y)
     # end move_to
+
+    def cairo_move_to(self, position: Point2D) -> None:
+        """
+        Move to a point in the context.
+
+        Args:
+            position (Point2D): Position to move to.
+        """
+        self.context.move_to(position.x, position.y)
+    # end cairo_move_to
 
     def rectangle(self, top_left: Point2D, width: float, height: float):
         """
@@ -404,6 +424,7 @@ class Context:
         self.context.line_to(p3.x, p3.y)
         self.context.line_to(p4.x, p4.y)
         self.context.line_to(p1.x, p1.y)
+        self.context.close_path()
     # end rectangle
 
     def cairo_rectangle(self, position: Point2D, width: float, height: float) -> None:
@@ -632,6 +653,26 @@ class Context:
         self.context.set_font_matrix(cairo.Matrix(size, 0, 0, -size, 0, 0))
     # end set_font_size
 
+    # Set style
+    def set_style(self, style: Style):
+        """
+        Set the style.
+
+        Args:
+            style (Style): Style
+        """
+        # Set line width
+        self.set_line_width(style.line_width)
+
+        # If dash
+        if style.line_dash is not None:
+            self.set_dash(self.style.line_dash)
+        # end if
+
+        # Set cap
+        self.set_line_cap(style.line_cap)
+    # end set_style
+
     def set_line_width(self, width: Union[float, Scalar]) -> None:
         """
         Set the line width.
@@ -689,6 +730,22 @@ class Context:
             alpha if isinstance(alpha, float) else alpha.value
         )
     # end set_source_rgb_alpha
+
+    def set_source_rgb_a(self, color: Color, alpha: Union[float, Scalar]) -> None:
+        """
+        Set the source RGB with alpha.
+
+        Args:
+            color (Color): Color
+            alpha (float): Alpha
+        """
+        self.context.set_source_rgba(
+            color.red.value,
+            color.green.value,
+            color.blue.value,
+            alpha if isinstance(alpha, float) else alpha.value
+        )
+    # end set_source_rgb_a
 
     # Setup context
     def setup_context(self):

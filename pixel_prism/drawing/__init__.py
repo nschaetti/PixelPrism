@@ -25,6 +25,7 @@ from .bounding_box import BoundingBox
 from .boundingboxmixin import BoundingBoxMixin
 from .circle import Circle
 from .curves import CubicBezierCurve, QuadraticBezierCurve
+from .debug_grid import DebugGrid
 from .drawablemixin import DrawableMixin
 from .lines import Line
 from .mathtex import MathTex
@@ -56,6 +57,7 @@ __all__ = [
     "QuadraticBezierCurve",
     "Line",
     "MathTex",
+    "DebugGrid",
     # Minxin
     "BoundingBoxMixin",
     "DrawableMixin",

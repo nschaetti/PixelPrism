@@ -20,8 +20,8 @@ import math
 from typing import Any
 import numpy as np
 from pixel_prism import p2, s
-from pixel_prism.animate import MovableMixin, CallableMixin, animeclass, animeattr
-from pixel_prism.data import Point2D, Scalar, Color, EventMixin, ObjectChangedEvent
+from pixel_prism.animate import MovableMixin, CallableMixin, animeattr
+from pixel_prism.data import Point2D, Scalar, Color
 from pixel_prism.utils import random_color
 
 # Local imports
@@ -41,11 +41,9 @@ from ..base import Context
 @animeattr("position")
 @animeattr("length")
 @animeattr("line_width")
-@animeclass
 class CubicBezierCurve(
     DrawableMixin,
     BoundingBoxMixin,
-    EventMixin,
     MovableMixin,
     CallableMixin
 ):
@@ -1409,7 +1407,7 @@ class CubicBezierCurve(
             event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, property="start", value=self.start))
+        # self.dispatch_event("on_change", ObjectChangedEvent(self, property="start", value=self.start))
     # end _on_start_changed
 
     def _on_control1_changed(
@@ -1423,7 +1421,7 @@ class CubicBezierCurve(
             event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, property="control1", value=self.control1))
+        # self.dispatch_event("on_change", ObjectChangedEvent(self, property="control1", value=self.control1))
     # end _on_control1_changed
 
     def _on_control2_changed(
@@ -1437,7 +1435,7 @@ class CubicBezierCurve(
             event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, property="control2", value=self.control2))
+        # self.dispatch_event("on_change", ObjectChangedEvent(self, property="control2", value=self.control2))
     # end _on_control2_changed
 
     def _on_end_changed(
@@ -1451,7 +1449,7 @@ class CubicBezierCurve(
             event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, property="end", value=self.end))
+        # self.dispatch_event("on_change", ObjectChangedEvent(self, property="end", value=self.end))
     # end _on_end_changed
 
     def _on_position_changed(
@@ -1465,7 +1463,7 @@ class CubicBezierCurve(
             event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, property="position", value=self.position))
+        # self.dispatch_event("on_change", ObjectChangedEvent(self, property="position", value=self.position))
     # end _on_position_changed
 
     def _on_path_length_changed(
@@ -1479,7 +1477,7 @@ class CubicBezierCurve(
             event (Event): Event that triggered the change
         """
         self.update_data()
-        self.dispatch_event("on_change", ObjectChangedEvent(self, property="path_length", value=self.path_length))
+        # self.dispatch_event("on_change", ObjectChangedEvent(self, property="path_length", value=self.path_length))
     # end _on_path_length_changed
 
     # endregion EVENTS

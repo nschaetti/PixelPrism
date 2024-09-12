@@ -58,6 +58,11 @@ from .scalar import (
     TScalar
 )
 
+# Style
+from .style import (
+    Style
+)
+
 from .transform import (
     Transform
 )
@@ -87,6 +92,8 @@ __all__ = [
     # Scalar
     "Scalar",
     "TScalar",
+    # Style
+    "Style",
     # Transform
     "Transform"
 ]

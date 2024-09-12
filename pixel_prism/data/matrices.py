@@ -115,6 +115,14 @@ class Matrix2D(Data):
         return Matrix2D(self._data.copy())
     # end copy
 
+    # To list
+    def to_list(self):
+        """
+        Convert the scalar to a list.
+        """
+        return self._data.tolist()
+    # end to_list
+
     def register_event(self, event_name, listener):
         """
         Add an event listener to the data object.

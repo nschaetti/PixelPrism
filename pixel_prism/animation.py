@@ -61,7 +61,6 @@ def find_animable_mixins(obj, visited=None):
 
     # Avoid revisiting objects that have already been inspected (to prevent infinite recursion)
     if id(obj) in visited:
-        print(f"Already visited: {obj}")
         return []
     # end if
 
@@ -78,7 +77,7 @@ def find_animable_mixins(obj, visited=None):
 
     # Check if object is for inspection
     def is_animeclass(obj):
-        return hasattr(obj.__class__, '_inspect_for_propagation') and obj.__class__.is_animeclass()
+        return hasattr(obj.__class__, '_attrs_to_inspect') and obj.__class__.is_animeclass()
     # end is_animeclass
 
     # Get animeclass attributes

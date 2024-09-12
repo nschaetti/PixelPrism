@@ -20,14 +20,14 @@ from typing import Union
 from pixel_prism.animate import animeattr
 from .data import Data
 from .scalar import Scalar
-from .eventmixin import EventMixin
+from .events import Event, EventType
 
 
 @animeattr("red")
 @animeattr("green")
 @animeattr("blue")
 @animeattr("alpha")
-class Color(Data, EventMixin):
+class Color(Data):
     """
     A class to represent a scalar value
     """
@@ -53,7 +53,6 @@ class Color(Data, EventMixin):
             readonly (bool): Read-only flag
         """
         Data.__init__(self, readonly=readonly)
-        EventMixin.__init__(self)
 
         # Properties
         self._red = red
@@ -62,9 +61,8 @@ class Color(Data, EventMixin):
         self._alpha = alpha
 
         # List of event listeners (per events)
-        self.event_listeners = {
-            "on_change": [] if on_change is None else [on_change]
-        }
+        self._on_change = Event()
+        self._on_change += on_change
     # end __init__
 
     # region PROPERTIES
@@ -81,7 +79,7 @@ class Color(Data, EventMixin):
             value = value.value
         # end if
         self._red.value = value
-        self.dispatch_event("on_change", value)
+        self._trigger_on_change()
     # end red
 
     @property
@@ -96,7 +94,7 @@ class Color(Data, EventMixin):
             value = value.value
         # end if
         self._green.value = value
-        self.dispatch_event("on_change", value)
+        self._trigger_on_change()
     # end green
 
     @property
@@ -111,7 +109,7 @@ class Color(Data, EventMixin):
             value = value.value
         # end if
         self._blue.value = value
-        self.dispatch_event("on_change", value)
+        self._trigger_on_change()
     # end blue
 
     @property
@@ -126,13 +124,18 @@ class Color(Data, EventMixin):
             value = value.value
         # end if
         self._alpha.value = value
-        self.dispatch_event("on_change", value)
+        self._trigger_on_change()
     # end alpha
 
     @property
     def opacity(self):
         return self.alpha
     # end opacity
+
+    @property
+    def on_change(self):
+        return self._on_change
+    # end on_change
 
     # endregion PROPERTIES
 
@@ -171,7 +174,7 @@ class Color(Data, EventMixin):
         self._green = g
         self._blue = b
         self._alpha = a
-        self.dispatch_event("on_change", value)
+        self._trigger_on_change()
     # end set
 
     def get(self):
@@ -205,7 +208,33 @@ class Color(Data, EventMixin):
         return self
     # end change_alpha
 
+    # To list
+    def to_list(self):
+        """
+        Get the color as a list.
+        """
+        return [self.red, self.green, self.blue, self.alpha]
+    # end to_list
+
     # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _trigger_on_change(self):
+        """
+        Trigger the on change event.
+        """
+        self._on_change.trigger(
+            self,
+            event_type=EventType.COLOR_CHANGED,
+            red=self.red,
+            green=self.green,
+            blue=self.blue,
+            alpha=self.alpha
+        )
+    # end _trigger_on_change
+
+    # endregion PRIVATE
 
     # region OVERRIDE
 
@@ -344,7 +373,7 @@ class Color(Data, EventMixin):
             self.green += other
             self.blue += other
         # end if
-        self.dispatch_event("on_change", self.get())
+        self._trigger_on_change()
         return self
     # end __iadd__
 
@@ -359,7 +388,8 @@ class Color(Data, EventMixin):
             self.red -= other
             self.green -= other
             self.blue -= other
-        self.dispatch_event("on_change", self.get())
+        # end if
+        self._trigger_on_change()
         return self
 
     # end __isub__
@@ -375,13 +405,19 @@ class Color(Data, EventMixin):
             self.red *= other
             self.green *= other
             self.blue *= other
-        self.dispatch_event("on_change", self.get())
+        # end if
+        self._trigger_on_change()
         return self
 
     # end __imul__
 
     # In-place division
     def __itruediv__(self, other):
+        """
+        In-place division
+        Args:
+            other:
+        """
         if isinstance(other, Color):
             self.red /= other.red
             self.green /= other.green
@@ -391,9 +427,9 @@ class Color(Data, EventMixin):
             self.red /= other
             self.green /= other
             self.blue /= other
-        self.dispatch_event("on_change", self.get())
+        # end if
+        self._trigger_on_change()
         return self
-
     # end __itruediv__
 
     # Comparison operators
@@ -406,7 +442,6 @@ class Color(Data, EventMixin):
                 self.blue == other.blue and
                 self.alpha == other.alpha
         )
-
     # end __eq__
 
     def __ne__(self, other):
@@ -417,7 +452,6 @@ class Color(Data, EventMixin):
     # String representation
     def __str__(self):
         return f"Color(red={self.red}, green={self.green}, blue={self.blue}, alpha={self.alpha})"
-
     # end __str__
 
     def __repr__(self):
@@ -450,10 +484,10 @@ class Color(Data, EventMixin):
         green = int(hex_string[2:4], 16)
         blue = int(hex_string[4:6], 16)
         return cls(
-            red / 255.0,
-            green / 255.0,
-            blue / 255.0,
-            alpha
+            Scalar(red / 255.0),
+            Scalar(green / 255.0),
+            Scalar(blue / 255.0),
+            Scalar(alpha)
         )
     # end from_hex
 
@@ -510,7 +544,14 @@ class Color(Data, EventMixin):
         Returns:
             Color: Color
         """
-        return cls(Scalar(red), Scalar(green), Scalar(blue), Scalar(alpha), on_change, readonly)
+        return cls(
+            Scalar(red),
+            Scalar(green),
+            Scalar(blue),
+            Scalar(alpha),
+            on_change,
+            readonly
+        )
     # end from_value
 
     # endregion CLASS_METHODS

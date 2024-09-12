@@ -1,9 +1,26 @@
+#
+# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
+# Copyright (c) 2024 Nils Schaetti.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
 # Imports
-from typing import Tuple
+from typing import Tuple, List
 import cairo
 from pixel_prism.widgets.widget import Widget
 from pixel_prism.base import Context
+from pixel_prism.data import Point2D, Transform
 
 
 # Viewport class, container for a scalable and scrollable area
@@ -15,21 +32,40 @@ class Viewport(Widget):
     # Init
     def __init__(
             self,
-            translate: Tuple[int, int] = (0, 0),
-            scale: Tuple[float, float] = (1, 1),
-            rotate: float = 0
+            transform: Transform = None
     ):
         """
         Initialize the viewport.
+
+        Args:
+            transform (Transform): Transform to apply to the viewport
         """
         super().__init__()
-        self.x = 0
-        self.y = 0
-        self.translate = translate
-        self.scale = scale
-        self.rotate = rotate
-        self.widgets = []
+        self._transform = transform
+        self._widgets = []
     # end __init__
+
+    # region PROPERTIES
+
+    # Transform
+    @property
+    def transform(self) -> Transform:
+        """
+        Get the transform of the viewport.
+        """
+        return self._transform
+    # end transform
+
+    # Widgets
+    @property
+    def widgets(self) -> List[Widget]:
+        """
+        Get the widgets of the viewport.
+        """
+        return self._widgets
+    # end widgets
+
+    # endregion PROPERTIES
 
     # Add widget
     def add_widget(self, widget):
@@ -39,7 +75,7 @@ class Viewport(Widget):
         Args:
             widget (Widget): The widget to add to the viewport.
         """
-        self.widgets.append(widget)
+        self._widgets.append(widget)
     # end add_widget
 
     # Draw
@@ -55,14 +91,8 @@ class Viewport(Widget):
         Args:
             context (cairo.Context): Context to draw the viewport to
         """
-        # Translate the context
-        context.translate(self.translate[0], self.translate[1])
-
-        # Scale the context
-        context.scale(self.scale[0], self.scale[1])
-
-        # Rotate the context
-        context.rotate(self.rotate)
+        # Transform
+        if self.transform: self.context.set_transform(self.transform)
 
         # Draw the widgets
         for widget in self.widgets:
@@ -92,20 +122,5 @@ class Viewport(Widget):
             **draw_params
         )
     # end render
-
-    # Create sub-surface for a widget
-    def create_surface(
-            self,
-            widget: Widget,
-            **kwargs
-    ):
-        """
-        Create a sub-surface for a widget.
-
-        Args:
-            widget (Widget): The widget to create a surface for.
-        """
-        return self.surface
-    # end create_surface
 
 # end Viewport

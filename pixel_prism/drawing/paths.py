@@ -23,7 +23,7 @@
 from typing import List, Any, Tuple, Union
 import cairo
 import numpy as np
-from pixel_prism.data import Point2D, Color, Scalar, EventMixin, ObjectChangedEvent, Event
+from pixel_prism.data import Point2D, Color, Scalar, Event
 import pixel_prism.utils as utils
 from pixel_prism.drawing import BoundingBoxMixin, BoundingBox
 from pixel_prism.animate.able import (
@@ -34,8 +34,7 @@ from pixel_prism.animate.able import (
 from pixel_prism.animate import (
     FadeableMixin,
     MovableMixin,
-    animeattr,
-    animeclass
+    animeattr
 )
 from .rectangles import Rectangle
 from .arcs import Arc
@@ -497,11 +496,9 @@ class PathArc(Arc):
 # Path segment
 @animeattr("start")
 @animeattr("elements")
-@animeclass
 class PathSegment(
     DrawableMixin,
     BoundingBoxMixin,
-    EventMixin,
     MovableMixin,
     FadeableMixin,
     RotableMixin,
@@ -527,7 +524,6 @@ class PathSegment(
 
         # Constructors
         DrawableMixin.__init__(self)
-        EventMixin.__init__(self)
         MovableMixin.__init__(self)
         FadeableMixin.__init__(self)
         RotableMixin.__init__(self)
@@ -785,7 +781,7 @@ class PathSegment(
             event: Event that triggered the update.
         """
         self.update_data()
-        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="elements", value=self.elements))
+        # self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="elements", value=self.elements))
     # end _on_element_updated
 
     # endregion EVENTS
@@ -1210,11 +1206,9 @@ class PathSegment(
 @animeattr("fill_color")
 @animeattr("path")
 @animeattr("subpaths")
-@animeclass
 class Path(
     DrawableMixin,
     BoundingBoxMixin,
-    EventMixin,
     MovableMixin,
     RotableMixin,
     ScalableMixin,
@@ -1772,7 +1766,7 @@ class Path(
             event: Event that triggered the change.
         """
         self.update_data()
-        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="path", value=event))
+        # self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="path", value=event))
     # end _on_path_changed
 
     # On subpath element
@@ -1784,7 +1778,7 @@ class Path(
             event: Event that triggered the change.
         """
         self.update_data()
-        self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="subpath", value=event))
+        # self.dispatch_event("on_change", event=ObjectChangedEvent(self, property="subpath", value=event))
     # end _on_subpath_element
 
     # endregion EVENTS

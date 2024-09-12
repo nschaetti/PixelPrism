@@ -22,7 +22,7 @@ from pixel_prism.animate.able import (
     DestroyableMixin
 )
 from pixel_prism.animate import FadeableMixin, MovableMixin
-from pixel_prism.data import Point2D, Color, EventMixin, ObjectChangedEvent
+from pixel_prism.data import Point2D, Color
 from pixel_prism import utils
 from pixel_prism.utils.svg import parse_svg, parse_path
 from pixel_prism.utils import Anchor
@@ -297,8 +297,7 @@ def load_svg(
 
 # A class to group paths
 class PathGroup(
-    BoundingBoxMixin,
-    EventMixin
+    BoundingBoxMixin
 ):
     """
     A class to group paths.
@@ -319,7 +318,6 @@ class PathGroup(
 
         # Bounding box
         BoundingBoxMixin.__init__(self)
-        EventMixin.__init__(self)
 
         # Events
         self.add_event('on_change')
@@ -534,7 +532,7 @@ class VectorGraphics(
             paths (List[Path]): Paths of the vector graphics
         """
         # Initialize the elements
-        self._path_group = PathGroup(elements)
+        self._path_group = PathGroup()
         self._references = {}
         self._index = 0
 

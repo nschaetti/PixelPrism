@@ -164,18 +164,18 @@ class Point2D(Point):
         Returns:
             any: Position of the object
         """
-        return self.pos
+        return self
     # end movable_position
 
     @movable_position.setter
-    def movable_position(self, value: Any):
+    def movable_position(self, value: 'Point2D'):
         """
         Set the position of the object.
 
         Args:
-            value (any): Position of the object
+            value (Point2D): Position of the object
         """
-        self.pos = value
+        self.set(value.x, value.y)
     # end movable_position
 
     # endregion PROPERTIES
@@ -218,6 +218,14 @@ class Point2D(Point):
         """
         return self._pos[0], self._pos[1]
     # end get
+
+    # To list
+    def to_list(self):
+        """
+        Convert the scalar to a list.
+        """
+        return [self._pos[0], self._pos[1]]
+    # end to_list
 
     def register_event(self, event_name, listener):
         """
@@ -895,7 +903,12 @@ class TPoint2D(Point2D):
         self._transform_func = transform_func
 
         # Initialize with the transformed point's position
-        x, y = self._transform_func(**self._points)
+        ret = self._transform_func(**self._points)
+        if isinstance(ret, tuple):
+            x, y = ret
+        elif isinstance(ret, Point2D):
+            x, y = ret.x, ret.y
+        # end if
         super().__init__(x, y)
 
         # Listen to sources

@@ -97,16 +97,24 @@ def t_s(
 
 # Get a color from name with importlib
 def c(
-        name: str
+        name: str,
+        alpha: float = None
 ) -> Color:
     """
     Get a color from its name.
 
     Args:
         name (str): Color name
+        alpha (float): Alpha value
 
     Returns:
         Color: Color
     """
-    return getattr(utils, name)
+    color = getattr(utils, name)
+
+    if alpha is not None:
+        color = color.copy()
+        color.alpha = alpha
+    # end if
+    return color
 # end c

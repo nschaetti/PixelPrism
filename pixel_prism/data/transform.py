@@ -20,6 +20,7 @@
 import math
 from typing import Optional
 
+from pixel_prism.animate import animeattr, MovableMixin
 from .points import Point2D
 from .scalar import Scalar
 from .events import Event, EventType
@@ -27,7 +28,11 @@ from .events import Event, EventType
 
 # Transform
 # represents the cumulative transformations of the drawable object.
-class Transform:
+@animeattr("position")
+@animeattr("scale")
+@animeattr("rotation")
+@animeattr("parent")
+class Transform(MovableMixin):
     """
     A class representing a series of transformations with position, scale, and rotation,
     which can be part of a hierarchy of transformations.
@@ -49,6 +54,9 @@ class Transform:
             rotation (Scalar): Rotation of the transform.
             parent (Transform): Parent transform in the hierarchy.
         """
+        # Init
+        MovableMixin.__init__(self)
+
         # Properties
         self._position = position
         self._scale = scale
@@ -125,9 +133,42 @@ class Transform:
         return self._on_change
     # end on_change
 
+    @property
+    def parent(self) -> 'Transform':
+        """
+        Get the parent transform.
+        """
+        return self._parent
+    # end parent
+
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    # Copy
+    def copy(self, deep: bool = False) -> 'Transform':
+        """
+        Copy the transform.
+
+        Args:
+            deep (bool): Copy the parent transform as well.
+        """
+        if deep:
+            return Transform(
+                position=self.position.copy(),
+                scale=self.scale.copy(),
+                rotation=self.rotation.copy(),
+                parent=self.parent.copy() if self.parent else None
+            )
+        else:
+            return Transform(
+                position=self.position.copy(),
+                scale=self.scale.copy(),
+                rotation=self.rotation.copy(),
+                parent=self.parent
+            )
+        # end if
+    # end copy
 
     # Apply cumulative transformation
     def forward(self, relative_point: Point2D) -> Point2D:
@@ -176,6 +217,8 @@ class Transform:
     # end _on_parent_changed
 
     # endregion EVENTS
+
+    # region PRIVATE
 
     # Local apply function (for this transform only)
     def _forward_local(self, relative_point: Point2D) -> Point2D:
@@ -227,6 +270,8 @@ class Transform:
 
         return Point2D(new_x, new_y)
     # end _backward_local
+
+    # endregion PRIVATE
 
 # end Transform
 

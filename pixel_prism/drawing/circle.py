@@ -19,7 +19,7 @@
 import math
 from pixel_prism.animate import MovableMixin
 from pixel_prism.animate import FadeableMixin
-from pixel_prism.data import Point2D, Scalar, Event, Transform, call_after, EventType
+from pixel_prism.data import Point2D, Scalar, Event, Transform, call_after, EventType, Style
 from . import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
@@ -41,7 +41,7 @@ class Circle(
             self,
             center: Point2D,
             radius: Scalar,
-            style: DrawableMixin.Style,
+            style: Style,
             transform: Transform = None,
             on_change=None,
             on_center_change=None,

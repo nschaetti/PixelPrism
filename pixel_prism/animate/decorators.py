@@ -29,6 +29,11 @@ def animeattr(attr_name):
             cls._attrs_to_inspect = []
         # end if
 
+        # Check that objects of this class has attr_name as an attribute
+        if not hasattr(cls, attr_name):
+            raise AttributeError(f"Class {cls.__name__} does not have attribute {attr_name}")
+        # end if
+
         # Add attributes
         cls._attrs_to_inspect.append(attr_name)
 
@@ -45,7 +50,7 @@ def animeattr(attr_name):
         if not hasattr(cls, 'is_animeclass'):
             # Add a public method to check if the class is inspectable
             def is_animeclass(cls):
-                return getattr(cls, '_inspect_for_propagation', False)
+                return getattr(cls, '_attrs_to_inspect', False)
             # end is_animeclass
             cls.is_animeclass = classmethod(is_animeclass)
         # end if

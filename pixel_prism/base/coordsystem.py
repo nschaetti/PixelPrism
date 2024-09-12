@@ -47,8 +47,10 @@ class CoordSystem:
 
         # Points
         self.center = p2(0, 0, readonly=True)
+        self.upper_square = self.us = p2(0, self.height / 4, readonly=True)
         self.upper_right = self.ur = p2(self.width / 2, self.height / 2, readonly=True)
         self.upper_right_square = self.urs = p2(self.width / 4, self.height / 4, readonly=True)
+        self.lower_square = self.ls = p2(0, -self.height / 4, readonly=True)
         self.lower_right = self.lr = p2(self.width / 2, -self.height / 2, readonly=True)
         self.lower_right_square = self.lrs = p2(self.width / 4, -self.height / 4, readonly=True)
         self.lower_left = self.ll = p2(-self.width / 2, -self.height / 2, readonly=True)
@@ -59,6 +61,8 @@ class CoordSystem:
         self.middle_top = self.mt = p2(0, self.height / 2, readonly=True)
         self.middle_left = self.ml = p2(-self.width / 2, 0, readonly=True)
         self.middle_right = self.mr = p2(self.width / 2, 0, readonly=True)
+        self.left_square = self.lsq = p2(-self.width / 4, 0, readonly=True)
+        self.right_square = self.rsq = p2(self.width / 4, 0, readonly=True)
     # end __init__
 
     # region PROPERTIES

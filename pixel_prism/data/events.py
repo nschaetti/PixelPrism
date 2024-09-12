@@ -31,6 +31,7 @@ class EventType(Enum):
     # Scalars
     VALUE_CHANGED = auto()
     # Style
+    COLOR_CHANGED = auto()
     FILL_COLOR_CHANGED = auto()
     LINE_COLOR_CHANGED = auto()
     LINE_WIDTH_CHANGED = auto()
