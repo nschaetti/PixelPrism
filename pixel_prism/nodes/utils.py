@@ -24,11 +24,15 @@ Perfect for artists, designers, and researchers exploring image aesthetics.
 @version: 0.0.1
 """
 
+# Imports
+import torch
+from skimage.color import rgb2gray
+
 
 # Select channel
 class SelectChannel:
     """
-    Select channel
+    Select channel node
     """
 
     # Define the input types
@@ -36,35 +40,81 @@ class SelectChannel:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "image": ("IMAGE",),
-                "channel": ("INT",),
+                "image": ("IMAGE",)
             }
         }
     # end INPUT_TYPES
 
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE","IMAGE","IMAGE")
     FUNCTION = "select_channel"
-    CATEGORY = "image"
-    OUTPUT_NODE = True
+    CATEGORY = "PixelPrism"
+    # OUTPUT_NODE = True
 
-    def select_channel(self, image, channel):
+    # Select a channel
+    def select_channel(self, image):
         """
         Select channel
 
         Args:
         - image: Image
         - channel: Channel index
+
+        Returns:
+        - Image: Image with selected channel
         """
-        if image.ndim == 4:
-            image = image[:, :, :, channel]
-        elif image.ndim == 3:
-            image = image[:, :, channel]
-        else:
-            raise ValueError("Invalid image shape")
-        # end if
-        print(f"SelectChannel: {image.shape}")
-        return image
+        ims = list()
+        for channel_i in range(image.shape[-1]):
+            if image.ndim == 4:
+                im = image[:, :, :, channel_i:channel_i+1]
+            elif image.ndim == 3:
+                im = image[:, :, channel_i:channel_i+1]
+            else:
+                raise ValueError("Invalid image shape")
+            # end if
+            im = torch.cat([im, im, im], dim=-1)
+            ims.append(im)
+        # end for
+
+        return ims
     # end select_channel
 
 # end SelectChannel
+
+
+# Gray scale node
+class GrayScale:
+    """
+    Gray scale node
+    """
+
+    # Define the input types
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",)
+            }
+        }
+    # end INPUT_TYPES
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "gray_scale"
+    CATEGORY = "PixelPrism"
+    # OUTPUT_NODE = True
+
+    # Node fonction
+    def gray_scale(self, image):
+        """
+        Gray scale
+
+        Args:
+            image: Image
+
+        Returns:
+            Image: Gray scale image
+        """
+        return (torch.from_numpy(rgb2gray(image.numpy())),)
+    # end gray_scale
+
+# end GrayScale
 

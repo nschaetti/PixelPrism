@@ -24,15 +24,19 @@ Perfect for artists, designers, and researchers exploring image aesthetics.
 @version: 0.0.1
 """
 
-from .nodes import ContourFindingNode
-from .utils import SelectChannel
-from .visualisation import VectorsToStringNode
+from .nodes import ContourFinding
+from .utils import SelectChannel, GrayScale
+from .visualisation import VectorsToString, DrawPolygon
 
 
 __all__ = [
-    "ContourFindingNode",
+    "ContourFinding",
+    # Utils
     "SelectChannel",
-    "VectorsToStringNode",
+    "GrayScale",
+    "VectorsToString",
+    # Draw
+    "DrawPolygon"
 ]
 
 
