@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pixelprism"
+version = "0.1.0"
+description = "A Python library that applies advanced visual effects to videos and images"
+readme = "README.md"
+authors = [
+    {name = "Nils Schaetti", email = "nils.schaetti@gmail.com"},
+]
+license = {text = "GNU General Public License v3 (GPLv3)"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Video",
+]
+requires-python = ">=3.6"
+dependencies = [
+    "numpy",
+    "tqdm",
+    "pillow",
+    "requests",
+    "svgpathtools",
+    "lxml",
+    "colorama",
+    "matplotlib",
+    "opencv-python",
+    "pycairo",
+    "torch",
+    "scikit-image",
+    "click",
+]
+
+[project.urls]
+Homepage = "https://github.com/nschaetti/PixelPrism"
+Documentation = "https://nschaetti.github.io/PixelPrism"
+
+[project.scripts]
+pixelprism = "pixelprism:main"
+
+[tool.setuptools]
+packages = ["pixel_prism"]
+
+[tool.setuptools.find-namespace-packages]
+where = ["."]
+
+[tool.mkdocs]
+mkdocs_config = "mkdocs.yml"
+
+[tool.mkdocstrings]
+default_handler = "python"
+handlers = {python = {selection = {inherited_members = true}}}
+watch = ["pixel_prism"]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs>=1.4.0",
+    "mkdocs-material>=8.5.0",
+    "mkdocstrings>=0.19.0",
+    "mkdocstrings-python>=0.8.0",
+    "mkdocs-gen-files>=0.4.0",
+    "mkdocs-literate-nav>=0.5.0",
+    "mkdocs-autorefs>=0.4.1",
+]

@@ -4,8 +4,8 @@
 ▐▛▀▘  █    ▐▌  ▐▛▀▀▘▐▌       ▐▛▀▘ ▐▛▀▚▖  █   ▝▀▚▖▐▌  ▐▌
 ▐▌  ▗▄█▄▖▗▞▘▝▚▖▐▙▄▄▖▐▙▄▄▖    ▐▌   ▐▌ ▐▌▗▄█▄▖▗▄▄▞▘▐▌  ▐▌
 
-             Image Manipulation, Procedural Generation & Visual Effects
-                     https://github.com/nschaetti/PixelPrism
+Image Manipulation, Procedural Generation & Visual Effects
+        https://github.com/nschaetti/PixelPrism
 
 @title: Pixel Prism
 @author: Nils Schaetti

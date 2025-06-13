@@ -1,7 +1,7 @@
 
 # Imports
-import argparse
 import importlib.util
+import click
 
 from pixel_prism import VideoComposer
 from pixel_prism.utils import setup_logger
@@ -47,67 +47,82 @@ def bool_arg(value):
 # end bool_arg
 
 
-if __name__ == "__main__":
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Apply visual effects to videos using PixelPrism.")
-    parser.add_argument("--input", help="Path to the input video file")
-    parser.add_argument("output", help="Path to save the output video file")
-    parser.add_argument("--display", action="store_true", help="Display the video while processing")
-    parser.add_argument("--debug-frames", type=int, nargs='*', help="List of frame numbers to debug")
-    parser.add_argument("--class-file", required=True, help="Path to the file containing the CustomAnimation class")
-    parser.add_argument("--class-name", required=True, help="Name of the CustomAnimation class to use")
-    parser.add_argument("--duration", type=float, help="Duration of the animation in seconds.")
-    parser.add_argument("--fps", type=int, help="Frames per second of the animation.")
-    parser.add_argument("--width", type=int, default=1920, help="Width of the output video.")
-    parser.add_argument("--height", type=int, default=1080, help="Height of the output video.")
-    parser.add_argument("--save-frames", type=bool_arg, help="Save the frames to disk.")
-    parser.add_argument("--kwargs", nargs='*', help="Additional keyword arguments for the CustomAnimation class in key=value format")
-    args = parser.parse_args()
-
+@click.command(help="Apply visual effects to videos using PixelPrism.")
+@click.argument("output", type=click.Path())
+@click.option("--input", type=click.Path(exists=True), help="Path to the input video file")
+@click.option("--display", is_flag=True, help="Display the video while processing")
+@click.option("--debug-frames", type=int, multiple=True, help="List of frame numbers to debug")
+@click.option("--class-file", required=True, type=click.Path(exists=True), help="Path to the file containing the CustomAnimation class")
+@click.option("--class-name", required=True, help="Name of the CustomAnimation class to use")
+@click.option("--duration", type=float, help="Duration of the animation in seconds.")
+@click.option("--fps", type=int, help="Frames per second of the animation.")
+@click.option("--width", type=int, default=1920, help="Width of the output video.")
+@click.option("--height", type=int, default=1080, help="Height of the output video.")
+@click.option("--save-frames", type=bool_arg, help="Save the frames to disk.")
+@click.option("--kwargs", multiple=True, help="Additional keyword arguments for the CustomAnimation class in key=value format")
+def main(
+        output,
+        input,
+        display,
+        debug_frames,
+        class_file,
+        class_name,
+        duration,
+        fps,
+        width,
+        height,
+        save_frames,
+        kwargs
+):
+    """
+    Main entry point for the PixelPrism command-line interface.
+    """
     # Show version
     logger.info("PixelPrism v0.1.0")
 
     # Check that duration is provided if no input video is given
-    if not args.input and not args.duration:
-        parser.error("Duration (--duration) is required if no input video is specified.")
-    # end if
+    if not input and not duration:
+        raise click.UsageError("Duration (--duration) is required if no input video is specified.")
 
     # Load the CustomAnimation class from the specified file
-    CustomAnimationClass = load_class_from_file(args.class_file, args.class_name)
+    CustomAnimationClass = load_class_from_file(class_file, class_name)
 
     # Parse keyword arguments
-    kwargs = {}
-    if args.kwargs:
-        for kwarg in args.kwargs:
+    kwargs_dict = {}
+    if kwargs:
+        for kwarg in kwargs:
             key, value = kwarg.split('=')
-            kwargs[key] = value
-        # end for
-    # end if
+            kwargs_dict[key] = value
 
     # Log additional parameters
-    logger.info(f"CustomAnimation class: {args.class_name}")
-    logger.info(f"Duration: {args.duration}")
-    logger.info(f"FPS: {args.fps}")
-    logger.info(f"Width: {args.width}")
-    logger.info(f"Height: {args.height}")
-    logger.info(f"Save frames: {args.save_frames}")
-    logger.info(f"Keyword arguments: {kwargs}")
+    logger.info(f"CustomAnimation class: {class_name}")
+    logger.info(f"Duration: {duration}")
+    logger.info(f"FPS: {fps}")
+    logger.info(f"Width: {width}")
+    logger.info(f"Height: {height}")
+    logger.info(f"Save frames: {save_frames}")
+    logger.info(f"Keyword arguments: {kwargs_dict}")
 
     # Create video composer
     composer = VideoComposer(
-        input_path=args.input,
-        output_path=args.output,
-        duration=args.duration,
-        fps=args.fps,
-        width=args.width,
-        height=args.height,
+        input_path=input,
+        output_path=output,
+        duration=duration,
+        fps=fps,
+        width=width,
+        height=height,
         animation_class=CustomAnimationClass,
-        debug_frames=args.debug_frames,
-        save_frames=args.save_frames,
-        viewer=args.display,
-        **kwargs
+        debug_frames=debug_frames,
+        save_frames=save_frames,
+        viewer=display,
+        **kwargs_dict
     )
 
     # Create video
     composer.create_video()
+# end main
+
+
+if __name__ == "__main__":
+    main()  # This will invoke the click command
 # end if
