@@ -8,7 +8,7 @@ from pixel_prism.base import Image
 def normal(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the normal mode.
 
@@ -44,7 +44,7 @@ def normal(
 def multiply(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the multiply mode.
 

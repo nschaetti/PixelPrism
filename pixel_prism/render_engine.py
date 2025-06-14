@@ -1,4 +1,11 @@
 
+"""
+Render Engine Module
+===================
+
+This module provides the RenderEngine class for rendering image canvases with multiple layers.
+"""
+
 import numpy as np
 
 from pixel_prism.base.imagecanvas import ImageCanvas
@@ -6,11 +13,26 @@ from pixel_prism.base import ImageMode, Image
 
 
 class RenderEngine:
+    """
+    Engine for rendering image canvases with multiple layers.
+
+    The RenderEngine provides functionality to merge multiple image layers into a single
+    composite image, handling transparency and blending modes.
+    """
 
     @staticmethod
-    def render(image_canvas: ImageCanvas):
+    def render(image_canvas: ImageCanvas) -> 'Image':
         """
         Merge all layers in the image canvas into a single image.
+
+        This method takes an ImageCanvas containing multiple layers and blends them together
+        according to their blend modes and opacity settings to create a final composite image.
+
+        Args:
+            image_canvas (ImageCanvas): The image canvas containing layers to render
+
+        Returns:
+            Image: The final rendered image, or None if the canvas has no layers
         """
         if not image_canvas.layers:
             return None

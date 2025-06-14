@@ -161,12 +161,12 @@ class Call(Animate):
 
     # Exec. states
     @property
-    def exec_state(self):
+    def exec_state(self) -> bool:
         """
-        Get the execution states.
+        Get the execution state.
 
         Returns:
-            list: List of execution states
+            bool: Whether the function has been executed
         """
         return self._exec_state
     # end exec_state
@@ -183,7 +183,7 @@ class Call(Animate):
     # end exec_state
 
     @property
-    def func(self):
+    def func(self) -> Callable:
         """
         Get the function to call.
 
@@ -224,4 +224,3 @@ class Call(Animate):
     # end PUBLIC
 
 # end Call
-

@@ -15,11 +15,29 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+"""
+Video Composer Module
+====================
+
+This module provides the VideoComposer class for creating videos from animations.
+"""
+
 # Imports
 from .animation import AnimationViewer
 
 
 class VideoComposer:
+    """
+    A composer for creating videos from animations.
+
+    The VideoComposer provides a high-level interface for creating videos using animation
+    classes. It handles the setup of the animation and optionally displays the video
+    in a viewer window as it's being created.
+
+    Attributes:
+        animation: The animation instance used to create the video
+        viewer (AnimationViewer): The viewer window for displaying the video, or None if not used
+    """
     def __init__(
             self,
             input_path,
@@ -28,7 +46,7 @@ class VideoComposer:
             fps: int,
             width: int,
             height: int,
-            animation_class,
+            animation_class: type,
             debug_frames=False,
             save_frames: bool = False,
             viewer: bool = True,
@@ -48,7 +66,7 @@ class VideoComposer:
             debug_frames (bool): Whether to display the layers while processing
             save_frames (bool): Whether to save the frames to disk
             viewer (bool): Whether to display the video after creation
-            kwarg: Additional keyword
+            **kwargs: Additional keyword arguments
         """
         self.animation = animation_class(
             input_video=input_path,

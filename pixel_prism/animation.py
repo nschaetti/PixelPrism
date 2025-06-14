@@ -44,7 +44,7 @@ from pixel_prism.utils import setup_logger
 logger = setup_logger(__name__)
 
 
-def find_animable_mixins(obj, visited=None):
+def find_animable_mixins(obj, visited=None) -> list:
     """
     Find recursively all objects that are instances of AnimableMixin in the given object and its sub-attributes.
 
@@ -257,7 +257,7 @@ class Animation:
             keep_frames (int): Number of frames to keep in memory
             debug_frames (int): Whether to display the layers while processing
             save_frames (bool): Whether to save the frames to disk
-            kwarg: Additional keyword arguments
+            **kwargs: Additional keyword arguments
         """
         # Input video given
         if input_video:
@@ -373,7 +373,7 @@ class Animation:
     def get_effect(
             self,
             name
-    ):
+    ) -> 'EffectBase':
         """
         Get an effect from the animation.
 
@@ -383,6 +383,7 @@ class Animation:
         Returns:
             EffectBase: Effect object
         """
+        from pixel_prism.effects.effect_base import EffectBase
         return self.effects.get(name)
     # end get_effect
 
@@ -405,7 +406,7 @@ class Animation:
     # Add objets
     def add(
             self,
-            **kwargs
+            **kwargs: object
     ):
         """
         Add objects to the animation.
@@ -433,7 +434,7 @@ class Animation:
     def get_object(
             self,
             name
-    ):
+    ) -> object:
         """
         Get a widget from the animation.
 
@@ -450,7 +451,7 @@ class Animation:
     # end get_object
 
     # Get object
-    def obj(self, name):
+    def obj(self, name) -> object:
         """
         Get a widget from the animation.
 
@@ -742,4 +743,3 @@ class Animation:
     # endregion PUBLIC
 
 # end Animation
-

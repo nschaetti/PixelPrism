@@ -1,27 +1,10 @@
 """
-▗▄▄▖▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖▗▖       ▗▄▄▖ ▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖▗▖  ▗▖
-▐▌ ▐▌ █   ▝▚▞▘ ▐▌   ▐▌       ▐▌ ▐▌▐▌ ▐▌  █  ▐▌   ▐▛▚▞▜▌
-▐▛▀▘  █    ▐▌  ▐▛▀▀▘▐▌       ▐▛▀▘ ▐▛▀▚▖  █   ▝▀▚▖▐▌  ▐▌
-▐▌  ▗▄█▄▖▗▞▘▝▚▖▐▙▄▄▖▐▙▄▄▖    ▐▌   ▐▌ ▐▌▗▄█▄▖▗▄▄▞▘▐▌  ▐▌
+Pixel Prism Nodes - Core Nodes
+=============================
 
-             Image Manipulation, Procedural Generation & Visual Effects
-                     https://github.com/nschaetti/PixelPrism
-
-@title: Pixel Prism
-@author: Nils Schaetti
-@category: Image Processing
-@reference: https://github.com/nils-schaetti/pixel-prism
-@tags: image, pixel, animation, compositing, effects, shader, procedural, generation,
-mask, layer, video, transformation, depth, AI, automation, creative, rendering
-@description: Pixel Prism is a creative toolkit for procedural image and video
-generation. Includes support for advanced compositing, GLSL shaders, depth maps,
-image segmentation, and AI-powered effects. Automate your workflow with a rich
-set of nodes for blending, masking, filtering, and compositional adjustments.
-Perfect for artists, designers, and researchers exploring image aesthetics.
-@node list:
-    ContourFindingNode
-
-@version: 0.0.1
+This module provides core nodes for image processing in the Pixel Prism framework.
+These nodes implement fundamental image processing operations that can be used
+as building blocks for more complex workflows.
 """
 
 # Imports
@@ -29,10 +12,19 @@ import torch
 import skimage as sk
 
 
-# Node to find contours in an image
 class ContourFinding:
     """
-    Node to find contours in an image
+    Node to find contours in an image.
+
+    This node uses scikit-image's find_contours function to detect contours in an image.
+    Contours are lines of equal intensity that can be used for shape detection,
+    object recognition, and other image analysis tasks.
+
+    Attributes:
+        INPUT_TYPES (dict): Defines the input types for the node
+        RETURN_TYPES (tuple): Defines the return types for the node
+        FUNCTION (str): The name of the function to call
+        CATEGORY (str): The category of the node
     """
 
     # Define the input types
@@ -59,18 +51,28 @@ class ContourFinding:
 
     def find_contours(self, image, channel=0, level=None, fully_connected='low', positive_orientation='low', mask=None):
         """
-        Generate a caption for an image using the Gemini API
+        Find contours in an image.
+
+        This method uses scikit-image's find_contours function to detect contours in the input image.
+        It can process both PyTorch tensors and numpy arrays.
 
         Args:
-            image: Image
-            channel: Channel index
-            level: Level
-            fully_connected: Fully connected
-            positive_orientation: Positive orientation
-            mask: Mask
+            image (torch.Tensor or numpy.ndarray): The input image to find contours in.
+                Can be a 2D, 3D, or 4D tensor/array.
+            channel (int, optional): The channel index to use if the image has multiple channels.
+                Defaults to 0.
+            level (float, optional): The value along which to find contours in the array.
+                By default, the level is set to 0.5 * (max(image) + min(image)).
+            fully_connected (str, optional): Either 'low' or 'high'. Defines the connectivity
+                of the neighborhood. Defaults to 'low'.
+            positive_orientation (str, optional): Either 'low' or 'high'. Defines whether
+                the contour is walked clockwise or counterclockwise. Defaults to 'low'.
+            mask (numpy.ndarray, optional): A boolean mask, True where we want to find contours.
+                Defaults to None.
 
         Returns:
-            Vectors: Contours
+            tuple: A tuple containing a list of contours, where each contour is a PyTorch tensor
+                of shape (n, 2) containing the (row, column) coordinates of the contour points.
         """
         # print(f"contour_finding: image.shape={image.shape}")
         # Transform to numpy array
@@ -102,4 +104,3 @@ class ContourFinding:
     # end find_contours
 
 # end ContourFinding
-

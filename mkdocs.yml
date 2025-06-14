@@ -68,6 +68,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Types: types.md
   - API Reference: reference/
   - Examples: examples.md
 

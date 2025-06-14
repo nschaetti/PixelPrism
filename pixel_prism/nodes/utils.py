@@ -1,27 +1,10 @@
 """
-▗▄▄▖▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖▗▖       ▗▄▄▖ ▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖▗▖  ▗▖
-▐▌ ▐▌ █   ▝▚▞▘ ▐▌   ▐▌       ▐▌ ▐▌▐▌ ▐▌  █  ▐▌   ▐▛▚▞▜▌
-▐▛▀▘  █    ▐▌  ▐▛▀▀▘▐▌       ▐▛▀▘ ▐▛▀▚▖  █   ▝▀▚▖▐▌  ▐▌
-▐▌  ▗▄█▄▖▗▞▘▝▚▖▐▙▄▄▖▐▙▄▄▖    ▐▌   ▐▌ ▐▌▗▄█▄▖▗▄▄▞▘▐▌  ▐▌
+Pixel Prism Nodes - Utility Nodes
+===============================
 
-             Image Manipulation, Procedural Generation & Visual Effects
-                     https://github.com/nschaetti/PixelPrism
-
-@title: Pixel Prism
-@author: Nils Schaetti
-@category: Image Processing
-@reference: https://github.com/nils-schaetti/pixel-prism
-@tags: image, pixel, animation, compositing, effects, shader, procedural, generation,
-mask, layer, video, transformation, depth, AI, automation, creative, rendering
-@description: Pixel Prism is a creative toolkit for procedural image and video
-generation. Includes support for advanced compositing, GLSL shaders, depth maps,
-image segmentation, and AI-powered effects. Automate your workflow with a rich
-set of nodes for blending, masking, filtering, and compositional adjustments.
-Perfect for artists, designers, and researchers exploring image aesthetics.
-@node list:
-    ContourFindingNode
-
-@version: 0.0.1
+This module provides utility nodes for common image processing operations in the Pixel Prism framework.
+These nodes implement basic operations like channel selection and grayscale conversion
+that are frequently used in image processing workflows.
 """
 
 # Imports
@@ -29,10 +12,19 @@ import torch
 from skimage.color import rgb2gray
 
 
-# Select channel
 class SelectChannel:
     """
-    Select channel node
+    Node for selecting and separating color channels from an image.
+
+    This node takes an input image and separates it into its individual color channels.
+    Each channel is then duplicated across all three output channels to create
+    a grayscale representation of that channel.
+
+    Attributes:
+        INPUT_TYPES (dict): Defines the input types for the node
+        RETURN_TYPES (tuple): Defines the return types for the node (three IMAGE outputs)
+        FUNCTION (str): The name of the function to call
+        CATEGORY (str): The category of the node
     """
 
     # Define the input types
@@ -50,17 +42,24 @@ class SelectChannel:
     CATEGORY = "PixelPrism"
     # OUTPUT_NODE = True
 
-    # Select a channel
     def select_channel(self, image):
         """
-        Select channel
+        Separate an image into its individual color channels.
+
+        This method takes an input image and separates it into its individual color channels.
+        Each channel is then duplicated across all three output channels to create
+        a grayscale representation of that channel.
 
         Args:
-        - image: Image
-        - channel: Channel index
+            image (torch.Tensor): The input image tensor. Can be 3D (H,W,C) or 4D (B,H,W,C).
 
         Returns:
-        - Image: Image with selected channel
+            tuple: A tuple containing three image tensors, one for each color channel
+                (R, G, B). Each tensor has the same shape as the input but with the
+                selected channel duplicated across all three output channels.
+
+        Raises:
+            ValueError: If the input image has an invalid shape.
         """
         ims = list()
         for channel_i in range(image.shape[-1]):
@@ -81,10 +80,19 @@ class SelectChannel:
 # end SelectChannel
 
 
-# Gray scale node
 class GrayScale:
     """
-    Gray scale node
+    Node for converting an image to grayscale.
+
+    This node takes an RGB image and converts it to grayscale using scikit-image's
+    rgb2gray function, which applies a weighted sum of the RGB channels
+    (0.2125 R + 0.7154 G + 0.0721 B) to create a perceptually accurate grayscale image.
+
+    Attributes:
+        INPUT_TYPES (dict): Defines the input types for the node
+        RETURN_TYPES (tuple): Defines the return types for the node
+        FUNCTION (str): The name of the function to call
+        CATEGORY (str): The category of the node
     """
 
     # Define the input types
@@ -102,19 +110,21 @@ class GrayScale:
     CATEGORY = "PixelPrism"
     # OUTPUT_NODE = True
 
-    # Node fonction
     def gray_scale(self, image):
         """
-        Gray scale
+        Convert an RGB image to grayscale.
+
+        This method converts an RGB image to grayscale using scikit-image's rgb2gray function,
+        which applies a weighted sum of the RGB channels (0.2125 R + 0.7154 G + 0.0721 B)
+        to create a perceptually accurate grayscale image.
 
         Args:
-            image: Image
+            image (torch.Tensor): The input RGB image tensor.
 
         Returns:
-            Image: Gray scale image
+            tuple: A tuple containing a single grayscale image tensor.
         """
         return (torch.from_numpy(rgb2gray(image.numpy())),)
     # end gray_scale
 
 # end GrayScale
-

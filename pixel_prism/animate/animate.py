@@ -60,13 +60,12 @@ class Animate:
         Args:
             name (str): Name of the transition
             obj (object): Object to transition
-            property_name (str): Name of the property to transition
             start_time (float): Start time
             end_time (float): End time
             start_value (any): Start value
             target_value (any): End value
             interpolator (Interpolator): Interpolator
-            kwargs: Additional keyword arguments
+            **kwargs (dict): Additional keyword arguments
         """
         self._name = name
         self._obj = obj
@@ -583,4 +582,3 @@ class Destroy(Animate):
     # end __init__
 
 # end Destroy
-

@@ -1,23 +1,42 @@
-#
-# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
-# Copyright (c) 2024 Nils Schaetti.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
+"""
+Pixel Prism Animate - Animation Framework
+=======================================
 
-#
-# Description: This file is used to import all classes from the following modules
-#
+This subpackage provides a comprehensive framework for creating and managing animations
+in the Pixel Prism library. It includes classes for interpolation, transitions, and
+animation effects that can be applied to various objects.
+
+Main Components
+--------------
+- Interpolators: Classes for interpolating values between keyframes
+  - :class:`~pixel_prism.animate.interpolate.Interpolator`: Base class for interpolators
+  - :class:`~pixel_prism.animate.interpolate.LinearInterpolator`: Linear interpolation
+  - :class:`~pixel_prism.animate.interpolate.EaseInOutInterpolator`: Smooth easing interpolation
+
+- Animation Mixins: Interfaces for objects that can be animated
+  - :class:`~pixel_prism.animate.fade.FadeableMixin`: Interface for objects that can fade in/out
+  - :class:`~pixel_prism.animate.range.RangeableMixin`: Interface for objects with range animations
+  - :class:`~pixel_prism.animate.move.MovableMixin`: Interface for objects that can be moved
+  - :class:`~pixel_prism.animate.changes.CallableMixin`: Interface for objects that can trigger callbacks
+
+- Animation Types: Specific animation implementations
+  - :class:`~pixel_prism.animate.animate.Animate`: Base class for animations
+  - :class:`~pixel_prism.animate.move.Move`: Animation for moving objects
+  - :class:`~pixel_prism.animate.animate.Scale`: Animation for scaling objects
+  - :class:`~pixel_prism.animate.animate.Rotate`: Animation for rotating objects
+  - :class:`~pixel_prism.animate.fade.FadeIn`: Animation for fading in objects
+  - :class:`~pixel_prism.animate.fade.FadeOut`: Animation for fading out objects
+  - :class:`~pixel_prism.animate.range.Range`: Animation for range-based animations
+  - :class:`~pixel_prism.animate.changes.Call`: Animation for triggering callbacks
+  - :class:`~pixel_prism.animate.animate.Build`: Animation for building objects
+  - :class:`~pixel_prism.animate.animate.Destroy`: Animation for destroying objects
+
+- Animation Management:
+  - :class:`~pixel_prism.animate.animator.Animator`: Class for managing multiple animations
+
+- Decorators:
+  - :func:`~pixel_prism.animate.decorators.animeattr`: Decorator for marking attributes as animatable
+"""
 
 
 # Interpolation
@@ -99,4 +118,3 @@ __all__ = [
     "Build",
     "Destroy"
 ]
-

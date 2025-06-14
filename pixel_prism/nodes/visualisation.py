@@ -1,27 +1,10 @@
 """
-▗▄▄▖▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖▗▖       ▗▄▄▖ ▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖▗▖  ▗▖
-▐▌ ▐▌ █   ▝▚▞▘ ▐▌   ▐▌       ▐▌ ▐▌▐▌ ▐▌  █  ▐▌   ▐▛▚▞▜▌
-▐▛▀▘  █    ▐▌  ▐▛▀▀▘▐▌       ▐▛▀▘ ▐▛▀▚▖  █   ▝▀▚▖▐▌  ▐▌
-▐▌  ▗▄█▄▖▗▞▘▝▚▖▐▙▄▄▖▐▙▄▄▖    ▐▌   ▐▌ ▐▌▗▄█▄▖▗▄▄▞▘▐▌  ▐▌
+Pixel Prism Nodes - Visualization Nodes
+=====================================
 
-Image Manipulation, Procedural Generation & Visual Effects
-        https://github.com/nschaetti/PixelPrism
-
-@title: Pixel Prism
-@author: Nils Schaetti
-@category: Image Processing
-@reference: https://github.com/nils-schaetti/pixel-prism
-@tags: image, pixel, animation, compositing, effects, shader, procedural, generation,
-mask, layer, video, transformation, depth, AI, automation, creative, rendering
-@description: Pixel Prism is a creative toolkit for procedural image and video
-generation. Includes support for advanced compositing, GLSL shaders, depth maps,
-image segmentation, and AI-powered effects. Automate your workflow with a rich
-set of nodes for blending, masking, filtering, and compositional adjustments.
-Perfect for artists, designers, and researchers exploring image aesthetics.
-@node list:
-    ContourFindingNode
-
-@version: 0.0.1
+This module provides visualization nodes for displaying and rendering data in the Pixel Prism framework.
+These nodes implement operations for converting data to visual representations,
+such as drawing contours, polygons, and displaying vector data.
 """
 
 # Imports
@@ -31,10 +14,18 @@ from skimage.draw import polygon, line
 import matplotlib.pyplot as plt
 
 
-# Show list of vectors
 class VectorsToString:
     """
-    Show list of vectors
+    Node for converting a list of vectors to a string representation.
+
+    This node takes a list of vector objects and converts them to a string representation,
+    with each vector on a new line. This is useful for debugging and visualization purposes.
+
+    Attributes:
+        INPUT_TYPES (dict): Defines the input types for the node
+        RETURN_TYPES (tuple): Defines the return types for the node
+        FUNCTION (str): The name of the function to call
+        CATEGORY (str): The category of the node
     """
 
     # Define the input types
@@ -54,7 +45,16 @@ class VectorsToString:
 
     def show_vectors(self, vectors):
         """
-        Show list of vectors
+        Convert a list of vectors to a string representation.
+
+        This method takes a list of vector objects and converts them to a string representation,
+        with each vector on a new line.
+
+        Args:
+            vectors (list): A list of vector objects to convert to a string.
+
+        Returns:
+            tuple: A tuple containing a single string with the string representation of the vectors.
         """
         # Output
         output_str = ""
@@ -68,8 +68,20 @@ class VectorsToString:
 # end VectorsToString
 
 
-# Plot
 class DrawPolygon:
+    """
+    Node for drawing polygons or contours on an image.
+
+    This node takes a list of contours (each contour being a list of points) and draws them
+    on a blank image with the specified dimensions. The contours are drawn as connected lines
+    with the specified color.
+
+    Attributes:
+        INPUT_TYPES (dict): Defines the input types for the node
+        RETURN_TYPES (tuple): Defines the return types for the node
+        FUNCTION (str): The name of the function to call
+        CATEGORY (str): The category of the node
+    """
 
     # Define the input types
     @classmethod
@@ -93,13 +105,22 @@ class DrawPolygon:
 
     def draw(self, contours, height, width, color="#000000"):
         """
-        Plot vectors
+        Draw contours on a blank image.
+
+        This method takes a list of contours and draws them on a blank image with the specified
+        dimensions. Each contour is drawn as a series of connected line segments with the specified color.
 
         Args:
-            contours: Contours
-            height: Height
-            width: Width
-            color: Color
+            contours (list): A list of contours, where each contour is a tensor of shape (n, 2)
+                containing the (y, x) coordinates of the contour points.
+            height (int): The height of the output image.
+            width (int): The width of the output image.
+            color (str, optional): The color to draw the contours with, specified as a hex string.
+                Defaults to "#000000" (black).
+
+        Returns:
+            tuple: A tuple containing a single image tensor of shape (1, height, width, 3)
+                with the drawn contours.
         """
         # Transform color into RGB
         color = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
@@ -150,4 +171,3 @@ class DrawPolygon:
     # end draw
 
 # end DrawPolygon
-

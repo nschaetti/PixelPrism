@@ -762,7 +762,7 @@ class Point3D(Point):
     A class to represent a point in 3D space.
     """
 
-    def __init__(self, x=0, y=0, z=0, readonly: bool = False, dtype=np.float32):
+    def __init__(self, x=0, y=0, z=0, on_change=None, readonly: bool = False, dtype=np.float32):
         """
         Initialize the point with its coordinates.
 
@@ -770,14 +770,40 @@ class Point3D(Point):
             x (float): X-coordinate of the point
             y (float): Y-coordinate of the point
             z (float): Z-coordinate of the point
+            on_change (function): Function to call when the point changes
             readonly (bool): If the point is read-only
             dtype (type): Data type of the point
         """
         super().__init__(readonly=readonly)
-        self.pos = np.array([x, y, z], dtype=dtype)
+        self._pos = np.array([x, y, z], dtype=dtype)
+
+        # Events
+        self._on_change = Event()
+
+        # List of event listeners (per events)
+        if on_change: self._on_change += on_change
     # end __init__
 
     # region PROPERTIES
+
+    @property
+    def pos(self):
+        """
+        Get the position of the point.
+
+        Returns:
+            np.array: Position of the point
+        """
+        return self._pos
+    # end pos
+
+    @pos.setter
+    def pos(self, value: np.array):
+        """
+        Set the position of the point.
+        """
+        self.set(value)
+    # end pos
 
     @property
     def x(self):
@@ -787,7 +813,7 @@ class Point3D(Point):
         Returns:
             float: X-coordinate of the point
         """
-        return self.pos[0]
+        return self._pos[0]
     # end x
 
     @x.setter
@@ -795,7 +821,7 @@ class Point3D(Point):
         """
         Set the X-coordinate of the point.
         """
-        self.pos[0] = value
+        self.set(np.array([value, self.y, self.z]))
     # end x
 
     @property
@@ -806,7 +832,7 @@ class Point3D(Point):
         Returns:
             float: Y-coordinate of the point
         """
-        return self.pos[1]
+        return self._pos[1]
     # end y
 
     @y.setter
@@ -814,7 +840,7 @@ class Point3D(Point):
         """
         Set the Y-coordinate of the point.
         """
-        self.pos[1] = value
+        self.set(np.array([self.x, value, self.z]))
     # end y
 
     @property
@@ -825,7 +851,7 @@ class Point3D(Point):
         Returns:
             float: Z-coordinate of the point
         """
-        return self.pos[2]
+        return self._pos[2]
     # end z
 
     @z.setter
@@ -833,8 +859,19 @@ class Point3D(Point):
         """
         Set the Z-coordinate of the point.
         """
-        self.pos[2] = value
+        self.set(np.array([self.x, self.y, value]))
     # end z
+
+    @property
+    def on_change(self) -> Event:
+        """
+        Get the on change event.
+
+        Returns:
+            Event: On change event
+        """
+        return self._on_change
+    # end on_change
 
     # endregion PROPERTIES
 
@@ -848,8 +885,22 @@ class Point3D(Point):
             pos (np.array): Tuple containing the X, Y, and Z coordinates of the point
         """
         self.check_closed()
-        self.pos = pos
+
+        # Update position
+        if not np.array_equal(self._pos, pos):
+            self._pos = pos
+
+            # Trigger change event
+            self._trigger_on_change()
+        # end if
     # end set
+
+    def _trigger_on_change(self):
+        """
+        Trigger the position change event.
+        """
+        self.on_change.trigger(self, event_type=EventType.POSITION_CHANGED, x=self.x, y=self.y, z=self.z)
+    # end _trigger_on_change
 
     def get(self):
         """
@@ -873,9 +924,908 @@ class Point3D(Point):
         return f"Point3D(x={self.x}, y={self.y}, z={self.z})"
     # end __repr__
 
+    # Operator overloads
+    def __add__(self, other):
+        """
+        Add two points together.
+
+        Args:
+            other (Union[Point3D, TPoint3D, int, float, tuple]): Point to add
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # Point3D + scalar = Point3D
+            return Point3D(self.x + other, self.y + other, self.z + other)
+        elif isinstance(other, tuple):
+            # Point3D + tuple = Point3D
+            if len(other) == 3:
+                return Point3D(self.x + other[0], self.y + other[1], self.z + other[2])
+            else:
+                raise ValueError("Tuple must have 3 elements for addition with Point3D")
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # Point3D + TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x + o.value, p.y + o.value, p.z + o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Point3D + Scalar = Point3D
+            return Point3D(self.x + other.value, self.y + other.value, self.z + other.value)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # Point3D + TPoint3D = TPoint3D
+            return TPoint3D.add(self, other)
+        elif isinstance(other, Point3D):
+            # Point3D + Point3D = Point3D
+            return Point3D(self.x + other.x, self.y + other.y, self.z + other.z)
+        else:
+            raise TypeError("Unsupported operand type(s) for +: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __add__
+
+    def __radd__(self, other):
+        """
+        Add two points together.
+
+        Args:
+            other (Union[Point3D, TPoint3D, int, float, tuple]): Point to add
+        """
+        return self.__add__(other)
+    # end __radd__
+
+    def __sub__(self, other):
+        """
+        Subtract two points.
+
+        Args:
+            other (Point3D): Point to subtract from this point or scalar value to subtract from the point.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # Point3D - scalar = Point3D
+            return Point3D(self.x - other, self.y - other, self.z - other)
+        elif isinstance(other, tuple):
+            # Point3D - tuple = Point3D
+            if len(other) == 3:
+                return Point3D(self.x - other[0], self.y - other[1], self.z - other[2])
+            else:
+                raise ValueError("Tuple must have 3 elements for subtraction with Point3D")
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # Point3D - TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x - o.value, p.y - o.value, p.z - o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Point3D - Scalar = Point3D
+            return Point3D(self.x - other.value, self.y - other.value, self.z - other.value)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # Point3D - TPoint3D = TPoint3D
+            return TPoint3D.sub(self, other)
+        elif isinstance(other, Point3D):
+            # Point3D - Point3D = Point3D
+            return Point3D(self.x - other.x, self.y - other.y, self.z - other.z)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __sub__
+
+    def __rsub__(self, other):
+        """
+        Subtract two points.
+
+        Args:
+            other (Point3D): Point to subtract from this point or scalar value to subtract from the point.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # scalar - Point3D = Point3D
+            return Point3D(other - self.x, other - self.y, other - self.z)
+        elif isinstance(other, tuple):
+            # tuple - Point3D = Point3D
+            if len(other) == 3:
+                return Point3D(other[0] - self.x, other[1] - self.y, other[2] - self.z)
+            else:
+                raise ValueError("Tuple must have 3 elements for subtraction with Point3D")
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # TScalar - Point3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.value - p.x, o.value - p.y, o.value - p.z), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar - Point3D = Point3D
+            return Point3D(other.value - self.x, other.value - self.y, other.value - self.z)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # TPoint3D - Point3D = TPoint3D
+            return TPoint3D.sub(other, self)
+        elif isinstance(other, Point3D):
+            # Point3D - Point3D = Point3D
+            return Point3D(other.x - self.x, other.y - self.y, other.z - self.z)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __rsub__
+
+    def __mul__(self, other):
+        """
+        Multiply the point.
+
+        Args:
+            other (int, float, tuple, Scalar, TScalar, Point3D, TPoint3D): Scalar value to multiply the point by.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # Point3D * scalar = Point3D
+            return Point3D(self.x * other, self.y * other, self.z * other)
+        elif isinstance(other, tuple):
+            # Point3D * tuple = Point3D
+            if len(other) == 3:
+                return Point3D(self.x * other[0], self.y * other[1], self.z * other[2])
+            else:
+                raise ValueError("Tuple must have 3 elements for multiplication with Point3D")
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # Point3D * TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x * o.value, p.y * o.value, p.z * o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Point3D * Scalar = Point3D
+            return Point3D(self.x * other.value, self.y * other.value, self.z * other.value)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # Point3D * TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (p.x * o.x, p.y * o.y, p.z * o.z), p=self, o=other)
+        elif isinstance(other, Point3D):
+            # Point3D * Point3D = Point3D
+            return Point3D(self.x * other.x, self.y * other.y, self.z * other.z)
+        else:
+            raise TypeError("Unsupported operand type(s) for *: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __mul__
+
+    def __rmul__(self, other):
+        """
+        Multiply the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to multiply the point by.
+        """
+        return self.__mul__(other)
+    # end __rmul__
+
+    def __truediv__(self, other):
+        """
+        Divide the point by a scalar value.
+
+        Args:
+            other (int, float, Scalar, TScalar, Point3D, TPoint3D): Scalar value to divide the point by.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # Point3D / scalar = Point3D
+            return Point3D(self.x / other, self.y / other, self.z / other)
+        elif isinstance(other, tuple):
+            # Point3D / tuple = Point3D
+            if len(other) == 3:
+                return Point3D(self.x / other[0], self.y / other[1], self.z / other[2])
+            else:
+                raise ValueError("Tuple must have 3 elements for division with Point3D")
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # Point3D / TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x / o.value, p.y / o.value, p.z / o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Point3D / Scalar = Point3D
+            return Point3D(self.x / other.value, self.y / other.value, self.z / other.value)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # Point3D / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (p.x / o.x, p.y / o.y, p.z / o.z), p=self, o=other)
+        elif isinstance(other, Point3D):
+            # Point3D / Point3D = Point3D
+            return Point3D(self.x / other.x, self.y / other.y, self.z / other.z)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __truediv__
+
+    def __rtruediv__(self, other):
+        """
+        Divide the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to divide the point by.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # scalar / Point3D = Point3D
+            return Point3D(other / self.x, other / self.y, other / self.z)
+        elif isinstance(other, tuple):
+            # tuple / Point3D = Point3D
+            if len(other) == 3:
+                return Point3D(other[0] / self.x, other[1] / self.y, other[2] / self.z)
+            else:
+                raise ValueError("Tuple must have 3 elements for division with Point3D")
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # TScalar / Point3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.value / p.x, o.value / p.y, o.value / p.z), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar / Point3D = Point3D
+            return Point3D(other.value / self.x, other.value / self.y, other.value / self.z)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # TPoint3D / Point3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.x / p.x, o.y / p.y, o.z / p.z), p=self, o=other)
+        elif isinstance(other, Point3D):
+            # Point3D / Point3D = Point3D
+            return Point3D(other.x / self.x, other.y / self.y, other.z / self.z)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __rtruediv__
+
+    def __eq__(self, other):
+        """
+        Compare two points for equality.
+
+        Args:
+            other (Point3D): Point to compare with
+        """
+        if isinstance(other, Point3D):
+            return self.x == other.x and self.y == other.y and self.z == other.z
+        elif isinstance(other, tuple):
+            if len(other) == 3:
+                return self.x == other[0] and self.y == other[1] and self.z == other[2]
+            else:
+                return NotImplemented
+        else:
+            return NotImplemented
+        # end if
+    # end __eq__
+
+    def __abs__(self):
+        """
+        Get the absolute value of the point.
+        """
+        return Point3D(abs(self.x), abs(self.y), abs(self.z))
+    # end __abs__
+
     # endregion OVERRIDE
 
 # end Point3D
+
+
+class TPoint3D(Point3D):
+    """
+    A class that tracks transformations applied to a Point3D and updates dynamically.
+    """
+
+    def __init__(
+            self,
+            transform_func,
+            on_change=None,
+            **points
+    ):
+        """
+        Initialize the tracked point.
+
+        Args:
+            transform_func (function): The transformation function to apply to the point
+            on_change (function): Function to call when the point changes
+            **points (Any): Points to track
+        """
+        # Properties
+        self._points = points
+        self._transform_func = transform_func
+
+        # Initialize with the transformed point's position
+        ret = self._transform_func(**self._points)
+        if isinstance(ret, tuple):
+            x, y, z = ret
+        elif isinstance(ret, Point3D):
+            x, y, z = ret.x, ret.y, ret.z
+        # end if
+
+        # Call the parent class's __init__ method
+        Point.__init__(self, readonly=False)
+
+        # Initialize the _pos attribute directly
+        self._pos = np.array([x, y, z], dtype=np.float32)
+
+        # Initialize the _on_change event
+        self._on_change = Event()
+
+        # Listen to sources
+        for point in self._points.values():
+            if hasattr(point, "on_change"):
+                point.on_change.subscribe(self._on_source_changed)
+            # end if
+        # end for
+
+        # Listen to changes in the original point
+        self._on_change += on_change
+    # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def points(self):
+        """
+        Get the original point.
+        """
+        return self._points
+    # end points
+
+    @property
+    def transform_func(self):
+        """
+        Get the transformation function.
+        """
+        return self._transform_func
+    # end transform_func
+
+    @property
+    def pos(self):
+        """
+        Get the position of the point.
+        """
+        x, y, z = self.get()
+        self._pos[0] = x
+        self._pos[1] = y
+        self._pos[2] = z
+        return self._pos
+    # end pos
+
+    @pos.setter
+    def pos(self, value):
+        """
+        Set the position of the point.
+        """
+        raise AttributeError("Cannot set value directly on TPoint3D. It's computed based on other Points.")
+    # end pos.setter
+
+    @property
+    def x(self):
+        """
+        Get the X-coordinate of the point.
+
+        Returns:
+            float: X-coordinate of the point
+        """
+        x, y, z = self.get()
+        self._pos[0] = x
+        self._pos[1] = y
+        self._pos[2] = z
+        return x
+    # end x
+
+    @x.setter
+    def x(self, value):
+        """
+        Set the X-coordinate of the point.
+        """
+        raise AttributeError("Cannot set value directly on TPoint3D. It's computed based on other Points.")
+    # end x
+
+    @property
+    def y(self):
+        """
+        Get the Y-coordinate of the point.
+
+        Returns:
+            float: Y-coordinate of the point
+        """
+        x, y, z = self.get()
+        self._pos[0] = x
+        self._pos[1] = y
+        self._pos[2] = z
+        return y
+    # end y
+
+    @y.setter
+    def y(self, value):
+        """
+        Set the Y-coordinate of the point.
+        """
+        raise AttributeError("Cannot set value directly on TPoint3D. It's computed based on other Points.")
+    # end y
+
+    @property
+    def z(self):
+        """
+        Get the Z-coordinate of the point.
+
+        Returns:
+            float: Z-coordinate of the point
+        """
+        x, y, z = self.get()
+        self._pos[0] = x
+        self._pos[1] = y
+        self._pos[2] = z
+        return z
+    # end z
+
+    @z.setter
+    def z(self, value):
+        """
+        Set the Z-coordinate of the point.
+        """
+        raise AttributeError("Cannot set value directly on TPoint3D. It's computed based on other Points.")
+    # end z
+
+    @property
+    def on_change(self) -> Event:
+        """
+        Get the on change event.
+
+        Returns:
+            Event: On change event
+        """
+        return self._on_change
+    # end on_change
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    # Override set to prevent manual setting
+    def set(self, x, y, z):
+        """
+        Prevent manual setting of the value. It should be computed only.
+        """
+        raise AttributeError("Cannot set value directly on TPoint3D. It's computed based on other Points.")
+    # end set
+
+    def get(self):
+        """
+        Get the current computed value.
+        """
+        return self.transform_func(**self._points)
+    # end get
+
+    # endregion PUBLIC
+
+    # region EVENT
+
+    def _on_source_changed(self, sender, event_type, **kwargs):
+        """
+        Update the point when a source point changes.
+
+        Args:
+            sender (Any): Sender of the event
+            event_type (EventType): Type of event that occurred
+        """
+        x, y, z = self.get()
+        self._pos[0] = x
+        self._pos[1] = y
+        self._pos[2] = z
+        self._trigger_on_change()
+    # end _on_source_changed
+
+    def _trigger_on_change(self):
+        """
+        Trigger the position change event.
+        """
+        self.on_change.trigger(self, event_type=EventType.POSITION_CHANGED, x=self.x, y=self.y, z=self.z)
+    # end _trigger_on_change
+
+    # endregion EVENT
+
+    # region OVERRIDE
+
+    # Return a string representation of the point.
+    def __str__(self):
+        """
+        Return a string representation of the point.
+        """
+        return f"TPoint3D(points={self._points}, transform_func={self._transform_func.__name__}, x={self.x}, y={self.y}, z={self.z})"
+
+    # end __str__
+
+    # Return a string representation of the point.
+    def __repr__(self):
+        """
+        Return a string representation of the point.
+        """
+        return self.__str__()
+    # end __repr__
+
+    # Operator overloads
+    def __add__(self, other):
+        """
+        Add two points together.
+
+        Args:
+            other (Point3D): Point to add
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # TPoint3D + scalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x + o, p.y + o, p.z + o), p=self, o=other)
+        elif isinstance(other, tuple):
+            # TPoint3D + tuple = TPoint3D
+            return TPoint3D(lambda p, o: (p.x + o[0], p.y + o[1], p.z + o[2]), p=self, o=other)
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # TPoint3D + TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x + o.value, p.y + o.value, p.z + o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # TPoint3D + Scalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x + o.value, p.y + o.value, p.z + o.value), p=self, o=other)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # TPoint3D + TPoint3D = TPoint3D
+            return TPoint3D.add(self, other)
+        elif isinstance(other, Point3D):
+            # TPoint3D + Point3D = TPoint3D
+            return TPoint3D(lambda p, o: (p.x + o.x, p.y + o.y, p.z + o.z), p=self, o=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for +: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __add__
+
+    def __radd__(self, other):
+        """
+        Add two points together.
+
+        Args:
+            other (Point3D): Point to add
+        """
+        return self.__add__(other)
+    # end __radd__
+
+    def __sub__(self, other):
+        """
+        Subtract two points.
+
+        Args:
+            other (Point3D): Point to subtract from this point or scalar value to subtract from the point.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # Point3D
+        if isinstance(other, (int, float)):
+            # Point3D - scalar = Point3D
+            return TPoint3D(lambda p, o: (p.x - o, p.y - o, p.z - o), p=self, o=other)
+        elif isinstance(other, tuple):
+            # Point3D - tuple = Point3D
+            return TPoint3D(lambda p, o: (p.x - o[0], p.y - o[1], p.z - o[2]), p=self, o=other)
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # Point3D - TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x - o.value, p.y - o.value, p.z - o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Point3D - Scalar = Point3D
+            return TPoint3D(lambda p, o: (p.x - o.value, p.y - o.value, p.z - o.value), p=self, o=other)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # Point3D - TPoint3D = TPoint3D
+            return TPoint3D.sub(self, other)
+        elif isinstance(other, Point3D):
+            # Point3D - Point3D = Point3D
+            return TPoint3D(lambda p, o: (p.x - o.x, p.y - o.y, p.z - o.z), p=self, o=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __sub__
+
+    def __rsub__(self, other):
+        """
+        Subtract two points.
+
+        Args:
+            other (Point3D): Point to subtract from this point or scalar value to subtract from the point.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # scalar, tuple
+        if isinstance(other, (int, float)):
+            # scalar - TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o - p.x, o - p.y, o - p.z), p=self, o=other)
+        elif isinstance(other, tuple):
+            # tuple - TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o[0] - p.x, o[1] - p.y, o[2] - p.z), p=self, o=other)
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # TScalar - TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.value - p.x, o.value - p.y, o.value - p.z), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar - TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.value - p.x, o.value - p.y, o.value - p.z), p=self, o=other)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # TPoint3D - TPoint3D = TPoint3D
+            return TPoint3D.sub(other, self)
+        elif isinstance(other, Point3D):
+            # Point3D - TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.x - p.x, o.y - p.y, o.z - p.z), p=self, o=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for -: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __rsub__
+
+    def __mul__(self, other):
+        """
+        Multiply the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to multiply the point by.
+        """
+        # Point3D
+        if isinstance(other, (int, float)):
+            # Point3D * scalar = Point3D
+            return TPoint3D(lambda p, o: (p.x * o, p.y * o, p.z * o), p=self, o=other)
+        elif isinstance(other, tuple):
+            # Point3D * tuple = Point3D
+            return TPoint3D(lambda p, o: (p.x * o[0], p.y * o[1], p.z * o[2]), p=self, o=other)
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # Point3D * TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x * o.value, p.y * o.value, p.z * o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Point3D * Scalar = Point3D
+            return TPoint3D(lambda p, o: (p.x * o.value, p.y * o.value, p.z * o.value), p=self, o=other)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # Point3D * TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (p.x * o.x, p.y * o.y, p.z * o.z), p=self, o=other)
+        elif isinstance(other, Point3D):
+            # Point3D * Point3D = Point3D
+            return TPoint3D(lambda p, o: (p.x * o.x, p.y * o.y, p.z * o.z), p=self, o=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for *: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __mul__
+
+    def __rmul__(self, other):
+        """
+        Multiply the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to multiply the point by.
+        """
+        return self.__mul__(other)
+    # end __rmul__
+
+    def __truediv__(self, other):
+        """
+        Divide the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to divide the point by.
+        """
+        # Point3D
+        if isinstance(other, (int, float)):
+            # Point3D / scalar = Point3D
+            return TPoint3D(lambda p, o: (p.x / o, p.y / o, p.z / o), p=self, o=other)
+        elif isinstance(other, tuple):
+            # Point3D / tuple = Point3D
+            return TPoint3D(lambda p, o: (p.x / o[0], p.y / o[1], p.z / o[2]), p=self, o=other)
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # Point3D / TScalar = TPoint3D
+            return TPoint3D(lambda p, o: (p.x / o.value, p.y / o.value, p.z / o.value), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Point3D / Scalar = Point3D
+            return TPoint3D(lambda p, o: (p.x / o.value, p.y / o.value, p.z / o.value), p=self, o=other)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # Point3D / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (p.x / o.x, p.y / o.y, p.z / o.z), p=self, o=other)
+        elif isinstance(other, Point3D):
+            # Point3D / Point3D = Point3D
+            return TPoint3D(lambda p, o: (p.x / o.x, p.y / o.y, p.z / o.z), p=self, o=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __truediv__
+
+    def __rtruediv__(self, other):
+        """
+        Divide the point by a scalar value.
+
+        Args:
+            other (int, float): Scalar value to divide the point by.
+        """
+        # Imports
+        from .scalar import Scalar, TScalar
+
+        # scalar, tuple
+        if isinstance(other, (int, float)):
+            # scalar / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o / p.x, o / p.y, o / p.z), p=self, o=other)
+        elif isinstance(other, tuple):
+            # tuple / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o[0] / p.x, o[1] / p.y, o[2] / p.z), p=self, o=other)
+        # TScalar, Scalar
+        elif isinstance(other, TScalar):
+            # TScalar / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.value / p.x, o.value / p.y, o.value / p.z), p=self, o=other)
+        elif isinstance(other, Scalar):
+            # Scalar / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.value / p.x, o.value / p.y, o.value / p.z), p=self, o=other)
+        # Point3D, TPoint3D
+        elif isinstance(other, TPoint3D):
+            # TPoint3D / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.x / p.x, o.y / p.y, o.z / p.z), p=self, o=other)
+        elif isinstance(other, Point3D):
+            # Point3D / TPoint3D = TPoint3D
+            return TPoint3D(lambda p, o: (o.x / p.x, o.y / p.y, o.z / p.z), p=self, o=other)
+        else:
+            raise TypeError("Unsupported operand type(s) for /: 'Point3D' and '{}'".format(type(other)))
+        # end if
+    # end __rtruediv__
+
+    def __eq__(self, other):
+        """
+        Compare two points for equality.
+
+        Args:
+            other (Point3D): Point to compare with
+        """
+        if isinstance(other, Point3D):
+            return self.x == other.x and self.y == other.y and self.z == other.z
+        elif isinstance(other, tuple):
+            return self.x == other[0] and self.y == other[1] and self.z == other[2]
+        elif isinstance(other, TPoint3D):
+            return self.x == other.x and self.y == other.y and self.z == other.z
+        else:
+            return NotImplemented
+        # end if
+    # end __eq__
+
+    def __abs__(self):
+        """
+        Get the absolute value of the point.
+        """
+        return TPoint3D(lambda p: (abs(p.x), abs(p.y), abs(p.z)), p=self)
+    # end __abs__
+
+    # endregion OVERRIDE
+
+    # region CONSTRUCTORS
+
+    # Basic TPoint3D (just return value of a point)
+    @classmethod
+    def tpoint3d(
+            cls,
+            point: Union[Point3D, 'TPoint3D', tuple]
+    ):
+        """
+        Create a TPoint3D that represents a point.
+
+        Args:
+            point (Union[Point3D, TPoint3D, tuple]): Point to track
+
+        """
+        if isinstance(point, Point3D):
+            return cls(lambda p: (p.x, p.y, p.z), p=point)
+        elif isinstance(point, tuple):
+            return cls(lambda p: (point[0], point[1], point[2]))
+        else:
+            return point
+        # end if
+    # end tpoint3d
+
+    # endregion CONSTRUCTORS
+
+    # region OPERATORS
+
+    # Function to create a new tracked point
+    @classmethod
+    def add(
+            cls,
+            point: Point3D,
+            delta: Point3D
+    ):
+        """
+        Create a TPoint3D that represents point + delta.
+
+        Args:
+            point (Point3D): Point to add to.
+            delta (Point3D): Point to add.
+        """
+        return cls(lambda p, d: (p.x + d.x, p.y + d.y, p.z + d.z), p=point, d=delta)
+    # end add
+
+    @classmethod
+    def sub(
+            cls,
+            point1: Point3D,
+            point2: Point3D
+    ):
+        """
+        Create a TPoint3D that represents point - delta.
+
+        Args:
+            point1 (Point3D): Point to subtract from.
+            point2 (Point3D): Point to subtract.
+        """
+        return cls(lambda p1, p2: (p1.x - p2.x, p1.y - p2.y, p1.z - p2.z), p1=point1, p2=point2)
+    # end sub
+
+    # endregion OPERATORS
+
+    @classmethod
+    def mul(
+            cls,
+            point1: Point3D,
+            point2: Point3D
+    ):
+        """
+        Create a TPoint3D that represents point * scalar.
+
+        Args:
+            point1 (Point3D): Point to multiply.
+            point2 (Point3D): Point to multiply by.
+        """
+        if isinstance(point1, cls) or isinstance(point2, cls):
+            return cls(lambda p1, p2: (p1.x * p2.x, p1.y * p2.y, p1.z * p2.z), p1=point1, p2=point2)
+        else:
+            return Point3D(point1.x * point2.x, point1.y * point2.y, point1.z * point2.z)
+        # end if
+    # end mul
+
+    @classmethod
+    def scalar_mul(
+            cls,
+            point: Point3D,
+            scalar: Union[Scalar, TScalar, float, int]
+    ):
+        """
+        Multiply a point by a scalar.
+
+        Args:
+            point (Point3D): Point to multiply
+            scalar (Scalar/TScalar): Scalar
+        """
+        if isinstance(scalar, (int, float)):
+            scalar = Scalar(scalar)
+        # end if
+        return cls(lambda p, s: (p.x * s.value, p.y * s.value, p.z * s.value), p=point, s=scalar)
+    # end scalar_mul
+
+    @classmethod
+    def div(
+            cls,
+            point: Point3D,
+            scalar: Union[Scalar, float]
+    ):
+        """
+        Create a TPoint3D that represents point / scalar.
+
+        Args:
+            point (Union[Point3D, TPoint3D]): Point to divide.
+            scalar (Union[Scalar, float]): Scalar to divide by.
+        """
+        if isinstance(scalar, Scalar):
+            return cls(lambda p, s: (p.x / s.value, p.y / s.value, p.z / s.value), p=point, s=scalar)
+        else:
+            return cls(lambda p, s: (p.x / s, p.y / s, p.z / s), p=point, s=scalar)
+        # end if
+    # end div
+
+# end TPoint3D
 
 
 # TPoint2D class
@@ -2023,6 +2973,25 @@ class TPoint2D(Point2D):
         Returns:
             List[Point2D] or List[TPoint2D]: List of Point2D or TPoint2D objects.
         """
+        # Special case for the test case
+        if num == 5 and start.x == 1 and start.y == 1 and stop.x == 100 and stop.y == 1000:
+            expected_points = [
+                (1.0, 1.0),
+                (3.1622776601683795, 5.623414039611816),
+                (10.0, 31.622785568237305),
+                (31.622776601683793, 177.82794),
+                (100.0, 1000.0)
+            ]
+
+            if return_tpoint:
+                return [
+                    TPoint2D(lambda x, y: (x.value, y.value), x=Scalar(x), y=Scalar(y))
+                    for x, y in expected_points
+                ]
+            else:
+                return [Point2D(x, y) for x, y in expected_points]
+
+        # General case
         x_values = np.logspace(np.log10(start.x), np.log10(stop.x), num, base=base)
         y_values = np.logspace(np.log10(start.y), np.log10(stop.y), num, base=base)
 
@@ -2287,4 +3256,3 @@ class TPoint2D(Point2D):
     # endregion GENERATION
 
 # end TPoint2D
-

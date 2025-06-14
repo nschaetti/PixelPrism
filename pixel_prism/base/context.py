@@ -17,7 +17,7 @@
 
 # Imports
 import math
-from typing import Tuple, Union
+from typing import Tuple, Union, Any
 import cairo
 from pixel_prism.data import Color, Point2D, Scalar, Transform, Style
 from .coordsystem import CoordSystem
@@ -838,7 +838,7 @@ class Context:
 
     # region OVERRIDE
 
-    def __getattr__(self, item):
+    def __getattr__(self, item) -> Any:
         """
         Redirect attribute access to the Cairo context if the attribute is not found in RelativeContext.
 
@@ -861,7 +861,7 @@ class Context:
 
     # From image to context
     @classmethod
-    def from_image(cls, image, *args, **kwargs):
+    def from_image(cls, image, *args, **kwargs) -> 'Context':
         """
         Get the context from an image.
 
@@ -880,4 +880,3 @@ class Context:
     # endregion CLASS_METHODS
 
 # end Context
-

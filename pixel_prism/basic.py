@@ -42,8 +42,8 @@ def p2(
 
 # Create a TPoint2D
 def t_p2(
-        func,
-        **kwargs
+        func: callable,
+        **kwargs: object
 ) -> Point2D:
     """
     Create a TPoint2D.
@@ -78,8 +78,8 @@ def s(
 
 # Create a TScalar
 def t_s(
-        func,
-        **kwargs
+        func: callable,
+        **kwargs: object
 ) -> Scalar:
     """
     Create a TScalar.

@@ -18,9 +18,9 @@
 #
 # This file contains the Scalar class, which is used to represent a scalar value.
 #
-from typing import List, Dict, Union
 
 # Imports
+from typing import List, Dict, Union
 import numpy as np
 from pixel_prism.animate import RangeableMixin
 from .events import Event, EventType

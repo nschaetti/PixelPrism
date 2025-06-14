@@ -1,27 +1,26 @@
 """
-▗▄▄▖▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖▗▖       ▗▄▄▖ ▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖▗▖  ▗▖
-▐▌ ▐▌ █   ▝▚▞▘ ▐▌   ▐▌       ▐▌ ▐▌▐▌ ▐▌  █  ▐▌   ▐▛▚▞▜▌
-▐▛▀▘  █    ▐▌  ▐▛▀▀▘▐▌       ▐▛▀▘ ▐▛▀▚▖  █   ▝▀▚▖▐▌  ▐▌
-▐▌  ▗▄█▄▖▗▞▘▝▚▖▐▙▄▄▖▐▙▄▄▖    ▐▌   ▐▌ ▐▌▗▄█▄▖▗▄▄▞▘▐▌  ▐▌
+Pixel Prism Nodes
+================
 
-             Image Manipulation, Procedural Generation & Visual Effects
-                     https://github.com/nschaetti/PixelPrism
+This subpackage provides nodes for image processing and manipulation in the Pixel Prism framework.
+Nodes are modular components that can be connected together to create complex image processing pipelines.
 
-@title: Pixel Prism
-@author: Nils Schaetti
-@category: Image Processing
-@reference: https://github.com/nils-schaetti/pixel-prism
-@tags: image, pixel, animation, compositing, effects, shader, procedural, generation,
-mask, layer, video, transformation, depth, AI, automation, creative, rendering
-@description: Pixel Prism is a creative toolkit for procedural image and video
-generation. Includes support for advanced compositing, GLSL shaders, depth maps,
-image segmentation, and AI-powered effects. Automate your workflow with a rich
-set of nodes for blending, masking, filtering, and compositional adjustments.
-Perfect for artists, designers, and researchers exploring image aesthetics.
-@node list:
-    ContourFindingNode
+Available Nodes
+--------------
+- :class:`~pixel_prism.nodes.ContourFinding`: Find contours in an image
+- :class:`~pixel_prism.nodes.SelectChannel`: Select a specific channel from an image
+- :class:`~pixel_prism.nodes.GrayScale`: Convert an image to grayscale
+- :class:`~pixel_prism.nodes.VectorsToString`: Convert vectors to a string representation
+- :class:`~pixel_prism.nodes.DrawPolygon`: Draw a polygon on an image
 
-@version: 0.0.1
+The nodes are organized into categories:
+- Core nodes for basic image processing
+- Utility nodes for common operations
+- Visualization nodes for displaying and rendering
+
+Each node has a defined set of inputs and outputs, allowing them to be connected
+in a workflow. Nodes can be used individually or combined to create complex
+image processing pipelines.
 """
 
 from .nodes import ContourFinding
@@ -38,5 +37,3 @@ __all__ = [
     # Draw
     "DrawPolygon"
 ]
-
-

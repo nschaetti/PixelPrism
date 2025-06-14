@@ -40,7 +40,7 @@ class DrawableImage(Image):
 
         Args:
             image_array (np.ndarray): Image data as a NumPy array
-            context_size (int): Size of the context
+            coord_system (CoordSystem): Coordinate system for the image
         """
         super().__init__(image_array)
         self._context = self.create_context(coord_system)

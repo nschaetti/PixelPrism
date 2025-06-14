@@ -19,7 +19,9 @@
 import unittest
 import numpy as np
 from pixel_prism.data import (
-    Scalar, TScalar, EventType
+    Scalar,
+    TScalar,
+    EventType
 )
 
 
@@ -64,6 +66,8 @@ class TestScalar(unittest.TestCase):
         """
         scalar1 = Scalar(5)
         scalar2 = Scalar(3)
+
+        # Test addition
         result = scalar1 + scalar2
         self.assertEqual(result.value, 8)
 

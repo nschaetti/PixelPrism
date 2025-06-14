@@ -1,19 +1,34 @@
-#
-# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
-# Copyright (c) 2024 Nils Schaetti.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
+"""
+Pixel Prism Utils - Utility Functions and Constants
+================================================
+
+This subpackage provides utility functions and constants used throughout the Pixel Prism library.
+These include color definitions, LaTeX rendering, logging utilities, and SVG parsing functions.
+
+Main Components
+--------------
+- Color Utilities:
+  - Predefined colors: `BLACK`, `WHITE`, `RED`, `GREEN`, `BLUE`, etc.
+  - :func:`~pixel_prism.utils.colors.random_color`: Generate a random color
+  - :func:`~pixel_prism.utils.colors.from_hex`: Convert a hex color string to RGB
+
+- LaTeX Utilities:
+  - :func:`~pixel_prism.utils.latex.render_latex_to_svg`: Render LaTeX to SVG
+
+- Logging Utilities:
+  - :func:`~pixel_prism.utils.logging.setup_logger`: Set up a logger with custom formatting
+  - :class:`~pixel_prism.utils.logging.CustomFormatter`: Custom formatter for logging
+
+- SVG Utilities:
+  - :func:`~pixel_prism.utils.svg.draw_svg`: Draw an SVG on an image
+  - :func:`~pixel_prism.utils.svg.parse_svg`: Parse an SVG file
+  - :func:`~pixel_prism.utils.svg.parse_path`: Parse an SVG path
+
+- Enumerations:
+  - :class:`~pixel_prism.utils.Anchor`: Enumeration of anchor points for positioning
+
+These utilities provide common functionality used throughout the Pixel Prism library.
+"""
 
 
 from enum import Enum
@@ -112,4 +127,3 @@ __all__ = [
     "parse_svg",
     "parse_path"
 ]
-

@@ -61,17 +61,17 @@ def bool_arg(value):
 @click.option("--save-frames", type=bool_arg, help="Save the frames to disk.")
 @click.option("--kwargs", multiple=True, help="Additional keyword arguments for the CustomAnimation class in key=value format")
 def main(
-        output,
-        input,
-        display,
-        debug_frames,
-        class_file,
-        class_name,
-        duration,
-        fps,
-        width,
-        height,
-        save_frames,
+        output: str,
+        input: str,
+        display: bool,
+        debug_frames: int,
+        class_file: str,
+        class_name: str,
+        duration: float,
+        fps: int,
+        width: int,
+        height: int,
+        save_frames: bool,
         kwargs
 ):
     """
@@ -83,6 +83,7 @@ def main(
     # Check that duration is provided if no input video is given
     if not input and not duration:
         raise click.UsageError("Duration (--duration) is required if no input video is specified.")
+    # end if
 
     # Load the CustomAnimation class from the specified file
     CustomAnimationClass = load_class_from_file(class_file, class_name)
@@ -93,6 +94,8 @@ def main(
         for kwarg in kwargs:
             key, value = kwarg.split('=')
             kwargs_dict[key] = value
+        # end for
+    # end if
 
     # Log additional parameters
     logger.info(f"CustomAnimation class: {class_name}")

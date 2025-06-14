@@ -1,19 +1,27 @@
-#
-# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
-# Copyright (c) 2024 Nils Schaetti.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
+"""
+Pixel Prism Base - Core Image and Coordinate System Classes
+=========================================================
+
+This subpackage provides the fundamental classes for image representation, 
+coordinate systems, and drawing contexts in the Pixel Prism library.
+These classes form the foundation upon which the rest of the library is built.
+
+Main Components
+--------------
+- Image Representation:
+  - :class:`~pixel_prism.base.image.Image`: Core class for storing and manipulating image data
+  - :class:`~pixel_prism.base.image.ImageMode`: Enumeration of image modes (RGB, RGBA, etc.)
+  - :class:`~pixel_prism.base.imagecanvas.ImageCanvas`: Class for working with multi-layered images
+  - :class:`~pixel_prism.base.layer.Layer`: Class representing a single layer in an image
+
+- Drawing and Coordinate Systems:
+  - :class:`~pixel_prism.base.context.Context`: Drawing context for rendering operations
+  - :class:`~pixel_prism.base.coordsystem.CoordSystem`: Coordinate system for transformations
+  - :class:`~pixel_prism.base.drawableimage.DrawableImage`: Image that can be drawn on
+
+These classes provide the core functionality for creating, manipulating, and
+rendering images in the Pixel Prism library.
+"""
 
 # Imports
 from .context import Context
