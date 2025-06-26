@@ -18,7 +18,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import (
+from pixelprism.data import (
     Scalar,
     TScalar,
     EventType

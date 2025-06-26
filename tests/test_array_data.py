@@ -18,7 +18,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import ArrayData
+from pixelprism.data import ArrayData
 
 
 class TestArrayData(unittest.TestCase):

@@ -21,15 +21,15 @@
 #
 import math
 
-from pixel_prism import utils
+from pixelprism import utils
 # PixelPrism
-from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, Range
-from pixel_prism.widgets.containers import Viewport
-from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas
-from pixel_prism.drawing import MathTex, Arc
-from pixel_prism.data import Point2D, Scalar
+from pixelprism.animation import Animation
+from pixelprism.animate import Move, EaseInOutInterpolator, Range
+from pixelprism.widgets.containers import Viewport
+from pixelprism.widgets import DrawableWidget
+from pixelprism.base import DrawableImage, ImageCanvas
+from pixelprism.drawing import MathTex, Arc
+from pixelprism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class

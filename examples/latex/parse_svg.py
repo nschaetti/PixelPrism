@@ -1,6 +1,6 @@
 
 
-from pixel_prism.utils import parse_svg
+from pixelprism.utils import parse_svg
 
 # Parse the SVG file
 paths = parse_svg('latex.svg')

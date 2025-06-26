@@ -20,14 +20,14 @@
 # Build and highlight
 #
 import math
-from pixel_prism import utils, p2, s
-from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, Range, Call
-from pixel_prism.widgets.containers import Viewport
-from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
-from pixel_prism.drawing import Arc
-from pixel_prism.data import Point2D, Scalar
+from pixelprism import utils, p2, s
+from pixelprism.animation import Animation
+from pixelprism.animate import Move, EaseInOutInterpolator, Range, Call
+from pixelprism.widgets.containers import Viewport
+from pixelprism.widgets import DrawableWidget
+from pixelprism.base import DrawableImage, ImageCanvas, CoordSystem
+from pixelprism.drawing import Arc
+from pixelprism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class

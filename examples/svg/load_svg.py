@@ -1,6 +1,6 @@
 
 
-from pixel_prism.drawing import VectorGraphics
+from pixelprism.drawing import VectorGraphics
 
 
 # Create a vector graphic from svg

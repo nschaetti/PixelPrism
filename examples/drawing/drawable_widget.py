@@ -16,12 +16,12 @@
 #
 
 # Imports
-from pixel_prism import s, p2, c
-from pixel_prism.animation import Animation
-from pixel_prism.widgets.containers import Viewport
-from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
-from pixel_prism.drawing import Line, Circle
+from pixelprism import s, p2, c
+from pixelprism.animation import Animation
+from pixelprism.widgets.containers import Viewport
+from pixelprism.widgets import DrawableWidget
+from pixelprism.base import DrawableImage, ImageCanvas, CoordSystem
+from pixelprism.drawing import Line, Circle
 
 
 # DrawableWidgetAnimation class

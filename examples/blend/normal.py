@@ -6,10 +6,10 @@
 import numpy as np
 
 # Pixel prism
-from pixel_prism import Animation
-from pixel_prism.base.imagecanvas import ImageCanvas
-from pixel_prism.base import Image
-import pixel_prism.base.functional as F
+from pixelprism import Animation
+from pixelprism.base.imagecanvas import ImageCanvas
+from pixelprism.base import Image
+import pixelprism.base.functional as F
 
 
 # Normal blend animation class

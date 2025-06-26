@@ -18,7 +18,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import Color
+from pixelprism.data import Color
 
 
 class TestColor(unittest.TestCase):

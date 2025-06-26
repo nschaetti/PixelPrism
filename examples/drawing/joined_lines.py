@@ -17,14 +17,14 @@
 
 # PixelPrism
 import numpy as np
-from pixel_prism import p2, s, c
-from pixel_prism.animation import Animation
-from pixel_prism.widgets.containers import Viewport
-from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
-from pixel_prism.drawing import Line
-from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut, Range
-from pixel_prism.data import Point2D, Scalar, Color
+from pixelprism import p2, s, c
+from pixelprism.animation import Animation
+from pixelprism.widgets.containers import Viewport
+from pixelprism.widgets import DrawableWidget
+from pixelprism.base import DrawableImage, ImageCanvas, CoordSystem
+from pixelprism.drawing import Line
+from pixelprism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut, Range
+from pixelprism.data import Point2D, Scalar, Color
 
 
 # JoinedLinesAnimation class

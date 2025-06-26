@@ -6,7 +6,7 @@ import mkdocs_gen_files
 nav = mkdocs_gen_files.Nav()
 
 # Path to the source code
-src_dir = Path("pixel_prism")
+src_dir = Path("pixelprism")
 # Path in the documentation where the reference will be generated
 reference_dir = Path("reference")
 

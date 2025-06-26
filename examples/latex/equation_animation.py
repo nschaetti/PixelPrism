@@ -19,13 +19,13 @@
 #
 
 # PixelPrism
-from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut
-from pixel_prism.widgets.containers import Viewport
-from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas, CoordSystem
-from pixel_prism.drawing import MathTex
-from pixel_prism.data import Point2D
+from pixelprism.animation import Animation
+from pixelprism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut
+from pixelprism.widgets.containers import Viewport
+from pixelprism.widgets import DrawableWidget
+from pixelprism.base import DrawableImage, ImageCanvas, CoordSystem
+from pixelprism.drawing import MathTex
+from pixelprism.data import Point2D
 
 
 # DrawableWidgetAnimation class

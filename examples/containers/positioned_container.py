@@ -1,10 +1,10 @@
 
 
 # PixelPrism
-from pixel_prism.animation import Animation
-from pixel_prism.widgets.containers import SplitContainer, PositionedContainer
-from pixel_prism.widgets import Point, Line, Dummy
-from pixel_prism.base import DrawableImage, ImageCanvas
+from pixelprism.animation import Animation
+from pixelprism.widgets.containers import SplitContainer, PositionedContainer
+from pixelprism.widgets import Point, Line, Dummy
+from pixelprism.base import DrawableImage, ImageCanvas
 
 
 # CustomAnimation class

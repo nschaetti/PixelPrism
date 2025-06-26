@@ -1,8 +1,8 @@
 
 # Imports
-from pixel_prism import VideoComposer, Animation
+from pixelprism import VideoComposer, Animation
 
-from pixel_prism.effects import (
+from pixelprism.effects import (
     FacePointsEffect,
     DrawPointsEffect
 )

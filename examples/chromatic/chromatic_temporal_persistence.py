@@ -7,9 +7,9 @@
 import numpy as np
 
 # Pixel prism
-from pixel_prism import Animation
-from pixel_prism.base.imagecanvas import ImageCanvas
-import pixel_prism.effects as effects
+from pixelprism import Animation
+from pixelprism.base.imagecanvas import ImageCanvas
+import pixelprism.effects as effects
 
 
 # Chromatic temporal persistence animation class

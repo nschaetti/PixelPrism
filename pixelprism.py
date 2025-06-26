@@ -3,8 +3,8 @@
 import importlib.util
 import click
 
-from pixel_prism import VideoComposer
-from pixel_prism.utils import setup_logger
+from pixelprism import VideoComposer
+from pixelprism.utils import setup_logger
 
 
 # Setup logger

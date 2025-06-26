@@ -3,9 +3,9 @@
 import numpy as np
 
 # Import necessary classes
-from pixel_prism import Animation, VideoComposer
-from pixel_prism.effects import SIFTPointsEffect, DrawPointsEffect
-from pixel_prism.base.image import Image
+from pixelprism import Animation, VideoComposer
+from pixelprism.effects import SIFTPointsEffect, DrawPointsEffect
+from pixelprism.base.image import Image
 
 
 # Custom animation class

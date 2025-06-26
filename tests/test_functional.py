@@ -1,19 +1,19 @@
 """
-Test the functional operations in pixel_prism.data.functional.
+Test the functional operations in pixelprism.data.functional.
 """
 
 import unittest
 import numpy as np
 
-from pixel_prism.data.scalar import Scalar
-from pixel_prism.data.points import Point2D
-from pixel_prism.data.matrices import Matrix2D
-import pixel_prism.data.functional as F
+from pixelprism.data.scalar import Scalar
+from pixelprism.data.points import Point2D
+from pixelprism.data.matrices import Matrix2D
+import pixelprism.data.functional as F
 
 
 class TestFunctional(unittest.TestCase):
     """
-    Test the functional operations in pixel_prism.data.functional.
+    Test the functional operations in pixelprism.data.functional.
     """
 
     def test_scalar_add(self):

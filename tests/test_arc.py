@@ -20,9 +20,9 @@ import unittest
 import math
 import numpy as np
 from unittest.mock import Mock
-from pixel_prism import p2, s, c
-from pixel_prism.data import Point2D, Scalar, Color
-from pixel_prism.drawing import Arc
+from pixelprism import p2, s, c
+from pixelprism.data import Point2D, Scalar, Color
+from pixelprism.drawing import Arc
 
 
 class TestArc(unittest.TestCase):

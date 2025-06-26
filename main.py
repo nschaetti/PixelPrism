@@ -4,12 +4,12 @@ from tqdm import tqdm
 import time
 import argparse
 
-from pixel_prism.effect_pipeline import EffectPipeline
-from pixel_prism.effects.effects import AdvancedTVEffect, ChromaticAberrationEffect, LenticularDistortionEffect
-from pixel_prism.effects.effects import GlowEffect, BlurEffect
-from pixel_prism.effects.chromatic import ChromaticSpatialShiftEffect, ChromaticTemporalPersistenceEffect
-from pixel_prism.effects.interest_points import SIFTPointsEffect
-from pixel_prism.effects.colors import LUTEffect
+from pixelprism.effect_pipeline import EffectPipeline
+from pixelprism.effects.effects import AdvancedTVEffect, ChromaticAberrationEffect, LenticularDistortionEffect
+from pixelprism.effects.effects import GlowEffect, BlurEffect
+from pixelprism.effects.chromatic import ChromaticSpatialShiftEffect, ChromaticTemporalPersistenceEffect
+from pixelprism.effects.interest_points import SIFTPointsEffect
+from pixelprism.effects.colors import LUTEffect
 
 
 def process_video(

@@ -8,17 +8,18 @@ Here's a simple example of creating a basic animation:
 
 ```python
 import numpy as np
-from pixel_prism import VideoComposer
+from pixelprism import VideoComposer
+
 
 class SimpleAnimation:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        
+
     def render_frame(self, frame_number, time, delta_time):
         # Create a gradient background
         frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        
+
         # Calculate a moving gradient based on time
         for y in range(self.height):
             for x in range(self.width):
@@ -26,8 +27,9 @@ class SimpleAnimation:
                 g = int(127 + 127 * np.sin(y * 0.01 + time * 0.7))
                 b = int(127 + 127 * np.sin((x + y) * 0.01 + time * 1.3))
                 frame[y, x] = [r, g, b]
-                
+
         return frame
+
 
 # Create a video composer
 composer = VideoComposer(
@@ -48,8 +50,9 @@ composer.create_video()
 You can add effects to your animations:
 
 ```python
-from pixel_prism import VideoComposer
-from pixel_prism.effects import BlurEffect, VignetteEffect
+from pixelprism import VideoComposer
+from pixelprism.effects import BlurEffect, VignetteEffect
+
 
 class EffectsAnimation:
     def __init__(self, width, height):
@@ -57,16 +60,17 @@ class EffectsAnimation:
         self.height = height
         self.blur = BlurEffect(radius=5)
         self.vignette = VignetteEffect(strength=0.7)
-        
+
     def render_frame(self, frame_number, time, delta_time):
         # Create a base frame (similar to previous example)
         frame = create_base_frame(self.width, self.height, time)
-        
+
         # Apply effects
         frame = self.blur.apply(frame)
         frame = self.vignette.apply(frame)
-                
+
         return frame
+
 
 # Create a video composer
 composer = VideoComposer(
@@ -87,8 +91,9 @@ composer.create_video()
 You can also apply effects to existing videos:
 
 ```python
-from pixel_prism import VideoComposer
-from pixel_prism.effects import ColorGradingEffect
+from pixelprism import VideoComposer
+from pixelprism.effects import ColorGradingEffect
+
 
 class VideoProcessor:
     def __init__(self, width, height):
@@ -99,11 +104,12 @@ class VideoProcessor:
             brightness=1.1,
             saturation=1.3
         )
-        
+
     def render_frame(self, frame_number, time, delta_time, input_frame):
         # Apply color grading to the input frame
         processed_frame = self.color_grading.apply(input_frame)
         return processed_frame
+
 
 # Create a video composer with an input video
 composer = VideoComposer(

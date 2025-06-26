@@ -25,7 +25,7 @@ Perfect for artists, designers, and researchers exploring image aesthetics.
 """
 
 # Imports
-from pixel_prism.nodes import (
+from pixelprism.nodes import (
     ContourFinding,
     VectorsToString,
     SelectChannel,

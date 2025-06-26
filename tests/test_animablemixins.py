@@ -17,9 +17,9 @@
 
 # Imports
 import unittest
-from pixel_prism import find_animable_mixins
-from pixel_prism.animate import animeattr
-from pixel_prism.animate.able import AnimableMixin
+from pixelprism import find_animable_mixins
+from pixelprism.animate import animeattr
+from pixelprism.animate.able import AnimableMixin
 
 
 # Non-animable object

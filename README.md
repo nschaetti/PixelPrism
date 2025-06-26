@@ -47,7 +47,7 @@ Optional arguments:
 You can also use PixelPrism as a library in your Python code:
 
 ```python
-from pixel_prism import VideoComposer
+from pixelprism import VideoComposer
 from my_animation import MyAnimation
 
 # Create a video composer

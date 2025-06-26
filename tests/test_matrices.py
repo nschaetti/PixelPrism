@@ -18,10 +18,10 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import (
+from pixelprism.data import (
     Matrix2D, TMatrix2D, EventType
 )
-from pixel_prism.data import Scalar
+from pixelprism.data import Scalar
 
 
 class TestMatrix2D(unittest.TestCase):

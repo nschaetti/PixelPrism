@@ -21,7 +21,7 @@
 
 # Imports
 import unittest
-from pixel_prism.data.scalar import Scalar
+from pixelprism.data.scalar import Scalar
 
 
 class TestScalar(unittest.TestCase):

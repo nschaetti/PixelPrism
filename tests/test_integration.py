@@ -18,7 +18,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import Scalar, Point2D, Matrix2D, TScalar, TMatrix2D, TPoint2D
+from pixelprism.data import Scalar, Point2D, Matrix2D, TScalar, TMatrix2D, TPoint2D
 
 
 class TestComplexEquationIntegration(unittest.TestCase):

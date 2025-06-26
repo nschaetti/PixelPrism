@@ -30,7 +30,7 @@ PixelPrism provides a comprehensive set of tools for video and image manipulatio
 Here's a simple example of how to use PixelPrism:
 
 ```python
-from pixel_prism import VideoComposer
+from pixelprism import VideoComposer
 from your_animation_file import YourCustomAnimation
 
 # Create a video composer
