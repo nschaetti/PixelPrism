@@ -15,20 +15,33 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Import from math_expr.py
-from .math_expr import (
-    MathEvent,
-    MathEventData,
-    MathExpr,
-    MathOperator,
-    MathLeaf
-)
 
-# Import from scalar.py
-from .scalar import Scalar
+# Imports
+import pixelprism.math as m
 
-# Import from operators.py
-from .operators import ScalarToScalarAddition
 
-# Import functional submodule
-from . import functional
+def add(
+        operand1: m.MathExpr,
+        operand2: m.MathExpr
+) -> m.MathOperator:
+    """
+    Add two math expressions.
+
+    Args:
+        operand1: First math expression.
+        operand2: Second math expression.
+
+    Returns:
+        A new math expression.
+    """
+    # Get class names of the two operands
+    operand1_class_name = operand1.__class__.__name__
+    operand2_class_name = operand2.__class__.__name__
+
+    # Compute name of the operator
+    operator_class_name = f"{operand1_class_name}To{operand2_class_name}Addition"
+
+    # Search for this class in pixelprism.math (m)
+    # ...
+# end add
+
