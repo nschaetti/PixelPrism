@@ -35,7 +35,7 @@ class MathEvent(Event):
 
     Example:
         ```python
-        # Create a math event
+        # Create a math_old event
         event = MathEvent()
 
         # Add a listener

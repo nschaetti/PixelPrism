@@ -18,8 +18,8 @@
 # Imports
 from abc import ABC
 from typing import Callable, List, Any, Optional
-from .math_expr import MathOperator, MathEvent, MathEventData
-from .scalar import Scalar
+from pixelprism.math.math_expr import MathOperator, MathEvent, MathEventData
+from pixelprism.math.scalar import Scalar
 
 
 class ScalarToScalarAddition(MathOperator, ABC):

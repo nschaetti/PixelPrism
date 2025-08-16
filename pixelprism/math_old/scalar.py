@@ -34,8 +34,6 @@ import functional as F
 # Type hint for addition
 # Scalar + float = MathExpr
 # Scalar + Scalar = Scalar
-# Scalar + Point2D = Point2D
-# Scalar + Matrix2D = Matrix2D
 
 # Scalar class
 class Scalar(MathLeaf, RangeableMixin, ABC):
@@ -94,7 +92,7 @@ class Scalar(MathLeaf, RangeableMixin, ABC):
 
     def __init__(
             self,
-            value=0,
+            value,
             on_change=None,
             readonly: bool = False
     ):
@@ -105,7 +103,7 @@ class Scalar(MathLeaf, RangeableMixin, ABC):
         event handling for value changes, and initializes the animation capabilities.
 
         Args:
-            value (Union[int, float, Scalar]): Initial value of the scalar. Default is 0.
+            value (Union[int, float, Scalar]): Initial value of the scalar.
                 If a Scalar instance is provided, its value will be extracted.
             on_change (Optional[Callable[[MathEventData], None]]): Function to call when the value changes.
                 The function should accept a MathEventData parameter.
@@ -113,11 +111,8 @@ class Scalar(MathLeaf, RangeableMixin, ABC):
 
         Example:
             ```python
-            # Create a scalar with default value (0)
-            s1 = Scalar()
-
             # Create a scalar with a specific value
-            s2 = Scalar(42)
+            s1 = Scalar(42)
 
             # Create a scalar with a change listener
             def on_change(data):
@@ -268,10 +263,10 @@ class Scalar(MathLeaf, RangeableMixin, ABC):
             s = Scalar(42)
             f = float(s)  # f is 42.0
 
-            # Use a scalar with math functions
-            import math
-            angle = Scalar(math.pi/2)
-            sine = math.sin(float(angle))  # sine is 1.0
+            # Use a scalar with math_old functions
+            import math_old
+            angle = Scalar(math_old.pi/2)
+            sine = math_old.sin(float(angle))  # sine is 1.0
             ```
         """
         return float(self._value)
