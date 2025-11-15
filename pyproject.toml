@@ -1,24 +1,26 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pixelprism"
 version = "0.1.0"
-description = "A Python library that applies advanced visual effects to videos and images"
+description = "Pixel Prism — dynamic math and animation engine"
 readme = "README.md"
 authors = [
     {name = "Nils Schaetti", email = "nils.schaetti@gmail.com"},
 ]
-license = {text = "GNU General Public License v3 (GPLv3)"}
+license = {text = "GPL-3.0-or-later"}
+
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
-    "Topic :: Multimedia :: Graphics",
-    "Topic :: Multimedia :: Video",
 ]
-requires-python = ">=3.6"
+
+requires-python = ">=3.10"
+
 dependencies = [
     "numpy",
     "tqdm",
@@ -37,32 +39,18 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/nschaetti/PixelPrism"
-Documentation = "https://nschaetti.github.io/PixelPrism"
+Documentation = "https://pixelprism.readthedocs.io/"
 
-[project.scripts]
-pixelprism = "pixelprism:main"
+# ---- ENTRY POINTS (optional) ----
+# Only if you really have pixelprism/main.py or a main() in __init__.py
+# Otherwise REMOVE this block.
+#[project.scripts]
+#pixelprism = "pixelprism:main"
 
-[tool.setuptools]
-packages = ["pixel_prism", "pixelprism"]
 
-[tool.setuptools.find-namespace-packages]
+# ---- PACKAGE DISCOVERY ----
+[tool.setuptools.packages.find]
 where = ["."]
+include = ["pixelprism*"]
 
-[tool.mkdocs]
-mkdocs_config = "mkdocs.yml"
-
-[tool.mkdocstrings]
-default_handler = "python"
-handlers = {python = {selection = {inherited_members = true}}}
-watch = ["pixel_prism"]
-
-[project.optional-dependencies]
-docs = [
-    "mkdocs>=1.4.0",
-    "mkdocs-material>=8.5.0",
-    "mkdocstrings>=0.19.0",
-    "mkdocstrings-python>=0.8.0",
-    "mkdocs-gen-files>=0.4.0",
-    "mkdocs-literate-nav>=0.5.0",
-    "mkdocs-autorefs>=0.4.1",
-]
+# No namespace packaging, no legacy configs -> remove everything else
