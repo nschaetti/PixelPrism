@@ -43,7 +43,7 @@ Documentation = "https://nschaetti.github.io/PixelPrism"
 pixelprism = "pixelprism:main"
 
 [tool.setuptools]
-packages = ["pixel_prism"]
+packages = ["pixel_prism", "pixelprism"]
 
 [tool.setuptools.find-namespace-packages]
 where = ["."]

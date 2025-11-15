@@ -1,3 +1,30 @@
+# ####   #####  #   #  #####  #
+# #   #    #     # #   #      #
+# ####     #      #    #####  #
+# #        #     # #   #      #
+# #      #####  #   #  #####  #####
+#
+# ####   ####   #####   ####  #   #
+# #   #  #   #    #    #      ## ##
+# ####   ####     #     ###   # # #
+# #      #  #     #        #  #   #
+# #      #   #  #####  ####   #   #
+#
+# Copyright (C) 2024 Pixel Prism
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #
 # Description: This example demonstrates how to create a custom animation that shows the SIFT points of the
 # input video.
@@ -7,9 +34,9 @@
 import numpy as np
 
 # Pixel prism
-from pixel_prism import Animation
-from pixel_prism.base.imagecanvas import ImageCanvas
-import pixel_prism.effects as effects
+from pixelprism import Animation
+from pixelprism.base.imagecanvas import ImageCanvas
+import pixelprism.effects as effects
 
 
 # Chromatic temporal persistence animation class
@@ -79,7 +106,7 @@ class ChromaticTemporalPersistenceAnimation(Animation):
             frame_number (int): Frame number
             total_frames (int): Total number of frames
         """
-        # Get input image data
+        # Get input image math
         base_layer_image = image_canvas.get_layer("base").image
 
         # Random number between 0 and 25

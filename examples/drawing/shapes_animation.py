@@ -1,3 +1,30 @@
+# ####   #####  #   #  #####  #
+# #   #    #     # #   #      #
+# ####     #      #    #####  #
+# #        #     # #   #      #
+# #      #####  #   #  #####  #####
+#
+# ####   ####   #####   ####  #   #
+# #   #  #   #    #    #      ## ##
+# ####   ####     #     ###   # # #
+# #      #  #     #        #  #   #
+# #      #   #  #####  ####   #   #
+#
+# Copyright (C) 2024 Pixel Prism
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #
 # This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
 # Copyright (c) 2024 Nils Schaetti.
@@ -21,15 +48,15 @@
 #
 import math
 
-from pixel_prism import utils
+from pixelprism import utils
 # PixelPrism
-from pixel_prism.animation import Animation
-from pixel_prism.animate import Move, EaseInOutInterpolator, Range
-from pixel_prism.widgets.containers import Viewport
-from pixel_prism.widgets import DrawableWidget
-from pixel_prism.base import DrawableImage, ImageCanvas
-from pixel_prism.drawing import MathTex, Arc
-from pixel_prism.data import Point2D, Scalar
+from pixelprism.animation import Animation
+from pixelprism.animate import Move, EaseInOutInterpolator, Range
+from pixelprism.widgets.containers import Viewport
+from pixelprism.widgets import DrawableWidget
+from pixelprism.base import DrawableImage, ImageCanvas
+from pixelprism.drawing import MathTex, Arc
+from pixelprism.math import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class

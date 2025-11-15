@@ -1,11 +1,37 @@
+# ####   #####  #   #  #####  #
+# #   #    #     # #   #      #
+# ####     #      #    #####  #
+# #        #     # #   #      #
+# #      #####  #   #  #####  #####
+#
+# ####   ####   #####   ####  #   #
+# #   #  #   #    #    #      ## ##
+# ####   ####     #     ###   # # #
+# #      #  #     #        #  #   #
+# #      #   #  #####  ####   #   #
+#
+# Copyright (C) 2024 Pixel Prism
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Import necessary libraries
 import numpy as np
 
 # Import necessary classes
-from pixel_prism import Animation, VideoComposer
-from pixel_prism.effects import SIFTPointsEffect, DrawPointsEffect
-from pixel_prism.base.image import Image
+from pixelprism import Animation, VideoComposer
+from pixelprism.effects import SIFTPointsEffect, DrawPointsEffect
+from pixelprism.base.image import Image
 
 
 # Custom animation class
@@ -41,7 +67,7 @@ class CustomAnimation(Animation):
         """
         mid_point = total_frames // 2
 
-        # Get input image data
+        # Get input image math
         base_layer_image = image_canvas.get_layer("base").image
 
         # Add black background

@@ -1,3 +1,30 @@
+# ####   #####  #   #  #####  #
+# #   #    #     # #   #      #
+# ####     #      #    #####  #
+# #        #     # #   #      #
+# #      #####  #   #  #####  #####
+#
+# ####   ####   #####   ####  #   #
+# #   #  #   #    #    #      ## ##
+# ####   ####     #     ###   # # #
+# #      #  #     #        #  #   #
+# #      #   #  #####  ####   #   #
+#
+# Copyright (C) 2024 Pixel Prism
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #
 # This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
 # Copyright (c) 2024 Nils Schaetti.
@@ -18,10 +45,10 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import (
+from pixelprism.math import (
     Matrix2D, TMatrix2D, EventType
 )
-from pixel_prism.data import Scalar
+from pixelprism.math import Scalar
 
 
 class TestMatrix2D(unittest.TestCase):
@@ -216,7 +243,7 @@ class TestMatrix2D(unittest.TestCase):
         # Check if the on_change event was triggered with the correct matrix
         self.assertEqual(len(changes), 1)
         self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
-        np.testing.assert_array_equal(changes[0][1], new_matrix)  # Check matrix data
+        np.testing.assert_array_equal(changes[0][1], new_matrix)  # Check matrix math
     # end test_on_change_set_matrix
 
     def test_on_change_modify_matrix_element(self):
@@ -267,7 +294,7 @@ class TestMatrix2D(unittest.TestCase):
         # Check if the on_change event was triggered
         self.assertEqual(len(changes), 1)
         self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
-        np.testing.assert_array_equal(matrix1.data, np.identity(3) + np.ones((3, 3)))  # Check new matrix data
+        np.testing.assert_array_equal(matrix1.data, np.identity(3) + np.ones((3, 3)))  # Check new matrix math
     # end test_on_change_addition
 
 # end TestMatrix2D

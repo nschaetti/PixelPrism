@@ -1,3 +1,30 @@
+# ####   #####  #   #  #####  #
+# #   #    #     # #   #      #
+# ####     #      #    #####  #
+# #        #     # #   #      #
+# #      #####  #   #  #####  #####
+#
+# ####   ####   #####   ####  #   #
+# #   #  #   #    #    #      ## ##
+# ####   ####     #     ###   # # #
+# #      #  #     #        #  #   #
+# #      #   #  #####  ####   #   #
+#
+# Copyright (C) 2024 Pixel Prism
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #
 # This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
 # Copyright (c) 2024 Nils Schaetti.
@@ -18,14 +45,14 @@
 # Imports
 import unittest
 import numpy as np
-from pixel_prism.data import ArrayData
+from pixelprism.math import ArrayData
 
 
 class TestArrayData(unittest.TestCase):
 
     def test_initialization(self):
         """
-        Test that the array data can be initialized correctly.
+        Test that the array math can be initialized correctly.
         """
         array_data = ArrayData([1, 2, 3])
         self.assertTrue(np.array_equal(array_data.data, np.array([1, 2, 3])))
@@ -33,7 +60,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_set_data(self):
         """
-        Test that the array data can be set correctly.
+        Test that the array math can be set correctly.
         """
         array_data = ArrayData([1, 2, 3])
         array_data.data = [4, 5, 6]
@@ -42,7 +69,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_set_item(self):
         """
-        Test that an item in the array data can be set correctly
+        Test that an item in the array math can be set correctly
         """
         array_data = ArrayData([1, 2, 3])
         array_data[0] = 10
@@ -51,7 +78,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_on_change_callback(self):
         """
-        Test that the on_change event is triggered when the array data is changed.
+        Test that the on_change event is triggered when the array math is changed.
         """
         changes = []
 
@@ -72,7 +99,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_addition(self):
         """
-        Test that two array data can be added together.
+        Test that two array math can be added together.
         """
         array_data1 = ArrayData([1, 2, 3])
         array_data2 = ArrayData([4, 5, 6])
@@ -82,7 +109,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_subtraction(self):
         """
-        Test that two array data can be subtracted.
+        Test that two array math can be subtracted.
         """
         array_data1 = ArrayData([4, 5, 6])
         array_data2 = ArrayData([1, 2, 3])
@@ -92,7 +119,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_multiplication(self):
         """
-        Test that an array data can be multiplied by a scalar.
+        Test that an array math can be multiplied by a scalar.
         """
         array_data1 = ArrayData([1, 2, 3])
         result = array_data1 * 2
@@ -101,7 +128,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_division(self):
         """
-        Test that an array data can be divided by a scalar.
+        Test that an array math can be divided by a scalar.
         """
         array_data1 = ArrayData([2, 4, 6])
         result = array_data1 / 2
@@ -110,7 +137,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_equality(self):
         """
-        Test that two array data objects can be compared for equality.
+        Test that two array math objects can be compared for equality.
         """
         array_data1 = ArrayData([1, 2, 3])
         array_data2 = ArrayData([1, 2, 3])
@@ -119,7 +146,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_inequality(self):
         """
-        Test that two array data objects can be compared for inequality.
+        Test that two array math objects can be compared for inequality.
         """
         array_data1 = ArrayData([1, 2, 3])
         array_data2 = ArrayData([4, 5, 6])
@@ -128,7 +155,7 @@ class TestArrayData(unittest.TestCase):
 
     def test_copy(self):
         """
-        Test that an array data object can be copied.
+        Test that an array math object can be copied.
         """
         array_data1 = ArrayData([1, 2, 3])
         array_data_copy = array_data1.copy()
