@@ -41,7 +41,7 @@ def parse_path(
     Parse an SVG path and return the segments.
 
     Args:
-        path_data (str): SVG path math
+        path_data (str): SVG path math_old
     """
     return svg.parse_path(path_data)
 # end parse_path
@@ -81,7 +81,7 @@ def parse_svg(
             x = float(element.attrib.get('x', '0'))
             y = float(element.attrib.get('y', '0'))
             transform = element.attrib.get('transform', '')
-            paths.append({'type': 'path', 'math': defs[href], 'x': x, 'y': y, 'transform': transform})
+            paths.append({'type': 'path', 'math_old': defs[href], 'x': x, 'y': y, 'transform': transform})
         elif tag == 'rect':
             x = float(element.attrib.get('x', '0'))
             y = float(element.attrib.get('y', '0'))
@@ -199,7 +199,7 @@ def draw_svg(
 
         if element['type'] == 'path':
             # Get subpaths
-            subpaths = element['math'].d().split('M')
+            subpaths = element['math_old'].d().split('M')
 
             # New path
             context.new_path()

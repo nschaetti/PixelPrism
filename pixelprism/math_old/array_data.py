@@ -34,12 +34,12 @@ class ArrayData(Data):
 
     def __init__(self, data, on_change=None, dtype=np.float32):
         """
-        Initialize the array math.
+        Initialize the array math_old.
 
         Args:
-            data (np.array or list): Initial math
+            data (np.array or list): Initial math_old
             on_change (callable, optional): Function to call on change
-            dtype (math-type, optional): Desired math type for the array
+            dtype (math_old-type, optional): Desired math_old type for the array
         """
         Data.__init__(self)
         self._data = np.array(data, dtype=dtype)
@@ -53,19 +53,19 @@ class ArrayData(Data):
     @property
     def data(self):
         """
-        Get the array math.
+        Get the array math_old.
         """
         return self._data
-    # end math
+    # end math_old
 
     @data.setter
     def data(self, value):
         """
-        Set the array math.
+        Set the array math_old.
         """
         self._data = np.array(value, dtype=self._data.dtype)
         self.dispatch_event("on_change", self._data)
-    # end math
+    # end math_old
 
     # endregion PROPERTIES
 
@@ -87,7 +87,7 @@ class ArrayData(Data):
 
     def copy(self):
         """
-        Return a copy of the array math.
+        Return a copy of the array math_old.
         """
         new_copy = ArrayData(self._data.copy())
         return new_copy
@@ -99,7 +99,7 @@ class ArrayData(Data):
 
     def __setitem__(self, key, value):
         """
-        Set an item in the array math.
+        Set an item in the array math_old.
 
         Args:
             key (int): Index of the item
@@ -111,7 +111,7 @@ class ArrayData(Data):
 
     def __getitem__(self, key):
         """
-        Get an item from the array math.
+        Get an item from the array math_old.
 
         Args:
             key (int): Index of the item
@@ -121,23 +121,23 @@ class ArrayData(Data):
 
     def __len__(self):
         """
-        Return the length of the array math.
+        Return the length of the array math_old.
         """
         return len(self._data)
     # end __len__
 
     def __str__(self):
         """
-        Return a string representation of the array math.
+        Return a string representation of the array math_old.
         """
         return str(self._data)
     # end __str__
 
     def __repr__(self):
         """
-        Return a string representation of the array math.
+        Return a string representation of the array math_old.
         """
-        return f"ArrayData(math={self._data})"
+        return f"ArrayData(math_old={self._data})"
     # end __repr__
 
     def __add__(self, other):

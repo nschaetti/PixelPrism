@@ -36,7 +36,7 @@ from pixelprism.widgets.containers import Viewport
 from pixelprism.widgets import DrawableWidget
 from pixelprism.base import DrawableImage, ImageCanvas
 from pixelprism.drawing import MathTex
-from pixelprism.math import Point2D
+from pixelprism.math_old import Point2D
 
 
 # DrawableWidgetAnimation class
@@ -73,7 +73,7 @@ class MathTexAnimation(Animation):
         # Add the LaTeX widget to the drawable widget
         drawable_widget.add(latex_widget)
 
-        # Build the math tex object
+        # Build the math_old tex object
         self.animate(
             Build(
                 latex_widget,

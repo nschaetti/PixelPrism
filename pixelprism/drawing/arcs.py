@@ -43,10 +43,12 @@
 #
 
 # Imports
+from __future__ import annotations
+
 import math
-from typing import Optional
+from typing import Callable, Optional
 from pixelprism.animate import MovableMixin, CallableMixin, FadeableMixin,  animeattr
-from pixelprism.math import Point2D, Scalar, Color
+from pixelprism.math_old import Point2D, Scalar, Color
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
@@ -79,8 +81,8 @@ class Arc(
             line_width: Scalar = Scalar(0.0),
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            on_change=None
-    ):
+            on_change: Optional[Callable[..., None]] = None
+    ) -> Arc:
         """
         Initialize the arc with its center, radius, start angle, and end angle.
 
@@ -364,12 +366,12 @@ class Arc(
         self._end_angle.set(angle)
     # end set_end_angle
 
-    # Update math
+    # Update math_old
     def update_data(
             self
     ):
         """
-        Update the math of the arc.
+        Update the math_old of the arc.
         """
         self.update_points()
         self.update_bbox()
@@ -822,8 +824,8 @@ class Arc(
             line_width: float = 0.0,
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            on_change=None
-    ):
+            on_change: Optional[Callable[..., None]] = None
+    ) -> Arc:
         """
         Create an arc from scalar values.
 
@@ -896,5 +898,4 @@ class Arc(
     # endregion CLASS_METHODS
 
 # end Arc
-
 

@@ -240,7 +240,7 @@ class Point2D(Point):
 
     def register_event(self, event_name, listener):
         """
-        Add an event listener to the math object.
+        Add an event listener to the math_old object.
 
         Args:
             event_name (str): Event to listen for
@@ -254,7 +254,7 @@ class Point2D(Point):
 
     def unregister_event(self, event_name, listener):
         """
-        Remove an event listener from the math object.
+        Remove an event listener from the math_old object.
 
         Args:
             event_name (str): Event to remove listener from

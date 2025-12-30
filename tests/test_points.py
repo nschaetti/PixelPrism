@@ -45,7 +45,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixelprism.math import Point2D, TPoint2D, Scalar, TScalar
+from pixelprism.math_old import Point2D, TPoint2D, Scalar, TScalar
 
 
 class TestPoint2D(unittest.TestCase):
@@ -86,7 +86,7 @@ class TestPoint2D(unittest.TestCase):
         Test that the on_change event is triggered with the correct parameters
         when the point is changed.
         """
-        from pixelprism.math import EventType
+        from pixelprism.math_old import EventType
         changes = []
 
         def on_change(sender, event_type, x, y):
@@ -863,7 +863,7 @@ class TestPoint2D(unittest.TestCase):
         """
         Test the Mahalanobis distance between two points.
         """
-        from pixelprism.math import Matrix2D
+        from pixelprism.math_old import Matrix2D
 
         point1 = Point2D(1, 1)
         point2 = Point2D(3, 4)

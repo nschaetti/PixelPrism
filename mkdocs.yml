@@ -1,14 +1,24 @@
 site_name: PixelPrism
 site_description: A Python library that applies advanced visual effects to videos and images
-site_url: https://nschaetti.github.io/PixelPrism
+site_url: https://nschaetti.github.io/PixelPrism/
 repo_url: https://github.com/nschaetti/PixelPrism
 repo_name: nschaetti/PixelPrism
 
 theme:
   name: material
   palette:
-    primary: indigo
-    accent: indigo
+    - scheme: catppuccin-mocha
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to Catppuccin Mocha
+    - scheme: catppuccin-mocha
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to Catppuccin Latte
   icon:
     repo: fontawesome/brands/github
   features:
@@ -68,9 +78,18 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Guides:
+      - Overview: guides/overview.md
+      - Expressions: guides/expressions.md
+      - Animation: guides/animation.md
   - Types: types.md
-  - API Reference: reference/
   - Examples: examples.md
+  - API Reference: reference/
+  - Resources:
+      - Developer Guide: dev_guide.md
+
+extra_css:
+  - stylesheets/catppuccin.css
 
 extra:
   social:

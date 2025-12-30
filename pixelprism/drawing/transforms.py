@@ -26,8 +26,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Imports
+from __future__ import annotations
+
+from typing import Tuple
+
 import numpy as np
-from pixelprism.math import Point2D, Scalar
+from pixelprism.math_old import Point2D, Scalar
 
 
 class Transform(object):
@@ -44,31 +48,31 @@ class Translate2D(Transform):
     A class to represent a translate transform.
     """
 
-    def __init__(self, tx=0, ty=0):
+    def __init__(self, tx: float = 0, ty: float = 0):
         """
         Initialize the translate transform with its X and Y offsets.
 
         Args:
-            x (float): X offset
-            y (float): Y offset
+            tx (float): X offset.
+            ty (float): Y offset.
         """
         super().__init__()
         self.translate = Point2D(tx, ty)
     # end __init__
 
     # Get
-    def get(self):
+    def get(self) -> Point2D:
         """
         Get the X and Y offsets of the translate transform.
 
         Returns:
-            tuple: X and Y offsets of the translate transform
+            Point2D: X and Y offsets of the translate transform
         """
         return self.translate
     # end get
 
     # Set
-    def set(self, tx=0, ty=0):
+    def set(self, tx: float = 0, ty: float = 0) -> None:
         """
         Set the X and Y offsets of the translate transform.
 
@@ -89,7 +93,7 @@ class Scale2D(Transform):
     A class to represent a scale transform.
     """
 
-    def __init__(self, sx=1, sy=1):
+    def __init__(self, sx: float = 1, sy: float = 1):
         """
         Initialize the scale transform with its X and Y scale factors.
 
@@ -102,18 +106,18 @@ class Scale2D(Transform):
     # end __init__
 
     # Get
-    def get(self):
+    def get(self) -> Point2D:
         """
         Get the X and Y scale factors of the scale transform.
 
         Returns:
-            tuple: X and Y scale factors of the scale transform
+            Point2D: X and Y scale factors of the scale transform
         """
         return self.scale
     # end get
 
     # Set
-    def set(self, sx=1, sy=1):
+    def set(self, sx: float = 1, sy: float = 1) -> None:
         """
         Set the X and Y scale factors of the scale transform.
 
@@ -134,12 +138,14 @@ class Rotate2D(Transform):
     A class to represent a rotate transform.
     """
 
-    def __init__(self, cx: float = 0, cy: float = 0, angle=0):
+    def __init__(self, cx: float = 0, cy: float = 0, angle: float = 0):
         """
         Initialize the rotate transform with its rotation angle.
 
         Args:
-            angle (float): Rotation angle in degrees
+            cx (float): X-coordinate of the rotation center.
+            cy (float): Y-coordinate of the rotation center.
+            angle (float): Rotation angle in degrees.
         """
         super().__init__()
         self.center = Point2D(cx, cy)
@@ -147,18 +153,18 @@ class Rotate2D(Transform):
     # end __init__
 
     # Get
-    def get(self):
+    def get(self) -> Tuple[float, float, float]:
         """
         Get the rotation angle of the rotate transform.
 
         Returns:
-            float: Rotation angle of the rotate transform
+            Tuple[float, float, float]: Center X/Y and rotation angle.
         """
         return self.center.x, self.center.y, self.angle.value
     # end get
 
     # Set
-    def set(self, cx: float = 0, cy: float = 0, angle=0):
+    def set(self, cx: float = 0, cy: float = 0, angle: float = 0) -> None:
         """
         Set the center and rotation angle of the rotate transform.
 
@@ -181,7 +187,7 @@ class SkewX2D(Transform):
     A class to represent a skew transform along the X-axis.
     """
 
-    def __init__(self, angle=0):
+    def __init__(self, angle: float = 0):
         """
         Initialize the skew transform with its skew angle along the X-axis.
 
@@ -193,7 +199,7 @@ class SkewX2D(Transform):
     # end __init__
 
     # Get
-    def get(self):
+    def get(self) -> float:
         """
         Get the skew angle of the skew transform along the X-axis.
 
@@ -204,7 +210,7 @@ class SkewX2D(Transform):
     # end get
 
     # Set
-    def set(self, angle=0):
+    def set(self, angle: float = 0) -> None:
         """
         Set the skew angle of the skew transform along the X-axis.
 
@@ -228,7 +234,7 @@ class Matrix2D(Transform):
     A class to represent a matrix transform.
     """
 
-    def __init__(self, xx=1, yx=0, xy=0, yy=1, x0=0, y0=0):
+    def __init__(self, xx: float = 1, yx: float = 0, xy: float = 0, yy: float = 1, x0: float = 0, y0: float = 0):
         """
         Initialize the matrix transform with its matrix coefficients.
 
@@ -255,7 +261,7 @@ class Matrix2D(Transform):
         Get the matrix coefficients of the matrix transform.
 
         Returns:
-            np.ndarray: Matrix coefficients of the matrix transform
+            Tuple[float, float, float, float, float, float]: Matrix coefficients.
         """
         return (
             self.xx.value,
@@ -268,7 +274,15 @@ class Matrix2D(Transform):
     # end get
 
     # Set
-    def set(self, xx=1, yx=0, xy=0, yy=1, x0=0, y0=0):
+    def set(
+            self,
+            xx: float = 1,
+            yx: float = 0,
+            xy: float = 0,
+            yy: float = 1,
+            x0: float = 0,
+            y0: float = 0
+    ) -> None:
         """
         Set the matrix coefficients of the matrix transform.
 

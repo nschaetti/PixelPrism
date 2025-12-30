@@ -45,7 +45,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixelprism.math import (
+from pixelprism.math_old import (
     Scalar,
     TScalar,
     EventType

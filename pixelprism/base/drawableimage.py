@@ -63,10 +63,10 @@ class DrawableImage(Image):
             coord_system: CoordSystem
     ):
         """
-        Initialize the image math with an image array
+        Initialize the image math_old with an image array
 
         Args:
-            image_array (np.ndarray): Image math as a NumPy array
+            image_array (np.ndarray): Image math_old as a NumPy array
             coord_system (CoordSystem): Coordinate system for the image
         """
         super().__init__(image_array)
@@ -96,7 +96,7 @@ class DrawableImage(Image):
             coord_system: CoordSystem
     ):
         """
-        Create a Cairo surface and context from the image math.
+        Create a Cairo surface and context from the image math_old.
 
         Args:
             coord_system (CoordSystem): Coordinate system

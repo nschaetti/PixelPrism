@@ -26,13 +26,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Functional operations for pixel_prism.math types.
+Functional operations for pixel_prism.math_old types.
 
 This module provides functional versions of operations like add, sub, mul, div, etc.
-for various math types like TScalar, TMatrix2D, TPoint2D, etc.
+for various math_old types like TScalar, TMatrix2D, TPoint2D, etc.
 
 Example:
-    >>> import pixelprism.math.functional as F
+    >>> import pixelprism.math_old.functional as F
     >>> a = Scalar(1)
     >>> b = Scalar(2)
     >>> c = F.add(a, b)  # c is a TScalar with value 3

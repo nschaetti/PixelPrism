@@ -27,12 +27,12 @@
 
 class Data:
     """
-    A math class that holds math.
+    A math_old class that holds math_old.
     """
 
     def __init__(self, readonly: bool = False):
         """
-        Initialize the math.
+        Initialize the math_old.
         """
         # Data closed ?
         self._data_closed = readonly
@@ -63,28 +63,25 @@ class Data:
     # Check closed
     def check_closed(self):
         """
-        Check if the math is closed.
-
-        Args:
-            must_be_closed (bool): Must be closed
+        Check if the math_old is closed and raise if it is read-only.
         """
         if self.data_closed:
             raise ValueError(f"{self.__class__.__name__} is read only !")
         # end if
     # end check_closed
 
-    # Close math
+    # Close math_old
     def readonly(self):
         """
-        Close the math.
+        Close the math_old.
         """
         self.data_closed = True
     # end data_close
 
-    # Open math
+    # Open math_old
     def readwrite(self):
         """
-        Open the math.
+        Open the math_old.
         """
         self.data_closed = False
     # end data_open
@@ -93,10 +90,7 @@ class Data:
 
     def set(self, *args, **kwargs):
         """
-        Set the scalar value.
-
-        Args:
-            value (any): Value to set
+        Set the scalar value using subclass-specific semantics.
         """
         raise NotImplementedError(f"{self.__class__.__name__}.set method must be implemented in subclass.")
     # end set
@@ -110,7 +104,7 @@ class Data:
 
     def copy(self, *args, **kwargs):
         """
-        Return a copy of the math.
+        Return a copy of the math_old.
         """
         raise NotImplementedError(f"{self.__class__.__name__}.copy method must be implemented in subclass.")
     # end copy

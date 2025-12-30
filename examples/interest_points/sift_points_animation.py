@@ -67,7 +67,7 @@ class CustomAnimation(Animation):
         """
         mid_point = total_frames // 2
 
-        # Get input image math
+        # Get input image math_old
         base_layer_image = image_canvas.get_layer("base").image
 
         # Add black background

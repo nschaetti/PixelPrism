@@ -43,13 +43,14 @@
 #
 
 # Imports
-from typing import Tuple, Any, Callable
-from pixelprism.math import Point2D, Scalar, Color, Style, Transform, call_after, EventType, Event, TPoint2D
+from typing import Any, Callable, Tuple
+from pixelprism.math_old import Point2D, Scalar, Color, Style, Transform, call_after, EventType, Event, TPoint2D
 from pixelprism.animate import MovableMixin, FadeableMixin, CallableMixin, animeattr
 import pixelprism.utils as utils
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
+from ..base import Context
 
 
 # A 2D rectangle
@@ -272,10 +273,10 @@ class Rectangle(
 
     # region PUBLIC
 
-    # Update math
+    # Update math_old
     def update_data(self):
         """
-        Update the math of the rectangle.
+        Update the math_old of the rectangle.
         """
         self.update_points()
         self.update_bbox()
@@ -423,7 +424,7 @@ class Rectangle(
     # region DRAW
 
     # Draw bounding box anchors
-    def draw_bbox_anchors(self, context):
+    def draw_bbox_anchors(self, context: Context) -> None:
         """
         Draw the bounding box anchors of the rectangle.
         """
@@ -433,7 +434,7 @@ class Rectangle(
     # end draw_bbox_anchors
 
     # Draw bounding box anchors
-    def draw_anchors(self, context):
+    def draw_anchors(self, context: Context) -> None:
         """
         Draw the bounding box anchors of the rectangle.
 
@@ -490,10 +491,10 @@ class Rectangle(
 
     def draw(
             self,
-            context,
-            *args,
-            **kwargs
-    ):
+            context: Context,
+            *args: Any,
+            **kwargs: Any
+    ) -> None:
         """
         Draw the rectangle to the context.
 
@@ -750,4 +751,3 @@ class Rectangle(
     # endregion STATIC
 
 # end Rectangle
-

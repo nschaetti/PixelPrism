@@ -43,13 +43,15 @@
 #
 
 # Imports
-from typing import Iterator, List, Optional, Any, Union
+from __future__ import annotations
+
+from typing import Any, Iterator, List, Optional, Union
 from pixelprism.animate.able import (
     BuildableMixin,
     DestroyableMixin
 )
 from pixelprism.animate import FadeableMixin, MovableMixin
-from pixelprism.math import Point2D, Color
+from pixelprism.math_old import Point2D, Color
 from pixelprism import utils
 from pixelprism.utils.svg import parse_svg, parse_path
 from pixelprism.utils import Anchor
@@ -130,7 +132,7 @@ def load_svg(
         color: Color = utils.WHITE,
         anchor_point: Anchor = utils.Anchor.UPPER_LEFT,
         refs: Optional[List] = None
-):
+) -> None:
     """
     Load an SVG file and return the paths and transformations.
 
@@ -138,7 +140,6 @@ def load_svg(
         svg_path (str): Path to the SVG file
         vector_graphics (VectorGraphicsData): Vector graphics object to load the SVG into
         color (Color): Color of the SVG
-        centered (bool): Whether to center the SVG
         anchor_point (int): Anchor point for the SVG
         refs (list): List of references
     """
@@ -163,7 +164,7 @@ def load_svg(
             sub_paths = list()
 
             # Get subpaths
-            subpaths_parsed = element['math'].d().split('M')
+            subpaths_parsed = element['math_old'].d().split('M')
 
             # For each subpaths
             subpath_i = 0
@@ -370,10 +371,10 @@ class PathGroup(
 
     # region PUBLIC
 
-    # Update math
+    # Update math_old
     def update_data(self):
         """
-        Update the math of the vector graphics.
+        Update the math_old of the vector graphics.
         """
         self.update_bbox()
     # end update_data
@@ -1213,7 +1214,7 @@ class VectorGraphics(
             scale: Point2D = Point2D(1, 1),
             color: Color = utils.WHITE,
             refs: Optional[List] = None,
-    ):
+    ) -> 'VectorGraphics':
         """
         Create a vector graphic from an SVG string.
 
@@ -1249,4 +1250,3 @@ class VectorGraphics(
     # endregion CLASS_METHODS
 
 # end VectorGraphics
-

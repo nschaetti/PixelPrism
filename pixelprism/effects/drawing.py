@@ -28,6 +28,7 @@
 # Import necessary packages
 import cv2
 import numpy as np
+from typing import Any
 
 import pixelprism.effects.functional as F
 from .effect_base import EffectBase
@@ -58,7 +59,7 @@ class DrawPointsEffect(EffectBase):
     def apply(
             self,
             image: Image,
-            **kwargs
+            **kwargs: Any
     ):
         """
         Apply the draw points effect to the image
@@ -79,4 +80,3 @@ class DrawPointsEffect(EffectBase):
     # end apply
 
 # end DrawPointsEffect
-

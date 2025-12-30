@@ -25,6 +25,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Any
+
 from pixelprism.base.image import Image
 
 
@@ -36,7 +38,7 @@ class EffectBase:
     def apply(
             self,
             image: Image,
-            **kwargs
+            **kwargs: Any
     ) -> Image:
         """
         Apply the effect to the image
@@ -52,4 +54,3 @@ class EffectBase:
     # end apply
 
 # end EffectBase
-

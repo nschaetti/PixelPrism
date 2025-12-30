@@ -45,7 +45,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixelprism.math import Scalar, TScalar, Point2D, TPoint2D, Matrix2D, TMatrix2D
+from pixelprism.math_old import Scalar, TScalar, Point2D, TPoint2D, Matrix2D, TMatrix2D
 
 
 class TestOperations(unittest.TestCase):

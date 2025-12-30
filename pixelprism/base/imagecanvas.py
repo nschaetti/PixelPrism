@@ -191,7 +191,7 @@ class ImageCanvas:
 
         Args:
             name (str): Name of the layer
-            image (Image): New image math
+            image (Image): New image math_old
         """
         layer = self.get_layer(name)
         assert layer is not None, f"Layer {name} does not exist."
@@ -209,7 +209,7 @@ class ImageCanvas:
 
         Args:
             name (str): Name of the layer
-            image (Image): New image math
+            image (Image): New image math_old
         """
         self.update_layer_image(name, image)
     # end set_layer_image
@@ -266,7 +266,7 @@ class ImageCanvas:
         Create an image from a NumPy array
 
         Args:
-            image_array (np.ndarray): Image math as a NumPy array
+            image_array (np.ndarray): Image math_old as a NumPy array
             add_alpha (bool): Whether to add an alpha channel to the image
         """
         # Check dimension is 3

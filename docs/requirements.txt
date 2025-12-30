@@ -1,5 +1,8 @@
-sphinx
-furo
-myst-parser
-sphinx-autodoc-typehints
-sphinxcontrib-napoleon
+mkdocs>=1.6
+mkdocs-material>=9.5
+mkdocstrings[python]>=0.25
+mkdocs-autorefs>=0.4
+mkdocs-gen-files>=0.5
+mkdocs-literate-nav>=0.6
+pymdown-extensions>=10.8
+black>=24.10

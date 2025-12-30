@@ -47,7 +47,7 @@ from typing import Tuple, List
 import cairo
 from pixelprism.widgets.widget import Widget
 from pixelprism.base import Context
-from pixelprism.math import Point2D, Transform
+from pixelprism.math_old import Point2D, Transform
 
 
 # Viewport class, container for a scalable and scrollable area

@@ -50,7 +50,11 @@ This module provides the VideoComposer class for creating videos from animations
 """
 
 # Imports
-from .animation import AnimationViewer
+from __future__ import annotations
+
+from typing import Any, Type
+
+from .animation import Animation, AnimationViewer
 
 
 class VideoComposer:
@@ -67,17 +71,17 @@ class VideoComposer:
     """
     def __init__(
             self,
-            input_path,
-            output_path,
+            input_path: str | None,
+            output_path: str,
             duration: int,
             fps: int,
             width: int,
             height: int,
-            animation_class: type,
+            animation_class: Type[Animation],
             debug_frames=False,
             save_frames: bool = False,
             viewer: bool = True,
-            **kwargs
+            **kwargs: Any
     ):
         """
         Initialize the video composer with an input and output path.

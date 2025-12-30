@@ -48,7 +48,7 @@
 #
 
 # Imports
-from typing import Optional
+from typing import Any, Optional
 import os
 import threading
 import cv2
@@ -269,7 +269,7 @@ class Animation:
             keep_frames: int = 0,
             debug_frames: int = False,
             save_frames: bool = False,
-            **kwargs
+            **kwargs: Any
     ):
         """
         Initialize the animation with an input and output path.
@@ -716,7 +716,7 @@ class Animation:
 
                     # Ensure the final frame is the correct size and type
                     assert final_frame.data.shape[:2] == (height, width), "Final frame size mismatch"
-                    assert final_frame.data.dtype == np.uint8, "Final frame math type mismatch"
+                    assert final_frame.data.dtype == np.uint8, "Final frame math_old type mismatch"
 
                     # Save as RGB
                     out.write(final_frame.data[:, :, :3])

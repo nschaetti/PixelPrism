@@ -42,7 +42,7 @@ class Layer:
 
         Args:
             name (str): Name of the layer
-            image (np.ndarray): Image math for the layer
+            image (np.ndarray): Image math_old for the layer
             blend_mode (str): Blend mode for the layer
             active (bool): Whether the layer is active
         """

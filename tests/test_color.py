@@ -45,7 +45,7 @@
 # Imports
 import unittest
 import numpy as np
-from pixelprism.math import Color
+from pixelprism.math_old import Color
 
 
 class TestColor(unittest.TestCase):

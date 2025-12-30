@@ -29,9 +29,9 @@
 Pixel Prism Nodes - Visualization Nodes
 =====================================
 
-This module provides visualization nodes for displaying and rendering math in the Pixel Prism framework.
-These nodes implement operations for converting math to visual representations,
-such as drawing contours, polygons, and displaying vector math.
+This module provides visualization nodes for displaying and rendering math_old in the Pixel Prism framework.
+These nodes implement operations for converting math_old to visual representations,
+such as drawing contours, polygons, and displaying vector math_old.
 """
 
 # Imports

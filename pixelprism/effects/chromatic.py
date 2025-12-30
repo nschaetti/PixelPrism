@@ -30,6 +30,8 @@
 #
 
 # Imports
+from typing import Any
+
 import numpy as np
 
 # Local
@@ -65,7 +67,7 @@ class ChromaticSpatialShiftEffect(EffectBase):
     def apply(
             self,
             image,
-            **kwargs
+            **kwargs: Any
     ):
         """
         Apply the spatial shift effect to the image
@@ -115,7 +117,7 @@ class ChromaticTemporalPersistenceEffect(EffectBase):
     def apply(
             self,
             image: Image,
-            **kwargs
+            **kwargs: Any
     ):
         """
         Apply the temporal persistence effect to the image
@@ -144,4 +146,3 @@ class ChromaticTemporalPersistenceEffect(EffectBase):
     # end apply
 
 # end ChromaticTemporalPersistenceEffect
-

@@ -101,7 +101,7 @@ class BlendMultiplyAnimation(Animation):
             frame_number (int): Frame number
             total_frames (int): Total number of frames
         """
-        # Get input image math
+        # Get input image math_old
         base_layer_image = image_canvas.get_layer("base").image
 
         # Blend images

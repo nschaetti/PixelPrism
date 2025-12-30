@@ -40,7 +40,7 @@ class EventMixin:
 
     def add_event(self, event_name):
         """
-        Add an event to the math object.
+        Add an event to the math_old object.
 
         Args:
             event_name (str): Event to add
@@ -52,14 +52,14 @@ class EventMixin:
 
     def add_event_listener(self, event_name, listener):
         """
-        Add an event listener to the math object.
+        Add an event listener to the math_old object.
 
         Args:
             event_name (str): Event to listen for
             listener (function): Listener function
         """
         if event_name not in self.event_listeners:
-            raise ValueError(f"Event '{event_name}' is not supported by this math object.")
+            raise ValueError(f"Event '{event_name}' is not supported by this math_old object.")
         # end if
 
         if listener not in self.event_listeners[event_name]:
@@ -69,7 +69,7 @@ class EventMixin:
 
     def remove_event_listener(self, event_name, listener):
         """
-        Remove an event listener from the math object.
+        Remove an event listener from the math_old object.
 
         Args:
             event_name (str): Event to remove listener from
@@ -93,14 +93,14 @@ class EventMixin:
                 listener(event)
             # end for
         else:
-            raise ValueError(f"Event '{event_name}' is not supported by this math object.")
+            raise ValueError(f"Event '{event_name}' is not supported by this math_old object.")
         # end if
     # end dispatch_event
 
     # List of events
     def events(self):
         """
-        Return the list of events that this math object can dispatch.
+        Return the list of events that this math_old object can dispatch.
         """
         return list(self.event_listeners.keys())
     # end events

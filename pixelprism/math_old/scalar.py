@@ -144,14 +144,14 @@ class Scalar(Data, RangeableMixin):
 
     def copy(self):
         """
-        Return a copy of the math.
+        Return a copy of the math_old.
         """
         return Scalar(self._value)
     # end copy
 
     def register_event(self, event_name, listener):
         """
-        Add an event listener to the math object.
+        Add an event listener to the math_old object.
 
         Args:
             event_name (str): Event to listen for
@@ -165,7 +165,7 @@ class Scalar(Data, RangeableMixin):
 
     def unregister_event(self, event_name, listener):
         """
-        Remove an event listener from the math object.
+        Remove an event listener from the math_old object.
 
         Args:
             event_name (str): Event to remove listener from

@@ -44,7 +44,7 @@
 
 # Imports
 import random
-from pixelprism.math import Color, Scalar as s
+from pixelprism.math_old import Color, Scalar as s
 
 
 # Colors

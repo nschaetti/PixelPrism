@@ -26,7 +26,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #
-# This file contains the ImageData class, which is used to store image math in a format that is easy to work with.
+# This file contains the ImageData class, which is used to store image math_old in a format that is easy to work with.
 #
 
 # Imports
@@ -47,7 +47,7 @@ class ImageMode(Enum):
 
 class Image:
     """
-    Class to store image math in a format that is easy to work with
+    Class to store image math_old in a format that is easy to work with
     """
 
     def __init__(
@@ -55,17 +55,17 @@ class Image:
             image_array
     ):
         """
-        Initialize the image math with an image array
+        Initialize the image math_old with an image array
 
         Args:
-            image_array (np.ndarray): Image math as a NumPy array
+            image_array (np.ndarray): Image math_old as a NumPy array
         """
         # If 2 dim, add channel dim
         if len(image_array.shape) == 2:
             image_array = np.expand_dims(image_array, axis=2)
         # end if
 
-        # Set image math
+        # Set image math_old
         self._data = image_array
         self._height, self._width, self._channels = image_array.shape
         self._has_alpha = self._channels == 4
@@ -77,10 +77,10 @@ class Image:
     @property
     def data(self):
         """
-        Get the image math
+        Get the image math_old
         """
         return self._data
-    # end math
+    # end math_old
 
     @property
     def height(self):
@@ -159,7 +159,7 @@ class Image:
 
     def get_image(self):
         """
-        Get the image math as a NumPy array
+        Get the image math_old as a NumPy array
         """
         return self._data
     # end get_image
@@ -194,7 +194,7 @@ class Image:
 
     def get_dtype(self):
         """
-        Get the math type of the image
+        Get the math_old type of the image
         """
         return self._data.dtype
     # end get_dtype
@@ -316,7 +316,7 @@ class Image:
         Create an image from a NumPy array
 
         Args:
-            image_array (np.ndarray): Image math as a NumPy array
+            image_array (np.ndarray): Image math_old as a NumPy array
         """
         return cls(image_array)
     # end from_numpy

@@ -63,7 +63,7 @@ class Matrix2D(Data):
             matrix = np.identity(3)
         # end if
 
-        # Create math
+        # Create math_old
         self._data = np.array(matrix, dtype=dtype)
 
         # On object changed
@@ -81,7 +81,7 @@ class Matrix2D(Data):
         Get the matrix.
         """
         return self._data
-    # end math
+    # end math_old
 
     @data.setter
     def data(self, value):
@@ -89,7 +89,7 @@ class Matrix2D(Data):
         Set the matrix and trigger event listeners.
         """
         self.set(value)
-    # end math
+    # end math_old
 
     # On change
     @property
@@ -136,7 +136,7 @@ class Matrix2D(Data):
 
     def register_event(self, event_name, listener):
         """
-        Add an event listener to the math object.
+        Add an event listener to the math_old object.
 
         Args:
             event_name (str): Event to listen for
@@ -150,7 +150,7 @@ class Matrix2D(Data):
 
     def unregister_event(self, event_name, listener):
         """
-        Remove an event listener from the math object.
+        Remove an event listener from the math_old object.
 
         Args:
             event_name (str): Event to remove listener from
@@ -742,7 +742,7 @@ class TMatrix2D(Matrix2D):
         m_data = self.get()
         self._data = m_data
         return m_data
-    # end math
+    # end math_old
 
     # endregion PROPERTIES
 

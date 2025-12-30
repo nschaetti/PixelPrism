@@ -26,6 +26,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Imports
+from typing import Any
+
 import numpy as np
 
 # Local
@@ -95,7 +97,7 @@ class LUTEffect(EffectBase):
     def apply(
             self,
             image,
-            **kwargs
+            **kwargs: Any
     ):
         """
         Apply the LUT effect to the image
@@ -108,4 +110,3 @@ class LUTEffect(EffectBase):
     # end apply
 
 # end LUTEffect
-

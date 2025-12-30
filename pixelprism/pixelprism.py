@@ -39,9 +39,9 @@ logger = setup_logger(__name__)
 
 
 def load_class_from_file(
-        file_path,
-        class_name
-):
+        file_path: str,
+        class_name: str
+) -> type:
     """
     Load a class from a file.
 
@@ -57,7 +57,7 @@ def load_class_from_file(
 
 
 # Boolean argument
-def bool_arg(value):
+def bool_arg(value: str | bool) -> bool:
     """
     Parse a boolean argument from the command line.
 
@@ -99,7 +99,7 @@ def main(
         width: int,
         height: int,
         save_frames: bool,
-        kwargs
+        kwargs: tuple[str, ...]
 ):
     """
     Main entry point for the PixelPrism command-line interface.

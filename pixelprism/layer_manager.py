@@ -64,7 +64,7 @@ class LayerManager:
 
         Args:
             name (str): Name of the layer
-            image: Image math for the layer. If None, an empty layer is created.
+            image: Image math_old for the layer. If None, an empty layer is created.
         """
         self.layers.append(ImageLayer(name, image))
 

@@ -88,7 +88,7 @@ def multiply(
     data1 = image1.data.astype(np.float32) / 255.0
     data2 = image2.data.astype(np.float32) / 255.0
 
-    # Initialize the blended math
+    # Initialize the blended math_old
     blended_data = np.empty_like(data1)
 
     # If the top image has an alpha channel, blend the images
@@ -118,7 +118,7 @@ def multiply(
 def overlay(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the overlay mode.
 
@@ -150,7 +150,7 @@ def overlay(
 def hard_light(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the hard light mode.
 
@@ -182,7 +182,7 @@ def hard_light(
 def divide(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the division mode.
 
@@ -221,7 +221,7 @@ def divide(
 def add(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the addition mode.
 
@@ -256,7 +256,7 @@ def add(
 def subtract(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the subtraction mode.
 
@@ -291,7 +291,7 @@ def subtract(
 def difference(
         image1: Image,
         image2: Image
-):
+) -> Image:
     """
     Blend two images using the difference mode.
 

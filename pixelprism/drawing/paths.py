@@ -47,10 +47,12 @@
 #
 
 # Imports
-from typing import List, Any, Tuple, Union
+from __future__ import annotations
+
+from typing import Any, Callable, List, Optional, Tuple, Union
 import cairo
 import numpy as np
-from pixelprism.math import Point2D, Color, Scalar, Event
+from pixelprism.math_old import Point2D, Color, Scalar, Event, Transform
 import pixelprism.utils as utils
 from pixelprism.drawing import BoundingBoxMixin, BoundingBox
 from pixelprism.animate.able import (
@@ -78,6 +80,10 @@ from .transforms import (
 )
 from ..animate.able.movablemixin import ScalableMixin
 from ..base import Context
+
+
+OnChangeCallback = Optional[Callable[[Event], None]]
+PathElement = Union["PathArc", "PathLine", "PathBezierCubic", "PathBezierQuadratic"]
 
 
 # Path line
@@ -160,7 +166,7 @@ class PathBezierCubic(CubicBezierCurve):
             end: Point2D,
             position: Scalar = Scalar(0.0),
             path_length: Scalar = Scalar(1.0),
-            on_change=None
+            on_change: OnChangeCallback = None
     ):
         """
         Initialize the cubic Bezier curve.
@@ -251,7 +257,7 @@ class PathBezierCubic(CubicBezierCurve):
             end: Point2D,
             position: Scalar = Scalar(0.0),
             path_length: Scalar = Scalar(1.0),
-            on_change=None,
+            on_change: OnChangeCallback = None,
             *args,
             **kwargs
     ):
@@ -440,7 +446,7 @@ class PathArc(Arc):
             radius: Scalar,
             start_angle: Scalar,
             end_angle: Scalar,
-            on_change=None
+            on_change: OnChangeCallback = None
     ):
         """
         Initialize the arc.
@@ -492,7 +498,7 @@ class PathArc(Arc):
             radius: Scalar,
             start_angle: Scalar,
             end_angle: Scalar,
-            on_change=None,
+            on_change: OnChangeCallback = None,
             *args,
             **kwargs
     ):
@@ -620,10 +626,10 @@ class PathSegment(
 
     # region PUBLIC
 
-    # Update math
+    # Update math_old
     def update_data(self):
         """
-        Update the math of the path segment.
+        Update the math_old of the path segment.
         """
         # Update length
         self._length = sum([element.length for element in self._elements]) if len(self._elements) > 0 else 0
@@ -646,7 +652,7 @@ class PathSegment(
     # end update_bbox
 
     # Add
-    def add(self, element):
+    def add(self, element: PathElement) -> None:
         """
         Add an element to the path.
 
@@ -1099,14 +1105,14 @@ class PathSegment(
         # end for
     # end _scale_object
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Get the number of elements in the path.
         """
         return len(self.elements)
     # end __len__
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> PathElement:
         """
         Get the element at the given index in the path.
 
@@ -1116,7 +1122,7 @@ class PathSegment(
         return self.elements[index]
     # end __getitem__
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index: int, value: PathElement) -> None:
         """
         Set the element at the given index in the path."
 
@@ -1127,7 +1133,7 @@ class PathSegment(
         self.elements[index] = value
     # end __setitem__
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         """
         Delete the element at the given index in the path.
 
@@ -1159,10 +1165,10 @@ class PathSegment(
     def from_objects(
             cls,
             start: Point2D,
-            elements: List[Union[PathArc, PathLine, PathBezierCubic]]
-    ):
+            elements: List[PathElement]
+    ) -> 'PathSegment':
         """
-        Create a path segment from math.
+        Create a path segment from math_old.
 
         Args:
             start (Point2D): Start point of the path segment
@@ -1255,7 +1261,7 @@ class Path(
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
             closed_path: bool = True,
-            transform=None
+            transform: Optional[Transform] = None
     ):
         """
         Initialize the path.
@@ -1380,10 +1386,10 @@ class Path(
 
     # region PUBLIC
 
-    # Update math
+    # Update math_old
     def update_data(self):
         """
-        Update the math of the path.
+        Update the math_old of the path.
         """
         # Update length
         self._length = self.compute_length()
@@ -1437,7 +1443,7 @@ class Path(
     # end set_alpha
 
     # Add
-    def add(self, element):
+    def add(self, element: PathElement) -> None:
         """
         Add an element to the path.
 
@@ -1477,7 +1483,7 @@ class Path(
     # end add_subpath
 
     # Get subpaths
-    def get_subpaths(self):
+    def get_subpaths(self) -> List[PathSegment]:
         """
         Get the subpaths of the path.
 
@@ -1488,7 +1494,7 @@ class Path(
     # end get_subpaths
 
     # Set subpaths
-    def set_subpaths(self, subpaths):
+    def set_subpaths(self, subpaths: List[PathSegment]) -> None:
         """
         Set the subpaths of the path.
 
@@ -1593,9 +1599,9 @@ class Path(
 
     def apply_transform(
             self,
-            context,
-            transform
-    ):
+            context: cairo.Context,
+            transform: Transform
+    ) -> None:
         """
         Apply an SVG transform to a Cairo context.
 
@@ -2129,7 +2135,7 @@ class Path(
         # Get the angle
         scale = interpolated_t * (end_value - 1) + 1
 
-        # print(f"math = {scale} / {self.scalablemixin_state.scale}")
+        # print(f"math_old = {scale} / {self.scalablemixin_state.scale}")
 
         # Difference
         da = scale / self.scalablemixin_state.scale
@@ -2435,7 +2441,7 @@ class Path(
             line_width: Scalar,
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
-            transform=None,
+            transform: Optional[Transform] = None,
             closed_path: bool = True
     ) -> 'Path':
         """

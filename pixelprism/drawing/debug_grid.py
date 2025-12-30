@@ -47,7 +47,7 @@ from typing import Union
 from pixelprism import p2, s, c
 from pixelprism.base import Context, CoordSystem
 from pixelprism.animate import animeattr
-from pixelprism.math import Scalar, Style
+from pixelprism.math_old import Scalar, Style
 from .drawablemixin import DrawableMixin
 
 
@@ -91,7 +91,7 @@ class DebugGrid(DrawableMixin):
     # region PROPERTIES
 
     @property
-    def coord_system(self):
+    def coord_system(self) -> CoordSystem:
         """
         Get the coordinate system.
 
@@ -102,7 +102,7 @@ class DebugGrid(DrawableMixin):
     # end coord_system
 
     @property
-    def grid_style(self):
+    def grid_style(self) -> Style:
         """
         Get the grid style.
 
@@ -113,7 +113,7 @@ class DebugGrid(DrawableMixin):
     # end grid_style
 
     @property
-    def axis_style(self):
+    def axis_style(self) -> Style:
         """
         Get the axis style.
 
@@ -124,7 +124,7 @@ class DebugGrid(DrawableMixin):
     # end axis_style
 
     @property
-    def major_width(self):
+    def major_width(self) -> Scalar:
         """
         Get the major line width.
 
@@ -135,7 +135,7 @@ class DebugGrid(DrawableMixin):
     # end major_width
 
     @property
-    def minor_width(self):
+    def minor_width(self) -> Scalar:
         """
         Get the minor line width.
 

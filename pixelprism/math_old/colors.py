@@ -196,7 +196,7 @@ class Color(Data):
 
     def copy(self):
         """
-        Return a copy of the math.
+        Return a copy of the math_old.
         """
         return Color.from_objects(
             self.red.copy(),

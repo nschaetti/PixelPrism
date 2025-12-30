@@ -55,7 +55,7 @@ from pixelprism.widgets.containers import Viewport
 from pixelprism.widgets import DrawableWidget
 from pixelprism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixelprism.drawing import CubicBezierCurve
-from pixelprism.math import Scalar
+from pixelprism.math_old import Scalar
 
 
 # DrawableWidgetAnimation class

@@ -68,7 +68,7 @@ class ChromaticShiftAnimation(Animation):
             frame_number (int): Frame number
             total_frames (int): Total number of frames
         """
-        # Get input image math
+        # Get input image math_old
         base_layer_image = image_canvas.get_layer("base").image
 
         # Random number between 0 and 25

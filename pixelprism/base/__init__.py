@@ -36,7 +36,7 @@ These classes form the foundation upon which the rest of the library is built.
 Main Components
 --------------
 - Image Representation:
-  - :class:`~pixelprism.base.image.Image`: Core class for storing and manipulating image math
+  - :class:`~pixelprism.base.image.Image`: Core class for storing and manipulating image math_old
   - :class:`~pixelprism.base.image.ImageMode`: Enumeration of image modes (RGB, RGBA, etc.)
   - :class:`~pixelprism.base.imagecanvas.ImageCanvas`: Class for working with multi-layered images
   - :class:`~pixelprism.base.layer.Layer`: Class representing a single layer in an image

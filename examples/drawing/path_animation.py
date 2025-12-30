@@ -64,7 +64,7 @@ from pixelprism.drawing import (
     PathBezierCubic,
     PathArc
 )
-from pixelprism.math import Scalar
+from pixelprism.math_old import Scalar
 
 
 # A path animation class

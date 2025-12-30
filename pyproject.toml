@@ -39,7 +39,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/nschaetti/PixelPrism"
-Documentation = "https://pixelprism.readthedocs.io/"
+Documentation = "https://nschaetti.github.io/PixelPrism/"
 
 # ---- ENTRY POINTS (optional) ----
 # Only if you really have pixelprism/main.py or a main() in __init__.py

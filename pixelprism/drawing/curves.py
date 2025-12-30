@@ -43,12 +43,14 @@
 #
 
 # Imports
+from __future__ import annotations
+
 import math
 from typing import Any
 import numpy as np
 from pixelprism import p2, s
 from pixelprism.animate import MovableMixin, CallableMixin, animeattr
-from pixelprism.math import Point2D, Scalar, Color
+from pixelprism.math_old import Point2D, Scalar, Color
 from pixelprism.utils import random_color
 
 # Local imports
@@ -163,7 +165,7 @@ class CubicBezierCurve(
         self._position.add_event_listener("on_change", self._on_position_changed)
         self._path_length.add_event_listener("on_change", self._on_path_length_changed)
 
-        # Update math
+        # Update math_old
         self.update_data()
 
         # List of event listeners (per events)
@@ -640,10 +642,10 @@ class CubicBezierCurve(
         )
     # end update_length
 
-    # Update math
+    # Update math_old
     def update_data(self):
         """
-        Update the math of the curve.
+        Update the math_old of the curve.
         """
         # Update points
         self.update_points()
@@ -680,7 +682,7 @@ class CubicBezierCurve(
             self,
             t1: float,
             t2: float
-    ):
+    ) -> tuple[Point2D, Point2D, Point2D, Point2D]:
         """
         Update the partial curve from t1 to t2.
 
@@ -1406,9 +1408,9 @@ class CubicBezierCurve(
     # Finish move
     def finish_move(
             self,
-            *args,
-            **kwargs
-    ):
+            *args: Any,
+            **kwargs: Any
+    ) -> None:
         """
         Finish the move.
 
