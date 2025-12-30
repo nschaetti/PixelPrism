@@ -25,51 +25,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-"""Data types."""
 
 # Imports
-from enum import Enum
+import pytest
 
-
-__all__ = ["DType"]
-
-
-class DType(Enum):
-    """
-    Scalar/element dtypes supported by PixelPrism's math system.
-
-    Extend as needed; backends may map these to their native types.
-    """
-
-    FLOAT64 = "float64"
-    FLOAT32 = "float32"
-    INT64 = "int64"
-    INT32 = "int32"
-    BOOL = "bool"
-
-    @property
-    def is_float(self) -> bool:
-        return self in {DType.FLOAT32, DType.FLOAT64}
-    # end def is_float
-
-    @property
-    def is_int(self) -> bool:
-        return self in {DType.INT32, DType.INT64}
-    # end def is_int
-
-    @property
-    def is_bool(self) -> bool:
-        return self is DType.BOOL
-    # end def is_bool
-
-    @staticmethod
-    def promote(a: "DType", b: "DType") -> "DType":
-        """
-        Return the promoted dtype for binary ops.
-        """
-        order = list(DType)
-        return a if order.index(a) <= order.index(b) else b
-    # end def promote
-
-# end class DType
 

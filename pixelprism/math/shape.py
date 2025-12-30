@@ -27,14 +27,15 @@
 #
 """Symbolic tensor shape representation."""
 
+# Imports
 from __future__ import annotations
-
 from typing import Iterable, List, Optional, Sequence, Tuple
-
 from .helpers import num_elements
+
 
 Dim = Optional[int]
 Dims = Tuple[Dim, ...]
+
 
 __all__ = ["Shape", "Dim", "Dims"]
 
@@ -55,7 +56,294 @@ class Shape:
             self._check_dim(dim)
         # end for
         self._dims: Dims = dims_tuple
+        self._n_dims: int = len(dims_tuple)
     # end def __init__
+
+    # region PROPERTIES
+
+    @property
+    def dims(self) -> Dims:
+        """Return the dimensions tuple.
+
+        Returns
+        -------
+        Dims
+            Tuple describing tensor dimensions (each value is an ``int`` or
+            ``None``).
+        """
+        return self._dims
+    # end def dims
+
+    @property
+    def rank(self) -> int:
+        """Return the tensor rank.
+
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
+        """
+        return len(self._dims)
+    # end def rank
+
+    @property
+    def size(self) -> Optional[int]:
+        """Return the total number of elements when known.
+
+        Returns
+        -------
+        Optional[int]
+            Number of elements represented by the shape or ``None`` if any
+            dimension is unknown.
+        """
+        return num_elements(self._dims)
+    # end def size
+
+    @property
+    def n_dims(self) -> int:
+        """Return the number of dimensions.
+
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
+        """
+        return self.rank
+    # end def n_dims
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def as_tuple(self) -> tuple[Dim, ...]:
+        """Return the shape as a tuple.
+
+        Returns
+        -------
+        tuple[Dim, ...]
+            The shape as a tuple of dimensions.
+        """
+        return self._dims
+    # end def as_tuple
+
+    def is_elementwise_compatible(self, other: "Shape") -> bool:
+        """Check whether elementwise operations are allowed.
+
+        Parameters
+        ----------
+        other : Shape
+            Shape to compare.
+
+        Returns
+        -------
+        bool
+            ``True`` when ranks are identical and dimensions are compatible for
+            elementwise operations.
+        """
+        if self.rank != other.rank:
+            return False
+        # end if
+        for dim_a, dim_b in zip(self._dims, other._dims):
+            if not self._dims_equal(dim_a, dim_b):
+                return False
+            # end if
+        # end for
+        return True
+    # end def is_elementwise_compatible
+
+    def merge_elementwise(self, other: "Shape") -> "Shape":
+        """Return the merged shape for elementwise operations.
+
+        Parameters
+        ----------
+        other : Shape
+            Shape to merge.
+
+        Returns
+        -------
+        Shape
+            Resulting shape compatible with both inputs.
+
+        Raises
+        ------
+        ValueError
+            If shapes are incompatible for elementwise operations.
+        """
+        if self.rank != other.rank:
+            raise ValueError("Elementwise operations require equal ranks.")
+        # end if
+        merged = tuple(self._merge_dims(dim_a, dim_b) for dim_a, dim_b in zip(self._dims, other._dims))
+        return Shape(merged)
+    # end def merge_elementwise
+
+    def matmul_result(self, other: "Shape") -> "Shape":
+        """Return the result shape of a matrix multiplication.
+
+        Parameters
+        ----------
+        other : Shape
+            Right-hand operand shape.
+
+        Returns
+        -------
+        Shape
+            Resulting shape of the matrix multiplication.
+
+        Raises
+        ------
+        ValueError
+            If ranks are below 2, ranks differ, or inner dimensions are
+            incompatible.
+        """
+        if self.rank < 2 or other.rank < 2:
+            raise ValueError("MatMul requires rank >= 2 for both operands.")
+        # end if
+        if self.rank != other.rank:
+            raise ValueError("MatMul requires operands with the same rank.")
+        # end if
+        batch_rank = self.rank - 2
+        batch_dims: List[Dim] = []
+        for idx in range(batch_rank):
+            batch_dims.append(self._merge_dims(self._dims[idx], other._dims[idx]))
+        # end for
+        left_inner = self._dims[-1]
+        right_inner = other._dims[-2]
+        if not self._dims_equal(left_inner, right_inner):
+            raise ValueError("Inner dimensions do not match for MatMul.")
+        # end if
+        result = tuple(batch_dims) + (self._dims[-2], other._dims[-1])
+        return Shape(result)
+    # end def matmul_result
+
+    def concat_result(self, other: "Shape", axis: int) -> "Shape":
+        """Return the result shape of concatenation along an axis.
+
+        Parameters
+        ----------
+        other : Shape
+            Shape to concatenate with.
+        axis : int
+            Concatenation axis.
+
+        Returns
+        -------
+        Shape
+            Concatenated shape along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            If ranks differ or dimensions other than the concatenation axis are
+            incompatible.
+        """
+        if self.rank != other.rank:
+            raise ValueError("Concat requires operands with equal rank.")
+        # end if
+        axis_norm = self._normalize_axis(axis, self.rank)
+        dims: List[Dim] = []
+        for idx, (dim_a, dim_b) in enumerate(zip(self._dims, other._dims)):
+            if idx == axis_norm:
+                dims.append(self._sum_dims(dim_a, dim_b))
+            else:
+                dims.append(self._merge_dims(dim_a, dim_b))
+            # end if
+        # end for
+        return Shape(tuple(dims))
+    # end def concat_result
+
+    def transpose(self, permutation: Sequence[int]) -> "Shape":
+        """Return the shape after applying an axis permutation.
+
+        Parameters
+        ----------
+        permutation : Sequence[int]
+            Axis permutation describing the new order.
+
+        Returns
+        -------
+        Shape
+            Permuted shape following the given axis order.
+
+        Raises
+        ------
+        ValueError
+            If the permutation length is incorrect or contains invalid axis
+            indices.
+        """
+        if len(permutation) != self.rank:
+            raise ValueError("Permutation must include every axis exactly once.")
+        # end if
+        if sorted(permutation) != list(range(self.rank)):
+            raise ValueError("Permutation contains invalid axis indices.")
+        # end if
+        dims = tuple(self._dims[idx] for idx in permutation)
+        return Shape(dims)
+    # end def transpose
+
+    def can_reshape(self, new_shape: "Shape") -> bool:
+        """Check whether reshape is symbolically valid.
+
+        Parameters
+        ----------
+        new_shape : Shape
+            Target shape to test against.
+
+        Returns
+        -------
+        bool
+            ``True`` if both shapes represent the same number of elements or if
+            the element count is unknown.
+        """
+        own_size = self.size
+        target_size = new_shape.size
+        if own_size is None or target_size is None:
+            return True
+        # end if
+        return own_size == target_size
+    # end def can_reshape
+
+    def reshape(self, new_shape: "Shape") -> "Shape":
+        """Return the symbolic shape after reshape.
+
+        Parameters
+        ----------
+        new_shape : Shape
+            Target shape.
+
+        Returns
+        -------
+        Shape
+            Target shape when the reshape is valid.
+
+        Raises
+        ------
+        ValueError
+            If the reshape would change the number of elements.
+        """
+        if not self.can_reshape(new_shape):
+            raise ValueError("Reshape requires matching number of elements.")
+        # end if
+        return new_shape
+    # end def reshape
+
+    # endregion PUBLIC
+
+    # region STATIC
+
+    @staticmethod
+    def scalar() -> "Shape":
+        return Shape(())
+    # end def scalar
+
+    @staticmethod
+    def vector(n: Dim) -> "Shape":
+        return Shape((n,))
+    # end def vector
+
+    @staticmethod
+    def matrix(n: Dim, m: Dim) -> "Shape":
+        return Shape((n, m))
+    # end def matrix
 
     @staticmethod
     def _check_dim(dim: Dim) -> None:
@@ -193,30 +481,45 @@ class Shape:
         return axis
     # end def _normalize_axis
 
-    @property
-    def dims(self) -> Dims:
-        """Return the dimensions tuple.
+    @staticmethod
+    def stack_result(shapes: Sequence["Shape"], axis: int) -> "Shape":
+        """Return the result shape of stacking tensors.
+
+        Parameters
+        ----------
+        shapes : Sequence[Shape]
+            Shapes of tensors to stack. All shapes must be elementwise
+            compatible.
+        axis : int
+            Axis index for the new dimension.
 
         Returns
         -------
-        Dims
-            Tuple describing tensor dimensions (each value is an ``int`` or
-            ``None``).
-        """
-        return self._dims
-    # end def dims
+        Shape
+            Resulting stacked shape including the new dimension size.
 
-    @property
-    def rank(self) -> int:
-        """Return the tensor rank.
-
-        Returns
-        -------
-        int
-            Number of dimensions in the shape.
+        Raises
+        ------
+        ValueError
+            If no shapes are provided or shapes are incompatible.
         """
-        return len(self._dims)
-    # end def rank
+        if not shapes:
+            raise ValueError("Stack requires at least one shape.")
+        # end if
+        base = shapes[0]
+        axis_norm = Shape._normalize_axis(axis, base.rank, allow_new_axis=True)
+        for shape in shapes[1:]:
+            base = base.merge_elementwise(shape)
+        # end for
+        dims = list(base.dims)
+        dims.insert(axis_norm, len(shapes))
+        return Shape(tuple(dims))
+
+    # end def stack_result
+
+    # endregion STATIC
+
+    # region OVERRIDE
 
     def __len__(self) -> int:
         """Return the rank for len().
@@ -244,30 +547,6 @@ class Shape:
         """
         return self._dims[index]
     # end def __getitem__
-
-    @property
-    def size(self) -> Optional[int]:
-        """Return the total number of elements when known.
-
-        Returns
-        -------
-        Optional[int]
-            Number of elements represented by the shape or ``None`` if any
-            dimension is unknown.
-        """
-        return num_elements(self._dims)
-    # end def size
-
-    def as_tuple(self) -> Dims:
-        """Expose the raw dimensions tuple.
-
-        Returns
-        -------
-        Dims
-            Underlying tuple of dimensions without additional validation.
-        """
-        return self._dims
-    # end def as_tuple
 
     def __eq__(self, other: object) -> bool:
         """Compare shapes for equality.
@@ -322,240 +601,7 @@ class Shape:
         return f"Shape({dims_str})"
     # end def __str__
 
-    def is_elementwise_compatible(self, other: "Shape") -> bool:
-        """Check whether elementwise operations are allowed.
-
-        Parameters
-        ----------
-        other : Shape
-            Shape to compare.
-
-        Returns
-        -------
-        bool
-            ``True`` when ranks are identical and dimensions are compatible for
-            elementwise operations.
-        """
-        if self.rank != other.rank:
-            return False
-        # end if
-        for dim_a, dim_b in zip(self._dims, other._dims):
-            if not self._dims_equal(dim_a, dim_b):
-                return False
-            # end if
-        # end for
-        return True
-    # end def is_elementwise_compatible
-
-    def merge_elementwise(self, other: "Shape") -> "Shape":
-        """Return the merged shape for elementwise operations.
-
-        Parameters
-        ----------
-        other : Shape
-            Shape to merge.
-
-        Returns
-        -------
-        Shape
-            Resulting shape compatible with both inputs.
-
-        Raises
-        ------
-        ValueError
-            If shapes are incompatible for elementwise operations.
-        """
-        if self.rank != other.rank:
-            raise ValueError("Elementwise operations require equal ranks.")
-        # end if
-        merged = tuple(self._merge_dims(dim_a, dim_b) for dim_a, dim_b in zip(self._dims, other._dims))
-        return Shape(merged)
-    # end def merge_elementwise
-
-    def matmul_result(self, other: "Shape") -> "Shape":
-        """Return the result shape of a matrix multiplication.
-
-        Parameters
-        ----------
-        other : Shape
-            Right-hand operand shape.
-
-        Returns
-        -------
-        Shape
-            Resulting shape of the matrix multiplication.
-
-        Raises
-        ------
-        ValueError
-            If ranks are below 2, ranks differ, or inner dimensions are
-            incompatible.
-        """
-        if self.rank < 2 or other.rank < 2:
-            raise ValueError("MatMul requires rank >= 2 for both operands.")
-        # end if
-        if self.rank != other.rank:
-            raise ValueError("MatMul requires operands with the same rank.")
-        # end if
-        batch_rank = self.rank - 2
-        batch_dims: List[Dim] = []
-        for idx in range(batch_rank):
-            batch_dims.append(self._merge_dims(self._dims[idx], other._dims[idx]))
-        # end for
-        left_inner = self._dims[-1]
-        right_inner = other._dims[-2]
-        if not self._dims_equal(left_inner, right_inner):
-            raise ValueError("Inner dimensions do not match for MatMul.")
-        # end if
-        result = tuple(batch_dims) + (self._dims[-2], other._dims[-1])
-        return Shape(result)
-    # end def matmul_result
-
-    def concat_result(self, other: "Shape", axis: int) -> "Shape":
-        """Return the result shape of concatenation along an axis.
-
-        Parameters
-        ----------
-        other : Shape
-            Shape to concatenate with.
-        axis : int
-            Concatenation axis.
-
-        Returns
-        -------
-        Shape
-            Concatenated shape along the specified axis.
-
-        Raises
-        ------
-        ValueError
-            If ranks differ or dimensions other than the concatenation axis are
-            incompatible.
-        """
-        if self.rank != other.rank:
-            raise ValueError("Concat requires operands with equal rank.")
-        # end if
-        axis_norm = self._normalize_axis(axis, self.rank)
-        dims: List[Dim] = []
-        for idx, (dim_a, dim_b) in enumerate(zip(self._dims, other._dims)):
-            if idx == axis_norm:
-                dims.append(self._sum_dims(dim_a, dim_b))
-            else:
-                dims.append(self._merge_dims(dim_a, dim_b))
-            # end if
-        # end for
-        return Shape(tuple(dims))
-    # end def concat_result
-
-    @staticmethod
-    def stack_result(shapes: Sequence["Shape"], axis: int) -> "Shape":
-        """Return the result shape of stacking tensors.
-
-        Parameters
-        ----------
-        shapes : Sequence[Shape]
-            Shapes of tensors to stack. All shapes must be elementwise
-            compatible.
-        axis : int
-            Axis index for the new dimension.
-
-        Returns
-        -------
-        Shape
-            Resulting stacked shape including the new dimension size.
-
-        Raises
-        ------
-        ValueError
-            If no shapes are provided or shapes are incompatible.
-        """
-        if not shapes:
-            raise ValueError("Stack requires at least one shape.")
-        # end if
-        base = shapes[0]
-        axis_norm = Shape._normalize_axis(axis, base.rank, allow_new_axis=True)
-        for shape in shapes[1:]:
-            base = base.merge_elementwise(shape)
-        # end for
-        dims = list(base.dims)
-        dims.insert(axis_norm, len(shapes))
-        return Shape(tuple(dims))
-    # end def stack_result
-
-    def transpose(self, permutation: Sequence[int]) -> "Shape":
-        """Return the shape after applying an axis permutation.
-
-        Parameters
-        ----------
-        permutation : Sequence[int]
-            Axis permutation describing the new order.
-
-        Returns
-        -------
-        Shape
-            Permuted shape following the given axis order.
-
-        Raises
-        ------
-        ValueError
-            If the permutation length is incorrect or contains invalid axis
-            indices.
-        """
-        if len(permutation) != self.rank:
-            raise ValueError("Permutation must include every axis exactly once.")
-        # end if
-        if sorted(permutation) != list(range(self.rank)):
-            raise ValueError("Permutation contains invalid axis indices.")
-        # end if
-        dims = tuple(self._dims[idx] for idx in permutation)
-        return Shape(dims)
-    # end def transpose
-
-    def can_reshape(self, new_shape: "Shape") -> bool:
-        """Check whether reshape is symbolically valid.
-
-        Parameters
-        ----------
-        new_shape : Shape
-            Target shape to test against.
-
-        Returns
-        -------
-        bool
-            ``True`` if both shapes represent the same number of elements or if
-            the element count is unknown.
-        """
-        own_size = self.size
-        target_size = new_shape.size
-        if own_size is None or target_size is None:
-            return True
-        # end if
-        return own_size == target_size
-    # end def can_reshape
-
-    def reshape(self, new_shape: "Shape") -> "Shape":
-        """Return the symbolic shape after reshape.
-
-        Parameters
-        ----------
-        new_shape : Shape
-            Target shape.
-
-        Returns
-        -------
-        Shape
-            Target shape when the reshape is valid.
-
-        Raises
-        ------
-        ValueError
-            If the reshape would change the number of elements.
-        """
-        if not self.can_reshape(new_shape):
-            raise ValueError("Reshape requires matching number of elements.")
-        # end if
-        return new_shape
-    # end def reshape
+    # endregion OVERRIDE
 
 # end class Shape
 
