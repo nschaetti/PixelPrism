@@ -27,7 +27,9 @@
 #
 """Symbolic dimension representation."""
 
+# Imports
 from dataclasses import dataclass
+
 
 __all__ = ["SymbolicDim"]
 
@@ -44,5 +46,8 @@ class SymbolicDim:
     'N'
     """
 
+    # Name of the dimension
     name: str
+
+# end class SymbolicDim
 
