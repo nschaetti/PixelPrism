@@ -899,7 +899,7 @@ class MathLeaf(MathExpr, ABC):
     """
     Abstract base class for leaf nodes in the expression tree.
 
-    MathLeaf represents a terminal node in an expression tree that holds a single value.
+    MathLeaf represents a terminal node in a computational graph (CG) that holds a variable.
     Unlike MathOperator, which computes its value based on child expressions, a MathLeaf
     stores its value directly. Examples include constants, variables, and other primitive values.
 

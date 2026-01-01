@@ -41,13 +41,18 @@ class SymbolicDim:
 
     Example
     -------
-    >>> N = SymbolicDim("N")
+    >>> N = SymbolicDim("N", 2)
     >>> N.name
     'N'
+    >>> N.size
+    2
     """
 
     # Name of the dimension
     name: str
+
+    # Size of the dimension
+    size: int
 
 # end class SymbolicDim
 

@@ -30,10 +30,12 @@
 # Imports
 from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Tuple
+
+from .symbolic_dim import SymbolicDim
 from .helpers import num_elements
 
 
-Dim = Optional[int]
+Dim = int | SymbolicDim
 Dims = Tuple[Dim, ...]
 
 
@@ -123,7 +125,7 @@ class Shape:
         tuple[Dim, ...]
             The shape as a tuple of dimensions.
         """
-        return self._dims
+        return tuple([d.size if isinstance(d, SymbolicDim) else d for d in self._dims])
     # end def as_tuple
 
     def is_elementwise_compatible(self, other: "Shape") -> bool:
@@ -361,6 +363,9 @@ class Shape:
             If the dimension is negative or not an integer/``None``.
         """
         if dim is None:
+            raise ValueError("Shape dimensions cannot be None.")
+        # end if
+        if isinstance(dim, SymbolicDim):
             return
         # end if
         if not isinstance(dim, int) or dim < 0:

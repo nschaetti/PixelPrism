@@ -37,11 +37,10 @@ from .graph_context import GraphContext
 from .op import Op
 from .source_info import SourceInfo
 from .symbolic_dim import SymbolicDim
+from .shape import Shape
 
-ShapeDim = int | SymbolicDim
-ShapeDesc = Tuple[ShapeDim, ...]
 
-__all__ = ["MathExpr", "ShapeDim", "ShapeDesc"]
+__all__ = ["MathExpr"]
 
 
 class MathExpr:
@@ -50,11 +49,9 @@ class MathExpr:
 
     A MathExpr is a *structural* node in a computation DAG. It exposes
     read-only metadata required for evaluation and transformation passes:
-    - identity (`id`),
-    - operator (`op`) if any,
+    - identity name (`name`),
     - children (inputs),
-    - static type information (`dtype`, `shape`), and
-    - provenance (`source_info`, `tags`).
+    - static type information (`dtype`, `shape`)
 
     Immutability & identity
     -----------------------
@@ -106,16 +103,10 @@ class MathExpr:
     def __init__(
         self,
         *,
-        id: int,
         name: Optional[str],
-        op: Optional[Op],
         children: Tuple["MathExpr", ...],
         dtype: DType,
-        shape: ShapeDesc,
-        source_info: Optional[SourceInfo] = None,
-        tags: Optional[FrozenSet[str]] = None,
-        context: Optional[GraphContext] = None,
-        meta: Optional[Mapping[str, Any]] = None,
+        shape: Shape
     ) -> None:
         """
         Construct a MathExpr (used by subclasses/factories).
@@ -134,14 +125,6 @@ class MathExpr:
             Element dtype.
         shape : ShapeDesc
             Symbolic shape tuple (ints or SymbolicDim).
-        source_info : SourceInfo | None, optional
-            Optional provenance data.
-        tags : FrozenSet[str] | None, optional
-            Optional immutable set of tags (e.g., for passes).
-        context : GraphContext | None, optional
-            Owning graph context if any.
-        meta : Mapping[str, Any] | None, optional
-            Arbitrary metadata map (shallow-copied).
         """
         self._id = id
         self._name = name
@@ -312,4 +295,163 @@ class MathExpr:
     # endregion OVERRIDE
 
 # end class MathExpr
+
+
+
+# An expression which does not contain sub-expressions
+class MathLeaf(MathExpr, ABC):
+    """
+    Abstract base class for leaf nodes in the expression tree.
+
+    MathLeaf represents a terminal node in a computational graph (CG) that
+    stores a value directly. Unlike operator nodes, it does not compute from
+    children. Typical implementations include constants, variables, and other
+    primitive values that may be combined to form larger expressions.
+
+    Subclasses Must Define
+    ----------------------
+    expr_type : str
+        Identifier for the expression category (for example, ``"Scalar"``).
+    return_type : str
+        Declared return type for the value (often the same as ``expr_type``).
+    _set(value) / _get() : callable
+        Concrete implementations for setting and retrieving the stored value.
+
+    Attributes
+    ----------
+    _value : Any
+        The stored value of the leaf node.
+
+    Examples
+    --------
+    Create a leaf node that enforces integer storage:
+
+    >>> class IntegerValue(MathLeaf):
+    ...     expr_type = "Integer"
+    ...     return_type = "Integer"
+    ...     arity = 0
+    ...
+    ...     def _set(self, value):
+    ...         past_value = self._value
+    ...         self._value = int(value)
+    ...         self._on_change.trigger(data=MathEventData(
+    ...             past_value=past_value,
+    ...             value=self._value,
+    ...             direct=True,
+    ...             source=self
+    ...         ))
+    ...
+    ...     def _get(self):
+    ...         return self._value
+    ...
+    >>> x = IntegerValue(5)
+    >>> x.value
+    5
+    >>> x.value = 3.14
+    >>> x.value
+    3
+    """
+
+    # Arity - always 0 for leaf nodes as they don't have child expressions
+    arity = 0
+
+    def __init__(
+            self,
+            value: Any,
+            mutable: bool = True
+    ):
+        """
+        Initialize a new leaf node with the specified value.
+
+        Parameters
+        ----------
+        value : Any
+            Initial value to store. The concrete type is determined by the
+            subclass.
+        on_change : Callable[[MathEventData], None] | None, optional
+            Callback invoked when the value changes.
+        mutable : bool, optional
+            If ``False``, the value cannot be modified after initialization.
+
+        Examples
+        --------
+        Create a leaf with a listener:
+
+        >>> def on_change(data):
+        ...     print(f"Value changed from {data.past_value} to {data.value}")
+        ...
+        >>> y = IntegerValue(10, on_change=on_change)
+        """
+        # Init
+        super().__init__(
+            on_change=on_change,
+            readonly=mutable
+        )
+
+        # Value
+        self._value: Any = value
+    # end __init__
+
+    # region PRIVATE
+
+    @abstractmethod
+    def _set(self, value: Any) -> None:
+        """
+        Set the internal value of this leaf node.
+
+        Implementations must:
+
+        1. Capture the previous value for change notification.
+        2. Update the stored value (with any required conversion).
+        3. Trigger ``on_change`` callbacks with event data.
+
+        Parameters
+        ----------
+        value : Any
+            New value to store. The concrete type is determined by the subclass.
+
+        Examples
+        --------
+        Basic pattern for a custom setter:
+
+        >>> def _set(self, value):
+        ...     past_value = self._value
+        ...     self._value = self._convert_value(value)
+        ...     self._on_change.trigger(data=MathEventData(
+        ...         past_value=past_value,
+        ...         value=self._value,
+        ...         direct=True,
+        ...         source=self
+        ...     ))
+        """
+        past_value = self._value
+        self._value = value
+        self._on_change.trigger(data=MathEventData(past_value=past_value, value=value, direct=True, source=self))
+    # end _set
+
+    @abstractmethod
+    def _get(self) -> Any:
+        """
+        Get the internal value of this leaf node.
+
+        The base implementation simply returns the stored value, but subclasses
+        may override to apply conversion before returning.
+
+        Returns
+        -------
+        Any
+            Current value of the leaf node. The concrete type matches the
+            subclass contract.
+
+        Examples
+        --------
+        >>> def _get(self):
+        ...     return self._value
+        """
+        return self._value
+    # end _get
+
+    # endregion PRIVATE
+
+# end MathLeaf
 

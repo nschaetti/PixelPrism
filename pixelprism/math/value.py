@@ -84,6 +84,8 @@ class Value:
         self._check_data_shape(data)
     # end def __init__
 
+    # region PROPERTIES
+
     @property
     def shape(self) -> Shape:
         """Return the associated Shape.
@@ -119,6 +121,10 @@ class Value:
         """
         return self._mutable
     # end def mutable
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
 
     def get(self) -> Any:
         """Return the backend data.
@@ -162,6 +168,10 @@ class Value:
             ops=self._ops
         )
     # end def copy
+
+    # endregion PUBLIC
+
+    # region PRIVATE
 
     def _check_data_shape(
             self,
@@ -208,6 +218,38 @@ class Value:
             # end if
         # end for
     # end def _check_data_shape
+
+    # endregion PRIVATE
+
+    # region OVERRIDE
+
+    def __repr__(self) -> str:
+        """Return a string representation of the Value.
+
+        Returns
+        -------
+        str
+            A string representation of the Value.
+        """
+        if self._mutable:
+            return f"value({self._data})"
+        else:
+            return f"const({self._data}, immutable)"
+        # end if
+    # end def __repr__
+
+    def __str__(self) -> str:
+        """Return a string representation of the Value.
+
+        Returns
+        -------
+        str
+            A string representation of the Value.
+        """
+        return f"value({self._data})"
+    # end def __str__
+
+    # endregion OVERRIDE
 
 # end class Value
 
