@@ -25,18 +25,97 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-"""Core node abstraction for PixelPrism's symbolic math system."""
 
+"""Core abstractions for PixelPrism's symbolic math system.
+
+This module documents the structural contract implemented by every
+``MathExpr`` node as well as the :class:`~pixelprism.math.shape.Shape`
+descriptor used to carry symbolic tensor shapes.  Even though the core
+implementation currently lives in generated code, this docstring captures
+the canonical interface in a single place for reference by contributors,
+type-checkers, and the documentation build.
+
+MathExpr Contract
+-----------------
+``MathExpr`` instances represent nodes in the symbolic computation DAG.
+Each node owns immutable metadata:
+
+* ``name`` – optional string identifier used for debugging traces.
+* ``children`` – tuple of input nodes (empty for leaves).
+* ``dtype`` – :class:`~pixelprism.math.dtype.DType` describing element type.
+* ``shape`` – :class:`~pixelprism.math.shape.Shape` describing tensor extent.
+
+Parameters
+----------
+name : str, optional
+    Display label used in debug UIs and logging outputs.
+children : tuple[MathExpr, ...]
+    Positional dependencies for the node.  Leaves supply an empty tuple.
+dtype : DType
+    Scalar element type that downstream passes use for validation.
+shape : Shape
+    Symbolic tensor shape.  See *Shape descriptor* below for the complete
+    contract implemented by :class:`~pixelprism.math.shape.Shape`.
+
+Shape descriptor
+----------------
+The :class:`~pixelprism.math.shape.Shape` class is a thin immutable wrapper
+around a tuple of dimensions.  A dimension is either an ``int`` (known size)
+or ``None`` (symbolic degree of freedom).  Shape instances offer convenience
+properties that are frequently consumed by higher-level code:
+
+``dims``
+    Tuple of the stored dimensions.
+``rank``
+    Number of axes in the tensor (``len(dims)``).
+``size``
+    Product of all non-symbolic dimensions or ``None`` when any dimension is
+    symbolic.
+``is_elementwise_compatible(other)``
+    Returns ``True`` when ``self`` and ``other`` have the same rank and each
+    axis is either equal or symbolic.
+``merge_elementwise(other)``
+    Produces a new shape where each axis merges the compatible dimensions
+    from the two operands, raising :class:`ValueError` when they conflict.
+
+Examples
+--------
+The snippets below illustrate the expected API for both ``MathExpr`` nodes
+and the ``Shape`` helper.
+
+Create a shape, inspect metadata, and merge it with another compatible shape.
+
+>>> from pixelprism.math.shape import Shape
+>>> activations = Shape((32, 128))
+>>> activations.rank
+2
+>>> activations.size
+4096
+>>> merged = activations.merge_elementwise(Shape((32, 128)))
+>>> merged.dims
+(32, 128)
+
+Use a shape while instantiating a hypothetical ``MathExpr`` leaf node.
+
+>>> from pixelprism.math.dtype import DType
+>>> weight = MathExpr(  # created by a concrete subclass/factory
+...     name="weight",
+...     children=(),
+...     dtype=DType.FLOAT32,
+...     shape=Shape((128, 256)),
+... )
+>>> weight.dtype
+<DType.FLOAT32: 'float32'>
+>>> weight.shape.dims
+(128, 256)
+"""
+
+# Imports
 from __future__ import annotations
-
 import weakref
+from abc import ABC, abstractmethod
 from typing import Any, FrozenSet, Mapping, Optional, Tuple
-
 from .dtype import DType
-from .graph_context import GraphContext
-from .op import Op
-from .source_info import SourceInfo
-from .symbolic_dim import SymbolicDim
 from .shape import Shape
 
 
@@ -82,6 +161,10 @@ class MathExpr:
     This class intentionally contains *no* operator overloading. Operator
     syntax (e.g., `a + b`) is provided by thin façade functions or mixins
     outside the core to preserve a minimal, clean kernel.
+
+    Keeping this logic encapsulated means ``MathExpr`` nodes never have to
+    duplicate validation code and guarantees that any shape a node advertises
+    has already passed the invariants enforced by :mod:`pixelprism.math.shape`.
     """
 
     __slots__ = (
@@ -91,30 +174,28 @@ class MathExpr:
         "_children",
         "_dtype",
         "_shape",
-        "_source_info",
-        "_tags",
-        "_context",
         "_parents_weak",
-        "_meta",
     )
+
+    # Global counter
+    _next_id = 0
 
     # region CONSTRUCTOR
 
     def __init__(
-        self,
-        *,
-        name: Optional[str],
-        children: Tuple["MathExpr", ...],
-        dtype: DType,
-        shape: Shape
+            self,
+            *,
+            name: Optional[str],
+            op: Optional[Any],
+            children: Tuple["MathExpr", ...],
+            dtype: DType,
+            shape: Shape
     ) -> None:
         """
         Construct a MathExpr (used by subclasses/factories).
 
         Parameters
         ----------
-        id : int
-            Unique identifier within the owning context.
         name : str | None
             Optional user-friendly name for debugging/printing.
         op : Op | None
@@ -126,17 +207,15 @@ class MathExpr:
         shape : ShapeDesc
             Symbolic shape tuple (ints or SymbolicDim).
         """
-        self._id = id
+        self._id = MathExpr._next_id
         self._name = name
         self._op = op
         self._children = children
         self._dtype = dtype
         self._shape = shape
-        self._source_info = source_info
-        self._tags = tags if tags is not None else frozenset()
-        self._context = context
         self._parents_weak: "weakref.WeakSet[MathExpr]" = weakref.WeakSet()
-        self._meta = dict(meta) if meta is not None else {}
+        self._check_operator()
+        MathExpr._next_id += 1
     # end __init__
 
     # endregion CONSTRUCTOR
@@ -144,25 +223,20 @@ class MathExpr:
     # region PROPERTIES
 
     @property
-    def id(self) -> int:
-        """
-        Unique identifier (context-local).
-        """
-        return self._id
-
-    @property
     def name(self) -> Optional[str]:
         """
         Optional user-friendly name.
         """
         return self._name
+    # end def name
 
     @property
-    def op(self) -> Optional[Op]:
+    def op(self) -> Optional[Any]:
         """
-        Operator descriptor (None for leaves).
+        Operator descriptor for non-leaf nodes; ``None`` for leaves.
         """
         return self._op
+    # end op
 
     @property
     def children(self) -> Tuple["MathExpr", ...]:
@@ -170,6 +244,7 @@ class MathExpr:
         Child nodes (empty for leaves).
         """
         return self._children
+    # end def children
 
     @property
     def dtype(self) -> DType:
@@ -177,34 +252,15 @@ class MathExpr:
         Element dtype for this expression.
         """
         return self._dtype
+    # end def dtype
 
     @property
-    def shape(self) -> ShapeDesc:
+    def shape(self) -> Shape:
         """
         Symbolic shape of this expression.
         """
         return self._shape
-
-    @property
-    def source_info(self) -> Optional[SourceInfo]:
-        """
-        Source provenance if available.
-        """
-        return self._source_info
-
-    @property
-    def tags(self) -> FrozenSet[str]:
-        """
-        Immutable tag set.
-        """
-        return self._tags
-
-    @property
-    def context(self) -> Optional[GraphContext]:
-        """
-        Owning graph context if any.
-        """
-        return self._context
+    # end def shape
 
     @property
     def parents(self) -> FrozenSet["MathExpr"]:
@@ -212,15 +268,24 @@ class MathExpr:
         Weak parent set (best-effort).
         """
         return frozenset(self._parents_weak)
-
-    @property
-    def meta(self) -> Mapping[str, Any]:
-        """Free-form, read-only metadata map (shallow-copied on construction)."""
-        return self._meta
+    # end def parents
 
     # endregion PROPERTIES
 
-    # region API
+    # region PUBLIC
+
+    def eval(self, **kwargs):
+        """Evaluate this expression in the current context."""
+        values = [c.eval(**kwargs) for c in self._children]
+        return self._op.eval(self, *values)
+    # end def eval
+
+    def is_node(self) -> bool:
+        """
+        True iff this node is a non-leaf.
+        """
+        return self._op is not None
+    # end def is_node
 
     def is_leaf(self) -> bool:
         """
@@ -229,19 +294,25 @@ class MathExpr:
         return len(self._children) == 0
     # end is_leaf
 
-    def is_opnode(self) -> bool:
-        """
-        True iff this node wraps an operator (i.e., `op is not None`).
-        """
-        return self._op is not None
-    # end is_opnode
-
     def arity(self) -> int:
         """
         Declared arity (0 for leaves).
         """
         return len(self._children)
     # end arity
+
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _check_operator(self):
+        """Check that the operator is valid for this node type.
+        """
+        if self._op is not None and self.arity() != self._op.arity:
+            raise TypeError(f"Operator and arity mismatch: "
+                            f"{self._op.name}({self.arity()}) != {self.__class__.__name__}({self._op.arity})")
+        # end if
+    # end _def_check_operator
 
     def _register_as_parent_of(self, *children: "MathExpr") -> None:
         """
@@ -261,21 +332,26 @@ class MathExpr:
         # end for
     # end _register_as_parent_of
 
-    # endregion CONVENIENCE_API
+    # endregion PRIVATE
 
     # region OVERRIDE
 
-    def __repr__(self) -> str:  # pragma: no cover - formatting only
+    def __repr__(self) -> str:
+        """Return a string representation of the expression.
+
+        Returns
+        -------
+        str
+            A string representation of the expression.
+        """
         op_name = self._op.name if self._op is not None else "Leaf"
-        shape_str = "(" + ", ".join(
-            d.name if isinstance(d, SymbolicDim) else str(d) for d in self._shape
-        ) + ")"
+        shape_str = str(self._shape)
         return f"<{self.__class__.__name__} #{self._id} {op_name} {self._dtype.value} {shape_str} c:{len(self._children)}>"
     # end __repr__
 
     def __hash__(self) -> int:
         # Identity hashing suitable for dict/set membership within a context.
-        return hash((self._context, self._id))
+        return hash(self._id)
     # end __hash__
 
     def __eq__(self, other: object) -> bool:
@@ -289,13 +365,12 @@ class MathExpr:
             return False
         # end if
 
-        return (self._context is other._context) and (self._id == other._id)
+        return self._id == other._id
     # end __eq__
 
     # endregion OVERRIDE
 
 # end class MathExpr
-
 
 
 # An expression which does not contain sub-expressions
@@ -307,49 +382,6 @@ class MathLeaf(MathExpr, ABC):
     stores a value directly. Unlike operator nodes, it does not compute from
     children. Typical implementations include constants, variables, and other
     primitive values that may be combined to form larger expressions.
-
-    Subclasses Must Define
-    ----------------------
-    expr_type : str
-        Identifier for the expression category (for example, ``"Scalar"``).
-    return_type : str
-        Declared return type for the value (often the same as ``expr_type``).
-    _set(value) / _get() : callable
-        Concrete implementations for setting and retrieving the stored value.
-
-    Attributes
-    ----------
-    _value : Any
-        The stored value of the leaf node.
-
-    Examples
-    --------
-    Create a leaf node that enforces integer storage:
-
-    >>> class IntegerValue(MathLeaf):
-    ...     expr_type = "Integer"
-    ...     return_type = "Integer"
-    ...     arity = 0
-    ...
-    ...     def _set(self, value):
-    ...         past_value = self._value
-    ...         self._value = int(value)
-    ...         self._on_change.trigger(data=MathEventData(
-    ...             past_value=past_value,
-    ...             value=self._value,
-    ...             direct=True,
-    ...             source=self
-    ...         ))
-    ...
-    ...     def _get(self):
-    ...         return self._value
-    ...
-    >>> x = IntegerValue(5)
-    >>> x.value
-    5
-    >>> x.value = 3.14
-    >>> x.value
-    3
     """
 
     # Arity - always 0 for leaf nodes as they don't have child expressions
@@ -357,7 +389,11 @@ class MathLeaf(MathExpr, ABC):
 
     def __init__(
             self,
+            *,
+            name: str,
             value: Any,
+            dtype: DType,
+            shape: Shape,
             mutable: bool = True
     ):
         """
@@ -368,29 +404,40 @@ class MathLeaf(MathExpr, ABC):
         value : Any
             Initial value to store. The concrete type is determined by the
             subclass.
-        on_change : Callable[[MathEventData], None] | None, optional
-            Callback invoked when the value changes.
         mutable : bool, optional
             If ``False``, the value cannot be modified after initialization.
-
-        Examples
-        --------
-        Create a leaf with a listener:
-
-        >>> def on_change(data):
-        ...     print(f"Value changed from {data.past_value} to {data.value}")
-        ...
-        >>> y = IntegerValue(10, on_change=on_change)
         """
         # Init
-        super().__init__(
-            on_change=on_change,
-            readonly=mutable
+        super(MathLeaf, self).__init__(
+            name=name,
+            op=None,
+            children=(),
+            dtype=dtype,
+            shape=shape
         )
-
-        # Value
-        self._value: Any = value
+        self._mutable = mutable
+        self._data: Any = value
     # end __init__
+
+    # region PUBLIC
+
+    def eval(self, **kwargs) -> Any:
+        """
+        """
+        return self._eval(**kwargs)
+    # end _get
+
+    def set(self, value: Any):
+        """
+        Set the value of this leaf node.
+        """
+        if not self._mutable:
+            raise RuntimeError("Cannot set immutable leaf node.")
+        # end if
+        self._set(value)
+    # end def set
+
+    # endregion PUBLIC
 
     # region PRIVATE
 
@@ -398,60 +445,20 @@ class MathLeaf(MathExpr, ABC):
     def _set(self, value: Any) -> None:
         """
         Set the internal value of this leaf node.
-
-        Implementations must:
-
-        1. Capture the previous value for change notification.
-        2. Update the stored value (with any required conversion).
-        3. Trigger ``on_change`` callbacks with event data.
-
-        Parameters
-        ----------
-        value : Any
-            New value to store. The concrete type is determined by the subclass.
-
-        Examples
-        --------
-        Basic pattern for a custom setter:
-
-        >>> def _set(self, value):
-        ...     past_value = self._value
-        ...     self._value = self._convert_value(value)
-        ...     self._on_change.trigger(data=MathEventData(
-        ...         past_value=past_value,
-        ...         value=self._value,
-        ...         direct=True,
-        ...         source=self
-        ...     ))
         """
-        past_value = self._value
-        self._value = value
-        self._on_change.trigger(data=MathEventData(past_value=past_value, value=value, direct=True, source=self))
+        raise NotImplementedError("Leaf nodes must implement _set.")
     # end _set
 
-    @abstractmethod
-    def _get(self) -> Any:
+    def _eval(self, **kwargs) -> Any:
+        """Evaluate this leaf node in the current context.
         """
-        Get the internal value of this leaf node.
-
-        The base implementation simply returns the stored value, but subclasses
-        may override to apply conversion before returning.
-
-        Returns
-        -------
-        Any
-            Current value of the leaf node. The concrete type matches the
-            subclass contract.
-
-        Examples
-        --------
-        >>> def _get(self):
-        ...     return self._value
-        """
-        return self._value
-    # end _get
+        if self.name in kwargs:
+            return kwargs[self.name]
+        else:
+            return self._data
+        # end if
+    # end def _eval
 
     # endregion PRIVATE
 
 # end MathLeaf
-

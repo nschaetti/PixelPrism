@@ -510,7 +510,7 @@ class Tensor(MathLeaf, ABC):
             other (any): Scalar or value to compare
         """
         if isinstance(other, Scalar):
-            return self._value == other._value
+            return self._value == other._data
         # end if
         return self._value == other
     # end __eq__
@@ -534,7 +534,7 @@ class Tensor(MathLeaf, ABC):
             other (any): Scalar or value to compare
         """
         if isinstance(other, Scalar):
-            return self._value < other._value
+            return self._value < other._data
         # end if
         return self._value < other
     # end __lt__
@@ -548,7 +548,7 @@ class Tensor(MathLeaf, ABC):
             other (any): Scalar or value to compare
         """
         if isinstance(other, Scalar):
-            return self._value <= other._value
+            return self._value <= other._data
         # end if
         return self._value <= other
     # end __le__
@@ -562,7 +562,7 @@ class Tensor(MathLeaf, ABC):
             other (any): Scalar or value to compare
         """
         if isinstance(other, Scalar):
-            return self._value > other._value
+            return self._value > other._data
         # end if
         return self._value > other
     # end __gt__
@@ -576,7 +576,7 @@ class Tensor(MathLeaf, ABC):
             other (any): Scalar or value to compare
         """
         if isinstance(other, Scalar):
-            return self._value >= other._value
+            return self._value >= other._data
         # end if
         return self._value >= other
     # end __ge__

@@ -31,7 +31,6 @@
 from __future__ import annotations
 from typing import Any, Iterator, List, Sequence, Tuple, TYPE_CHECKING
 
-from .symbolic_dim import SymbolicDim
 
 if TYPE_CHECKING:
     from pixelprism.math.value import Value
@@ -144,11 +143,7 @@ def num_elements(dims: Sequence[int | None]) -> int | None:
     """
     total = 1
     for dim in dims:
-        if isinstance(dim, SymbolicDim):
-            total *= dim.size
-        else:
-            total *= dim
-        # end if
+        total *= dim
     # end for
     return total
 # end def num_elements

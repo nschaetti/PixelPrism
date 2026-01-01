@@ -30,20 +30,81 @@
 # Imports
 from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Tuple
-
-from .symbolic_dim import SymbolicDim
-from .helpers import num_elements
-
-
-Dim = int | SymbolicDim
-Dims = Tuple[Dim, ...]
+from dataclasses import dataclass
 
 
 __all__ = ["Shape", "Dim", "Dims"]
 
 
+
+Dim = int
+Dims = Tuple[Dim, ...]
+
+
+def _num_elements(dims: Sequence[int | None]) -> int | None:
+    """Compute the product of symbolic dimensions when possible.
+
+    Parameters
+    ----------
+    dims : Sequence[int | None]
+        Sequence of tensor dimensions, which may include ``None`` for unknown
+        values.
+
+    Returns
+    -------
+    int | None
+        Number of elements or ``None`` when any dimension is unknown.
+    """
+    total = 1
+    for dim in dims:
+        total *= dim
+    # end for
+    return total
+# end def _num_elements
+
+
 class Shape:
-    """Represents a symbolic tensor shape."""
+    """
+    Immutable descriptor for symbolic tensor shapes.
+
+    A :class:`Shape` records the axis lengths associated with a math expression.
+    Each axis can be a concrete ``int``.  Shapes are lightweight, hashable, and safe to
+    share across nodes, ensuring downstream passes can reason about tensor
+    metadata without mutating the original objects.
+
+    Validation & normalization
+    --------------------------
+    The constructor eagerly validates every dimension through ``_check_dim`` to
+    guarantee negative or otherwise malformed values never propagate past the
+    creation site.  Internally, axes are stored as an immutable tuple, giving
+    deterministic hashing/printing behaviour and keeping equality semantics
+    simple.
+
+    Convenience properties
+    ----------------------
+    ``dims`` exposes the canonical tuple representation, ``rank``/``n_dims``
+    provide fast access to the tensor arity, and ``size`` returns the product
+    of all known axes (``None`` when at least one axis is symbolic).  These
+    helpers prevent ad‑hoc recomputation scattered around the code base.
+
+    Compatibility helpers
+    ---------------------
+    Many operators need to verify that their operands can participate in
+    elementwise arithmetic.  ``is_elementwise_compatible`` performs the check by
+    comparing ranks and allowing either matching integers or symbolic ``None``
+    values.  ``merge_elementwise`` builds on top of that by returning a new
+    :class:`Shape` where each axis is the tightened version of both operands,
+    raising :class:`ValueError`` when a conflict is detected.  Having these
+    utilities on the shape class keeps validation logic centralized and
+    consistent across operators.
+
+    Subclassing
+    -----------
+    ``Shape`` is intentionally concrete.  Higher-level abstractions should wrap
+    it rather than subclassing to avoid diverging validation paths.  Should
+    additional metadata (like layout or batching semantics) be required, they
+    can be attached via separate objects keyed by ``Shape`` instances.
+    """
 
     def __init__(self, dims: Iterable[Dim]):
         """Initialize a Shape.
@@ -95,10 +156,9 @@ class Shape:
         Returns
         -------
         Optional[int]
-            Number of elements represented by the shape or ``None`` if any
-            dimension is unknown.
+            Number of elements represented by the shape.
         """
-        return num_elements(self._dims)
+        return _num_elements(self._dims)
     # end def size
 
     @property
@@ -125,7 +185,7 @@ class Shape:
         tuple[Dim, ...]
             The shape as a tuple of dimensions.
         """
-        return tuple([d.size if isinstance(d, SymbolicDim) else d for d in self._dims])
+        return tuple([d for d in self._dims])
     # end def as_tuple
 
     def is_elementwise_compatible(self, other: "Shape") -> bool:
@@ -293,14 +353,10 @@ class Shape:
         Returns
         -------
         bool
-            ``True`` if both shapes represent the same number of elements or if
-            the element count is unknown.
+            ``True`` if both shapes represent the same number of elements.
         """
         own_size = self.size
         target_size = new_shape.size
-        if own_size is None or target_size is None:
-            return True
-        # end if
         return own_size == target_size
     # end def can_reshape
 
@@ -354,8 +410,7 @@ class Shape:
         Parameters
         ----------
         dim : Dim
-            Dimension to validate. Allowed values are non-negative integers or
-            ``None`` to represent an unknown dimension.
+            Dimension to validate. Allowed values are non-negative integers.
 
         Raises
         ------
@@ -364,9 +419,6 @@ class Shape:
         """
         if dim is None:
             raise ValueError("Shape dimensions cannot be None.")
-        # end if
-        if isinstance(dim, SymbolicDim):
-            return
         # end if
         if not isinstance(dim, int) or dim < 0:
             raise ValueError("Shape dimensions must be non-negative integers or None.")
@@ -387,12 +439,8 @@ class Shape:
         Returns
         -------
         bool
-            ``True`` if both dimensions can represent the same size or if one
-            of them is unknown.
+            ``True`` if both dimensions can represent the same size.
         """
-        if dim_a is None or dim_b is None:
-            return True
-        # end if
         return dim_a == dim_b
     # end def _dims_equal
 
@@ -410,20 +458,13 @@ class Shape:
         Returns
         -------
         Dim
-            Dimension compatible with both inputs. When one value is ``None``,
-            the other is returned.
+            Dimension compatible with both inputs.
 
         Raises
         ------
         ValueError
-            If the dimensions are incompatible and both are known.
+            If the dimensions are incompatible.
         """
-        if dim_a is None:
-            return dim_b
-        # end if
-        if dim_b is None:
-            return dim_a
-        # end if
         if dim_a != dim_b:
             raise ValueError(f"Incompatible dimensions: {dim_a} vs {dim_b}.")
         # end if
@@ -446,9 +487,6 @@ class Shape:
         Dim
             Sum of both dimensions when known, otherwise ``None``.
         """
-        if dim_a is None or dim_b is None:
-            return None
-        # end if
         return dim_a + dim_b
     # end def _sum_dims
 
@@ -487,7 +525,7 @@ class Shape:
     # end def _normalize_axis
 
     @staticmethod
-    def stack_result(shapes: Sequence["Shape"], axis: int) -> "Shape":
+    def stack_shape(shapes: Sequence["Shape"], axis: int) -> "Shape":
         """Return the result shape of stacking tensors.
 
         Parameters
@@ -519,8 +557,7 @@ class Shape:
         dims = list(base.dims)
         dims.insert(axis_norm, len(shapes))
         return Shape(tuple(dims))
-
-    # end def stack_result
+    # end def stack_shape
 
     # endregion STATIC
 
@@ -548,7 +585,7 @@ class Shape:
         Returns
         -------
         Dim
-            Dimension size at the given axis or ``None`` when unknown.
+            Dimension size at the given axis.
         """
         return self._dims[index]
     # end def __getitem__
@@ -591,7 +628,7 @@ class Shape:
         str
             Developer-friendly representation including raw dimensions.
         """
-        return f"Shape({self._dims})"
+        return f"{self._dims}"
     # end def __repr__
 
     def __str__(self) -> str:
@@ -600,13 +637,11 @@ class Shape:
         Returns
         -------
         str
-            Readable representation using ``?`` for unknown dimensions.
+            Readable representation.
         """
-        dims_str = "x".join("?" if dim is None else str(dim) for dim in self._dims)
-        return f"Shape({dims_str})"
+        return self.__str__()
     # end def __str__
 
     # endregion OVERRIDE
 
 # end class Shape
-

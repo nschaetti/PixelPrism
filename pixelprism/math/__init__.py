@@ -28,7 +28,6 @@
 """Unified symbolic math package with split class modules."""
 
 from .dtype import DType
-from .graph_context import GraphContext
 from .helpers import (
     as_sequence,
     build_from_flat,
@@ -44,26 +43,20 @@ from .helpers import (
     transpose_python,
     unravel_index,
 )
-from .math_expr import MathExpr, ShapeDesc, ShapeDim
-from .op import Op
+# from .math_expr import MathExpr
 from .shape import Dim, Dims, Shape
-from .source_info import SourceInfo
-from .symbolic_dim import SymbolicDim
 from .value import Value
 
 __all__ = [
     "DType",
-    "GraphContext",
-    "MathExpr",
+    # Math Expr
+    # "MathExpr",
+    # Shape
     "Shape",
-    "ShapeDesc",
-    "ShapeDim",
-    "SymbolicDim",
-    "SourceInfo",
-    "Op",
-    "Value",
     "Dim",
     "Dims",
+    "Value",
+    # Helpers
     "is_sequence_like",
     "as_sequence",
     "infer_dims_from_data",
