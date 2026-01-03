@@ -25,33 +25,81 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+"""
+Operator package exports.
+"""
 
-
-from .elementwise import add, sub, mul, div
-from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
-from .linear_algebra import matmul
-
+from .base import Operands, Operator, OperatorRegistry, operator_registry
+from .elementwise import (
+    Add,
+    Div,
+    ElementwiseOperator,
+    Exp,
+    Log,
+    Log2,
+    Log10,
+    Mul,
+    Neg,
+    Pow,
+    Sqrt,
+    Sub,
+    UnaryElementwiseOperator,
+)
+from .linear_algebra import (
+    MatMul
+)
+from .trigo import (
+    Acos,
+    Acosh,
+    Asin,
+    Asinh,
+    Atan,
+    Atan2,
+    Atanh,
+    Cos,
+    Cosh,
+    Cot,
+    Csc,
+    Sec,
+    Sin,
+    Sinh,
+    Tan,
+    Tanh,
+)
 
 __all__ = [
-    "add",
-    "sub",
-    "mul",
-    "div",
-    "sin",
-    "cos",
-    "acos",
-    "acosh",
-    "atan",
-    "cot",
-    "atan2",
-    "csc",
-    "sec",
-    "tan",
-    "asin",
-    "cosh",
-    "sinh",
-    "tanh",
-    "asinh",
-    "atanh",
-    "matmul",
+    "Operands",
+    "Operator",
+    "OperatorRegistry",
+    "operator_registry",
+    "ElementwiseOperator",
+    "UnaryElementwiseOperator",
+    "Add",
+    "Sub",
+    "Mul",
+    "Div",
+    "Pow",
+    "Exp",
+    "Log",
+    "Log2",
+    "Log10",
+    "Sqrt",
+    "Neg",
+    "Sin",
+    "Cos",
+    "Tan",
+    "Asin",
+    "Acos",
+    "Atan",
+    "Atan2",
+    "Sec",
+    "Csc",
+    "Cot",
+    "Sinh",
+    "Cosh",
+    "Tanh",
+    "Asinh",
+    "Acosh",
+    "Atanh",
+    "MatMul",
 ]

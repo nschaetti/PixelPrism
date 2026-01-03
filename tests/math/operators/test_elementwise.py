@@ -30,57 +30,27 @@
 import numpy as np
 import pytest
 
-from pixelprism.math.functional.elementwise import add, sub, mul, div, neg
-from pixelprism.math.math_expr import MathExpr
-from pixelprism.math.tensor import Tensor
-
-
-def _make_tensor(value: float, name: str) -> Tensor:
-    return Tensor(name=name, data=value)
-# end def _make_tensor
-
-
-def _make_tensor_array(values, name: str) -> Tensor:
-    return Tensor(name=name, data=np.array(values, dtype=np.float32))
-# end def _make_tensor_array
-
-
-def _as_expected_array(value):
-    if isinstance(value, MathExpr):
-        return value.eval()
-    if isinstance(value, np.ndarray):
-        return value
-    if isinstance(value, list):
-        return np.asarray(value, dtype=np.float64)
-    if isinstance(value, (int, float, np.number, bool, complex)):
-        return np.asarray(value, dtype=np.float64)
-    raise TypeError(f"Unsupported operand type: {type(value)}")
-# end def _as_expected_array
-
-
-def _operand_factory(kind: str, value: float):
-    if kind == "math_expr":
-        return _make_tensor(value, f"t_{value}")
-    if kind == "float":
-        return float(value)
-    if kind == "int":
-        return int(value)
-    if kind == "np_scalar":
-        return np.float32(value)
-    if kind == "np_array_scalar":
-        return np.array(value, dtype=np.float32)
-    if kind == "list":
-        return [value]
-    raise ValueError(f"Unknown operand kind: {kind}")
-# end def _operand_factory
-
-
-SCALAR_KINDS = (
-    "math_expr",
-    "float",
-    "int",
-    "np_scalar",
-    "np_array_scalar",
+from pixelprism.math.functional.elementwise import (
+    add,
+    sub,
+    mul,
+    div,
+    pow as pow_op,
+    exp as exp_op,
+    log as log_op,
+    log2 as log2_op,
+    log10 as log10_op,
+    sqrt as sqrt_op,
+    neg,
+)
+from ._helpers import (
+    SCALAR_KINDS,
+    TENSOR_SCALAR_KINDS,
+    UNARY_SCALAR_KINDS,
+    as_expected_array as _as_expected_array,
+    make_tensor as _make_tensor,
+    make_tensor_array as _make_tensor_array,
+    operand_factory as _operand_factory,
 )
 
 OP_CASES = (
@@ -90,6 +60,13 @@ OP_CASES = (
     ("div", div, np.divide),
 )
 
+UNARY_CASES = (
+    ("exp", exp_op, np.exp, 1.5),
+    ("log", log_op, np.log, 2.5),
+    ("log2", log2_op, np.log2, 2.5),
+    ("log10", log10_op, np.log10, 2.5),
+    ("sqrt", sqrt_op, np.sqrt, 4.0),
+)
 
 @pytest.mark.parametrize("op_name, op_func, np_op", OP_CASES)
 @pytest.mark.parametrize("lhs_kind", SCALAR_KINDS)
@@ -212,3 +189,86 @@ def test_elementwise_tensor_scalar_combinations(op_name, op_func, np_op, scalar_
     expected = np_op(tensor.eval(), _as_expected_array(scalar))
     np.testing.assert_allclose(expr.eval(), expected)
 # end test test_elementwise_tensor_scalar_combinations
+
+
+@pytest.mark.parametrize("lhs_kind", SCALAR_KINDS)
+@pytest.mark.parametrize("rhs_kind", SCALAR_KINDS)
+def test_pow_scalar_combinations(lhs_kind, rhs_kind):
+    """
+    Validate pow for scalar-like operand combinations.
+    """
+    base = _operand_factory(lhs_kind, 5.0)
+    exponent = _operand_factory(rhs_kind, 2.0)
+
+    expr = pow_op(base, exponent)
+    expected = np.power(_as_expected_array(base), _as_expected_array(exponent))
+    np.testing.assert_allclose(expr.eval(), expected)
+# end test test_pow_scalar_combinations
+
+
+def test_pow_tensor_tensor_same_shape():
+    """
+    Validate pow on same-shape tensors.
+    """
+    left = _make_tensor_array([[1.0, 2.0], [3.0, 4.0]], "left_pow")
+    right = _make_tensor_array([[2.0, 3.0], [1.0, 0.5]], "right_pow")
+
+    expr = pow_op(left, right)
+    expected = np.power(left.eval(), right.eval())
+    np.testing.assert_allclose(expr.eval(), expected)
+# end test test_pow_tensor_tensor_same_shape
+
+
+@pytest.mark.parametrize("scalar_kind", TENSOR_SCALAR_KINDS)
+def test_pow_tensor_scalar_combinations(scalar_kind):
+    """
+    Validate pow when mixing tensor and scalar operands.
+    """
+    tensor = _make_tensor_array([[1.0, 2.0], [3.0, 4.0]], "tensor_pow")
+    scalar = _operand_factory(scalar_kind, 3.0)
+
+    expr = pow_op(tensor, scalar)
+    expected = np.power(tensor.eval(), _as_expected_array(scalar))
+    np.testing.assert_allclose(expr.eval(), expected)
+# end test test_pow_tensor_scalar_combinations
+
+
+def test_pow_dunder_on_math_expr():
+    """
+    Ensure MathExpr.__pow__ delegates to the pow operator.
+    """
+    tensor = _make_tensor(3.0, "value_pow")
+    expr = tensor ** 2.0
+    np.testing.assert_allclose(expr.eval(), np.array(9.0, dtype=np.float32))
+# end test test_pow_dunder_on_math_expr
+
+
+@pytest.mark.parametrize("kind", UNARY_SCALAR_KINDS)
+@pytest.mark.parametrize("label, op_func, np_func, value", UNARY_CASES)
+def test_unary_scalar_operators(kind, label, op_func, np_func, value):
+    """
+    Validate exp/log/sqrt for scalar-like operands.
+    """
+    operand = _operand_factory(kind, value)
+    expr = op_func(operand)
+    expected = np_func(_as_expected_array(operand))
+    np.testing.assert_allclose(expr.eval(), expected)
+# end test test_unary_scalar_operators
+
+
+def test_unary_tensor_operators():
+    """
+    Validate exp/log/sqrt for tensor inputs.
+    """
+    tensor = _make_tensor_array([[1.5, 2.5], [3.5, 4.5]], "tensor_unary")
+    cases = (
+        (exp_op, np.exp),
+        (log_op, np.log),
+        (sqrt_op, np.sqrt),
+    )
+    for op_func, np_func in cases:
+        expr = op_func(tensor)
+        expected = np_func(tensor.eval())
+        np.testing.assert_allclose(expr.eval(), expected)
+    # end for
+# end test test_unary_tensor_operators

@@ -387,6 +387,48 @@ class MathExpr:
         return neg(operand)
     # end def neg
 
+    @staticmethod
+    def pow(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
+        """Power operator"""
+        from .functional.elementwise import pow as elementwise_pow
+        return elementwise_pow(operand1, operand2)
+    # end def pow
+
+    @staticmethod
+    def exp(operand: MathExpr) -> MathExpr:
+        """Exponential operator"""
+        from .functional.elementwise import exp as elementwise_exp
+        return elementwise_exp(operand)
+    # end def exp
+
+    @staticmethod
+    def log(operand: MathExpr) -> MathExpr:
+        """Natural logarithm operator"""
+        from .functional.elementwise import log as elementwise_log
+        return elementwise_log(operand)
+    # end def log
+
+    @staticmethod
+    def sqrt(operand: MathExpr) -> MathExpr:
+        """Square root operator"""
+        from .functional.elementwise import sqrt as elementwise_sqrt
+        return elementwise_sqrt(operand)
+    # end def sqrt
+
+    @staticmethod
+    def log2(operand: MathExpr) -> MathExpr:
+        """Base-2 logarithm operator"""
+        from .functional.elementwise import log2 as elementwise_log2
+        return elementwise_log2(operand)
+    # end def log2
+
+    @staticmethod
+    def log10(operand: MathExpr) -> MathExpr:
+        """Base-10 logarithm operator"""
+        from .functional.elementwise import log10 as elementwise_log10
+        return elementwise_log10(operand)
+    # end def log10
+
     # endregion OPERATORS
 
     # region STATIC
@@ -513,6 +555,20 @@ class MathExpr:
         """
         return MathExpr.div(other, self)
     # end __rtruediv__
+
+    def __pow__(self, other) -> MathExpr:
+        """
+        Power operator.
+        """
+        return MathExpr.pow(self, other)
+    # end __pow__
+
+    def __rpow__(self, other) -> MathExpr:
+        """
+        Reverse power operator.
+        """
+        return MathExpr.pow(other, self)
+    # end __rpow__
 
     def __neg__(self) -> MathExpr:
         """

@@ -25,33 +25,5 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+"""Operator test package marker."""
 
-
-from .elementwise import add, sub, mul, div
-from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
-from .linear_algebra import matmul
-
-
-__all__ = [
-    "add",
-    "sub",
-    "mul",
-    "div",
-    "sin",
-    "cos",
-    "acos",
-    "acosh",
-    "atan",
-    "cot",
-    "atan2",
-    "csc",
-    "sec",
-    "tan",
-    "asin",
-    "cosh",
-    "sinh",
-    "tanh",
-    "asinh",
-    "atanh",
-    "matmul",
-]

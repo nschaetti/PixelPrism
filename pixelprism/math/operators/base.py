@@ -25,26 +25,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+"""
+Operator base classes and registry.
+"""
 
-# Imports
 from abc import ABC, abstractmethod
-from typing import List, Any, Sequence
-import numpy as np
-from .dtype import DType
-from .shape import Shape
+from typing import List, Sequence
 
+import numpy as np
+
+from ..dtype import DType
+from ..shape import Shape
 
 __all__ = [
+    "Operands",
     "Operator",
     "OperatorRegistry",
-    "Add",
-    "Sub",
-    "Mul",
-    "Div",
-    "Neg",
-    "operator_registry"
+    "operator_registry",
 ]
-
 
 Operand = "MathExpr"
 Operands = List["MathExpr"]
@@ -169,7 +167,7 @@ class Operator(ABC):
             operands: Operands
     ) -> DType:
         """Return the output data type of the operator."""
-    # end def output_dtype
+    # end def infer_dtype
 
     @classmethod
     @abstractmethod
@@ -178,7 +176,7 @@ class Operator(ABC):
             operands: Operands
     ) -> Shape:
         """Return the output shape of the operator."""
-    # end def output_shape
+    # end def infer_shape
 
     @classmethod
     @abstractmethod
@@ -188,7 +186,7 @@ class Operator(ABC):
     ) -> bool:
         """Check that the operands have compatible shapes."""
 
-    # end def check_operands_shapes
+    # end def check_shapes
 
     @classmethod
     def check_arity(
@@ -197,250 +195,11 @@ class Operator(ABC):
     ):
         """Check that the operands have the correct arity."""
         return len(operands) == cls.ARITY
-    # end def check_operands_arity
+    # end def check_arity
 
     # endregion STATIC
 
 # end class Operator
-
-
-class ElementwiseOperator(Operator):
-    """
-    Element-wise operator.
-    """
-
-    def __init__(self):
-        super().__init__()
-    # end def __init__
-
-    # region STATIC
-
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
-        """
-        Check that both operands have identical shapes.
-        """
-        a, b = operands
-        if a.rank != b.rank:
-            if a.rank != 0 and b.rank != 0:
-                raise ValueError(
-                    f"Add requires operands with identical ranks if not scalar, "
-                    f"got {a.rank} and {b.rank}."
-                )
-            # end if
-        else:
-            # Same rank, but require same shape
-            if a.shape != b.shape:
-                raise ValueError(
-                    f"Add requires operands with identical shapes, "
-                    f"got {a.shape} and {b.shape}."
-                )
-            # end if
-        # end if
-        return True
-    # end def check_operands_shapes
-
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
-        """
-        Output shape is identical to operand shapes.
-        """
-        a, b = operands
-        if a.rank == b.rank:
-            return operands[0].shape
-        elif a.rank > b.rank:
-            return operands[0].shape
-        else:
-            return operands[1].shape
-        # end if
-    # end def infer_shape
-
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
-        """
-        Promote operand dtypes.
-        """
-        a, b = operands
-        return DType.promote(a.dtype, b.dtype)
-    # end def output_dtype
-
-    # endregion STATIC
-
-# end class Add
-
-
-class Add(ElementwiseOperator):
-    """
-    Element-wise addition operator.
-    """
-
-    ARITY = 2
-    NAME = "add"
-
-    # region PRIVATE
-
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        """
-        Evaluate element-wise addition.
-        """
-        a, b = values
-        return a + b
-    # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Add does not support backward.")
-    # end def _backward
-
-    # endregion PRIVATE
-
-# end class Add
-
-
-class Sub(ElementwiseOperator):
-    """
-    Element-wise subtraction operator.
-    """
-
-    ARITY = 2
-    NAME = "sub"
-
-    # region PRIVATE
-
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        """Evaluate element-wise subtraction."""
-        a, b = values
-        return a - b
-    # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Sub does not support backward.")
-    # end def _backward
-
-    # endregion PRIVATE
-
-# end class Sub
-
-
-class Mul(ElementwiseOperator):
-    """
-    Element-wise multiplication operator.
-    """
-
-    ARITY = 2
-    NAME = "mul"
-
-    # region PRIVATE
-
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        """Evaluate element-wise multiplication."""
-        a, b = values
-        return a * b
-    # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Mul does not support backward.")
-    # end def _backward
-
-    # endregion PRIVATE
-
-# end class Mul
-
-
-class Div(ElementwiseOperator):
-    """
-    Element-wise division operator.
-    """
-
-    ARITY = 2
-    NAME = "div"
-
-    # region PRIVATE
-
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        """Evaluate element-wise division."""
-        a, b = values
-        return a / b
-    # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Div does not support backward.")
-    # end def _backward
-
-    # endregion PRIVATE
-
-# end class Div
-
-
-class Neg(Operator):
-    """
-    Element-wise negation operator.
-    """
-
-    ARITY = 1
-    NAME = "neg"
-
-    def __init__(self):
-        super().__init__()
-    # end def __init__
-
-    # region STATIC
-
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
-        """Require identical operand shapes."""
-        return True
-    # end def check_shapes
-
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
-        """Shape matches operands."""
-        return operands[0].shape
-    # end def infer_shape
-
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
-        """Promote operand dtypes."""
-        a = operands[0]
-        return a.dtype
-    # end def infer_dtype
-
-    # endregion STATIC
-
-    # region PRIVATE
-
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        """Evaluate element-wise negation."""
-        a = values[0]
-        return -a
-    # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Div does not support backward.")
-    # end def _backward
-
-    # endregion PRIVATE
-
-# end class Div
 
 
 class OperatorRegistry:
@@ -496,10 +255,4 @@ class OperatorRegistry:
 
 # The operator registry
 operator_registry = OperatorRegistry()
-operator_registry.register(Add())
-operator_registry.register(Sub())
-operator_registry.register(Mul())
-operator_registry.register(Div())
-operator_registry.register(Neg())
-
 

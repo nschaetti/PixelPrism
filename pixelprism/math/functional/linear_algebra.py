@@ -27,31 +27,29 @@
 #
 
 
-from .elementwise import add, sub, mul, div
-from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
-from .linear_algebra import matmul
+from pixelprism.math.math_expr import MathExpr
+from pixelprism.math.operators import operator_registry
+from pixelprism.math.build import as_expr
+from .elementwise import _apply_operator
 
 
 __all__ = [
-    "add",
-    "sub",
-    "mul",
-    "div",
-    "sin",
-    "cos",
-    "acos",
-    "acosh",
-    "atan",
-    "cot",
-    "atan2",
-    "csc",
-    "sec",
-    "tan",
-    "asin",
-    "cosh",
-    "sinh",
-    "tanh",
-    "asinh",
-    "atanh",
-    "matmul",
+    "matmul"
 ]
+
+
+def matmul(
+        op1: MathExpr,
+        op2: MathExpr
+) -> MathExpr:
+    """
+    Matrix-multiplication of two operands.
+    """
+    op1 = as_expr(op1)
+    op2 = as_expr(op2)
+    return _apply_operator(
+        "matmul",
+        (op1, op2),
+        f"{op1.name} @ {op2.name}"
+    )
+# end def matmul

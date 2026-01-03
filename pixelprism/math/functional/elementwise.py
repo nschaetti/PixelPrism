@@ -36,7 +36,14 @@ __all__ = [
     "add",
     "sub",
     "mul",
-    "div"
+    "div",
+    "pow",
+    "exp",
+    "log",
+    "log2",
+    "log10",
+    "sqrt",
+    "neg",
 ]
 
 
@@ -288,6 +295,100 @@ def div(
         f"{op1.name} / {op2.name}"
     )
 # end def div
+
+
+def pow(
+        op1: MathExpr,
+        op2: MathExpr
+) -> MathExpr:
+    """
+    Element-wise exponentiation of two operands.
+
+    Parameters
+    ----------
+    op1 : MathExpr
+        Base operand.
+    op2 : MathExpr
+        Exponent operand.
+
+    Returns
+    -------
+    MathExpr
+        Expression node representing the exponentiation.
+    """
+    op1 = as_expr(op1)
+    op2 = as_expr(op2)
+    return _apply_operator(
+        "pow",
+        (op1, op2),
+        f"{op1.name} ** {op2.name}"
+    )
+# end def pow
+
+
+def exp(op: MathExpr) -> MathExpr:
+    """
+    Element-wise exponential of an operand.
+    """
+    op = as_expr(op)
+    return _apply_operator(
+        "exp",
+        (op,),
+        f"exp({op.name})"
+    )
+# end def exp
+
+
+def log(op: MathExpr) -> MathExpr:
+    """
+    Element-wise natural logarithm of an operand.
+    """
+    op = as_expr(op)
+    return _apply_operator(
+        "log",
+        (op,),
+        f"log({op.name})"
+    )
+# end def log
+
+
+def log2(op: MathExpr) -> MathExpr:
+    """
+    Element-wise base-2 logarithm of an operand.
+    """
+    op = as_expr(op)
+    return _apply_operator(
+        "log2",
+        (op,),
+        f"log2({op.name})"
+    )
+# end def log2
+
+
+def log10(op: MathExpr) -> MathExpr:
+    """
+    Element-wise base-10 logarithm of an operand.
+    """
+    op = as_expr(op)
+    return _apply_operator(
+        "log10",
+        (op,),
+        f"log10({op.name})"
+    )
+# end def log10
+
+
+def sqrt(op: MathExpr) -> MathExpr:
+    """
+    Element-wise square root of an operand.
+    """
+    op = as_expr(op)
+    return _apply_operator(
+        "sqrt",
+        (op,),
+        f"sqrt({op.name})"
+    )
+# end def sqrt
 
 
 def neg(op: MathExpr) -> MathExpr:
