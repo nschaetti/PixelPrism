@@ -41,6 +41,7 @@ __all__ = [
     "Sub",
     "Mul",
     "Div",
+    "Neg",
     "operator_registry"
 ]
 
@@ -203,13 +204,10 @@ class Operator(ABC):
 # end class Operator
 
 
-class Add(Operator):
+class ElementwiseOperator(Operator):
     """
-    Element-wise addition operator.
+    Element-wise operator.
     """
-
-    ARITY = 2
-    NAME = "add"
 
     def __init__(self):
         super().__init__()
@@ -223,11 +221,21 @@ class Add(Operator):
         Check that both operands have identical shapes.
         """
         a, b = operands
-        if a.shape != b.shape:
-            raise ValueError(
-                f"Add requires operands with identical shapes, "
-                f"got {a.shape} and {b.shape}."
-            )
+        if a.rank != b.rank:
+            if a.rank != 0 and b.rank != 0:
+                raise ValueError(
+                    f"Add requires operands with identical ranks if not scalar, "
+                    f"got {a.rank} and {b.rank}."
+                )
+            # end if
+        else:
+            # Same rank, but require same shape
+            if a.shape != b.shape:
+                raise ValueError(
+                    f"Add requires operands with identical shapes, "
+                    f"got {a.shape} and {b.shape}."
+                )
+            # end if
         # end if
         return True
     # end def check_operands_shapes
@@ -237,7 +245,14 @@ class Add(Operator):
         """
         Output shape is identical to operand shapes.
         """
-        return operands[0].shape
+        a, b = operands
+        if a.rank == b.rank:
+            return operands[0].shape
+        elif a.rank > b.rank:
+            return operands[0].shape
+        else:
+            return operands[1].shape
+        # end if
     # end def infer_shape
 
     @classmethod
@@ -250,6 +265,17 @@ class Add(Operator):
     # end def output_dtype
 
     # endregion STATIC
+
+# end class Add
+
+
+class Add(ElementwiseOperator):
+    """
+    Element-wise addition operator.
+    """
+
+    ARITY = 2
+    NAME = "add"
 
     # region PRIVATE
 
@@ -274,47 +300,13 @@ class Add(Operator):
 # end class Add
 
 
-class Sub(Operator):
+class Sub(ElementwiseOperator):
     """
     Element-wise subtraction operator.
     """
 
     ARITY = 2
     NAME = "sub"
-
-    def __init__(self):
-        super().__init__()
-    # end def __init__
-
-    # region STATIC
-
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
-        """Require identical operand shapes."""
-        a, b = operands
-        if a.shape != b.shape:
-            raise ValueError(
-                f"Sub requires operands with identical shapes, "
-                f"got {a.shape} and {b.shape}."
-            )
-        # end if
-        return True
-    # end def check_shapes
-
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
-        """Shape matches operands."""
-        return operands[0].shape
-    # end def infer_shape
-
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
-        """Promote operand dtypes."""
-        a, b = operands
-        return DType.promote(a.dtype, b.dtype)
-    # end def infer_dtype
-
-    # endregion STATIC
 
     # region PRIVATE
 
@@ -337,47 +329,13 @@ class Sub(Operator):
 # end class Sub
 
 
-class Mul(Operator):
+class Mul(ElementwiseOperator):
     """
     Element-wise multiplication operator.
     """
 
     ARITY = 2
     NAME = "mul"
-
-    def __init__(self):
-        super().__init__()
-    # end def __init__
-
-    # region STATIC
-
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
-        """Require identical operand shapes."""
-        a, b = operands
-        if a.shape != b.shape:
-            raise ValueError(
-                f"Mul requires operands with identical shapes, "
-                f"got {a.shape} and {b.shape}."
-            )
-        # end if
-        return True
-    # end def check_shapes
-
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
-        """Shape matches operands."""
-        return operands[0].shape
-    # end def infer_shape
-
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
-        """Promote operand dtypes."""
-        a, b = operands
-        return DType.promote(a.dtype, b.dtype)
-    # end def infer_dtype
-
-    # endregion STATIC
 
     # region PRIVATE
 
@@ -400,13 +358,42 @@ class Mul(Operator):
 # end class Mul
 
 
-class Div(Operator):
+class Div(ElementwiseOperator):
     """
     Element-wise division operator.
     """
 
     ARITY = 2
     NAME = "div"
+
+    # region PRIVATE
+
+    def _eval(self, values: np.ndarray) -> np.ndarray:
+        """Evaluate element-wise division."""
+        a, b = values
+        return a / b
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Div does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Div
+
+
+class Neg(Operator):
+    """
+    Element-wise negation operator.
+    """
+
+    ARITY = 1
+    NAME = "neg"
 
     def __init__(self):
         super().__init__()
@@ -417,13 +404,6 @@ class Div(Operator):
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
         """Require identical operand shapes."""
-        a, b = operands
-        if a.shape != b.shape:
-            raise ValueError(
-                f"Div requires operands with identical shapes, "
-                f"got {a.shape} and {b.shape}."
-            )
-        # end if
         return True
     # end def check_shapes
 
@@ -436,8 +416,8 @@ class Div(Operator):
     @classmethod
     def infer_dtype(cls, operands: Operands) -> DType:
         """Promote operand dtypes."""
-        a, b = operands
-        return DType.promote(a.dtype, b.dtype)
+        a = operands[0]
+        return a.dtype
     # end def infer_dtype
 
     # endregion STATIC
@@ -445,9 +425,9 @@ class Div(Operator):
     # region PRIVATE
 
     def _eval(self, values: np.ndarray) -> np.ndarray:
-        """Evaluate element-wise division."""
-        a, b = values
-        return a / b
+        """Evaluate element-wise negation."""
+        a = values[0]
+        return -a
     # end def _eval
 
     def _backward(
@@ -520,5 +500,6 @@ operator_registry.register(Add())
 operator_registry.register(Sub())
 operator_registry.register(Mul())
 operator_registry.register(Div())
+operator_registry.register(Neg())
 
 

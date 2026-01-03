@@ -45,11 +45,13 @@ def extract(expr: MathExpr) -> Graph:
 
     def _meta(node: MathExpr) -> Dict[str, str]:
         meta: Dict[str, str] = {
+            "id": node.identifier,
             "type": node.__class__.__name__,
             "arity": str(node.arity),
             "is_leaf": node.is_leaf(),
             "is_node": node.is_node(),
             "mutable": node.mutable if hasattr(node, "mutable") else None,
+            "eval": node.eval() if hasattr(node, "eval") else None
         }
         if node.name:
             meta["name"] = node.name

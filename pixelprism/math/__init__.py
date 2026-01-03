@@ -27,7 +27,8 @@
 #
 """Unified symbolic math package with split class modules."""
 
-from .dtype import DType, AnyDType, NumericType
+from .build import as_expr
+from .dtype import DType, AnyDType, NumericType, NestedListType, DataType, ScalarType
 from .helpers import (
     as_sequence,
     build_from_flat,
@@ -65,9 +66,15 @@ from .utils import (
 )
 
 __all__ = [
+    # Build
+    "as_expr",
+    # DType
     "DType",
     "AnyDType",
     "NumericType",
+    "ScalarType",
+    "DataType",
+    "NestedListType",
     # Math Expr
     "MathExpr",
     "MathLeaf",

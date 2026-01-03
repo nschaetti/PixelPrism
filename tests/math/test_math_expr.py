@@ -3,6 +3,7 @@ import pytest
 from pixelprism.math.dtype import DType
 from pixelprism.math.math_expr import MathExpr, MathLeaf
 from pixelprism.math.shape import Shape
+from pixelprism.math.operators import Operator
 
 
 class DummyLeaf(MathLeaf):
@@ -25,17 +26,41 @@ class TrackableMathExpr(MathExpr):
 # end class TrackableMathExpr
 
 
-class DummyOp:
-    """Minimal operator descriptor that records metadata and evaluation."""
+class DummyOp(Operator):
+    """Minimal operator implementation for MathExpr tests."""
+
+    ARITY = 0
+    NAME = "noop"
 
     def __init__(self, name="noop", arity=0, fn=None):
-        self.name = name
-        self.arity = arity
-        self._fn = fn or (lambda node, *values: values)
+        self.NAME = name
+        self.ARITY = arity
+        self._fn = fn or (lambda values: values)
+        super().__init__()
+    # end def __init__
 
-    def eval(self, node, *values):
-        return self._fn(node, *values)
-    # end def eval
+    def _eval(self, values):
+        return self._fn(values)
+    # end def _eval
+
+    def _backward(self, out_grad, node):
+        return tuple(out_grad for _ in node.children)
+    # end def _backward
+
+    @classmethod
+    def infer_dtype(cls, operands):
+        return operands[0].dtype if operands else DType.FLOAT32
+    # end def infer_dtype
+
+    @classmethod
+    def infer_shape(cls, operands):
+        return operands[0].shape if operands else Shape(())
+    # end def infer_shape
+
+    @classmethod
+    def check_shapes(cls, operands):
+        return True
+    # end def check_shapes
 
 # end class DummyOp
 
@@ -65,7 +90,7 @@ def test_math_expr_basic_properties_and_leaf_detection():
     node = _make_node(
         (child1, child2),
         name="sum_node",
-        fn=lambda _, *vals: sum(vals),
+        fn=lambda values: sum(values),
     )
 
     assert node.name == "sum_node"
@@ -73,7 +98,7 @@ def test_math_expr_basic_properties_and_leaf_detection():
     assert node.children == (child1, child2)
     assert node.dtype == DType.FLOAT32
     assert node.shape.dims == (2, 2)
-    assert node.arity() == 2
+    assert node.arity == 2
     assert node.is_node()
     assert not node.is_leaf()
 
@@ -87,7 +112,7 @@ def test_math_expr_basic_properties_and_leaf_detection():
 
     assert leaf_like.is_leaf()
     assert not leaf_like.is_node()
-    assert leaf_like.arity() == 0
+    assert leaf_like.arity == 0
 # end test test_math_expr_basic_properties_and_leaf_detection
 
 
@@ -97,7 +122,7 @@ def test_math_expr_eval_and_parent_registration():
 
     node = _make_node(
         (child1, child2),
-        fn=lambda _, *vals: sum(vals),
+        fn=lambda values: sum(values),
         expr_cls=TrackableMathExpr,
     )
     node._register_as_parent_of(*node.children)
@@ -136,16 +161,16 @@ def test_math_expr_repr_hash_and_identity_semantics(monkeypatch):
         (child,),
         name="inspectable",
         op_name="identity",
-        fn=lambda _, val: val,
+        fn=lambda values: values[0],
     )
 
     rep = repr(node)
     assert "MathExpr" in rep
     assert "identity" in rep
-    assert f"c:{node.arity()}" in rep
+    assert f"c:{node.arity}" in rep
 
     assert hash(node) == hash(node)
-    other = _make_node((child,), name="other", op_name="identity", fn=lambda _, val: val)
+    other = _make_node((child,), name="other", op_name="identity", fn=lambda values: values[0])
     assert node == node
     assert node != other
     assert not node.__eq__(object())
@@ -155,7 +180,7 @@ def test_math_expr_repr_hash_and_identity_semantics(monkeypatch):
 
 def test_math_expr_operator_overloads_default_to_none():
     child = DummyLeaf("only", 1.0)
-    node = _make_node((child,), fn=lambda _, val: val)
+    node = _make_node((child,), fn=lambda values: values[0])
     assert node + 1 is None
     assert 1 + node is None
     assert node - 1 is None

@@ -224,6 +224,12 @@ class MathExpr:
     # region PROPERTIES
 
     @property
+    def identifier(self):
+        """Unique identifier for this expression."""
+        return self._id
+    # end def identifier
+
+    @property
     def name(self) -> Optional[str]:
         """
         Optional user-friendly name.
@@ -262,6 +268,12 @@ class MathExpr:
         """
         return self._shape
     # end def shape
+
+    @property
+    def rank(self):
+        """Rank of the tensor."""
+        return self._shape.rank
+    # end def rank
 
     @property
     def parents(self) -> FrozenSet["MathExpr"]:
@@ -342,7 +354,7 @@ class MathExpr:
     def add(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
         """Addition operator
         """
-        from .functional.arithmetic import add
+        from .functional.elementwise import add
         return add(operand1, operand2)
     # end def add
 
@@ -350,25 +362,42 @@ class MathExpr:
     def sub(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
         """Substraction operator
         """
-        from .functional.arithmetic import sub
+        from .functional.elementwise import sub
         return sub(operand1, operand2)
     # end def sub
 
     @staticmethod
     def mul(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
         """Multiplication operator"""
-        from .functional.arithmetic import mul
+        from .functional.elementwise import mul
         return mul(operand1, operand2)
     # end def mul
 
     @staticmethod
     def div(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
         """Division operator"""
-        from .functional.arithmetic import div
+        from .functional.elementwise import div
         return div(operand1, operand2)
     # end def div
 
+    @staticmethod
+    def neg(operand: MathExpr) -> MathExpr:
+        """Negation operator"""
+        from .functional.elementwise import neg
+        return neg(operand)
+    # end def neg
+
     # endregion OPERATORS
+
+    # region STATIC
+
+    @staticmethod
+    def next_id():
+        """Get the next available node ID."""
+        return MathExpr._next_id
+    # end def next_id
+
+    # endregion STATIC
 
     # region OVERRIDE
 
@@ -418,14 +447,14 @@ class MathExpr:
         return MathExpr.add(self, other)
     # end __add__
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> MathExpr:
         """
         Add another value to this Scalar (reverse addition).
         """
         return MathExpr.add(other, self)
     # end __radd__
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> MathExpr:
         """
         Subtract the scalar value from another scalar or value.
 
@@ -435,7 +464,7 @@ class MathExpr:
         return MathExpr.sub(self, other)
     # end __sub__
 
-    def __rsub__(self, other):
+    def __rsub__(self, other) -> MathExpr:
         """
         Subtract the scalar value from another scalar or value.
 
@@ -445,7 +474,7 @@ class MathExpr:
         return MathExpr.sub(other, self)
     # end __rsub__
 
-    def __mul__(self, other):
+    def __mul__(self, other) -> MathExpr:
         """
         Multiply the scalar value by another scalar or value.
 
@@ -455,7 +484,7 @@ class MathExpr:
         return MathExpr.mul(self, other)
     # end __mul__
 
-    def __rmul__(self, other):
+    def __rmul__(self, other) -> MathExpr:
         """
         Multiply the scalar value by another scalar or value.
 
@@ -465,7 +494,7 @@ class MathExpr:
         return MathExpr.mul(other, self)
     # end __rmul__
 
-    def __truediv__(self, other):
+    def __truediv__(self, other) -> MathExpr:
         """
         Divide the scalar value by another scalar or value.
 
@@ -475,7 +504,7 @@ class MathExpr:
         return MathExpr.div(self, other)
     # end __truediv__
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other) -> MathExpr:
         """
         Divide the scalar value by another scalar or value.
 
@@ -484,6 +513,13 @@ class MathExpr:
         """
         return MathExpr.div(other, self)
     # end __rtruediv__
+
+    def __neg__(self) -> MathExpr:
+        """
+        Negation operator.
+        """
+        return MathExpr.neg(self)
+    # end def __neg__
 
     # Override less
     def __lt__(self, other):

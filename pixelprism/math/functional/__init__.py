@@ -27,7 +27,7 @@
 #
 
 
-from .arithmetic import add, sub, mul, div
+from .elementwise import add, sub, mul, div
 
 
 __all__ = [

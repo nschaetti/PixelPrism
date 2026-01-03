@@ -550,11 +550,10 @@ def eye_like(
     >>> np.allclose(eye.data, np.eye(4))
     True
     """
-    base = np.asarray(x)
-    assert base.ndim == 2, "eye_like expects a 2-D input"
-    rows, cols = base.shape
+    assert x.rank == 2, "eye_like expects a 2-D input"
+    rows, cols = x.shape
     assert rows == cols, "eye_like requires a square matrix input"
-    dtype = _resolve_dtype(dtype) if dtype else base.dtype
+    dtype = _resolve_dtype(dtype) if dtype else _resolve_dtype(x.dtype)
     data = np.eye(rows, dtype=dtype)
     return Tensor(name=name, data=data, mutable=mutable)
 # end def eye_like

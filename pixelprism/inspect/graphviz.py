@@ -49,15 +49,17 @@ def render(
         if node.meta['is_node']:
             dot.attr("node", **INTERNAL_NODE_STYLE)
             node_label = (
+                f"{node.meta['id']}: {node.meta['op']} = {node.meta['eval']}\\n"
                 f"{node.meta['name']} ({node.meta['arity']})\\n"
-                f"{node.meta['op']}\\n"
                 f"{node.meta['dtype']}\\n"
                 f"{node.meta['shape']}"
             )
         else:
             dot.attr("node", **LEAF_NODE_STYLE)
             leaf_type = "Variable" if node.meta['mutable'] else "Constant"
-            node_label = f"{leaf_type} {node.meta['name']} ({node.meta['dtype']})\\n{node.meta['shape']}"
+            node_label = (f"{leaf_type} {node.meta['name']}={node.meta['eval']}\\n"
+                          f"({node.meta['dtype']})"
+                          f"\\n{node.meta['shape']}")
         # end if
         dot.node(node.id, label=node_label)
     # end for

@@ -39,7 +39,7 @@ __all__ = [
     "AnyDType",
     "NestedListType",
     "DataType",
-    "ScalarType"
+    "ScalarType",
 ]
 
 

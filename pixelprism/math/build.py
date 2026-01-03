@@ -1,0 +1,122 @@
+# ####   #####  #   #  #####  #
+# #   #    #     # #   #      #
+# ####     #      #    #####  #
+# #        #     # #   #      #
+# #      #####  #   #  #####  #####
+#
+# ####   ####   #####   ####  #   #
+# #   #  #   #    #    #      ## ##
+# ####   ####     #     ###   # # #
+# #      #  #     #        #  #   #
+# #      #   #  #####  ####   #   #
+#
+# Copyright (C) 2025 Pixel Prism
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+from typing import Any, Union, Optional, List
+import numpy as np
+
+from .math_expr import MathExpr
+from .tensor import Tensor
+from .dtype import DataType, ScalarType, DType, AnyDType, NestedListType
+from .utils import tensor
+
+
+__all__ = ["as_expr"]
+
+
+def as_expr(
+        obj: Union[MathExpr, DataType, np.ndarray],
+        dtype: Optional[AnyDType] = None,
+        mutable: bool = False
+) -> MathExpr:
+    """
+    Convert Python and NumPy inputs to a :class:`~pixelprism.math.MathExpr`.
+
+    This helper follows NumPy-style conversion rules: scalars and nested
+    Python sequences are treated as array-like data and are converted via
+    ``numpy.asarray`` inside :func:`pixelprism.math.tensor`. NumPy arrays are
+    wrapped as :class:`~pixelprism.math.Tensor` instances; when ``dtype`` is
+    provided, the array is cast to that dtype.
+
+    Conversion rules (by input type)
+    --------------------------------
+    - ``MathExpr``: returned unchanged.
+    - Scalar (Python or ``np.number``): converted to a scalar ``Tensor`` using
+      ``dtype``.
+    - ``numpy.ndarray``: wrapped as a ``Tensor``; if ``dtype`` is provided,
+      it overrides the array's dtype.
+    - Nested Python lists: converted to a ``Tensor`` using ``dtype``; when
+      ``dtype`` is ``None``, defaults to ``FLOAT64``.
+
+    Parameters
+    ----------
+    obj : MathExpr | DataType | numpy.ndarray
+        Input object to convert.
+    dtype : AnyDType | None, default None
+        Target dtype for scalar, list, and array inputs. When ``None``,
+        lists default to ``FLOAT64`` and arrays keep their existing dtype.
+    mutable : bool, default False
+        Whether the returned tensor can be mutated in-place.
+
+    Returns
+    -------
+    MathExpr
+        A math expression node representing the input.
+
+    Examples
+    --------
+    >>> from pixelprism.math import as_expr, DType
+    >>> as_expr(3.5, dtype=DType.FLOAT32).dtype
+    <DType.FLOAT32: 'float32'>
+
+    >>> import numpy as np
+    >>> arr = np.array([[1, 2], [3, 4]], dtype=np.int64)
+    >>> as_expr(arr, dtype=DType.FLOAT32).dtype
+    <DType.FLOAT32: 'float32'>
+
+    >>> as_expr([[1, 2], [3, 4]], dtype=None).dtype
+    <DType.FLOAT64: 'float64'>
+    """
+    if isinstance(obj, MathExpr):
+        return obj
+    elif isinstance(obj, ScalarType):
+        return tensor(
+            name=f"constant_{MathExpr.next_id()}",
+            data=obj,
+            dtype=dtype,
+            mutable=mutable
+        )
+    elif isinstance(obj, np.ndarray):
+        return Tensor(
+            name=f"constant_{MathExpr.next_id()}",
+            data=obj,
+            mutable=mutable,
+            dtype=dtype if dtype is not None else DType.from_numpy(obj.dtype)
+        )
+    elif isinstance(obj, Tensor):
+        return obj
+    elif isinstance(obj, List):
+        return tensor(
+            name=f"constant_{MathExpr.next_id()}",
+            data=obj,
+            dtype=dtype if dtype is not None else DType.FLOAT64,
+            mutable=mutable
+        )
+    else:
+        raise TypeError(f"Cannot convert {type(obj)} to MathExpr")
+    # end if
+# end def as_expr

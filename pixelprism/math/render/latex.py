@@ -284,7 +284,7 @@ class _LatexRenderer:
             return constant_literal
         # end if
 
-        literal = self._extract_scalar_literal(expr)
+        literal = self._extract_scalar_name(expr)
         if literal is not None:
             return literal
         # end if
@@ -362,9 +362,9 @@ class _LatexRenderer:
         return None
     # end def _extract_leaf_data
 
-    def _extract_scalar_literal(self, expr: MathExpr) -> str | None:
+    def _extract_scalar_name(self, expr: MathExpr) -> str | None:
         """
-        Attempt to extract a scalar literal from ``expr``.
+        Attempt to extract a scalar name from ``expr``.
 
         Parameters
         ----------
@@ -380,11 +380,79 @@ class _LatexRenderer:
             return None
         # end if
 
-        scalar = self._coerce_scalar(expr)
-        if scalar is None:
-            return None
+        # Return scalar name
+        name = expr.name
+        if not isinstance(name, str) or not name:
+            return name
         # end if
-        return self._format_number(scalar)
+
+        if name.startswith("\\"):
+            return name
+        # end if
+
+        latex_map = {
+            # Greek letters (lowercase)
+            "alpha": r"\alpha",
+            "beta": r"\beta",
+            "gamma": r"\gamma",
+            "delta": r"\delta",
+            "epsilon": r"\epsilon",
+            "zeta": r"\zeta",
+            "eta": r"\eta",
+            "theta": r"\theta",
+            "iota": r"\iota",
+            "kappa": r"\kappa",
+            "lambda": r"\lambda",
+            "mu": r"\mu",
+            "nu": r"\nu",
+            "xi": r"\xi",
+            "omicron": r"\omicron",
+            "pi": r"\pi",
+            "rho": r"\rho",
+            "sigma": r"\sigma",
+            "tau": r"\tau",
+            "upsilon": r"\upsilon",
+            "phi": r"\phi",
+            "chi": r"\chi",
+            "psi": r"\psi",
+            "omega": r"\omega",
+            # Greek letters (uppercase)
+            "Alpha": r"\Alpha",
+            "Beta": r"\Beta",
+            "Gamma": r"\Gamma",
+            "Delta": r"\Delta",
+            "Epsilon": r"\Epsilon",
+            "Zeta": r"\Zeta",
+            "Eta": r"\Eta",
+            "Theta": r"\Theta",
+            "Iota": r"\Iota",
+            "Kappa": r"\Kappa",
+            "Lambda": r"\Lambda",
+            "Mu": r"\Mu",
+            "Nu": r"\Nu",
+            "Xi": r"\Xi",
+            "Omicron": r"\Omicron",
+            "Pi": r"\Pi",
+            "Rho": r"\Rho",
+            "Sigma": r"\Sigma",
+            "Tau": r"\Tau",
+            "Upsilon": r"\Upsilon",
+            "Phi": r"\Phi",
+            "Chi": r"\Chi",
+            "Psi": r"\Psi",
+            "Omega": r"\Omega",
+            # Common mathematical symbols
+            "infty": r"\infty",
+            "infinity": r"\infty",
+            "inf": r"\infty",
+            "partial": r"\partial",
+            "nabla": r"\nabla",
+            "sum": r"\sum",
+            "prod": r"\prod",
+            "int": r"\int",
+            "sqrt": r"\sqrt",
+        }
+        return latex_map.get(name, name)
     # end def _extract_scalar_literal
 
     def _coerce_scalar(self, expr: MathExpr) -> numbers.Number | None:
