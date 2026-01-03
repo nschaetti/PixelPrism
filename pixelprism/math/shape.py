@@ -25,7 +25,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-"""Symbolic tensor shape representation."""
+"""Tensor shape representation."""
 
 # Imports
 from __future__ import annotations
@@ -33,12 +33,13 @@ from typing import Iterable, List, Optional, Sequence, Tuple
 from dataclasses import dataclass
 
 
-__all__ = ["Shape", "Dim", "Dims"]
+__all__ = ["Shape", "Dim", "Dims", "AnyShape"]
 
 
 
 Dim = int
 Dims = Tuple[Dim, ...]
+AnyShape = 'Shape' | Dims
 
 
 def _num_elements(dims: Sequence[int | None]) -> int | None:
@@ -639,9 +640,10 @@ class Shape:
         str
             Readable representation.
         """
-        return self.__str__()
+        return self.__repr__()
     # end def __str__
 
     # endregion OVERRIDE
 
 # end class Shape
+

@@ -28,10 +28,27 @@
 """Data types."""
 
 # Imports
+from typing import TypeAlias, Union
 from enum import Enum
+import numpy as np
 
 
-__all__ = ["DType"]
+__all__ = [
+    "DType",
+    "NumericType",
+    "AnyDType",
+    "NestedListType",
+    "DataType",
+    "ScalarType"
+]
+
+
+# Type numeric
+NumericType = float | int | bool | complex | np.number
+ScalarType = int | float | np.number | bool | complex
+NestedListType: TypeAlias = list[Union[ScalarType, "NestedListType"]]
+DataType: TypeAlias = Union[ScalarType, NestedListType]
+AnyDType = Union["DType", np.dtype, type[float], type[int], type[bool]]
 
 
 class DType(Enum):
@@ -46,6 +63,8 @@ class DType(Enum):
     INT64 = "int64"
     INT32 = "int32"
     BOOL = "bool"
+
+    # region PROPERTIES
 
     @property
     def is_float(self) -> bool:
@@ -62,6 +81,30 @@ class DType(Enum):
         return self is DType.BOOL
     # end def is_bool
 
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def to_numpy(self) -> np.dtype:
+        """Convert to numpy dtype.
+
+        Returns
+        -------
+        nd.dtype
+            Numpy dtype.
+        """
+        return np.dtype(self.value)
+    # end def to_numpy
+
+    def convert_numpy(self, data: np.ndarray) -> np.ndarray:
+        """Convert numpy array to this dtype."""
+        return data.astype(self.to_numpy())
+    # end def convert_numpy
+
+    # endregion PUBLIC
+
+    # region STATIC
+
     @staticmethod
     def promote(a: "DType", b: "DType") -> "DType":
         """
@@ -70,6 +113,20 @@ class DType(Enum):
         order = list(DType)
         return a if order.index(a) <= order.index(b) else b
     # end def promote
+
+    @staticmethod
+    def from_numpy(dtype: np.dtype) -> "DType":
+        """Convert from numpy dtype.
+
+        Returns
+        -------
+        DType
+            Converted dtype.
+        """
+        return DType(dtype.name)
+    # end def from_numpy
+
+    # endregion STATIC
 
 # end class DType
 

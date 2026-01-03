@@ -32,11 +32,6 @@ from __future__ import annotations
 from typing import Any, Iterator, List, Sequence, Tuple, TYPE_CHECKING
 
 
-if TYPE_CHECKING:
-    from pixelprism.math.value import Value
-# end if
-
-
 __all__ = [
     "is_sequence_like",
     "as_sequence",

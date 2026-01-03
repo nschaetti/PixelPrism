@@ -27,7 +27,7 @@
 #
 """Unified symbolic math package with split class modules."""
 
-from .dtype import DType
+from .dtype import DType, AnyDType, NumericType
 from .helpers import (
     as_sequence,
     build_from_flat,
@@ -43,19 +43,45 @@ from .helpers import (
     transpose_python,
     unravel_index,
 )
-# from .math_expr import MathExpr
-from .shape import Dim, Dims, Shape
-from .value import Value
+from .math_expr import MathExpr, MathLeaf
+from .operators import Operator, Add, Sub, Mul, Div, operator_registry
+from .shape import Dim, Dims, Shape, AnyShape
+from .tensor import Tensor
+from .utils import (
+    tensor,
+    scalar,
+    vector,
+    matrix,
+    empty,
+    zeros,
+    ones,
+    full,
+    nan,
+    I,
+    diag,
+    eye_like,
+    zeros_like,
+    ones_like,
+)
 
 __all__ = [
     "DType",
+    "AnyDType",
+    "NumericType",
     # Math Expr
-    # "MathExpr",
+    "MathExpr",
+    "MathLeaf",
+    # Operators
+    "Operator",
+    "Add",
+    "Sub",
+    "Mul",
+    "Div",
+    "operator_registry",
     # Shape
     "Shape",
     "Dim",
     "Dims",
-    "Value",
     # Helpers
     "is_sequence_like",
     "as_sequence",
@@ -70,4 +96,21 @@ __all__ = [
     "ravel_index",
     "transpose_python",
     "select_ops",
+    # Tensor
+    "Tensor",
+    # Utils
+    "tensor",
+    "scalar",
+    "vector",
+    "matrix",
+    "empty",
+    "zeros",
+    "ones",
+    "full",
+    "nan",
+    "I",
+    "diag",
+    "eye_like",
+    "zeros_like",
+    "ones_like",
 ]

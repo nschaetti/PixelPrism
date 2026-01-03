@@ -42,6 +42,7 @@ setup(
         "matplotlib",
         "opencv-python",
         "pycairo",
+        "cairosvg",
         "torch",
         "scikit-image",
         "click",

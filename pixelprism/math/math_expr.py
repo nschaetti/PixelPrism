@@ -85,7 +85,7 @@ and the ``Shape`` helper.
 
 Create a shape, inspect metadata, and merge it with another compatible shape.
 
->>> from pixelprism.math.shape import Shape
+>>> from pixelprism.math import Shape
 >>> activations = Shape((32, 128))
 >>> activations.rank
 2
@@ -97,7 +97,7 @@ Create a shape, inspect metadata, and merge it with another compatible shape.
 
 Use a shape while instantiating a hypothetical ``MathExpr`` leaf node.
 
->>> from pixelprism.math.dtype import DType
+>>> from pixelprism.math import DType
 >>> weight = MathExpr(  # created by a concrete subclass/factory
 ...     name="weight",
 ...     children=(),
@@ -117,9 +117,10 @@ from abc import ABC, abstractmethod
 from typing import Any, FrozenSet, Mapping, Optional, Tuple
 from .dtype import DType
 from .shape import Shape
+from .operators import Operator
 
 
-__all__ = ["MathExpr"]
+__all__ = ["MathExpr", "MathLeaf"]
 
 
 class MathExpr:
@@ -186,7 +187,7 @@ class MathExpr:
             self,
             *,
             name: Optional[str],
-            op: Optional[Any],
+            op: Optional[Operator],
             children: Tuple["MathExpr", ...],
             dtype: DType,
             shape: Shape
@@ -207,12 +208,12 @@ class MathExpr:
         shape : ShapeDesc
             Symbolic shape tuple (ints or SymbolicDim).
         """
-        self._id = MathExpr._next_id
-        self._name = name
-        self._op = op
-        self._children = children
-        self._dtype = dtype
-        self._shape = shape
+        self._id: int = MathExpr._next_id
+        self._name: str = name
+        self._op: Operator = op
+        self._children: Tuple["MathExpr", ...] = children
+        self._dtype: DType = dtype
+        self._shape: Shape = shape
         self._parents_weak: "weakref.WeakSet[MathExpr]" = weakref.WeakSet()
         self._check_operator()
         MathExpr._next_id += 1
@@ -270,6 +271,12 @@ class MathExpr:
         return frozenset(self._parents_weak)
     # end def parents
 
+    @property
+    def arity(self):
+        """Number of children."""
+        return len(self._children)
+    # end def arity
+
     # endregion PROPERTIES
 
     # region PUBLIC
@@ -277,7 +284,7 @@ class MathExpr:
     def eval(self, **kwargs):
         """Evaluate this expression in the current context."""
         values = [c.eval(**kwargs) for c in self._children]
-        return self._op.eval(self, *values)
+        return self._op.eval(values=values)
     # end def eval
 
     def is_node(self) -> bool:
@@ -294,13 +301,6 @@ class MathExpr:
         return len(self._children) == 0
     # end is_leaf
 
-    def arity(self) -> int:
-        """
-        Declared arity (0 for leaves).
-        """
-        return len(self._children)
-    # end arity
-
     # endregion PUBLIC
 
     # region PRIVATE
@@ -308,9 +308,11 @@ class MathExpr:
     def _check_operator(self):
         """Check that the operator is valid for this node type.
         """
-        if self._op is not None and self.arity() != self._op.arity:
-            raise TypeError(f"Operator and arity mismatch: "
-                            f"{self._op.name}({self.arity()}) != {self.__class__.__name__}({self._op.arity})")
+        if self._op is not None and self.arity != self._op.arity:
+            raise TypeError(
+                f"Operator and arity mismatch: "
+                f"{self._op.name}({self.arity}) != {self.__class__.__name__}({self._op.arity})"
+            )
         # end if
     # end _def_check_operator
 
@@ -333,6 +335,40 @@ class MathExpr:
     # end _register_as_parent_of
 
     # endregion PRIVATE
+
+    # region OPERATORS
+
+    @staticmethod
+    def add(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
+        """Addition operator
+        """
+        from .functional.arithmetic import add
+        return add(operand1, operand2)
+    # end def add
+
+    @staticmethod
+    def sub(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
+        """Substraction operator
+        """
+        from .functional.arithmetic import sub
+        return sub(operand1, operand2)
+    # end def sub
+
+    @staticmethod
+    def mul(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
+        """Multiplication operator"""
+        from .functional.arithmetic import mul
+        return mul(operand1, operand2)
+    # end def mul
+
+    @staticmethod
+    def div(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
+        """Division operator"""
+        from .functional.arithmetic import div
+        return div(operand1, operand2)
+    # end def div
+
+    # endregion OPERATORS
 
     # region OVERRIDE
 
@@ -368,6 +404,131 @@ class MathExpr:
         return self._id == other._id
     # end __eq__
 
+    def __ne__(self, other):
+        """
+        """
+        return not self.__eq__(other)
+    # end __ne__
+
+    # Operator overloading
+    def __add__(self, other) -> MathExpr:
+        """
+        ...
+        """
+        return MathExpr.add(self, other)
+    # end __add__
+
+    def __radd__(self, other):
+        """
+        Add another value to this Scalar (reverse addition).
+        """
+        return MathExpr.add(other, self)
+    # end __radd__
+
+    def __sub__(self, other):
+        """
+        Subtract the scalar value from another scalar or value.
+
+        Args:
+            other (any): Scalar or value to subtract
+        """
+        return MathExpr.sub(self, other)
+    # end __sub__
+
+    def __rsub__(self, other):
+        """
+        Subtract the scalar value from another scalar or value.
+
+        Args:
+            other (any): Scalar or value to subtract
+        """
+        return MathExpr.sub(other, self)
+    # end __rsub__
+
+    def __mul__(self, other):
+        """
+        Multiply the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to multiply
+        """
+        return MathExpr.mul(self, other)
+    # end __mul__
+
+    def __rmul__(self, other):
+        """
+        Multiply the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to multiply
+        """
+        return MathExpr.mul(other, self)
+    # end __rmul__
+
+    def __truediv__(self, other):
+        """
+        Divide the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to divide by
+        """
+        return MathExpr.div(self, other)
+    # end __truediv__
+
+    def __rtruediv__(self, other):
+        """
+        Divide the scalar value by another scalar or value.
+
+        Args:
+            other (any): Scalar or value to divide by
+        """
+        return MathExpr.div(other, self)
+    # end __rtruediv__
+
+    # Override less
+    def __lt__(self, other):
+        """
+        Check if the scalar value is less than another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        pass
+    # end __lt__
+
+    # Override less or equal
+    def __le__(self, other):
+        """
+        Check if the scalar value is less than or equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        pass
+    # end __le__
+
+    # Override greater
+    def __gt__(self, other):
+        """
+        Check if the scalar value is greater than another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        pass
+    # end __gt__
+
+    # Override greater or equal
+    def __ge__(self, other):
+        """
+        Check if the scalar value is greater than or equal to another scalar or value.
+
+        Args:
+            other (any): Scalar or value to compare
+        """
+        pass
+    # end __ge__
+
     # endregion OVERRIDE
 
 # end class MathExpr
@@ -391,7 +552,7 @@ class MathLeaf(MathExpr, ABC):
             self,
             *,
             name: str,
-            value: Any,
+            data: Any,
             dtype: DType,
             shape: Shape,
             mutable: bool = True
@@ -401,7 +562,7 @@ class MathLeaf(MathExpr, ABC):
 
         Parameters
         ----------
-        value : Any
+        data : Any
             Initial value to store. The concrete type is determined by the
             subclass.
         mutable : bool, optional
@@ -416,8 +577,24 @@ class MathLeaf(MathExpr, ABC):
             shape=shape
         )
         self._mutable = mutable
-        self._data: Any = value
+        self._data: Any = data
     # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def data(self) -> Any:
+        """Get the value of this leaf node."""
+        return self._data
+    # end def data
+
+    @property
+    def mutable(self) -> bool:
+        """True iff the value can be modified."""
+        return self._mutable
+    # end def mutable
+
+    # endregion PROPERTIES
 
     # region PUBLIC
 
@@ -442,7 +619,7 @@ class MathLeaf(MathExpr, ABC):
     # region PRIVATE
 
     @abstractmethod
-    def _set(self, value: Any) -> None:
+    def _set(self, data: Any) -> None:
         """
         Set the internal value of this leaf node.
         """

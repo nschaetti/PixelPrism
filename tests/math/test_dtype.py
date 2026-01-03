@@ -28,7 +28,6 @@
 """Tests for pixelprism.math.Value."""
 
 # Imports
-import pytest
 from pixelprism.math.dtype import DType
 
 
