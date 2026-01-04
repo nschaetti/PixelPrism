@@ -30,7 +30,7 @@ Operator base classes and registry.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from typing import List, Sequence, Type
 
 import numpy as np
 
@@ -40,6 +40,7 @@ from ..shape import Shape
 __all__ = [
     "Operands",
     "Operator",
+    "BinderOperator",
     "OperatorRegistry",
     "operator_registry",
 ]
@@ -59,7 +60,7 @@ class Operator(ABC):
     # Operator name
     NAME: str
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Constructor.
 
@@ -93,6 +94,16 @@ class Operator(ABC):
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    @abstractmethod
+    def contains(self, expr: "MathExpr") -> bool:
+        """Does the operator contain the given expression (in parameters)?"""
+    # end def contains
+
+    @abstractmethod
+    def check_operands(self, operands: Operands) -> bool:
+        """Check that the operands have the correct arity."""
+    # end def check_operands
 
     def eval(self, values) -> np.ndarray:
         """Evaluate the operator."""
@@ -185,7 +196,6 @@ class Operator(ABC):
             operands: Operands
     ) -> bool:
         """Check that the operands have compatible shapes."""
-
     # end def check_shapes
 
     @classmethod
@@ -202,15 +212,51 @@ class Operator(ABC):
 # end class Operator
 
 
+class BinderOperator(Operator):
+    """
+    Base class for operators that bind operands to a variable.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._check_parameters(**kwargs)
+    # end def __init__
+
+    def eval_node(self, operands: Operands, **kwargs) -> np.ndarray:
+        """Evaluate the binder operator."""
+        return self._eval_node(operands=operands, **kwargs)
+    # end def eval_node
+
+    # region PRIVATE
+
+    @classmethod
+    @abstractmethod
+    def check_parameters(cls, **kwargs) -> bool:
+        """Check that the operands have compatible shapes."""
+    # end def check_shapes
+
+    def _check_parameters(self, **kwargs):
+        """Check parameters."""
+        self.__class__.check_parameters(**kwargs)
+    # end def _check_parameters
+
+    @abstractmethod
+    def _eval_node(self, operands: Operands, **kwargs) -> np.ndarray:
+        """Evaluate the operator."""
+    # end def _eval_node
+
+# end class BinderOperator
+
+
 class OperatorRegistry:
     """
     Global registry for Operator instances.
     """
 
-    _by_name: dict[str, Operator] = {}
+    _by_name: dict[str, Type[Operator]] = {}
 
     @classmethod
-    def register(cls, op: Operator) -> None:
+    def register(cls, op_cls: Type[Operator]) -> None:
         """
         Register an operator.
 
@@ -218,15 +264,19 @@ class OperatorRegistry:
         ------
         ValueError
             If an operator with the same name is already registered.
+            The operator class must be a subclass of Operator.
         """
-        if op.name in cls._by_name:
-            raise ValueError(f"Operator '{op.name}' is already registered.")
+        if not issubclass(op_cls, Operator):
+            raise TypeError("Only Operator subclasses can be registered")
         # end if
-        cls._by_name[op.name] = op
+        if op_cls.NAME in cls._by_name:
+            raise ValueError(f"Operator '{op_cls.NAME}' is already registered.")
+        # end if
+        cls._by_name[op_cls.NAME] = op_cls
     # end def register
 
     @classmethod
-    def get(cls, name: str) -> Operator:
+    def get(cls, name: str) -> Type[Operator]:
         """
         Retrieve a registered operator by name.
 

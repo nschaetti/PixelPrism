@@ -117,8 +117,7 @@ from abc import ABC, abstractmethod
 from typing import Any, FrozenSet, Mapping, Optional, Tuple, List, Union
 from .dtype import DType
 from .shape import Shape
-from .operators import Operator
-
+from .operators import Operator, BinderOperator
 
 __all__ = ["MathExpr", "MathLeaf"]
 
@@ -295,8 +294,13 @@ class MathExpr:
 
     def eval(self, **kwargs):
         """Evaluate this expression in the current context."""
-        values = [c.eval(**kwargs) for c in self._children]
-        return self._op.eval(values=values)
+        # Binder Operator
+        if isinstance(self._op, BinderOperator):
+            return self._op.eval_node(self._children, **kwargs)
+        else:
+            values = [c.eval(**kwargs) for c in self._children]
+            return self._op.eval(values=values)
+        # end if
     # end def eval
 
     def is_node(self) -> bool:
@@ -342,10 +346,15 @@ class MathExpr:
         return self.variables() + self.constants()
     # end def leaves
 
-    def contains(self, var: Union[str, MathExpr], by_ref: bool = False) -> bool:
+    def contains(
+            self,
+            var: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
         """Check if the expression contains the given variable."""
-        rets = [c.contains(var, by_ref=by_ref) for c in self._children]
-        return any(rets) or (by_ref and self == var)
+        rets = [c.contains(var, by_ref=by_ref, check_operator=check_operator) for c in self._children]
+        return any(rets) or (by_ref and self == var) or (check_operator and self._op.contains(var))
     # end def contains
 
     # endregion PUBLIC
@@ -757,18 +766,26 @@ class MathLeaf(MathExpr, ABC):
         return []
     # end def constants
 
-    def contains(self, var: Union[str, MathExpr], by_ref: bool = False) -> bool:
+    def contains(
+            self,
+            var: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        # print(f"contains: var={var}, by_ref={by_ref}, check_operator={check_operator}, self={self}")
+        # print(id(self), id(var))
         """Check if the expression contains the given variable."""
         if by_ref:
-            if type(var) is MathExpr and var == self:
-                return True
-            else:
+            if type(var) is str:
                 raise ValueError(f"Cannot find by reference if string given: var={var}.")
+            # end if
+            if isinstance(var, MathExpr) and var is self:
+                return True
             # end if
         else:
             if type(var) is str and var == self.name:
                 return True
-            elif type(var) is MathExpr and var.name == self.name:
+            elif isinstance(var, MathExpr) and var.name == self.name:
                 return True
             # end if
         # end if

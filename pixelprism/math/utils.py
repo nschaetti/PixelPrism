@@ -243,6 +243,39 @@ def matrix(
 # end def matrix
 
 
+def bounded_variable(
+        name: str,
+        shape: AnyShape,
+        dtype: AnyDType = float
+) -> Tensor:
+    """
+    Allocate an uninitialized tensor of the requested shape for a bounded variable.
+
+    Parameters
+    ----------
+    name : str
+        Identifier assigned to the tensor.
+    shape : AnyShape
+        Dimensions of the tensor; accepts ints, tuples, lists or ``Shape``.
+    dtype : AnyDType, default float
+        Data type of the uninitialized buffer.
+
+    Returns
+    -------
+    Tensor
+        Tensor backed by ``np.empty(shape, dtype)``.
+
+    Examples
+    --------
+    >>> import pixelprism.math as ppmath
+    >>> scratch = ppmath.bounded_variable("scratch", (2, 3))
+    >>> scratch.data.shape
+    (2, 3)
+    """
+    return empty(name=name, shape=shape, dtype=dtype)
+# end bounded_variable
+
+
 def empty(
         name: str,
         shape: AnyShape,

@@ -810,6 +810,64 @@ def _format_outer(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> st
 # end def _format_outer
 
 
+def _format_mean(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+    """
+    """
+    if len(expr.children) != 1:
+        raise ValueError("mean expects exactly two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"\operatorname{mean}(" + str(operands[0]) + r")"
+# end def _format_mean
+
+
+def _format_sum(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+    """
+    """
+    if len(expr.children) != 1:
+        raise ValueError("sum expects exactly two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"\sum" + str(operands[0])
+# end def _format_sum
+
+def _format_summation(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+    """
+    """
+    if len(expr.children) != 1:
+        raise ValueError("sum expects exactly two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    bounded_name = expr.op.bounded_variable.name
+    lower = renderer._render_operand(expr.op.lower, rule.precedence, allow_equal=True)
+    upper = renderer._render_operand(expr.op.upper, rule.precedence, allow_equal=True)
+    return r"\sum_{" + bounded_name + "=" + lower + "}^{" + upper + "}{" + operands[0] + "}"
+ # end def _format_sum
+
+
+def _format_std(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+    """
+    """
+    if len(expr.children) != 1:
+        raise ValueError("std expects exactly two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"\sigma(" + str(operands[0]) + r")"
+# end def _format_std
+
+
 def _format_div(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     """
     Format division expressions.
@@ -901,10 +959,14 @@ _DIV_RULE = _OpRule(precedence=20, formatter=_format_div)
 _POW_RULE = _OpRule(precedence=40, formatter=_format_pow)
 _TRANSPOSE_RULE = _OpRule(precedence=50, formatter=_format_transpose)
 
+_SUM_RULE = _OpRule(precedence=100, formatter=_format_sum)
+_MEAN_RULE = _OpRule(precedence=100, formatter=_format_mean)
+_STD_RULE = _OpRule(precedence=100, formatter=_format_std)
+_SUMMATION_RULE = _OpRule(precedence=100, formatter=_format_summation)
+
 
 _OP_RULES: Dict[str, _OpRule] = {
     "add": _ADD_RULE,
-    "sum": _ADD_RULE,
     "sub": _SUB_RULE,
     "subtract": _SUB_RULE,
     "neg": _NEG_RULE,
@@ -921,6 +983,11 @@ _OP_RULES: Dict[str, _OpRule] = {
     "pow": _POW_RULE,
     "power": _POW_RULE,
     "transpose": _TRANSPOSE_RULE,
+    # Reduction
+    "mean": _MEAN_RULE,
+    "sum": _SUM_RULE,
+    "std": _STD_RULE,
+    "summation": _SUMMATION_RULE,
 }
 
 _FUNCTION_COMMANDS: Dict[str, str] = {

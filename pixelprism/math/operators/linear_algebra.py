@@ -41,6 +41,7 @@ __all__ = [
     "MatMul",
     "Dot",
     "Outer",
+    "Trace"
 ]
 
 
@@ -48,6 +49,16 @@ class LinearAlgebraOperator(Operator, ABC):
     """
     Linear algebra operator.
     """
+
+    def check_operands(self, operands: Operands) -> bool:
+        """Check that the operands have the correct arity."""
+        return True
+    # end def check_operands
+
+    def contains(self, expr: "MathExpr") -> bool:
+        """Does the operator contain the given expression (in parameters)?"""
+        return False
+    # end def contains
 
     @classmethod
     def infer_dtype(cls, operands: Operands) -> DType:
@@ -58,7 +69,13 @@ class LinearAlgebraOperator(Operator, ABC):
         return DType.promote(a.dtype, b.dtype)
     # end def infer_dtype
 
-# end class MatMul
+    @classmethod
+    def check_parameters(cls, **kwargs) -> bool:
+        """Check that the operands have compatible shapes."""
+        pass
+    # end def check_shapes
+
+# end class LinearAlgebraOperator
 
 
 class MatMul(LinearAlgebraOperator):
@@ -306,7 +323,69 @@ class Outer(LinearAlgebraOperator):
 # end class Outer
 
 
-operator_registry.register(MatMul())
-operator_registry.register(Dot())
-operator_registry.register(Outer())
+class Trace(LinearAlgebraOperator):
+    """
+    Trace operator.
+    """
+
+    NAME = "trace"
+    ARITY = 1
+
+    @classmethod
+    def check_shapes(cls, operands: Operands) -> bool:
+        a, = operands
+
+        # Same rank
+        if a.rank < 2:
+            raise ValueError(f"Trace requires rank >= 2, got {a.rank}")
+        # end if
+
+        # Square matrices
+        if a.shape[-1] != a.shape[-2]:
+            raise ValueError(f"Trace requires square matrix, got {a.shape[-1]}x{a.shape[-2]}")
+        # end if
+
+        return True
+    # end def check_shapes
+
+    @classmethod
+    def infer_shape(cls, operands: Operands) -> Shape:
+        A, = operands
+        dims_a = A.shape.dims
+        rank_a = len(dims_a)
+
+        # Batch dim
+        batch_dim = ()
+        if rank_a > 2:
+            batch_dim = dims_a[:-2]
+        # end if
+
+        return Shape(batch_dim)
+    # end def infer_shape
+
+    @classmethod
+    def infer_dtype(cls, operands: Operands) -> DType:
+        """
+        Promote operand dtypes.
+        """
+        a, = operands
+        return a.dtype
+    # end def infer_dtype
+
+    def _eval(self, values: np.ndarray) -> np.ndarray:
+        a, = values
+        return np.trace(values, axis1=-2, axis2=-1)[0]
+    # end def _eval
+
+    def _backward(self, out_grad, node):
+        raise NotImplementedError(f"{self.NAME} does not support backward.")
+    # end def _backward
+
+# end class Trace
+
+
+operator_registry.register(MatMul)
+operator_registry.register(Dot)
+operator_registry.register(Outer)
+operator_registry.register(Trace)
 

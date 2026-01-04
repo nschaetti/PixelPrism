@@ -29,13 +29,13 @@
 
 from pixelprism.math.math_expr import MathExpr
 from pixelprism.math.build import as_expr
-from .elementwise import _apply_operator
-
+from .helpers import apply_operator
 
 __all__ = [
     "matmul",
     "dot",
-    "outer"
+    "outer",
+    "trace"
 ]
 
 
@@ -48,7 +48,7 @@ def matmul(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "matmul",
         (op1, op2),
         f"{op1.name} @ {op2.name}"
@@ -65,7 +65,7 @@ def dot(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "dot",
         (op1, op2),
         f"{op1.name} ⋅ {op2.name}"
@@ -82,10 +82,26 @@ def outer(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "outer",
         (op1, op2),
         f"{op1.name} ⊗ {op2.name}"
     )
 # end def outer
+
+
+def trace(
+        op1: MathExpr
+) -> MathExpr:
+    """
+    Trace of a matrix.
+    """
+    op1 = as_expr(op1)
+    return apply_operator(
+        "trace",
+        (op1,),
+        f"tr({op1.name})"
+    )
+# end def trace
+
 

@@ -28,7 +28,7 @@
 """
 Elementwise operator implementations.
 """
-
+from abc import ABC
 from typing import Sequence
 
 import numpy as np
@@ -54,14 +54,24 @@ __all__ = [
 ]
 
 
-class ElementwiseOperator(Operator):
+class ElementwiseOperator(Operator, ABC):
     """
     Element-wise operator.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
     # end def __init__
+
+    def check_operands(self, operands: Operands) -> bool:
+        """Check that the operands have the correct arity."""
+        return True
+    # end def check_operands
+
+    def contains(self, expr: "MathExpr") -> bool:
+        """Does the operator contain the given expression (in parameters)?"""
+        return False
+    # end def contains
 
     # region STATIC
 
@@ -113,6 +123,12 @@ class ElementwiseOperator(Operator):
         a, b = operands
         return DType.promote(a.dtype, b.dtype)
     # end def infer_dtype
+
+    @classmethod
+    def check_parameters(cls, **kwargs) -> bool:
+        """Check that the operands have compatible shapes."""
+        pass
+    # end def check_shapes
 
     # endregion STATIC
 
@@ -266,16 +282,26 @@ class Pow(ElementwiseOperator):
 # end class Pow
 
 
-class UnaryElementwiseOperator(Operator):
+class UnaryElementwiseOperator(Operator, ABC):
     """
     Base class for unary element-wise operators.
     """
 
     ARITY = 1
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
     # end def __init__
+
+    def check_operands(self, operands: Operands) -> bool:
+        """Check that the operands have the correct arity."""
+        return True
+    # end def check_operands
+
+    def contains(self, expr: "MathExpr") -> bool:
+        """Does the operator contain the given expression (in parameters)?"""
+        return False
+    # end def contains
 
     # region STATIC
 
@@ -299,6 +325,12 @@ class UnaryElementwiseOperator(Operator):
             return operand_dtype
         return DType.FLOAT32
     # end def infer_dtype
+
+    @classmethod
+    def check_parameters(cls, **kwargs) -> bool:
+        """Check that the operands have compatible shapes."""
+        pass
+    # end def check_shapes
 
     # endregion STATIC
 
@@ -440,7 +472,7 @@ class Log10(UnaryElementwiseOperator):
 # end class Log10
 
 
-class Neg(Operator):
+class Neg(UnaryElementwiseOperator):
     """
     Element-wise negation operator.
     """
@@ -495,14 +527,14 @@ class Neg(Operator):
 # end class Neg
 
 
-operator_registry.register(Add())
-operator_registry.register(Sub())
-operator_registry.register(Mul())
-operator_registry.register(Div())
-operator_registry.register(Pow())
-operator_registry.register(Exp())
-operator_registry.register(Log())
-operator_registry.register(Sqrt())
-operator_registry.register(Log2())
-operator_registry.register(Log10())
-operator_registry.register(Neg())
+operator_registry.register(Add)
+operator_registry.register(Sub)
+operator_registry.register(Mul)
+operator_registry.register(Div)
+operator_registry.register(Pow)
+operator_registry.register(Exp)
+operator_registry.register(Log)
+operator_registry.register(Sqrt)
+operator_registry.register(Log2)
+operator_registry.register(Log10)
+operator_registry.register(Neg)

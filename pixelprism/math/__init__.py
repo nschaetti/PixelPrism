@@ -63,6 +63,7 @@ from .utils import (
     eye_like,
     zeros_like,
     ones_like,
+    bounded_variable
 )
 
 __all__ = [
@@ -120,4 +121,5 @@ __all__ = [
     "eye_like",
     "zeros_like",
     "ones_like",
+    "bounded_variable"
 ]

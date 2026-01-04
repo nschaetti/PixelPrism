@@ -189,3 +189,38 @@ def test_outer_batched_vectors():
     np.testing.assert_allclose(expr.eval(), expected)
     assert expr.shape.dims == expected.shape
 # end test_outer_batched_vectors
+
+
+def test_trace_matrix_returns_scalar():
+    """
+    Trace of a single matrix should match NumPy and collapse to scalar.
+    """
+    matrix = utils.matrix(
+        name="T",
+        value=[[1.0, 2.0, 3.0], [0.0, -1.0, 4.0], [5.0, 6.0, 0.0]],
+        dtype=DType.FLOAT64
+    )
+
+    expr = LA.trace(matrix)
+    expected = np.trace(matrix.eval())
+
+    np.testing.assert_allclose(expr.eval(), expected)
+    assert expr.shape.dims == ()
+    assert expr.dtype == matrix.dtype
+# end test_trace_matrix_returns_scalar
+
+
+def test_trace_batched_matrices():
+    """
+    Batched traces operate independently across leading dimensions.
+    """
+    batch_data = np.arange(2 * 3 * 3, dtype=np.float32).reshape(2, 3, 3)
+    matrices = utils.tensor(name="batched", data=batch_data.tolist(), dtype=DType.FLOAT32)
+
+    expr = LA.trace(matrices)
+    expected = np.trace(batch_data, axis1=-2, axis2=-1)
+
+    np.testing.assert_allclose(expr.eval(), expected)
+    assert expr.shape.dims == expected.shape
+    assert expr.dtype == matrices.dtype
+# end test_trace_batched_matrices

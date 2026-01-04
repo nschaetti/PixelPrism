@@ -25,10 +25,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
-
+from pixelprism.math.functional.helpers import apply_operator
 from pixelprism.math.math_expr import MathExpr
-from pixelprism.math.operators import operator_registry
 from pixelprism.math.build import as_expr
 
 
@@ -45,76 +43,6 @@ __all__ = [
     "sqrt",
     "neg",
 ]
-
-
-Operands = tuple[MathExpr, ...]
-
-
-def _apply_operator(
-        op_name: str,
-        operands: Operands,
-        display_name: str
-) -> MathExpr:
-    """
-    Build a MathExpr by applying a registered operator to operands.
-
-    Parameters
-    ----------
-    op_name : str
-        Name of the operator registered in :class:`OperatorRegistry`.
-    operands : tuple[MathExpr, ...]
-        Operands to apply the operator to.
-    display_name : str
-        Human-readable name assigned to the resulting expression.
-
-    Returns
-    -------
-    MathExpr
-        A new operator node wrapping the operands.
-
-    Raises
-    ------
-    KeyError
-        If `op_name` is not registered.
-    TypeError
-        If the number of operands does not match the operator arity.
-    ValueError
-        If operand shapes are incompatible for the operator.
-
-    Examples
-    --------
-    >>> from pixelprism.math import tensor
-    >>> from pixelprism.math.operators import operator_registry
-    >>> a = tensor("a", 1.0)
-    >>> b = tensor("b", 2.0)
-    >>> expr = _apply_operator("add", (a, b), "a + b")
-    >>> expr.eval()
-    array(3.)
-    """
-    op = operator_registry.get(op_name)
-
-    if not op.check_arity(operands):
-        raise TypeError(
-            f"Operator {op.name}({op.arity}) expected {op.arity} operands, "
-            f"got {len(operands)}"
-        )
-    # end if
-
-    if not op.check_shapes(operands):
-        shapes = ", ".join(str(o.shape) for o in operands)
-        raise TypeError(
-            f"Incompatible shapes for operator {op.name}: {shapes}"
-        )
-    # end if
-
-    return MathExpr(
-        name=display_name,
-        op=op,
-        children=operands,
-        dtype=op.infer_dtype(operands),
-        shape=op.infer_shape(operands),
-    )
-# end def _apply_operator
 
 
 def add(
@@ -154,7 +82,7 @@ def add(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "add",
         (op1, op2),
         f"{op1.name} + {op2.name}"
@@ -199,7 +127,7 @@ def sub(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "sub",
         (op1, op2),
         f"{op1.name} - {op2.name}"
@@ -244,7 +172,7 @@ def mul(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "mul",
         (op1, op2),
         f"{op1.name} * {op2.name}"
@@ -289,7 +217,7 @@ def div(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "div",
         (op1, op2),
         f"{op1.name} / {op2.name}"
@@ -318,7 +246,7 @@ def pow(
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
-    return _apply_operator(
+    return apply_operator(
         "pow",
         (op1, op2),
         f"{op1.name} ** {op2.name}"
@@ -331,7 +259,7 @@ def exp(op: MathExpr) -> MathExpr:
     Element-wise exponential of an operand.
     """
     op = as_expr(op)
-    return _apply_operator(
+    return apply_operator(
         "exp",
         (op,),
         f"exp({op.name})"
@@ -344,7 +272,7 @@ def log(op: MathExpr) -> MathExpr:
     Element-wise natural logarithm of an operand.
     """
     op = as_expr(op)
-    return _apply_operator(
+    return apply_operator(
         "log",
         (op,),
         f"log({op.name})"
@@ -357,7 +285,7 @@ def log2(op: MathExpr) -> MathExpr:
     Element-wise base-2 logarithm of an operand.
     """
     op = as_expr(op)
-    return _apply_operator(
+    return apply_operator(
         "log2",
         (op,),
         f"log2({op.name})"
@@ -370,7 +298,7 @@ def log10(op: MathExpr) -> MathExpr:
     Element-wise base-10 logarithm of an operand.
     """
     op = as_expr(op)
-    return _apply_operator(
+    return apply_operator(
         "log10",
         (op,),
         f"log10({op.name})"
@@ -383,7 +311,7 @@ def sqrt(op: MathExpr) -> MathExpr:
     Element-wise square root of an operand.
     """
     op = as_expr(op)
-    return _apply_operator(
+    return apply_operator(
         "sqrt",
         (op,),
         f"sqrt({op.name})"
@@ -424,7 +352,7 @@ def neg(op: MathExpr) -> MathExpr:
     array(-2.5)
     """
     op = as_expr(op)
-    return _apply_operator(
+    return apply_operator(
         "neg",
         (op,),
         f"-{op.name}"

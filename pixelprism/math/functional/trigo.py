@@ -32,7 +32,7 @@ Trigonometric functional helpers.
 from pixelprism.math.build import as_expr
 from pixelprism.math.math_expr import MathExpr
 
-from .elementwise import _apply_operator
+from .helpers import apply_operator
 
 __all__ = [
     "sin",
@@ -81,7 +81,7 @@ def _unary(name: str, operand: MathExpr, display: str) -> MathExpr:
     array(0.)
     """
     op = as_expr(operand)
-    return _apply_operator(name, (op,), display.format(op=op))
+    return apply_operator(name, (op,), display.format(op=op))
 # end def _unary
 
 
@@ -116,7 +116,7 @@ def _binary(name: str, op1: MathExpr, op2: MathExpr, display: str) -> MathExpr:
     """
     left = as_expr(op1)
     right = as_expr(op2)
-    return _apply_operator(name, (left, right), display.format(lhs=left, rhs=right))
+    return apply_operator(name, (left, right), display.format(lhs=left, rhs=right))
 # end def _binary
 
 

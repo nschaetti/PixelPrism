@@ -29,7 +29,7 @@
 Operator package exports.
 """
 
-from .base import Operands, Operator, OperatorRegistry, operator_registry
+from .base import Operands, Operator, BinderOperator, OperatorRegistry, operator_registry
 from .elementwise import (
     Add,
     Div,
@@ -48,7 +48,15 @@ from .elementwise import (
 from .linear_algebra import (
     MatMul,
     Dot,
-    Outer
+    Outer,
+    Trace
+)
+from .reduction import (
+    ReductionOperator,
+    Sum,
+    Mean,
+    Std,
+    Summation
 )
 from .trigo import (
     Acos,
@@ -72,6 +80,7 @@ from .trigo import (
 __all__ = [
     "Operands",
     "Operator",
+    "BinderOperator",
     "OperatorRegistry",
     "operator_registry",
     "ElementwiseOperator",
@@ -103,7 +112,14 @@ __all__ = [
     "Asinh",
     "Acosh",
     "Atanh",
+    # Linear Algebra
     "MatMul",
     "Dot",
-    "Outer"
+    "Outer",
+    "Trace",
+    # Reduction
+    "Sum",
+    "Mean",
+    "Std",
+    "Summation",
 ]
