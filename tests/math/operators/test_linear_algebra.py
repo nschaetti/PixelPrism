@@ -117,3 +117,75 @@ def test_matmul_batched_matrix_matrix():
     assert expr.shape.dims == expected.shape
 # end test_matmul_batched_matrix_matrix
 
+
+def test_dot_vector_vector():
+    """
+    Dot product of two simple vectors should match NumPy's implementation.
+    """
+    vec_left = utils.vector(name="a", value=[1.0, 2.0, 3.0], dtype=DType.FLOAT32)
+    vec_right = utils.vector(name="b", value=[4.0, 5.0, 6.0], dtype=DType.FLOAT32)
+
+    expr = LA.dot(vec_left, vec_right)
+    expected = np.dot(vec_left.eval(), vec_right.eval())
+
+    np.testing.assert_allclose(expr.eval(), expected)
+    assert expr.shape.dims == ()
+# end test_dot_vector_vector
+
+
+def test_dot_batched_vectors():
+    """
+    Batched vectors should produce a batch of dot products.
+    """
+    lhs = utils.tensor(
+        name="lhs",
+        data=[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+        dtype=DType.FLOAT32
+    )
+    rhs = utils.tensor(
+        name="rhs",
+        data=[[7.0, 8.0, 9.0], [1.0, 2.0, 3.0]],
+        dtype=DType.FLOAT32
+    )
+
+    expr = LA.dot(lhs, rhs)
+    expected = np.sum(lhs.eval() * rhs.eval(), axis=-1)
+
+    np.testing.assert_allclose(expr.eval(), expected)
+    assert expr.shape.dims == expected.shape
+# end test_dot_batched_vectors
+
+
+def test_outer_vector_vector():
+    """
+    Standard outer product should expand vectors into a matrix.
+    """
+    vec_left = utils.vector(name="u", value=[1.0, 2.0], dtype=DType.FLOAT32)
+    vec_right = utils.vector(name="v", value=[3.0, 4.0, 5.0], dtype=DType.FLOAT32)
+
+    expr = LA.outer(vec_left, vec_right)
+    expected = np.outer(vec_left.eval(), vec_right.eval())
+
+    np.testing.assert_allclose(expr.eval(), expected)
+    assert expr.shape.dims == expected.shape
+# end test_outer_vector_vector
+
+
+def test_outer_batched_vectors():
+    """
+    Batched outer products should expand each batch entry independently.
+    """
+    lhs_data = [[1.0, 2.0], [3.0, 4.0]]
+    rhs_data = [[5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]
+
+    lhs = utils.tensor(name="lhs", data=lhs_data, dtype=DType.FLOAT32)
+    rhs = utils.tensor(name="rhs", data=rhs_data, dtype=DType.FLOAT32)
+
+    expr = LA.outer(lhs, rhs)
+    lhs_np = np.asarray(lhs_data, dtype=np.float32)
+    rhs_np = np.asarray(rhs_data, dtype=np.float32)
+    expected = lhs_np[:, :, None] * rhs_np[:, None, :]
+
+    np.testing.assert_allclose(expr.eval(), expected)
+    assert expr.shape.dims == expected.shape
+# end test_outer_batched_vectors

@@ -28,13 +28,14 @@
 
 
 from pixelprism.math.math_expr import MathExpr
-from pixelprism.math.operators import operator_registry
 from pixelprism.math.build import as_expr
 from .elementwise import _apply_operator
 
 
 __all__ = [
-    "matmul"
+    "matmul",
+    "dot",
+    "outer"
 ]
 
 
@@ -53,3 +54,38 @@ def matmul(
         f"{op1.name} @ {op2.name}"
     )
 # end def matmul
+
+
+def dot(
+        op1: MathExpr,
+        op2: MathExpr
+) -> MathExpr:
+    """
+    Dot product of two operands.
+    """
+    op1 = as_expr(op1)
+    op2 = as_expr(op2)
+    return _apply_operator(
+        "dot",
+        (op1, op2),
+        f"{op1.name} ⋅ {op2.name}"
+    )
+# end def matmul
+
+
+def outer(
+        op1: MathExpr,
+        op2: MathExpr
+) -> MathExpr:
+    """
+    Outer product of two operands.
+    """
+    op1 = as_expr(op1)
+    op2 = as_expr(op2)
+    return _apply_operator(
+        "outer",
+        (op1, op2),
+        f"{op1.name} ⊗ {op2.name}"
+    )
+# end def outer
+

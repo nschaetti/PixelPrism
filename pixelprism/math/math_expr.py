@@ -114,7 +114,7 @@ Use a shape while instantiating a hypothetical ``MathExpr`` leaf node.
 from __future__ import annotations
 import weakref
 from abc import ABC, abstractmethod
-from typing import Any, FrozenSet, Mapping, Optional, Tuple
+from typing import Any, FrozenSet, Mapping, Optional, Tuple, List, Union
 from .dtype import DType
 from .shape import Shape
 from .operators import Operator
@@ -312,6 +312,41 @@ class MathExpr:
         """
         return len(self._children) == 0
     # end is_leaf
+
+    def add_parent(self, parent: "MathExpr"):
+        """Add a MathExpr as a parent of this node.
+        """
+        self._parents_weak.add(parent)
+    # end def parent
+
+    def variables(self) -> List:
+        """Get the set of variables referenced by this expression."""
+        vars: List = list()
+        for c in self._children:
+            vars.extend(c.variables())
+        # end for
+        return vars
+    # end def variables
+
+    def constants(self) -> List:
+        """Get the set of constants referenced by this expression."""
+        constants: List = list()
+        for c in self._children:
+            constants.extend(c.constants())
+        # end for
+        return constants
+    # end def constants
+
+    def leaves(self) -> List:
+        """Get the set of leaves referenced by this expression."""
+        return self.variables() + self.constants()
+    # end def leaves
+
+    def contains(self, var: Union[str, MathExpr], by_ref: bool = False) -> bool:
+        """Check if the expression contains the given variable."""
+        rets = [c.contains(var, by_ref=by_ref) for c in self._children]
+        return any(rets) or (by_ref and self == var)
+    # end def contains
 
     # endregion PUBLIC
 
@@ -705,6 +740,42 @@ class MathLeaf(MathExpr, ABC):
         # end if
         self._set(value)
     # end def set
+
+    def variables(self) -> list:
+        """Get the set of variables referenced by this expression."""
+        if self._mutable:
+            return [self]
+        # end if
+        return []
+    # end def variables
+
+    def constants(self) -> List:
+        """Get the set of constants referenced by this expression."""
+        if not self._mutable:
+            return [self]
+        # end if
+        return []
+    # end def constants
+
+    def contains(self, var: Union[str, MathExpr], by_ref: bool = False) -> bool:
+        """Check if the expression contains the given variable."""
+        if by_ref:
+            if type(var) is MathExpr and var == self:
+                return True
+            else:
+                raise ValueError(f"Cannot find by reference if string given: var={var}.")
+            # end if
+        else:
+            if type(var) is str and var == self.name:
+                return True
+            elif type(var) is MathExpr and var.name == self.name:
+                return True
+            # end if
+        # end if
+        return False
+    # en def contains
+
+    # end def contains
 
     # endregion PUBLIC
 

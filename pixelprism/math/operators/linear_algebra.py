@@ -28,7 +28,7 @@
 """
 Linear algebra operator implementations.
 """
-
+from abc import ABC
 from typing import Sequence
 
 import numpy as np
@@ -38,11 +38,30 @@ from ..shape import Shape
 from .base import Operands, Operand, operator_registry, Operator
 
 __all__ = [
-    "MatMul"
+    "MatMul",
+    "Dot",
+    "Outer",
 ]
 
 
-class MatMul(Operator):
+class LinearAlgebraOperator(Operator, ABC):
+    """
+    Linear algebra operator.
+    """
+
+    @classmethod
+    def infer_dtype(cls, operands: Operands) -> DType:
+        """
+        Promote operand dtypes.
+        """
+        a, b = operands
+        return DType.promote(a.dtype, b.dtype)
+    # end def infer_dtype
+
+# end class MatMul
+
+
+class MatMul(LinearAlgebraOperator):
     """
     Matrix Multiplication operator.
     """
@@ -157,26 +176,137 @@ class MatMul(Operator):
         raise RuntimeError("infer_shape called with invalid matmul operands")
     # end def infer_shape
 
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
-        """
-        Promote operand dtypes.
-        """
-        a, b = operands
-        return DType.promote(a.dtype, b.dtype)
-    # end def infer_dtype
-
     def _eval(self, values: np.ndarray) -> np.ndarray:
         a, b = values
         return a @ b
     # end def _eval
 
     def _backward(self, out_grad, node):
-        raise NotImplementedError("Sin does not support backward.")
+        raise NotImplementedError(f"{self.NAME} does not support backward.")
     # end def _backward
 
-# end class Sin
+# end class MatMul
+
+
+class Dot(LinearAlgebraOperator):
+    """
+    Dot product operator.
+    """
+
+    NAME = "dot"
+    ARITY = 2
+
+    @classmethod
+    def check_shapes(cls, operands: Operands) -> bool:
+        a, b = operands
+
+        # Same rank
+        if a.rank != b.rank:
+            raise ValueError(f"Dot requires same rank operands, got {a.rank} and {b.rank}")
+        # end if
+
+        # Last dim equivalent
+        if a.shape[-1] != b.shape[-1]:
+            raise ValueError(f"Dot requires last dim to match, got {a.shape[-1]} and {b.shape[-1]}")
+        # end if
+
+        # Equivalent batch dims
+        if a.rank > 1 and a.shape[:-1] != b.shape[:-1]:
+            raise ValueError(f"Dot requires batch dims to match, got {a.shape[:-1]} and {b.shape[:-1]}")
+        # end if
+
+        return True
+    # end def check_shapes
+
+    @classmethod
+    def infer_shape(cls, operands: Operands) -> Shape:
+        A, B = operands
+        dims_a = A.shape.dims
+        rank_a = len(dims_a)
+
+        # Batch dim
+        batch_dim = ()
+        if rank_a > 1:
+            batch_dim = dims_a[:-1]
+        # end if
+
+        return Shape(batch_dim)
+    # end def infer_shape
+
+    def _eval(self, values: np.ndarray) -> np.ndarray:
+        a, b = values
+        if a.ndim == 1:
+            return np.einsum("i,i->", a, b)
+        else:
+            return np.einsum("...i,...i->...", a, b)
+        # end if
+    # end def _eval
+
+    def _backward(self, out_grad, node):
+        raise NotImplementedError(f"{self.NAME} does not support backward.")
+    # end def _backward
+
+# end class Dot
+
+
+class Outer(LinearAlgebraOperator):
+    """
+    Outer product operator.
+    """
+
+    NAME = "outer"
+    ARITY = 2
+
+    @classmethod
+    def check_shapes(cls, operands: Operands) -> bool:
+        a, b = operands
+
+        # Same rank
+        if a.rank != b.rank:
+            raise ValueError(f"Dot requires same rank operands, got {a.rank} and {b.rank}")
+        # end if
+
+        # Equivalent batch dims
+        if a.rank > 1 and a.shape[:-1] != b.shape[:-1]:
+            raise ValueError(f"Dot requires batch dims to match, got {a.shape[:-1]} and {b.shape[:-1]}")
+        # end if
+
+        return True
+    # end def check_shapes
+
+    @classmethod
+    def infer_shape(cls, operands: Operands) -> Shape:
+        A, B = operands
+        dims_a = A.shape.dims
+        dims_b = B.shape.dims
+        rank_a = len(dims_a)
+
+        # Batch dim
+        batch_dim = ()
+        if rank_a > 1:
+            batch_dim = dims_a[:-1]
+        # end if
+
+        return Shape(batch_dim + (dims_a[-1], dims_b[-1]))
+    # end def infer_shape
+
+    def _eval(self, values: np.ndarray) -> np.ndarray:
+        a, b = values
+        if a.ndim == 1:
+            return np.einsum("i,j->ij", a, b)
+        else:
+            return np.einsum("...i,...j->...ij", a, b)
+        # end if
+    # end def _eval
+
+    def _backward(self, out_grad, node):
+        raise NotImplementedError(f"{self.NAME} does not support backward.")
+    # end def _backward
+
+# end class Outer
 
 
 operator_registry.register(MatMul())
+operator_registry.register(Dot())
+operator_registry.register(Outer())
 

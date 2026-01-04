@@ -46,7 +46,9 @@ from .elementwise import (
     UnaryElementwiseOperator,
 )
 from .linear_algebra import (
-    MatMul
+    MatMul,
+    Dot,
+    Outer
 )
 from .trigo import (
     Acos,
@@ -102,4 +104,6 @@ __all__ = [
     "Acosh",
     "Atanh",
     "MatMul",
+    "Dot",
+    "Outer"
 ]

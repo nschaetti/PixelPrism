@@ -782,6 +782,34 @@ def _format_matmul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> s
 # end def _format_matmul
 
 
+def _format_dot(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+    """
+    """
+    if len(expr.children) != 2:
+        raise ValueError("dot expects exactly two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"\cdot".join(operands)
+# end def _format_dot
+
+
+def _format_outer(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+    """
+    """
+    if len(expr.children) != 2:
+        raise ValueError("outer expects exactly two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"\otimes".join(operands)
+# end def _format_outer
+
+
 def _format_div(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     """
     Format division expressions.
@@ -867,6 +895,8 @@ _SUB_RULE = _OpRule(precedence=10, formatter=_format_sub)
 _NEG_RULE = _OpRule(precedence=30, formatter=_format_neg)
 _MUL_RULE = _OpRule(precedence=20, formatter=_format_mul)
 _MATMUL_RULE = _OpRule(precedence=20, formatter=_format_matmul)
+_DOT_RULE = _OpRule(precedence=20, formatter=_format_dot)
+_OUTER_RULE = _OpRule(precedence=20, formatter=_format_outer)
 _DIV_RULE = _OpRule(precedence=20, formatter=_format_div)
 _POW_RULE = _OpRule(precedence=40, formatter=_format_pow)
 _TRANSPOSE_RULE = _OpRule(precedence=50, formatter=_format_transpose)
@@ -884,6 +914,8 @@ _OP_RULES: Dict[str, _OpRule] = {
     "product": _MUL_RULE,
     "matmul": _MATMUL_RULE,
     "matrix_multiply": _MATMUL_RULE,
+    "dot": _DOT_RULE,
+    "outer": _OUTER_RULE,
     "div": _DIV_RULE,
     "divide": _DIV_RULE,
     "pow": _POW_RULE,

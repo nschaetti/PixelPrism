@@ -29,7 +29,7 @@
 
 from .elementwise import add, sub, mul, div
 from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
-from .linear_algebra import matmul
+from .linear_algebra import matmul, dot, outer
 
 
 __all__ = [
@@ -54,4 +54,6 @@ __all__ = [
     "asinh",
     "atanh",
     "matmul",
+    "dot",
+    "outer"
 ]
