@@ -30,7 +30,7 @@
 # Imports
 from typing import List, Dict, Union, Any, Optional, Tuple
 import numpy as np
-from .math_expr import MathExpr, MathLeaf
+
 from .dtype import DType, AnyDType, DataType
 from .shape import Shape
 
@@ -129,7 +129,7 @@ def _get_dtype(
 # end if
 
 
-class Tensor(MathLeaf):
+class Tensor:
     """
     Declare a tensor as a class.
     """
@@ -137,7 +137,6 @@ class Tensor(MathLeaf):
     def __init__(
             self,
             *,
-            name: str,
             data: Union[DataType, np.ndarray],
             dtype: Optional[DType] = None,
             mutable: bool = True
@@ -145,15 +144,10 @@ class Tensor(MathLeaf):
         """
         """
         # Super
-        dtype = _get_dtype(data, dtype)
-        data = _convert_data_to_numpy_array(data=data, dtype=dtype)
-        super(Tensor, self).__init__(
-            name=name,
-            data=data,
-            dtype=_numpy_dtype_to_dtype(data.dtype),
-            shape=Shape(dims=data.shape),
-            mutable=mutable
-        )
+        self._dtype = DType.from_numpy(_get_dtype(data, dtype))
+        self._data = _convert_data_to_numpy_array(data=data, dtype=dtype)
+        self._shape = Shape(dims=self._data.shape)
+        self._mutable = mutable
     # end __init__
 
     # region PROPERTIES
@@ -222,7 +216,7 @@ class Tensor(MathLeaf):
 
     # region PUBLIC
 
-    def _set(self, data: Union[List[float], np.ndarray]) -> None:
+    def set(self, data: Union[List[float], np.ndarray]) -> None:
         """
         """
         if isinstance(data, list):
@@ -240,8 +234,7 @@ class Tensor(MathLeaf):
         """
         """
         return Tensor(
-            name=name,
-            data=self._data,
+            data=self._data.copy(),
             mutable=mutable if mutable is not None else self._mutable
         )
     # end copy
@@ -282,11 +275,7 @@ class Tensor(MathLeaf):
         Returns:
             str: A string representation of the Tensor value.
         """
-        if self._mutable:
-            return f"tensor({self.name}, {str(self._data.tolist())}, dtype={self._dtype}, shape={self._shape})"
-        else:
-            return f"ctensor({self.name}, {str(self._data.tolist())}, dtype={self._dtype}, shape={self._shape})"
-        # end if
+        return f"tensor({str(self._data.tolist())}, dtype={self._dtype}, shape={self._shape}, mutable={self._mutable})"
     # end __str__
 
     def __repr__(self):
@@ -304,8 +293,27 @@ class Tensor(MathLeaf):
 
     # endregion OVERRIDE
 
+    # region STATIC
+
+    @staticmethod
+    def from_numpy(data: np.ndarray, dtype: Optional[DType] = None) -> 'Tensor':
+        """Create a tensor from numpy array."""
+        return Tensor(data=data, dtype=dtype)
+    # end def from_numpy
+
+    @staticmethod
+    def zeros(shape: Shape, dtype: Optional[DType] = None) -> 'Tensor':
+        """Create a tensor of zeros."""
+        return Tensor(data=np.zeros(shape=shape.dims, dtype=_get_dtype(dtype=dtype)), dtype=dtype)
+    # end def zeros
+
+    @staticmethod
+    def from_list(data: List[float], dtype: DType) -> 'Tensor':
+        """Create a tensor from list."""
+        return Tensor(data=data, dtype=dtype)
+    # end def from_list
+
+    # endregion STATIC
+
 # end Tensor
-
-
-
 

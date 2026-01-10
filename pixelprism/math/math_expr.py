@@ -115,11 +115,15 @@ from __future__ import annotations
 import weakref
 from abc import ABC, abstractmethod
 from typing import Any, FrozenSet, Mapping, Optional, Tuple, List, Union
+import numpy as np
+
 from .dtype import DType
 from .shape import Shape
+from .tensor import Tensor
 from .operators import Operator, BinderOperator
 
-__all__ = ["MathExpr", "MathLeaf"]
+
+__all__ = ["MathExpr", "MathLeaf", "Variable", "Constant"]
 
 
 class MathExpr:
@@ -688,21 +692,14 @@ class MathLeaf(MathExpr, ABC):
             self,
             *,
             name: str,
-            data: Any,
             dtype: DType,
-            shape: Shape,
-            mutable: bool = True
+            shape: Shape
     ):
         """
         Initialize a new leaf node with the specified value.
 
         Parameters
         ----------
-        data : Any
-            Initial value to store. The concrete type is determined by the
-            subclass.
-        mutable : bool, optional
-            If ``False``, the value cannot be modified after initialization.
         """
         # Init
         super(MathLeaf, self).__init__(
@@ -712,25 +709,7 @@ class MathLeaf(MathExpr, ABC):
             dtype=dtype,
             shape=shape
         )
-        self._mutable = mutable
-        self._data: Any = data
     # end __init__
-
-    # region PROPERTIES
-
-    @property
-    def data(self) -> Any:
-        """Get the value of this leaf node."""
-        return self._data
-    # end def data
-
-    @property
-    def mutable(self) -> bool:
-        """True iff the value can be modified."""
-        return self._mutable
-    # end def mutable
-
-    # endregion PROPERTIES
 
     # region PUBLIC
 
@@ -740,30 +719,14 @@ class MathLeaf(MathExpr, ABC):
         return self._eval(**kwargs)
     # end _get
 
-    def set(self, value: Any):
-        """
-        Set the value of this leaf node.
-        """
-        if not self._mutable:
-            raise RuntimeError("Cannot set immutable leaf node.")
-        # end if
-        self._set(value)
-    # end def set
-
+    @abstractmethod
     def variables(self) -> list:
         """Get the set of variables referenced by this expression."""
-        if self._mutable:
-            return [self]
-        # end if
-        return []
     # end def variables
 
+    @abstractmethod
     def constants(self) -> List:
         """Get the set of constants referenced by this expression."""
-        if not self._mutable:
-            return [self]
-        # end if
-        return []
     # end def constants
 
     def contains(
@@ -772,8 +735,6 @@ class MathLeaf(MathExpr, ABC):
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        # print(f"contains: var={var}, by_ref={by_ref}, check_operator={check_operator}, self={self}")
-        # print(id(self), id(var))
         """Check if the expression contains the given variable."""
         if by_ref:
             if type(var) is str:
@@ -806,16 +767,308 @@ class MathLeaf(MathExpr, ABC):
         raise NotImplementedError("Leaf nodes must implement _set.")
     # end _set
 
+    @abstractmethod
     def _eval(self, **kwargs) -> Any:
         """Evaluate this leaf node in the current context.
         """
-        if self.name in kwargs:
-            return kwargs[self.name]
-        else:
-            return self._data
-        # end if
+        raise NotImplementedError("Leaf nodes must implement _eval.")
     # end def _eval
 
     # endregion PRIVATE
 
 # end MathLeaf
+
+
+class Variable(MathLeaf):
+    """
+    Variable node in the expression tree.
+    """
+
+    def __init__(
+            self,
+            *,
+            name: str,
+            dtype: DType,
+            shape: Shape,
+    ):
+        """
+        """
+        # Super
+        super(Variable, self).__init__(
+            name=name,
+            dtype=dtype,
+            shape=shape
+        )
+    # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def value(self) -> np.ndarray:
+        """Get the value of the tensor."""
+        return np.array(0)
+    # end def value
+
+    @property
+    def dtype(self) -> DType:
+        """Get the dtype of the tensor."""
+        return self._dtype
+    # end def dtype
+
+    @property
+    def shape(self) -> Shape:
+        """Get the shape of the tensor."""
+        return self._shape
+    # end def shape
+
+    @property
+    def dims(self) -> Tuple[int, ...]:
+        """Get the dimensions of the tensor."""
+        return self._shape.dims
+    # end def dims
+
+    @property
+    def ndim(self) -> int:
+        """Get the dimension of the tensor."""
+        return self._shape.rank
+    # end def dim
+
+    @property
+    def rank(self) -> int:
+        """Get the dimension of the tensor."""
+        return self._shape.rank
+    # end def rank
+
+    @property
+    def size(self) -> int:
+        """Get the size of the tensor."""
+        return self._shape.size
+    # end def size
+
+    @property
+    def n_elements(self) -> int:
+        """Get the number of elements in the tensor."""
+        return self._shape.size
+    # end def n_elements
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def variables(self) -> list:
+        """Get the set of variables referenced by this expression."""
+        return [self]
+    # end def variable
+
+    def constants(self) -> List:
+        """Get the set of constants referenced by this expression."""
+        return []
+    # end def constants
+
+    def copy(
+            self,
+            name: str
+    ) -> 'Variable':
+        """
+        """
+        return Variable(
+            name=name,
+            dtype=self._dtype.copy(),
+            shape=self._shape.copy(),
+        )
+    # end def copy
+
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _set(self, data: Any) -> None:
+        """Set the internal value of this leaf node."""
+        pass
+    # end def _set
+
+    def _eval(self, **kwargs) -> Any:
+        """Evaluate this leaf node in the current context."""
+        pass
+    # end def _eval
+
+    # endregion PRIVATE
+
+    # region OVERRIDE
+
+    def __str__(self):
+        """
+        Convert this Scalar to a string.
+
+        This method is called when a string representation of the Tensor is needed,
+        such as when using the str() function or print().
+
+        Returns:
+            str: A string representation of the Tensor value.
+        """
+        return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
+    # end __str__
+
+    def __repr__(self):
+        """
+        Return a string representation of this Scalar for debugging.
+
+        This method is called when a developer-friendly representation of the Tensor
+        is needed, such as in the Python interactive shell or debugger.
+
+        Returns:
+            str: A string representation that includes the class name and value.
+        """
+        return self.__str__()
+    # end __repr__
+
+    # endregion OVERRIDE
+
+# end class Variable
+
+
+class Constant(MathLeaf):
+    """
+    Variable node in the expression tree.
+    """
+
+    def __init__(
+            self,
+            *,
+            name: str,
+            data: Tensor
+    ):
+        """
+        """
+        # Super
+        super(Constant, self).__init__(
+            name=name,
+            dtype=data.dtype,
+            shape=data.shape
+        )
+    # end __init__
+
+    # region PROPERTIES
+
+    @property
+    def value(self) -> np.ndarray:
+        """Get the value of the tensor."""
+        return np.array(0)
+    # end def value
+
+    @property
+    def dtype(self) -> DType:
+        """Get the dtype of the tensor."""
+        return self._dtype
+    # end def dtype
+
+    @property
+    def shape(self) -> Shape:
+        """Get the shape of the tensor."""
+        return self._shape
+    # end def shape
+
+    @property
+    def dims(self) -> Tuple[int, ...]:
+        """Get the dimensions of the tensor."""
+        return self._shape.dims
+    # end def dims
+
+    @property
+    def ndim(self) -> int:
+        """Get the dimension of the tensor."""
+        return self._shape.rank
+    # end def dim
+
+    @property
+    def rank(self) -> int:
+        """Get the dimension of the tensor."""
+        return self._shape.rank
+    # end def rank
+
+    @property
+    def size(self) -> int:
+        """Get the size of the tensor."""
+        return self._shape.size
+    # end def size
+
+    @property
+    def n_elements(self) -> int:
+        """Get the number of elements in the tensor."""
+        return self._shape.size
+    # end def n_elements
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def variables(self) -> list:
+        """Get the set of variables referenced by this expression."""
+        return [self]
+    # end def variable
+
+    def constants(self) -> List:
+        """Get the set of constants referenced by this expression."""
+        return []
+    # end def constants
+
+    def copy(
+            self,
+            name: str
+    ) -> 'Variable':
+        """
+        """
+        return Variable(
+            name=name,
+            dtype=self._dtype.copy(),
+            shape=self._shape.copy(),
+        )
+    # end def copy
+
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _set(self, data: Any) -> None:
+        """Set the internal value of this leaf node."""
+        pass
+    # end def _set
+
+    def _eval(self, **kwargs) -> Any:
+        """Evaluate this leaf node in the current context."""
+        pass
+    # end def _eval
+
+    # endregion PRIVATE
+
+    # region OVERRIDE
+
+    def __str__(self):
+        """
+        Convert this Scalar to a string.
+
+        This method is called when a string representation of the Tensor is needed,
+        such as when using the str() function or print().
+
+        Returns:
+            str: A string representation of the Tensor value.
+        """
+        return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
+    # end __str__
+
+    def __repr__(self):
+        """
+        Return a string representation of this Scalar for debugging.
+
+        This method is called when a developer-friendly representation of the Tensor
+        is needed, such as in the Python interactive shell or debugger.
+
+        Returns:
+            str: A string representation that includes the class name and value.
+        """
+        return self.__str__()
+    # end __repr__
+
+    # endregion OVERRIDE
+
+# end class Variable

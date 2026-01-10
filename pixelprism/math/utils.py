@@ -34,7 +34,6 @@ from .dtype import DType, NumericType, AnyDType, DataType, ScalarType
 from .shape import AnyShape, Shape
 
 
-
 def _resolve_dtype(dtype):
     """Return a numpy dtype for helper constructors."""
     if isinstance(dtype, DType):
@@ -82,7 +81,6 @@ def _data_as_nparray(
 
 
 def tensor(
-        name: str,
         data: DataType,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -110,18 +108,17 @@ def tensor(
     --------
     >>> import numpy as np
     >>> from pixelprism.math import utils
-    >>> logits = utils.tensor("logits", [[1, 2], [3, 4]])
-    >>> logits.data.shape
+    >>> logits = utils.tensor([[1, 2], [3, 4]])
+    >>> logits.shape
     (2, 2)
     """
     data = _data_as_nparray(data, dtype=_resolve_dtype(dtype))
     _check_shape(data, n_dims=data.ndim)
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def tensor
 
 
 def _dim_tensor(
-        name: str,
         data: DataType,
         ndim: int,
         dtype: AnyDType = float,
@@ -130,7 +127,7 @@ def _dim_tensor(
     """Allocate a tensor with a single dimension."""
     data = _data_as_nparray(data, dtype=_resolve_dtype(dtype))
     _check_shape(data, n_dims=ndim)
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def _dim_tensor
 
 
@@ -162,16 +159,15 @@ def scalar(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> bias = ppmath.scalar("bias", 3.5)
-    >>> bias.data
+    >>> bias = ppmath.scalar(3.5)
+    >>> bias
     array(3.5)
     """
-    return _dim_tensor(name=name, data=value, ndim=0, dtype=dtype, mutable=mutable)
+    return _dim_tensor(data=value, ndim=0, dtype=dtype, mutable=mutable)
 # end def scalar
 
 
 def vector(
-        name: str,
         value: DataType,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -198,16 +194,15 @@ def vector(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> weights = ppmath.vector("weights", [0.2, 0.3, 0.5])
-    >>> weights.data.shape
+    >>> weights = ppmath.vector([0.2, 0.3, 0.5])
+    >>> weights.shape
     (3,)
     """
-    return _dim_tensor(name=name, data=value, ndim=1, dtype=dtype, mutable=mutable)
+    return _dim_tensor(data=value, ndim=1, dtype=dtype, mutable=mutable)
 # end def vector
 
 
 def matrix(
-        name: str,
         value: DataType,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -234,50 +229,16 @@ def matrix(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> mat = ppmath.matrix("transform", [[1, 0], [0, 1]])
-    >>> mat.data
+    >>> mat = ppmath.matrix([[1, 0], [0, 1]])
+    >>> mat
     array([[1., 0.],
            [0., 1.]])
     """
-    return _dim_tensor(name=name, data=value, ndim=2, dtype=dtype, mutable=mutable)
+    return _dim_tensor(data=value, ndim=2, dtype=dtype, mutable=mutable)
 # end def matrix
 
 
-def bounded_variable(
-        name: str,
-        shape: AnyShape,
-        dtype: AnyDType = float
-) -> Tensor:
-    """
-    Allocate an uninitialized tensor of the requested shape for a bounded variable.
-
-    Parameters
-    ----------
-    name : str
-        Identifier assigned to the tensor.
-    shape : AnyShape
-        Dimensions of the tensor; accepts ints, tuples, lists or ``Shape``.
-    dtype : AnyDType, default float
-        Data type of the uninitialized buffer.
-
-    Returns
-    -------
-    Tensor
-        Tensor backed by ``np.empty(shape, dtype)``.
-
-    Examples
-    --------
-    >>> import pixelprism.math as ppmath
-    >>> scratch = ppmath.bounded_variable("scratch", (2, 3))
-    >>> scratch.data.shape
-    (2, 3)
-    """
-    return empty(name=name, shape=shape, dtype=dtype)
-# end bounded_variable
-
-
 def empty(
-        name: str,
         shape: AnyShape,
         dtype: AnyDType = float
 ) -> Tensor:
@@ -301,18 +262,17 @@ def empty(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> scratch = ppmath.empty("scratch", (2, 3))
-    >>> scratch.data.shape
+    >>> scratch = ppmath.empty((2, 3))
+    >>> scratch.shape
     (2, 3)
     """
     dims = _normalize_shape(shape)
     data = np.empty(dims, dtype=_resolve_dtype(dtype))
-    return Tensor(name=name, data=data, mutable=True)
+    return Tensor(data=data, mutable=True)
 # end def empty
 
 
 def zeros(
-        name: str,
         shape: AnyShape,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -339,19 +299,18 @@ def zeros(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> zeros_tensor = ppmath.zeros("seq", (2, 2))
-    >>> zeros_tensor.data
+    >>> zeros_tensor = ppmath.zeros((2, 2))
+    >>> zeros_tensor
     array([[0., 0.],
            [0., 0.]])
     """
     dims = _normalize_shape(shape)
     data = np.zeros(dims, dtype=_resolve_dtype(dtype))
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def zeros
 
 
 def ones(
-        name: str,
         shape: AnyShape,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -378,18 +337,17 @@ def ones(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> ones_tensor = ppmath.ones("biases", 4)
-    >>> ones_tensor.data
+    >>> ones_tensor = ppmath.ones(4)
+    >>> ones_tensor
     array([1., 1., 1., 1.])
     """
     dims = _normalize_shape(shape)
     data = np.ones(dims, dtype=_resolve_dtype(dtype))
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def ones
 
 
 def full(
-        name: str,
         shape: AnyShape,
         value,
         dtype: AnyDType = float,
@@ -400,8 +358,6 @@ def full(
 
     Parameters
     ----------
-    name : str
-        Identifier assigned to the tensor.
     shape : AnyShape
         Desired tensor dimensions.
     value : Any
@@ -419,19 +375,18 @@ def full(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> mask = ppmath.full("mask", (2, 3), 7)
-    >>> mask.data
+    >>> mask = ppmath.full((2, 3), 7)
+    >>> mask
     array([[7., 7., 7.],
            [7., 7., 7.]])
     """
     dims = _normalize_shape(shape)
     data = np.full(dims, value, dtype=_resolve_dtype(dtype))
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def full
 
 
 def nan(
-        name: str,
         shape: AnyShape,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -441,8 +396,6 @@ def nan(
 
     Parameters
     ----------
-    name : str
-        Identifier assigned to the tensor.
     shape : AnyShape
         Desired tensor dimensions.
     dtype : AnyDType, default float
@@ -458,18 +411,17 @@ def nan(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> missing = ppmath.nan("missing", (2, 2))
-    >>> np.isnan(missing.data).all()
+    >>> missing = ppmath.nan((2, 2))
+    >>> np.isnan(missing).all()
     True
     """
     dims = _normalize_shape(shape)
     data = np.full(dims, np.nan, dtype=_resolve_dtype(dtype))
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def nan
 
 
 def I(
-        name: str,
         n: int,
         dtype: AnyDType = float,
         mutable: bool = False
@@ -496,7 +448,7 @@ def I(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> eye = ppmath.I("eye", 3)
+    >>> eye = ppmath.I(3)
     >>> eye.data
     array([[1., 0., 0.],
            [0., 1., 0.],
@@ -504,7 +456,7 @@ def I(
     """
     assert isinstance(n, int) and n >= 0, "n must be a non-negative integer"
     data = np.eye(n, dtype=_resolve_dtype(dtype))
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def I
 
 
@@ -536,8 +488,8 @@ def diag(
     Examples
     --------
     >>> import pixelprism.math as ppmath
-    >>> diag_tensor = ppmath.diag("diag", [1, 2, 3])
-    >>> diag_tensor.data
+    >>> diag_tensor = ppmath.diag([1, 2, 3])
+    >>> diag_tensor
     array([[1., 0., 0.],
            [0., 2., 0.],
            [0., 0., 3.]])
@@ -545,12 +497,11 @@ def diag(
     diag_values = np.asarray(v, dtype=_resolve_dtype(dtype))
     assert diag_values.ndim == 1, "diag input must be 1-D"
     data = np.diag(diag_values)
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def diag
 
 
 def eye_like(
-        name: str,
         x: Tensor | np.ndarray,
         dtype: AnyDType = None,
         mutable: bool = True
@@ -560,8 +511,6 @@ def eye_like(
 
     Parameters
     ----------
-    name : str
-        Identifier assigned to the tensor.
     x : Tensor or numpy.ndarray
         Reference tensor/array that provides the square shape.
     dtype : AnyDType, optional
@@ -579,8 +528,8 @@ def eye_like(
     >>> import numpy as np
     >>> import pixelprism.math as ppmath
     >>> base = np.zeros((4, 4))
-    >>> eye = ppmath.eye_like("eye", base)
-    >>> np.allclose(eye.data, np.eye(4))
+    >>> eye = ppmath.eye_like(base)
+    >>> np.allclose(eye.value, np.eye(4))
     True
     """
     assert x.rank == 2, "eye_like expects a 2-D input"
@@ -588,12 +537,11 @@ def eye_like(
     assert rows == cols, "eye_like requires a square matrix input"
     dtype = _resolve_dtype(dtype) if dtype else _resolve_dtype(x.dtype)
     data = np.eye(rows, dtype=dtype)
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def eye_like
 
 
 def zeros_like(
-        name: str,
         x: Tensor | np.ndarray,
         dtype: AnyDType = None,
         mutable: bool = True
@@ -603,8 +551,6 @@ def zeros_like(
 
     Parameters
     ----------
-    name : str
-        Identifier assigned to the tensor.
     x : Tensor or numpy.ndarray
         Reference tensor/array that provides the target shape.
     dtype : AnyDType, optional
@@ -622,19 +568,18 @@ def zeros_like(
     >>> import numpy as np
     >>> import pixelprism.math as ppmath
     >>> template = np.arange(6).reshape(2, 3)
-    >>> zeros_clone = ppmath.zeros_like("zeros", template)
-    >>> zeros_clone.data.shape
+    >>> zeros_clone = ppmath.zeros_like(template)
+    >>> zeros_clone.shape
     (2, 3)
     """
     base = np.asarray(x)
     dtype = _resolve_dtype(dtype) if dtype else base.dtype
     data = np.zeros(base.shape, dtype=dtype)
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def zeros_like
 
 
 def ones_like(
-        name: str,
         x: Tensor | np.ndarray,
         dtype: AnyDType = None,
         mutable: bool = True
@@ -644,8 +589,6 @@ def ones_like(
 
     Parameters
     ----------
-    name : str
-        Identifier assigned to the tensor.
     x : Tensor or numpy.ndarray
         Reference tensor/array that provides the target shape.
     dtype : AnyDType, optional
@@ -663,13 +606,13 @@ def ones_like(
     >>> import numpy as np
     >>> import pixelprism.math as ppmath
     >>> template = np.zeros((2, 2), dtype=np.float32)
-    >>> ones_clone = ppmath.ones_like("ones", template)
-    >>> ones_clone.data
+    >>> ones_clone = ppmath.ones_like(template)
+    >>> ones_clone
     array([[1., 1.],
            [1., 1.]], dtype=float32)
     """
     base = np.asarray(x)
     dtype = _resolve_dtype(dtype) if dtype else base.dtype
     data = np.ones(base.shape, dtype=dtype)
-    return Tensor(name=name, data=data, mutable=mutable)
+    return Tensor(data=data, mutable=mutable)
 # end def ones_like

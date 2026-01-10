@@ -560,6 +560,11 @@ class Shape:
         return Shape(tuple(dims))
     # end def stack_shape
 
+    def copy(self):
+        """Return a copy of the shape."""
+        pass
+    # end def copy
+
     # endregion STATIC
 
     # region OVERRIDE

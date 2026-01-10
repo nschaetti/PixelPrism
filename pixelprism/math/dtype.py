@@ -101,6 +101,10 @@ class DType(Enum):
         return data.astype(self.to_numpy())
     # end def convert_numpy
 
+    def copy(self):
+        return DType(self.value)
+    # end def copy
+
     # endregion PUBLIC
 
     # region STATIC

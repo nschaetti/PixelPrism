@@ -28,7 +28,23 @@
 """Unified symbolic math package with split class modules."""
 
 from .build import as_expr
-from .context import Context, root_context
+from .context import (
+    Context,
+    root_context,
+    context,
+    new_context,
+    push_context,
+    pop_context,
+    root,
+    get_value,
+    set_value,
+    lookup,
+    create_variable,
+    remove_variable,
+    remove_deep,
+    snapshot_context_stack,
+    restore_context_stack
+)
 from .dtype import DType, AnyDType, NumericType, NestedListType, DataType, ScalarType
 from .helpers import (
     as_sequence,
@@ -45,7 +61,7 @@ from .helpers import (
     transpose_python,
     unravel_index,
 )
-from .math_expr import MathExpr, MathLeaf
+from .math_expr import MathExpr, MathLeaf, Variable, Constant
 from .operators import Operator, Add, Sub, Mul, Div, operator_registry
 from .shape import Dim, Dims, Shape, AnyShape
 from .tensor import Tensor
@@ -63,8 +79,7 @@ from .utils import (
     diag,
     eye_like,
     zeros_like,
-    ones_like,
-    bounded_variable
+    ones_like
 )
 
 __all__ = [
@@ -73,6 +88,17 @@ __all__ = [
     # Context
     "Context",
     "root_context",
+    "context",
+    "root",
+    "set_value",
+    "get_value",
+    "new_context",
+    "push_context",
+    "remove_variable",
+    "create_variable",
+    "remove_deep",
+    "snapshot_context_stack",
+    "restore_context_stack",
     # DType
     "DType",
     "AnyDType",
@@ -83,6 +109,8 @@ __all__ = [
     # Math Expr
     "MathExpr",
     "MathLeaf",
+    "Variable",
+    "Constant",
     # Operators
     "Operator",
     "Add",
@@ -124,6 +152,5 @@ __all__ = [
     "diag",
     "eye_like",
     "zeros_like",
-    "ones_like",
-    "bounded_variable"
+    "ones_like"
 ]
