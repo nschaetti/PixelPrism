@@ -28,6 +28,7 @@
 """Unified symbolic math package with split class modules."""
 
 from .build import as_expr
+from .context import Context, root_context
 from .dtype import DType, AnyDType, NumericType, NestedListType, DataType, ScalarType
 from .helpers import (
     as_sequence,
@@ -69,6 +70,9 @@ from .utils import (
 __all__ = [
     # Build
     "as_expr",
+    # Context
+    "Context",
+    "root_context",
     # DType
     "DType",
     "AnyDType",
