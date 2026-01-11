@@ -390,6 +390,22 @@ class Shape:
     # region STATIC
 
     @staticmethod
+    def create(shape: AnyShape) -> Shape:
+        """Create a shape from a tuple or sequence."""
+        if isinstance(shape, tuple):
+            return Shape(shape)
+        elif isinstance(shape, Sequence):
+            return Shape(shape)
+        elif isinstance(shape, int):
+            return Shape((shape,))
+        elif isinstance(shape, Shape):
+            return shape.copy()
+        else:
+            raise TypeError(f"Unsupported shape type: {type(shape)}")
+        # end if
+    # end def create
+
+    @staticmethod
     def scalar() -> "Shape":
         return Shape(())
     # end def scalar
@@ -562,7 +578,7 @@ class Shape:
 
     def copy(self):
         """Return a copy of the shape."""
-        pass
+        return Shape(self._dims)
     # end def copy
 
     # endregion STATIC

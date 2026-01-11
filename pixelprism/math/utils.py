@@ -29,9 +29,30 @@
 # Imports
 from typing import Tuple, List, Union, Optional
 import numpy as np
-from .tensor import Tensor
-from .dtype import DType, NumericType, AnyDType, DataType, ScalarType
+from .tensor import Tensor, DataType
+from .dtype import DType, NumericType, AnyDType, ScalarType
 from .shape import AnyShape, Shape
+from .math_expr import Variable, Constant
+
+
+__all__ = [
+    "var",
+    "const",
+    "tensor",
+    "scalar",
+    "vector",
+    "matrix",
+    "empty",
+    "zeros",
+    "ones",
+    "full",
+    "nan",
+    "I",
+    "diag",
+    "eye_like",
+    "zeros_like",
+    "ones_like"
+]
 
 
 def _resolve_dtype(dtype):
@@ -80,9 +101,67 @@ def _data_as_nparray(
 # end def _data_as_nparray
 
 
+#
+# Variable & Constant
+#
+
+
+def var(name: str, dtype: AnyDType, shape: AnyShape) -> Variable:
+    """Create a new variable with the given name and dtype.
+
+    Parameters
+    ----------
+    name: str
+        Name of the variable.
+    dtype: AnyDType
+        Data type of the variable.
+    shape: AnyShape
+        Shape of the variable.
+    """
+    return Variable.create(name=name, dtype=DType.create(dtype), shape=Shape.create(shape))
+# end def var
+
+
+def const(name: str, data: DataType, dtype: Optional[AnyDType] = None) -> Constant:
+    """Create a new constant with the given value and dtype.
+
+    Parameters
+    ----------
+    name: str
+        Name of the constant.
+    data: NumericType
+        Data value of the constant.
+    dtype: AnyDType, optional
+        Data type of the constant. To the dtype of ``data`` if None.
+    """
+    data = tensor(data=data, dtype=dtype, mutable=False)
+    return Constant.create(name=name, data=data)
+# end def const
+
+
+#
+# Tensor
+#
+
+# region TENSOR
+
+
+def _dim_tensor(
+        data: DataType,
+        ndim: int,
+        dtype: AnyDType = float,
+        mutable: bool = True
+) -> Tensor:
+    """Allocate a tensor with a single dimension."""
+    data = _data_as_nparray(data, dtype=_resolve_dtype(dtype))
+    _check_shape(data, n_dims=ndim)
+    return Tensor(data=data, mutable=mutable)
+# end def _dim_tensor
+
+
 def tensor(
         data: DataType,
-        dtype: AnyDType = float,
+        dtype: Optional[AnyDType] = None,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -92,7 +171,7 @@ def tensor(
     ----------
     name : str
         Human-readable identifier assigned to the tensor.
-    data : numpy.ndarray
+    data : DataType
         Array buffer that will be wrapped without copying.
     dtype : AnyDType, default float
         Data type of the underlying array.
@@ -112,27 +191,12 @@ def tensor(
     >>> logits.shape
     (2, 2)
     """
-    data = _data_as_nparray(data, dtype=_resolve_dtype(dtype))
-    _check_shape(data, n_dims=data.ndim)
-    return Tensor(data=data, mutable=mutable)
+    return Tensor(data=data, dtype=dtype, mutable=mutable)
 # end def tensor
 
 
-def _dim_tensor(
-        data: DataType,
-        ndim: int,
-        dtype: AnyDType = float,
-        mutable: bool = True
-) -> Tensor:
-    """Allocate a tensor with a single dimension."""
-    data = _data_as_nparray(data, dtype=_resolve_dtype(dtype))
-    _check_shape(data, n_dims=ndim)
-    return Tensor(data=data, mutable=mutable)
-# end def _dim_tensor
-
-
 def scalar(
-        value: ScalarType,
+        value: int | float | np.number | bool | complex,
         dtype: AnyDType = float,
         mutable: bool = True
 ) -> Tensor:
@@ -610,3 +674,5 @@ def ones_like(
     data = np.ones(base.shape, dtype=dtype)
     return Tensor(data=data, mutable=mutable)
 # end def ones_like
+
+# endregion TENSOR

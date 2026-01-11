@@ -33,7 +33,7 @@ import pytest
 from pixelprism.math import utils
 from pixelprism.math.dtype import DType
 from pixelprism.math.shape import Shape
-from pixelprism.math.tensor import Tensor, _convert_data_to_numpy_array, _numpy_dtype_to_dtype
+from pixelprism.math.tensor import Tensor, _convert_data_to_numpy_array, _numpy_dtype_to_dtype, einsum
 
 
 def test_numpy_dtype_to_dtype_supported_and_invalid_types():
@@ -357,13 +357,175 @@ def test_tensor_elementwise_operators_match_numpy():
     right = Tensor(data=np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32))
     array = np.array([[1.0, 1.0], [1.0, 1.0]], dtype=np.float32)
 
-    np.testing.assert_array_equal((left + right).value, left.value + right.value)
-    np.testing.assert_array_equal((left - 1.0).value, left.value - 1.0)
-    np.testing.assert_array_equal((2.0 - left).value, 2.0 - left.value)
-    np.testing.assert_array_equal((left * array).value, left.value * array)
-    np.testing.assert_array_equal((array / left).value, array / left.value)
-    np.testing.assert_array_equal((left ** 2).value, left.value ** 2)
+    def numpy_binary_expected(op, other, reverse=False):
+        other_arr = other.value if isinstance(other, Tensor) else np.asarray(other)
+        if reverse:
+            return op(other_arr, left.value)
+        return op(left.value, other_arr)
+    # end def numpy_binary_expected
 
-    matmul_result = left @ right
-    np.testing.assert_array_equal(matmul_result.value, np.matmul(left.value, right.value))
+    cases = [
+        (left + right, numpy_binary_expected(np.add, right)),
+        (left - 1.0, numpy_binary_expected(np.subtract, 1.0)),
+        (2.0 - left, numpy_binary_expected(np.subtract, 2.0, reverse=True)),
+        (left * array, numpy_binary_expected(np.multiply, array)),
+        (array / left, numpy_binary_expected(np.divide, array, reverse=True)),
+        (left ** 2, numpy_binary_expected(np.power, 2)),
+        (left @ right, np.matmul(left.value, right.value)),
+    ]
+    for tensor_result, expected in cases:
+        np.testing.assert_array_equal(tensor_result.value, expected)
+        assert tensor_result.shape.dims == expected.shape
+        assert tensor_result.dtype == DType.from_numpy(expected.dtype)
 # end test test_tensor_elementwise_operators_match_numpy
+
+
+def test_tensor_getitem_preserves_dtype_and_shape():
+    """
+    Verify Tensor.__getitem__ slices return Tensors with aligned dtype/shape metadata.
+
+    Returns
+    -------
+    None
+    """
+    data = np.arange(12, dtype=np.int32).reshape(3, 4)
+    tensor = Tensor(data=data)
+
+    first_row = tensor[0]
+    first_col = tensor[:, 0]
+    sub_block = tensor[1:, 2:]
+
+    np.testing.assert_array_equal(first_row.value, data[0])
+    assert first_row.dtype == DType.INT32
+    assert first_row.shape.dims == data[0].shape
+
+    np.testing.assert_array_equal(first_col.value, data[:, 0])
+    assert first_col.dtype == DType.INT32
+    assert first_col.shape.dims == data[:, 0].shape
+
+    np.testing.assert_array_equal(sub_block.value, data[1:, 2:])
+    assert sub_block.dtype == DType.INT32
+    assert sub_block.shape.dims == data[1:, 2:].shape
+# end test test_tensor_getitem_preserves_dtype_and_shape
+
+
+def test_tensor_math_methods_match_numpy():
+    """
+    Ensure dedicated Tensor math helpers mirror numpy for representative inputs.
+
+    Returns
+    -------
+    None
+    """
+    general_data = np.array([-0.75, -0.25, 0.5, 2.0], dtype=np.float64)
+    positive_data = np.array([0.5, 1.5, 2.5, 5.0], dtype=np.float64)
+    bounded_data = np.array([-0.8, -0.2, 0.2, 0.8], dtype=np.float64)
+    hyperbolic_domain = np.array([1.1, 1.5, 3.0], dtype=np.float64)
+    degree_data = np.array([0.0, 30.0, 90.0, 180.0], dtype=np.float64)
+
+    def assert_unary(data: np.ndarray, method: str, numpy_fn):
+        tensor = Tensor(data=data.copy())
+        result = getattr(tensor, method)()
+        expected = numpy_fn(data)
+        np.testing.assert_allclose(result.value, expected)
+        assert result.shape.dims == data.shape
+        assert result.dtype == DType.from_numpy(expected.dtype)
+    # end def assert_unary
+
+    unary_cases = [
+        (general_data, "square", np.square),
+        (positive_data, "sqrt", np.sqrt),
+        (general_data, "cbrt", np.cbrt),
+        (general_data, "reciprocal", np.reciprocal),
+        (general_data, "exp", np.exp),
+        (general_data, "exp2", np.exp2),
+        (general_data, "expm1", np.expm1),
+        (positive_data, "log", np.log),
+        (positive_data, "log2", np.log2),
+        (positive_data, "log10", np.log10),
+        (positive_data, "log1p", np.log1p),
+        (general_data, "sin", np.sin),
+        (general_data, "cos", np.cos),
+        (general_data, "tan", np.tan),
+        (bounded_data, "arcsin", np.arcsin),
+        (bounded_data, "arccos", np.arccos),
+        (bounded_data, "arctan", np.arctan),
+        (general_data, "sinh", np.sinh),
+        (general_data, "cosh", np.cosh),
+        (general_data, "tanh", np.tanh),
+        (general_data, "arcsinh", np.arcsinh),
+        (hyperbolic_domain, "arccosh", np.arccosh),
+        (bounded_data, "arctanh", np.arctanh),
+        (degree_data, "deg2rad", np.deg2rad),
+        (general_data, "rad2deg", np.rad2deg),
+        (general_data, "absolute", np.abs),
+        (general_data, "sign", np.sign),
+        (general_data, "floor", np.floor),
+        (general_data, "ceil", np.ceil),
+        (general_data, "trunc", np.trunc),
+        (general_data, "rint", np.rint),
+    ]
+
+    for data, method, numpy_fn in unary_cases:
+        assert_unary(data, method, numpy_fn)
+    # end for
+
+    tensor_positive = Tensor(data=positive_data.copy())
+    np.testing.assert_allclose(tensor_positive.pow(3).value, np.power(positive_data, 3))
+    np.testing.assert_allclose(tensor_positive.square().value, np.square(positive_data))
+
+    rounded = tensor_positive.round(decimals=2)
+    np.testing.assert_allclose(rounded.value, np.round(positive_data, 2))
+
+    clipped = tensor_positive.clip(min_value=1.0, max_value=3.0)
+    np.testing.assert_allclose(clipped.value, np.clip(positive_data, 1.0, 3.0))
+    assert clipped.dtype == DType.FLOAT64
+# end test test_tensor_math_methods_match_numpy
+
+
+def test_tensor_math_functions_exposed_in_module():
+    """
+    Confirm pixelprism.math exposes tensor math helpers and enforces Tensor inputs.
+
+    Returns
+    -------
+    None
+    """
+    import pixelprism.math as ppmath
+
+    data = np.array([0.5, 1.5, 2.5], dtype=np.float64)
+    tensor = Tensor(data=data.copy())
+
+    np.testing.assert_allclose(ppmath.log(tensor).value, np.log(data))
+    np.testing.assert_allclose(ppmath.pow(tensor, 2).value, np.power(data, 2))
+    np.testing.assert_allclose(
+        ppmath.clip(tensor, min_value=1.0).value,
+        np.clip(data, 1.0, None)
+    )
+
+    with pytest.raises(TypeError):
+        ppmath.log(data)
+    # end with
+# end test test_tensor_math_functions_exposed_in_module
+
+
+def test_tensor_einsum_matches_numpy_and_out_parameter():
+    """
+    Ensure tensor.einsum mirrors numpy einsum and respects Tensor outputs.
+    """
+    left = Tensor(data=np.arange(6, dtype=np.float32).reshape(2, 3))
+    right = Tensor(data=np.arange(12, dtype=np.float32).reshape(3, 4))
+    result = einsum("ik,kj->ij", left, right)
+    expected = np.einsum("ik,kj->ij", left.value, right.value)
+    np.testing.assert_allclose(result.value, expected)
+    assert result.dtype == DType.FLOAT32
+
+    out = Tensor(data=np.zeros((2, 4), dtype=np.float32))
+    returned = einsum("ik,kj->ij", left, right, out=out)
+    assert returned is out
+    np.testing.assert_allclose(out.value, expected)
+
+    scalar = einsum("ij->", Tensor(data=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)))
+    np.testing.assert_allclose(scalar.value, np.einsum("ij->", np.array([[1.0, 2.0], [3.0, 4.0]])))
+    assert scalar.dtype == DType.FLOAT64
+# end test test_tensor_einsum_matches_numpy_and_out_parameter

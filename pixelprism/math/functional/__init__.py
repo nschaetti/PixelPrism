@@ -27,17 +27,72 @@
 #
 
 
-from .elementwise import add, sub, mul, div
+from .elementwise import (
+    add,
+    sub,
+    mul,
+    div,
+    pow,
+    log,
+    log10,
+    log2,
+    log1p,
+    exp,
+    exp2,
+    expm1,
+    sqrt,
+    square,
+    cbrt,
+    reciprocal,
+    deg2rad,
+    rad2deg,
+    absolute,
+    abs,
+)
 from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
 from .linear_algebra import matmul, dot, outer, trace
 from .reduction import sum, mean, std, summation
+from .discretization import (
+    sign,
+    floor,
+    ceil,
+    trunc,
+    rint,
+    round,
+    clip,
+)
 
 
 __all__ = [
+    # Element wise
     "add",
     "sub",
     "mul",
     "div",
+    "pow",
+    "exp",
+    "exp2",
+    "expm1",
+    "log",
+    "log10",
+    "log2",
+    "log1p",
+    "sqrt",
+    "square",
+    "cbrt",
+    "reciprocal",
+    "deg2rad",
+    "rad2deg",
+    "absolute",
+    "abs",
+    "sign",
+    "floor",
+    "ceil",
+    "trunc",
+    "rint",
+    "round",
+    "clip",
+    # Trigo
     "sin",
     "cos",
     "acos",

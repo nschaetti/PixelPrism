@@ -37,10 +37,20 @@ __all__ = [
     "div",
     "pow",
     "exp",
+    "exp2",
+    "expm1",
     "log",
+    "log1p",
     "log2",
     "log10",
     "sqrt",
+    "square",
+    "cbrt",
+    "reciprocal",
+    "deg2rad",
+    "rad2deg",
+    "absolute",
+    "abs",
     "neg",
 ]
 
@@ -267,6 +277,32 @@ def exp(op: MathExpr) -> MathExpr:
 # end def exp
 
 
+def exp2(op: MathExpr) -> MathExpr:
+    """
+    Element-wise base-2 exponential of an operand.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "exp2",
+        (op,),
+        f"exp2({op.name})"
+    )
+# end def exp2
+
+
+def expm1(op: MathExpr) -> MathExpr:
+    """
+    Element-wise exp(x) - 1 of an operand.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "expm1",
+        (op,),
+        f"expm1({op.name})"
+    )
+# end def expm1
+
+
 def log(op: MathExpr) -> MathExpr:
     """
     Element-wise natural logarithm of an operand.
@@ -278,6 +314,19 @@ def log(op: MathExpr) -> MathExpr:
         f"log({op.name})"
     )
 # end def log
+
+
+def log1p(op: MathExpr) -> MathExpr:
+    """
+    Element-wise log(1 + x) of an operand.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "log1p",
+        (op,),
+        f"log1p({op.name})"
+    )
+# end def log1p
 
 
 def log2(op: MathExpr) -> MathExpr:
@@ -317,6 +366,97 @@ def sqrt(op: MathExpr) -> MathExpr:
         f"sqrt({op.name})"
     )
 # end def sqrt
+
+
+def square(op: MathExpr) -> MathExpr:
+    """
+    Element-wise square of an operand.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "square",
+        (op,),
+        f"square({op.name})"
+    )
+# end def square
+
+
+def cbrt(op: MathExpr) -> MathExpr:
+    """
+    Element-wise cubic root of an operand.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "cbrt",
+        (op,),
+        f"cbrt({op.name})"
+    )
+# end def cbrt
+
+
+def reciprocal(op: MathExpr) -> MathExpr:
+    """
+    Element-wise reciprocal of an operand.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "reciprocal",
+        (op,),
+        f"reciprocal({op.name})"
+    )
+# end def reciprocal
+
+
+def deg2rad(op: MathExpr) -> MathExpr:
+    """
+    Convert degrees to radians element-wise.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "deg2rad",
+        (op,),
+        f"deg2rad({op.name})"
+    )
+# end def deg2rad
+
+
+def rad2deg(op: MathExpr) -> MathExpr:
+    """
+    Convert radians to degrees element-wise.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "rad2deg",
+        (op,),
+        f"rad2deg({op.name})"
+    )
+# end def rad2deg
+
+
+def absolute(op: MathExpr) -> MathExpr:
+    """
+    Element-wise absolute value of an operand.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "absolute",
+        (op,),
+        f"|{op.name}|"
+    )
+# end def absolute
+
+
+def abs(op: MathExpr) -> MathExpr:
+    """
+    Element-wise absolute value alias.
+    """
+    op = as_expr(op)
+    return apply_operator(
+        "abs",
+        (op,),
+        f"abs({op.name})"
+    )
+# end def abs
 
 
 def neg(op: MathExpr) -> MathExpr:

@@ -38,7 +38,6 @@ __all__ = [
     "NumericType",
     "AnyDType",
     "NestedListType",
-    "DataType",
     "ScalarType",
 ]
 
@@ -47,7 +46,6 @@ __all__ = [
 NumericType = float | int | bool | complex | np.number
 ScalarType = int | float | np.number | bool | complex
 NestedListType: TypeAlias = list[Union[ScalarType, "NestedListType"]]
-DataType: TypeAlias = Union[ScalarType, NestedListType]
 AnyDType = Union["DType", np.dtype, type[float], type[int], type[bool]]
 
 
@@ -110,6 +108,26 @@ class DType(Enum):
     # region STATIC
 
     @staticmethod
+    def create(dtype: AnyDType):
+        """Create a new dtype from a numpy dtype or a Python type.
+
+        Parameters
+        ----------
+        dtype : AnyDType
+            Type to convert.
+        """
+        if isinstance(dtype, DType):
+            return dtype.copy()
+        elif isinstance(dtype, np.dtype):
+            return DType.from_numpy(dtype)
+        elif isinstance(dtype, type):
+            return DType.from_numpy(np.dtype(dtype))
+        else:
+            raise ValueError(f"Unsupported dtype: {dtype}")
+        # end if
+    # end def create
+
+    @staticmethod
     def promote(a: "DType", b: "DType") -> "DType":
         """
         Return the promoted dtype for binary ops.
@@ -127,7 +145,13 @@ class DType(Enum):
         DType
             Converted dtype.
         """
-        return DType(dtype.name)
+        if isinstance(dtype, np.dtype):
+            return DType(dtype.name)
+        # end if
+        if isinstance(dtype, type) and issubclass(dtype, np.generic):
+            return DType(np.dtype(dtype).name)
+        # end if
+        raise TypeError(f"Unsupported numpy dtype: {dtype}")
     # end def from_numpy
 
     # endregion STATIC

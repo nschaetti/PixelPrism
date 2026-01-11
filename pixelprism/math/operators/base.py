@@ -32,11 +32,10 @@ Operator base classes and registry.
 from abc import ABC, abstractmethod
 from typing import List, Sequence, Type, Tuple
 
-import numpy as np
-
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
+
 
 __all__ = [
     "Operands",
@@ -45,6 +44,7 @@ __all__ = [
     "OperatorRegistry",
     "operator_registry",
 ]
+
 
 Operand = "MathExpr"
 Operands = List["MathExpr"] | Tuple["MathExpr", ...]
@@ -106,9 +106,12 @@ class Operator(ABC):
         """Check that the operands have the correct arity."""
     # end def check_operands
 
-    def eval(self, values) -> Tensor:
+    def eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
-        return self._eval(values=values)
+        if len(operands) != self.arity:
+            raise ValueError(f"Expected {self.arity} operands, got {len(operands)}")
+        # end if
+        return self._eval(operands=operands, **kwargs)
     # end def eval
 
     def backward(
@@ -153,7 +156,7 @@ class Operator(ABC):
     # region PRIVATE
 
     @abstractmethod
-    def _eval(self, values) -> Tensor:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
     # end def _eval
 
@@ -233,12 +236,12 @@ class BinderOperator(Operator):
     @classmethod
     @abstractmethod
     def check_parameters(cls, **kwargs) -> bool:
-        """Check that the operands have compatible shapes."""
+        """Check operator parameters."""
     # end def check_shapes
 
-    def _check_parameters(self, **kwargs):
+    def _check_parameters(self, **kwargs) -> bool:
         """Check parameters."""
-        self.__class__.check_parameters(**kwargs)
+        return self.__class__.check_parameters(**kwargs)
     # end def _check_parameters
 
     @abstractmethod

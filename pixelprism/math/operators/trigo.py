@@ -29,14 +29,11 @@
 Trigonometric operator implementations.
 """
 
-from typing import Sequence
-
+# Imports
 import numpy as np
-
-from ..dtype import DType
-from ..shape import Shape
 from .base import Operands, operator_registry
 from .elementwise import ElementwiseOperator, UnaryElementwiseOperator
+from ..tensor import Tensor
 
 __all__ = [
     "Sin",
@@ -72,9 +69,9 @@ class Sin(UnaryElementwiseOperator):
 
     NAME = "sin"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.sin(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.sin(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -97,9 +94,9 @@ class Cos(UnaryElementwiseOperator):
 
     NAME = "cos"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.cos(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.cos(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -122,9 +119,9 @@ class Tan(UnaryElementwiseOperator):
 
     NAME = "tan"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.tan(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.tan(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -147,9 +144,9 @@ class Asin(UnaryElementwiseOperator):
 
     NAME = "asin"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.arcsin(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.arcsin(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -172,9 +169,9 @@ class Acos(UnaryElementwiseOperator):
 
     NAME = "acos"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.arccos(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.arccos(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -197,9 +194,9 @@ class Atan(UnaryElementwiseOperator):
 
     NAME = "atan"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.arctan(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.arctan(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -223,9 +220,9 @@ class Atan2(ElementwiseOperator):
     NAME = "atan2"
     ARITY = 2
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        y, x = values
-        return np.arctan2(y, x)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        y, x = operands
+        return Tensor.arctan2(y.eval(), x.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -248,9 +245,9 @@ class Sec(UnaryElementwiseOperator):
 
     NAME = "sec"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return 1.0 / np.cos(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return 1.0 / Tensor.cos(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -273,9 +270,9 @@ class Csc(UnaryElementwiseOperator):
 
     NAME = "csc"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return 1.0 / np.sin(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return 1.0 / Tensor.sin(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -298,9 +295,9 @@ class Cot(UnaryElementwiseOperator):
 
     NAME = "cot"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return 1.0 / np.tan(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return 1.0 / Tensor.tan(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -323,9 +320,9 @@ class Sinh(UnaryElementwiseOperator):
 
     NAME = "sinh"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.sinh(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.sinh(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -348,9 +345,9 @@ class Cosh(UnaryElementwiseOperator):
 
     NAME = "cosh"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.cosh(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.cosh(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -373,9 +370,9 @@ class Tanh(UnaryElementwiseOperator):
 
     NAME = "tanh"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.tanh(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.tanh(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -398,9 +395,9 @@ class Asinh(UnaryElementwiseOperator):
 
     NAME = "asinh"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.arcsinh(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.arcsinh(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -423,9 +420,9 @@ class Acosh(UnaryElementwiseOperator):
 
     NAME = "acosh"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.arccosh(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.arccosh(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -448,9 +445,9 @@ class Atanh(UnaryElementwiseOperator):
 
     NAME = "atanh"
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.arctanh(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.arctanh(value.eval())
     # end def _eval
 
     def _backward(self, out_grad, node):

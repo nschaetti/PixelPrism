@@ -29,19 +29,18 @@
 from typing import Any, Union, Optional, List
 import numpy as np
 
-from .math_expr import MathExpr
-from .tensor import Tensor
-from .dtype import DataType, ScalarType, DType, AnyDType, NestedListType
-from .utils import tensor
+from .math_expr import MathExpr, MathLeaf
+from .dtype import ScalarType, DType, AnyDType, NestedListType
+from .tensor import DataType
+from .utils import tensor, const
 
 
 __all__ = ["as_expr"]
 
 
 def as_expr(
-        obj: Union[MathExpr, DataType, np.ndarray],
+        obj: Union[MathExpr, DataType],
         dtype: Optional[AnyDType] = None,
-        mutable: bool = False
 ) -> MathExpr:
     """
     Convert Python and NumPy inputs to a :class:`~pixelprism.math.MathExpr`.
@@ -69,8 +68,6 @@ def as_expr(
     dtype : AnyDType | None, default None
         Target dtype for scalar, list, and array inputs. When ``None``,
         lists default to ``FLOAT64`` and arrays keep their existing dtype.
-    mutable : bool, default False
-        Whether the returned tensor can be mutated in-place.
 
     Returns
     -------
@@ -93,28 +90,19 @@ def as_expr(
     """
     if isinstance(obj, MathExpr):
         return obj
-    elif isinstance(obj, ScalarType):
-        return tensor(
+    elif isinstance(obj, ScalarType) or isinstance(obj, NestedListType) or isinstance(obj, np.ndarray):
+        return const(
             name=f"constant_{MathExpr.next_id()}",
             data=obj,
-            dtype=dtype,
-            mutable=mutable
+            dtype=dtype
         )
-    elif isinstance(obj, np.ndarray):
-        return Tensor(
-            name=f"constant_{MathExpr.next_id()}",
-            data=obj,
-            mutable=mutable,
-            dtype=dtype if dtype is not None else DType.from_numpy(obj.dtype)
-        )
-    elif isinstance(obj, Tensor):
+    elif isinstance(obj, MathLeaf):
         return obj
     elif isinstance(obj, List):
-        return tensor(
+        return const(
             name=f"constant_{MathExpr.next_id()}",
             data=obj,
-            dtype=dtype if dtype is not None else DType.FLOAT64,
-            mutable=mutable
+            dtype=dtype or DType.FLOAT64
         )
     else:
         raise TypeError(f"Cannot convert {type(obj)} to MathExpr")

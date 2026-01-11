@@ -28,13 +28,15 @@
 """
 Linear algebra operator implementations.
 """
+
+# Imports
 from abc import ABC
 from typing import Sequence
-
 import numpy as np
 
 from ..dtype import DType
 from ..shape import Shape
+from ..tensor import Tensor, einsum
 from .base import Operands, Operand, operator_registry, Operator
 
 __all__ = [
@@ -193,9 +195,9 @@ class MatMul(LinearAlgebraOperator):
         raise RuntimeError("infer_shape called with invalid matmul operands")
     # end def infer_shape
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        a, b = values
-        return a @ b
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, b = operands
+        return a.eval() @ b.eval()
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -250,12 +252,12 @@ class Dot(LinearAlgebraOperator):
         return Shape(batch_dim)
     # end def infer_shape
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        a, b = values
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, b = operands
         if a.ndim == 1:
-            return np.einsum("i,i->", a, b)
+            return einsum("i,i->", a.eval(), b.eval())
         else:
-            return np.einsum("...i,...i->...", a, b)
+            return einsum("...i,...i->...", a.eval(), b.eval())
         # end if
     # end def _eval
 
@@ -307,12 +309,12 @@ class Outer(LinearAlgebraOperator):
         return Shape(batch_dim + (dims_a[-1], dims_b[-1]))
     # end def infer_shape
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        a, b = values
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, b = operands
         if a.ndim == 1:
-            return np.einsum("i,j->ij", a, b)
+            return einsum("i,j->ij", a.eval(), b.eval())
         else:
-            return np.einsum("...i,...j->...ij", a, b)
+            return einsum("...i,...j->...ij", a.eval(), b.eval())
         # end if
     # end def _eval
 
@@ -372,9 +374,9 @@ class Trace(LinearAlgebraOperator):
         return a.dtype
     # end def infer_dtype
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        a, = values
-        return np.trace(values, axis1=-2, axis2=-1)[0]
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, = operands
+        return Tensor.trace(a.eval(), axis1=-2, axis2=-1)[0]
     # end def _eval
 
     def _backward(self, out_grad, node):

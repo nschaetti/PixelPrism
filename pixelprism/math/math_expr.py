@@ -45,7 +45,7 @@ interactive help system, by static tooling, and by our reference docs.
 from __future__ import annotations
 import weakref
 from abc import ABC, abstractmethod
-from typing import Any, FrozenSet, List, Optional, Tuple, Union
+from typing import Any, FrozenSet, List, Optional, Tuple, Union, Dict
 import numpy as np
 
 from .dtype import DType
@@ -292,8 +292,7 @@ class MathExpr:
         if isinstance(self._op, BinderOperator):
             return self._op.eval_node(self._children)
         else:
-            values = [c.eval() for c in self._children]
-            return self._op.eval(values=values)
+            return self._op.eval(operands=self._children)
         # end if
     # end def eval
 
@@ -316,6 +315,46 @@ class MathExpr:
         """
         return len(self._children) == 0
     # end is_leaf
+
+    def is_scalar(self) -> bool:
+        """
+        Is the expression a scalar?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (1,)
+        """
+        return self._shape.rank == 0
+    # end def is_scalar
+
+    def is_vector(self) -> bool:
+        """
+        Is the expression a vector?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (n,)
+        """
+        return self._shape.rank == 1
+    # end def is_vector
+
+    def is_matrix(self) -> bool:
+        """
+        Is the expression a matrix?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n)
+        """
+        return self._shape.rank == 2
+    # end is_matrix
+
+    def is_higher_order(self):
+        """
+        Is the expression higher order?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n,...)
+        """
+        return self._shape.rank > 2
+    # end def is_higher_order
 
     def add_parent(self, parent: "MathExpr"):
         """
@@ -402,6 +441,45 @@ class MathExpr:
         rets = [c.contains(var, by_ref=by_ref, check_operator=check_operator) for c in self._children]
         return any(rets) or (by_ref and self == var) or (check_operator and self._op.contains(var))
     # end def contains
+
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
+        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+
+        Parameters
+        ----------
+        old_m: MathExpr
+            MathExpr to replace.
+        new_m: MathExpr
+            New MathExpr replacing the old one.
+        """
+        if self is old_m:
+            raise ValueError("Cannot replace a node with itself.")
+        # end if
+
+        new_children = [
+            new_m if child is old_m else child
+            for child in self._children
+        ]
+        self._children = tuple(new_children)
+    # end def replace
+
+    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+        """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
+
+        Parameters
+        ----------
+        old_name : str
+            Name of the variable/constant to rename.
+        new_name: str
+            New name for the variable/constant.
+        """
+        rename_dict = {}
+        for child in self._children:
+            rn_out = child.rename(old_name, new_name)
+            rename_dict.update(rn_out)
+        # end for
+        return rename_dict
+    # end rename
 
     # endregion PUBLIC
 
@@ -996,7 +1074,31 @@ class MathLeaf(MathExpr, ABC):
         return False
     # en def contains
 
-    # end def contains
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
+        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+
+        Parameters
+        ----------
+        old_m: MathExpr
+            MathExpr to replace.
+        new_m: MathExpr
+            New MathExpr replacing the old one.
+        """
+        raise MathExprNotImplementedError("Leaf nodes do not support replace.")
+    # end def replace
+
+    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+        """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
+
+        Parameters
+        ----------
+        old_name : str
+            Name of the variable/constant to rename.
+        new_name: str
+            New name for the variable/constant.
+        """
+        raise MathExprNotImplementedError("Leaf nodes do not support rename.")
+    # end rename
 
     # endregion PUBLIC
 
@@ -1030,7 +1132,7 @@ class Variable(MathLeaf):
             *,
             name: str,
             dtype: DType,
-            shape: Shape,
+            shape: Shape
     ):
         """
         Parameters
@@ -1187,6 +1289,35 @@ class Variable(MathLeaf):
             shape=self._shape.copy(),
         )
     # end def copy
+
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
+        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+
+        Parameters
+        ----------
+        old_m: MathExpr
+            MathExpr to replace.
+        new_m: MathExpr
+            New MathExpr replacing the old one.
+        """
+        pass
+    # end def replace
+
+    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+        """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
+
+        Parameters
+        ----------
+        old_name : str
+            Name of the variable/constant to rename.
+        new_name: str
+            New name for the variable/constant.
+        """
+        if self._name == old_name:
+            self._name = new_name
+        # end if
+        return {old_name: new_name}
+    # end rename
 
     # endregion PUBLIC
 
@@ -1484,6 +1615,35 @@ class Constant(MathLeaf):
         )
     # end def copy
 
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
+        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+
+        Parameters
+        ----------
+        old_m: MathExpr
+            MathExpr to replace.
+        new_m: MathExpr
+            New MathExpr replacing the old one.
+        """
+        pass
+    # end def replace
+
+    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+        """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
+
+        Parameters
+        ----------
+        old_name : str
+            Name of the variable/constant to rename.
+        new_name: str
+            New name for the variable/constant.
+        """
+        if self._name == old_name:
+            self._name = new_name
+        # end if
+        return {old_name: new_name}
+    # end rename
+
     # endregion PUBLIC
 
     # region PRIVATE
@@ -1499,6 +1659,19 @@ class Constant(MathLeaf):
     # end def _eval
 
     # endregion PRIVATE
+
+    # region STATIC
+
+    @staticmethod
+    def create(name: str, data: Tensor):
+        """Create a new constant node."""
+        return Constant(
+            name=name,
+            data=data
+        )
+    # end def create
+
+    # endregion STATIC
 
     # region OVERRIDE
 

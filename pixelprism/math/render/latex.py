@@ -41,8 +41,7 @@ import numbers
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Sequence, Tuple
 import numpy as np
-from ..math_expr import MathExpr
-
+from ..math_expr import MathExpr, Constant
 
 __all__ = ["to_latex"]
 
@@ -300,7 +299,7 @@ class _LatexRenderer:
         """
         Render the stored value for immutable leaves when feasible.
         """
-        if not self._is_constant_leaf(expr):
+        if not isinstance(expr, Constant):
             return None
         # end if
 
@@ -309,7 +308,7 @@ class _LatexRenderer:
             return None
         # end if
 
-        array = self._array_from_data(data)
+        array = self._array_from_data(data.value)
         if array is None:
             return None
         # end if
@@ -332,20 +331,6 @@ class _LatexRenderer:
         # end if
         return None
     # end def _render_constant_leaf
-
-    def _is_constant_leaf(self, expr: MathExpr) -> bool:
-        """
-        Check whether ``expr`` is a non-operator leaf marked immutable.
-        """
-        if self._get_operator(expr) is not None:
-            return False
-        # end if
-        mutable_flag = getattr(expr, "mutable", None)
-        if isinstance(mutable_flag, bool):
-            return not mutable_flag
-        # end if
-        return False
-    # end def _is_constant_leaf
 
     def _extract_leaf_data(self, expr: MathExpr) -> Any | None:
         """

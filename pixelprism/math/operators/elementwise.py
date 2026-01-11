@@ -31,8 +31,7 @@ Elementwise operator implementations.
 from abc import ABC
 from typing import Sequence
 
-import numpy as np
-
+from ..tensor import Tensor
 from ..dtype import DType
 from ..shape import Shape
 from .base import Operands, Operator, operator_registry
@@ -46,10 +45,20 @@ __all__ = [
     "Div",
     "Pow",
     "Exp",
+    "Exp2",
+    "Expm1",
     "Log",
+    "Log1p",
     "Log2",
     "Log10",
     "Sqrt",
+    "Square",
+    "Cbrt",
+    "Reciprocal",
+    "Deg2rad",
+    "Rad2deg",
+    "Absolute",
+    "Abs",
     "Neg",
 ]
 
@@ -145,12 +154,12 @@ class Add(ElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """
         Evaluate element-wise addition.
         """
-        a, b = values
-        return a + b
+        a, b = operands
+        return a.eval() + b.eval()
     # end def _eval
 
     def _backward(
@@ -176,10 +185,10 @@ class Sub(ElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate element-wise subtraction."""
-        a, b = values
-        return a - b
+        a, b = operands
+        return a.eval() - b.eval()
     # end def _eval
 
     def _backward(
@@ -205,10 +214,10 @@ class Mul(ElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
+    def _eval(self, operands: Operands) -> Tensor:
         """Evaluate element-wise multiplication."""
-        a, b = values
-        return a * b
+        a, b = operands
+        return a.eval() * b.eval()
     # end def _eval
 
     def _backward(
@@ -234,10 +243,10 @@ class Div(ElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate element-wise division."""
-        a, b = values
-        return a / b
+        a, b = operands
+        return a.eval() / b.eval()
     # end def _eval
 
     def _backward(
@@ -263,10 +272,10 @@ class Pow(ElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate element-wise exponentiation."""
-        base, exponent = values
-        return np.power(base, exponent)
+        base, exponent = operands
+        return Tensor.pow(base.eval(), exponent.eval())
     # end def _eval
 
     def _backward(
@@ -346,9 +355,9 @@ class Exp(UnaryElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.exp(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.exp(value)
     # end def _eval
 
     def _backward(
@@ -364,6 +373,60 @@ class Exp(UnaryElementwiseOperator):
 # end class Exp
 
 
+class Exp2(UnaryElementwiseOperator):
+    """
+    Element-wise base-2 exponential operator.
+    """
+
+    NAME = "exp2"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.exp2(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Exp2 does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Exp2
+
+
+class Expm1(UnaryElementwiseOperator):
+    """
+    Element-wise exp(x) - 1 operator.
+    """
+
+    NAME = "expm1"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.expm1(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Expm1 does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Expm1
+
+
 class Log(UnaryElementwiseOperator):
     """
     Element-wise natural logarithm operator.
@@ -373,9 +436,9 @@ class Log(UnaryElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.log(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.log(value.eval())
     # end def _eval
 
     def _backward(
@@ -391,6 +454,33 @@ class Log(UnaryElementwiseOperator):
 # end class Log
 
 
+class Log1p(UnaryElementwiseOperator):
+    """
+    Element-wise log(1 + x) operator.
+    """
+
+    NAME = "log1p"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.log1p(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Log1p does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Log1p
+
+
 class Sqrt(UnaryElementwiseOperator):
     """
     Element-wise square root operator.
@@ -400,9 +490,9 @@ class Sqrt(UnaryElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.sqrt(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.sqrt(value.eval())
     # end def _eval
 
     def _backward(
@@ -418,6 +508,87 @@ class Sqrt(UnaryElementwiseOperator):
 # end class Sqrt
 
 
+class Square(UnaryElementwiseOperator):
+    """
+    Element-wise square operator.
+    """
+
+    NAME = "square"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.square(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Square does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Square
+
+
+class Cbrt(UnaryElementwiseOperator):
+    """
+    Element-wise cubic root operator.
+    """
+
+    NAME = "cbrt"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.cbrt(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Cbrt does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Cbrt
+
+
+class Reciprocal(UnaryElementwiseOperator):
+    """
+    Element-wise reciprocal operator.
+    """
+
+    NAME = "reciprocal"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.reciprocal(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Reciprocal does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Reciprocal
+
+
 class Log2(UnaryElementwiseOperator):
     """
     Element-wise base-2 logarithm operator.
@@ -427,9 +598,9 @@ class Log2(UnaryElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.log2(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.log2(value.eval())
     # end def _eval
 
     def _backward(
@@ -454,9 +625,9 @@ class Log10(UnaryElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
-        (value,) = values
-        return np.log10(value)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.log10(value.eval())
     # end def _eval
 
     def _backward(
@@ -470,6 +641,114 @@ class Log10(UnaryElementwiseOperator):
     # endregion PRIVATE
 
 # end class Log10
+
+
+class Deg2rad(UnaryElementwiseOperator):
+    """
+    Convert degrees to radians.
+    """
+
+    NAME = "deg2rad"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.deg2rad(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Deg2rad does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Deg2rad
+
+
+class Rad2deg(UnaryElementwiseOperator):
+    """
+    Convert radians to degrees.
+    """
+
+    NAME = "rad2deg"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.rad2deg(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Rad2deg does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Rad2deg
+
+
+class Absolute(UnaryElementwiseOperator):
+    """
+    Element-wise absolute value operator.
+    """
+
+    NAME = "absolute"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.absolute(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Absolute does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Absolute
+
+
+class Abs(UnaryElementwiseOperator):
+    """
+    Element-wise absolute value alias operator.
+    """
+
+    NAME = "abs"
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (value,) = operands
+        return Tensor.abs(value.eval())
+    # end def _eval
+
+    def _backward(
+            self,
+            out_grad: "MathExpr",
+            node: "MathExpr",
+    ) -> Sequence["MathExpr"]:
+        raise NotImplementedError("Abs does not support backward.")
+    # end def _backward
+
+    # endregion PRIVATE
+
+# end class Abs
 
 
 class Neg(UnaryElementwiseOperator):
@@ -508,10 +787,10 @@ class Neg(UnaryElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, values: np.ndarray) -> np.ndarray:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate element-wise negation."""
-        (value,) = values
-        return -value
+        (value,) = operands
+        return -value.eval()
     # end def _eval
 
     def _backward(
@@ -533,8 +812,18 @@ operator_registry.register(Mul)
 operator_registry.register(Div)
 operator_registry.register(Pow)
 operator_registry.register(Exp)
+operator_registry.register(Exp2)
+operator_registry.register(Expm1)
 operator_registry.register(Log)
+operator_registry.register(Log1p)
 operator_registry.register(Sqrt)
+operator_registry.register(Square)
+operator_registry.register(Cbrt)
+operator_registry.register(Reciprocal)
 operator_registry.register(Log2)
 operator_registry.register(Log10)
+operator_registry.register(Deg2rad)
+operator_registry.register(Rad2deg)
+operator_registry.register(Absolute)
+operator_registry.register(Abs)
 operator_registry.register(Neg)
