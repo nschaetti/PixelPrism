@@ -30,12 +30,13 @@ Operator base classes and registry.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Sequence, Type
+from typing import List, Sequence, Type, Tuple
 
 import numpy as np
 
 from ..dtype import DType
 from ..shape import Shape
+from ..tensor import Tensor
 
 __all__ = [
     "Operands",
@@ -46,7 +47,7 @@ __all__ = [
 ]
 
 Operand = "MathExpr"
-Operands = List["MathExpr"]
+Operands = List["MathExpr"] | Tuple["MathExpr", ...]
 
 
 class Operator(ABC):
@@ -105,7 +106,7 @@ class Operator(ABC):
         """Check that the operands have the correct arity."""
     # end def check_operands
 
-    def eval(self, values) -> np.ndarray:
+    def eval(self, values) -> Tensor:
         """Evaluate the operator."""
         return self._eval(values=values)
     # end def eval
@@ -152,7 +153,7 @@ class Operator(ABC):
     # region PRIVATE
 
     @abstractmethod
-    def _eval(self, values) -> np.ndarray:
+    def _eval(self, values) -> Tensor:
         """Evaluate the operator."""
     # end def _eval
 
@@ -222,7 +223,7 @@ class BinderOperator(Operator):
         self._check_parameters(**kwargs)
     # end def __init__
 
-    def eval_node(self, operands: Operands, **kwargs) -> np.ndarray:
+    def eval_node(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the binder operator."""
         return self._eval_node(operands=operands, **kwargs)
     # end def eval_node
@@ -241,7 +242,7 @@ class BinderOperator(Operator):
     # end def _check_parameters
 
     @abstractmethod
-    def _eval_node(self, operands: Operands, **kwargs) -> np.ndarray:
+    def _eval_node(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
     # end def _eval_node
 

@@ -134,6 +134,8 @@ class Tensor:
     Declare a tensor as a class.
     """
 
+    __array_priority__ = 1000  # ensure numpy prefers Tensor overrides
+
     def __init__(
             self,
             *,
@@ -149,6 +151,27 @@ class Tensor:
         self._shape = Shape(dims=self._data.shape)
         self._mutable = mutable
     # end __init__
+
+    def _coerce_operand(self, other: Union["Tensor", DataType, np.ndarray]) -> np.ndarray:
+        """Convert operands to numpy arrays for arithmetic."""
+        if isinstance(other, Tensor):
+            return other.value
+        return np.asarray(other)
+    # end def _coerce_operand
+
+    def _binary_op(self, other, op) -> 'Tensor':
+        """Apply a numpy binary operator and wrap in a Tensor."""
+        other_arr = self._coerce_operand(other)
+        result = op(self._data, other_arr)
+        return Tensor(data=np.asarray(result))
+    # end def _binary_op
+
+    def _binary_op_reverse(self, other, op) -> 'Tensor':
+        """Apply a numpy binary operator with operands reversed."""
+        other_arr = self._coerce_operand(other)
+        result = op(other_arr, self._data)
+        return Tensor(data=np.asarray(result))
+    # end def _binary_op_reverse
 
     # region PROPERTIES
 
@@ -228,7 +251,6 @@ class Tensor:
 
     def copy(
             self,
-            name: str,
             mutable: Optional[bool] = None
     ) -> 'Tensor':
         """
@@ -242,6 +264,75 @@ class Tensor:
     # endregion PUBLIC
 
     # region OVERRIDE
+
+    def __add__(self, other) -> 'Tensor':
+        """Elementwise addition."""
+        return self._binary_op(other, np.add)
+    # end __add__
+
+    def __radd__(self, other) -> 'Tensor':
+        """Elementwise reverse addition."""
+        return self._binary_op_reverse(other, np.add)
+    # end __radd__
+
+    def __sub__(self, other) -> 'Tensor':
+        """Elementwise subtraction."""
+        return self._binary_op(other, np.subtract)
+    # end __sub__
+
+    def __rsub__(self, other) -> 'Tensor':
+        """Elementwise reverse subtraction."""
+        return self._binary_op_reverse(other, np.subtract)
+    # end __rsub__
+
+    def __mul__(self, other) -> 'Tensor':
+        """Elementwise multiplication."""
+        return self._binary_op(other, np.multiply)
+    # end __mul__
+
+    def __rmul__(self, other) -> 'Tensor':
+        """Elementwise reverse multiplication."""
+        return self._binary_op_reverse(other, np.multiply)
+    # end __rmul__
+
+    def __truediv__(self, other) -> 'Tensor':
+        """Elementwise division."""
+        return self._binary_op(other, np.divide)
+    # end __truediv__
+
+    def __rtruediv__(self, other) -> 'Tensor':
+        """Elementwise reverse division."""
+        return self._binary_op_reverse(other, np.divide)
+    # end __rtruediv__
+
+    def __pow__(self, other) -> 'Tensor':
+        """Elementwise power."""
+        return self._binary_op(other, np.power)
+    # end __pow__
+
+    def __rpow__(self, other) -> 'Tensor':
+        """Elementwise reverse power."""
+        return self._binary_op_reverse(other, np.power)
+    # end __rpow__
+
+    def __matmul__(self, other) -> 'Tensor':
+        """Matrix multiplication."""
+        other_arr = self._coerce_operand(other)
+        result = np.matmul(self._data, other_arr)
+        return Tensor(data=np.asarray(result))
+    # end __matmul__
+
+    def __rmatmul__(self, other) -> 'Tensor':
+        """Reverse matrix multiplication."""
+        other_arr = self._coerce_operand(other)
+        result = np.matmul(other_arr, self._data)
+        return Tensor(data=np.asarray(result))
+    # end __rmatmul__
+
+    def __neg__(self) -> 'Tensor':
+        """Elementwise negation."""
+        return Tensor(data=np.negative(self._data))
+    # end __neg__
 
     # Override the integer conversion
     def __int__(self):
@@ -304,7 +395,9 @@ class Tensor:
     @staticmethod
     def zeros(shape: Shape, dtype: Optional[DType] = None) -> 'Tensor':
         """Create a tensor of zeros."""
-        return Tensor(data=np.zeros(shape=shape.dims, dtype=_get_dtype(dtype=dtype)), dtype=dtype)
+        np_dtype = _convert_dtype_to_numpy(dtype) if dtype else None
+        data = np.zeros(shape=shape.dims, dtype=np_dtype)
+        return Tensor(data=data, dtype=dtype)
     # end def zeros
 
     @staticmethod
@@ -316,4 +409,3 @@ class Tensor:
     # endregion STATIC
 
 # end Tensor
-

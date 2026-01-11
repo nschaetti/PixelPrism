@@ -132,7 +132,6 @@ def _dim_tensor(
 
 
 def scalar(
-        name: str,
         value: ScalarType,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -142,8 +141,6 @@ def scalar(
 
     Parameters
     ----------
-    name : str
-        Identifier assigned to the tensor.
     value : NumericType
         Scalar value that can be converted to a NumPy 0-D array.
     dtype : AnyDType, default float
@@ -461,7 +458,6 @@ def I(
 
 
 def diag(
-        name: str,
         v,
         dtype: AnyDType = float,
         mutable: bool = True
@@ -471,8 +467,6 @@ def diag(
 
     Parameters
     ----------
-    name : str
-        Identifier assigned to the tensor.
     v : array-like
         One-dimensional values placed along the diagonal.
     dtype : AnyDType, default float

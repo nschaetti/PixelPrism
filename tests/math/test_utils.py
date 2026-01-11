@@ -43,14 +43,14 @@ def test_tensor_wrapper_reuses_numpy_buffer_and_respects_mutability():
     None
     """
     data = np.arange(4, dtype=np.float32).reshape(2, 2)
-    tensor = utils.tensor("data", data=[[0, 1], [2, 3]], dtype=DType.FLOAT32, mutable=False)
+    tensor = utils.tensor(data=data, dtype=DType.FLOAT32, mutable=False)
     np.testing.assert_array_equal(data, tensor.value)
     assert tensor.mutable is False
     assert tensor.dtype == DType.FLOAT32
     assert tensor.shape.dims == (2, 2)
 
     data2 = np.arange(4, dtype=np.float64).reshape(2, 2)
-    tensor2 = utils.tensor("data2", data=[[0, 1], [2, 3]], dtype=DType.FLOAT64, mutable=False)
+    tensor2 = utils.tensor(data=data2, dtype=DType.FLOAT64, mutable=False)
     np.testing.assert_array_equal(data2, tensor2.value)
     assert tensor2.mutable is False
     assert tensor2.dtype == DType.FLOAT64
@@ -66,9 +66,9 @@ def test_scalar_vector_matrix_rank_and_dtype():
     -------
     None
     """
-    scalar = utils.scalar("bias", 3.5, dtype=np.float32)
-    vector = utils.vector("weights", [1, 2, 3], dtype=np.float64)
-    matrix = utils.matrix("kernel", [[1, 0], [0, 1]], dtype=np.int32)
+    scalar = utils.scalar(3.5, dtype=np.float32)
+    vector = utils.vector([1, 2, 3], dtype=np.float64)
+    matrix = utils.matrix([[1, 0], [0, 1]], dtype=np.int32)
 
     assert scalar.rank == 0
     assert scalar.dtype == DType.FLOAT32
@@ -90,7 +90,7 @@ def test_empty_accepts_shape_objects_and_dtype_override():
     None
     """
     shape = Shape((2, 3, 1))
-    tensor = utils.empty("scratch", shape, dtype=np.float64)
+    tensor = utils.empty(shape, dtype=np.float64)
 
     assert tensor.shape.dims == (2, 3, 1)
     assert tensor.dtype == DType.FLOAT64
@@ -106,10 +106,10 @@ def test_zeros_ones_full_and_nan_initialization():
     -------
     None
     """
-    zeros = utils.zeros("zeros", [2, 2], dtype=np.float32, mutable=False)
-    ones = utils.ones("ones", 3, dtype=np.float64)
-    full = utils.full("full", (2,), value=7, dtype=np.int32)
-    nan_tensor = utils.nan("nan", (2, 1))
+    zeros = utils.zeros([2, 2], dtype=np.float32, mutable=False)
+    ones = utils.ones(3, dtype=np.float64)
+    full = utils.full((2,), value=7, dtype=np.int32)
+    nan_tensor = utils.nan((2, 1))
 
     assert zeros.mutable is False
     np.testing.assert_array_equal(zeros.value, np.zeros((2, 2), dtype=np.float32))
@@ -127,8 +127,8 @@ def test_identity_helpers_I_and_diag():
     -------
     None
     """
-    identity = utils.I("eye", 3, dtype=np.float64)
-    diag = utils.diag("diag", [1, 2, 3], dtype=np.float32)
+    identity = utils.I(3, dtype=np.float64)
+    diag = utils.diag([1, 2, 3], dtype=np.float32)
 
     assert identity.mutable is False
     np.testing.assert_array_equal(identity.value, np.eye(3, dtype=np.float64))
@@ -144,9 +144,12 @@ def test_eye_like_and_dtype_override():
     -------
     None
     """
-    base = np.zeros((4, 4), dtype=np.float32)
-    eye = utils.eye_like("eye_like", base)
-    eye64 = utils.eye_like("eye64", base, dtype=np.float64)
+    base = utils.tensor(
+        data=np.zeros((4, 4), dtype=np.float32),
+        dtype=DType.FLOAT32
+    )
+    eye = utils.eye_like(base)
+    eye64 = utils.eye_like(base, dtype=np.float64)
 
     np.testing.assert_array_equal(eye.value, np.eye(4, dtype=np.float32))
     assert eye.dtype == DType.FLOAT32
@@ -164,8 +167,8 @@ def test_zeros_like_and_ones_like_clone_shape_and_dtype():
     None
     """
     base = np.arange(6, dtype=np.int32).reshape(2, 3)
-    zeros_like = utils.zeros_like("zeros_like", base, dtype=np.float64)
-    ones_like = utils.ones_like("ones_like", base, dtype=DType.INT32)
+    zeros_like = utils.zeros_like(base, dtype=np.float64)
+    ones_like = utils.ones_like(base, dtype=DType.INT32)
 
     np.testing.assert_array_equal(zeros_like.value, np.zeros_like(base, dtype=np.float64))
     assert zeros_like.dtype == DType.FLOAT64

@@ -301,7 +301,7 @@ class Summation(ReductionParametricOperator):
         return a.dtype
     # end def infer_dtype
 
-    def _eval_node(self, operands: Operands, **kwargs) -> np.ndarray:
+    def _eval_node(self, operands: Operands) -> np.ndarray:
         # Get body
         body, = operands
 
@@ -313,7 +313,7 @@ class Summation(ReductionParametricOperator):
         ret_value = np.zeros(body.shape.dims, dtype=body.dtype.to_numpy())
         for i in range(lower, upper + 1):
             self._bounded_variable.set(np.array(i, dtype=self._bounded_variable.dtype.to_numpy()))
-            ret_value += body.eval(**kwargs)
+            ret_value += body.eval()
         # end for
 
         return ret_value
