@@ -57,6 +57,7 @@ __all__ = [
     "arcsin",
     "arccos",
     "arctan",
+    "atan2",
     "sinh",
     "cosh",
     "tanh",
@@ -158,6 +159,8 @@ def _get_dtype(
         dtype = dtype.to_numpy()
     elif isinstance(data, np.ndarray):
         dtype = data.dtype
+    elif isinstance(data, np.generic):
+        dtype = data.dtype
     elif isinstance(data, float):
         dtype = np.float32
     elif isinstance(data, int):
@@ -195,33 +198,6 @@ class Tensor:
         self._shape = Shape(dims=self._data.shape)
         self._mutable = mutable
     # end __init__
-
-    def _coerce_operand(self, other: Union["Tensor", DataType, np.ndarray]) -> np.ndarray:
-        """Convert operands to numpy arrays for arithmetic."""
-        if isinstance(other, Tensor):
-            return other.value
-        return np.asarray(other)
-    # end def _coerce_operand
-
-    def _binary_op(self, other, op) -> 'Tensor':
-        """Apply a numpy binary operator and wrap in a Tensor."""
-        other_arr = self._coerce_operand(other)
-        result = op(self._data, other_arr)
-        return Tensor(data=np.asarray(result))
-    # end def _binary_op
-
-    def _binary_op_reverse(self, other, op) -> 'Tensor':
-        """Apply a numpy binary operator with operands reversed."""
-        other_arr = self._coerce_operand(other)
-        result = op(other_arr, self._data)
-        return Tensor(data=np.asarray(result))
-    # end def _binary_op_reverse
-
-    def _unary_op(self, op: Callable[[np.ndarray], np.ndarray]) -> 'Tensor':
-        """Apply a numpy unary operator and wrap in a Tensor."""
-        result = op(self._data)
-        return Tensor(data=np.asarray(result))
-    # end def _unary_op
 
     # region PROPERTIES
 
@@ -301,17 +277,100 @@ class Tensor:
 
     def copy(
             self,
-            mutable: Optional[bool] = None
+            mutable: Optional[bool] = None,
+            copy_data: bool = True
     ) -> 'Tensor':
         """
         """
         return Tensor(
-            data=self._data.copy(),
+            data=self._data.copy() if copy_data else self._data,
             mutable=mutable if mutable is not None else self._mutable
         )
     # end copy
 
+    def item(self) -> Union[int, float]:
+        """Return the first element of the tensor as a scalar."""
+        if self.rank == 0:
+            return self._data.item()
+        else:
+            raise TypeError("Cannot convert a tensor to a single integer value.")
+        # end if
+    # end def item
+
+    def astype(self, dtype: DType) -> 'Tensor':
+        """Convert the tensor to a different dtype."""
+        return Tensor(data=self._data.astype(dtype.to_numpy()), dtype=dtype)
+    # end def as_type
+
+    def astype_(self, new_type: DType) -> 'Tensor':
+        """Convert the tensor to a different dtype."""
+        self._dtype = new_type
+        self._data = self._dtype.convert_numpy(self._data)
+        return self
+    # end def as_type_
+
+    def as_bool(self) -> 'Tensor':
+        """Convert the tensor to a boolean tensor."""
+        return Tensor(data=self._data.astype(np.bool_))
+    # end def as_bool
+
+    def as_float(self) -> 'Tensor':
+        """Convert the tensor to a float tensor."""
+        return Tensor(data=self._data.astype(np.float32))
+    # end def as_float
+
+    def as_int(self) -> 'Tensor':
+        """Convert the tensor to an integer tensor."""
+        return Tensor(data=self._data.astype(np.int32))
+    # end def as_int
+
+    def as_immutable(self) -> 'Tensor':
+        """Convert the tensor to an immutable tensor."""
+        return Tensor(data=self._data.copy(), mutable=False)
+    # end def as_immutable
+
+    def as_mutable(self) -> 'Tensor':
+        """Convert the tensor to a mutable tensor."""
+        return Tensor(data=self._data.copy(), mutable=True)
+    # end def as_mutable
+
+    def reshape(self, shape: Shape) -> 'Tensor':
+        """Reshape the tensor."""
+        return Tensor(data=self._data.reshape(shape.dims))
+    # end def reshape
+
     # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _coerce_operand(self, other: Union["Tensor", DataType, np.ndarray]) -> np.ndarray:
+        """Convert operands to numpy arrays for arithmetic."""
+        if isinstance(other, Tensor):
+            return other.value
+        return np.asarray(other)
+    # end def _coerce_operand
+
+    def _binary_op(self, other, op) -> 'Tensor':
+        """Apply a numpy binary operator and wrap in a Tensor."""
+        other_arr = self._coerce_operand(other)
+        result = op(self._data, other_arr)
+        return Tensor(data=np.asarray(result))
+    # end def _binary_op
+
+    def _binary_op_reverse(self, other, op) -> 'Tensor':
+        """Apply a numpy binary operator with operands reversed."""
+        other_arr = self._coerce_operand(other)
+        result = op(other_arr, self._data)
+        return Tensor(data=np.asarray(result))
+    # end def _binary_op_reverse
+
+    def _unary_op(self, op: Callable[[np.ndarray], np.ndarray]) -> 'Tensor':
+        """Apply a numpy unary operator and wrap in a Tensor."""
+        result = op(self._data)
+        return Tensor(data=np.asarray(result))
+    # end def _unary_op
+
+    # endregion PRIVATE
 
     # region OVERRIDE
 
@@ -548,6 +607,14 @@ class Tensor:
         return self._unary_op(np.arctan)
     # end def arctan
 
+    def arctan2(
+            self,
+            other: Union["Tensor", DataType, np.ndarray]
+    ) -> 'Tensor':
+        """Elementwise two-argument arctangent."""
+        return self._binary_op(other, np.arctan2)
+    # end def arctan2
+
     def sinh(self) -> 'Tensor':
         """Elementwise hyperbolic sine."""
         return self._unary_op(np.sinh)
@@ -630,7 +697,7 @@ class Tensor:
 
     def round(self, decimals: int = 0) -> 'Tensor':
         """Elementwise rounding with configurable precision."""
-        return Tensor(data=np.round(self._data, decimals=decimals))
+        return Tensor(data=np.array(np.round(self._data, decimals=decimals)))
     # end def round
 
     def clip(
@@ -649,12 +716,29 @@ class Tensor:
 
     def trace(self, offset: int = 0, axis1: int = 0, axis2: int = 1) -> 'Tensor':
         """Compute the trace of a matrix."""
-        return np.trace(self.value, offset=offset, axis1=axis1, axis2=axis2)
+        result = np.trace(self._data, offset=offset, axis1=axis1, axis2=axis2)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
     # end def trace
 
-    # endregion MATH METHODS
+    def sum(self, axis: Optional[int] = None) -> 'Tensor':
+        """Compute the sum of the tensor along the given axis."""
+        result = np.sum(self._data, axis=axis)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def sum
 
-    # endregion OVERRIDE
+    def mean(self, axis:  Optional[int] = None) -> 'Tensor':
+        """Compute the mean of the tensor along the given axis."""
+        result = np.mean(self._data, axis=axis)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def mean
+
+    def std(self, axis: Optional[int] = None, ddof: int = 0) -> 'Tensor':
+        """Compute the standard deviation of the tensor along the given axis."""
+        result = np.std(self._data, axis=axis, ddof=ddof)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def std
+
+    # endregion MATH METHODS
 
     # region STATIC
 
@@ -794,6 +878,14 @@ def arccos(tensor: Tensor) -> Tensor:
 def arctan(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arctan", tensor)
 # end def arctan
+
+
+def atan2(
+        tensor_y: Tensor,
+        tensor_x: Union[Tensor, DataType, np.ndarray]
+) -> Tensor:
+    return tensor_y.arctan2(tensor_x)
+# end def atan2
 
 
 def sinh(tensor: Tensor) -> Tensor:

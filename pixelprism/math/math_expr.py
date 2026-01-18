@@ -51,7 +51,7 @@ import numpy as np
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .operators import BinderOperator, Operator
+from .operators.base import Operator
 from .context import get_value
 
 __all__ = [
@@ -288,12 +288,7 @@ class MathExpr:
         Tensor
             Result of executing ``self.op`` with evaluated children.
         """
-        # Binder Operator
-        if isinstance(self._op, BinderOperator):
-            return self._op.eval_node(self._children)
-        else:
-            return self._op.eval(operands=self._children)
-        # end if
+        return self._op.eval(operands=self._children)
     # end def eval
 
     def is_node(self) -> bool:
@@ -1380,9 +1375,7 @@ class Variable(MathLeaf):
             raise MathExprLookupError(f"Variable {self._name} not found in context.")
         # end if
         if var_val.dtype != self._dtype:
-            raise MathExprValidationError(
-                f"Variable {self._name} dtype mismatch: {var_val.dtype} != {self._dtype}"
-            )
+            var_val = var_val.astype(self._dtype)
         # end if
         if var_val.shape != self._shape:
             raise MathExprValidationError(

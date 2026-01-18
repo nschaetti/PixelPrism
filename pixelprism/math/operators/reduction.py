@@ -28,12 +28,13 @@
 
 # Imports
 from abc import ABC
-from typing import Sequence, List
+from typing import Sequence, List, Any, Optional
 import numpy as np
 
 from ..dtype import DType
 from ..shape import Shape
-from .base import Operands, Operand, operator_registry, Operator, BinderOperator
+from ..tensor import Tensor
+from .base import Operands, Operand, operator_registry, Operator
 
 __all__ = [
     "ReductionOperator",
@@ -85,6 +86,11 @@ class Sum(ReductionOperator):
     NAME = "sum"
     ARITY = 1
 
+    def __init__(self, *, axis: Optional["MathExpr"] = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self._axis = axis
+    # end def __init__
+
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
         if len(operands) != 1:
@@ -98,9 +104,13 @@ class Sum(ReductionOperator):
         return Shape(())
     # end def infer_shape
 
-    def _eval(self, values: List[np.ndarray]) -> np.ndarray:
-        a, = values
-        return np.array(np.sum(a), dtype=a.dtype)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, = operands
+        if self._axis is not None:
+            return a.eval().sum(axis=self._axis.eval().item())
+        else:
+            return a.eval().sum()
+        # end if
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -118,6 +128,11 @@ class Mean(ReductionOperator):
     NAME = "mean"
     ARITY = 1
 
+    def __init__(self, *, axis: Optional["MathExpr"] = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self._axis = axis
+    # end def __init__
+
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
         if len(operands) != 1:
@@ -131,9 +146,15 @@ class Mean(ReductionOperator):
         return Shape(())
     # end def infer_shape
 
-    def _eval(self, values: List[np.ndarray]) -> np.ndarray:
-        a, = values
-        return np.array(np.mean(a), dtype=a.dtype)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        """Evaluate mean.
+        """
+        a, = operands
+        if self._axis is not None:
+            return a.eval().mean(axis=self._axis.eval().item())
+        else:
+            return a.eval().mean(a)
+        # end if
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -151,6 +172,11 @@ class Std(ReductionOperator):
     NAME = "std"
     ARITY = 1
 
+    def __init__(self, *, axis: Optional["MathExpr"] = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self._axis = axis
+    # end def __init__
+
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
         if len(operands) != 1:
@@ -164,9 +190,14 @@ class Std(ReductionOperator):
         return Shape(())
     # end def infer_shape
 
-    def _eval(self, values: List[np.ndarray]) -> np.ndarray:
-        a, = values
-        return np.array(np.std(a), dtype=a.dtype)
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        """Evaluate standard deviation."""
+        a, = operands
+        if self._axis is not None:
+            return a.eval().std(axis=self._axis.eval().item())
+        else:
+            return a.eval().std()
+        # end if
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -176,7 +207,7 @@ class Std(ReductionOperator):
 # end class Std
 
 
-class ReductionParametricOperator(BinderOperator, ABC):
+class ReductionParametricOperator(Operator, ABC):
     """
     Reduction operators with parameters.
     """

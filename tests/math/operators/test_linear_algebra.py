@@ -30,25 +30,35 @@
 import numpy as np
 import pytest
 
-from pixelprism.math import utils, DType
+import pixelprism.math as pm
+from pixelprism.math import DType
 from pixelprism.math.functional import linear_algebra as LA
+from pixelprism.math.functional import elementwise as EL
+from ._helpers import assert_expr_allclose as _assert_expr_allclose
+
+
+def _make_const(name, values, dtype):
+    """Create a constant expression alongside its NumPy array."""
+    array = np.asarray(values, dtype=dtype.to_numpy())
+    return pm.const(name=name, data=array, dtype=dtype), array
+# end def _make_const
 
 
 def test_matmul_vector_matrix():
     """
     Ensure vector @ matrix produces the expected 1-D tensor.
     """
-    vector = utils.vector(name="v", value=[1.0, 2.0, 3.0], dtype=DType.FLOAT32)
-    matrix = utils.matrix(
-        name="M",
-        value=[[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
-        dtype=DType.FLOAT32
+    vector, vector_np = _make_const("v", [1.0, 2.0, 3.0], DType.FLOAT32)
+    matrix, matrix_np = _make_const(
+        "M",
+        [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+        DType.FLOAT32,
     )
 
     expr = LA.matmul(vector, matrix)
-    expected = np.matmul(vector.eval(), matrix.eval())
+    expected = np.matmul(vector_np, matrix_np)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_matmul_vector_matrix
 
@@ -57,17 +67,17 @@ def test_matmul_matrix_vector():
     """
     Ensure matrix @ vector collapses to 1-D tensor.
     """
-    matrix = utils.matrix(
-        name="M",
-        value=[[2.0, 4.0, 6.0], [1.0, 3.0, 5.0]],
-        dtype=DType.FLOAT64
+    matrix, matrix_np = _make_const(
+        "M",
+        [[2.0, 4.0, 6.0], [1.0, 3.0, 5.0]],
+        DType.FLOAT64,
     )
-    vector = utils.vector(name="v", value=[1.0, 0.0, 1.0], dtype=DType.FLOAT64)
+    vector, vector_np = _make_const("v", [1.0, 0.0, 1.0], DType.FLOAT64)
 
     expr = LA.matmul(matrix, vector)
-    expected = np.matmul(matrix.eval(), vector.eval())
+    expected = np.matmul(matrix_np, vector_np)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_matmul_matrix_vector
 
@@ -89,13 +99,13 @@ def test_matmul_matrix_matrix(left, right):
     """
     Validate matrix @ matrix multiplies with standard shape inference.
     """
-    a = utils.matrix(name="A", value=left, dtype=DType.FLOAT32)
-    b = utils.matrix(name="B", value=right, dtype=DType.FLOAT32)
+    a, a_np = _make_const("A", left, DType.FLOAT32)
+    b, b_np = _make_const("B", right, DType.FLOAT32)
 
     expr = LA.matmul(a, b)
-    expected = np.matmul(a.eval(), b.eval())
+    expected = np.matmul(a_np, b_np)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_matmul_matrix_matrix
 
@@ -107,13 +117,13 @@ def test_matmul_batched_matrix_matrix():
     lhs_data = np.arange(2 * 2 * 3, dtype=np.float32).reshape(2, 2, 3)
     rhs_data = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4)
 
-    lhs = utils.tensor(name="lhs", data=lhs_data.tolist(), dtype=DType.FLOAT32)
-    rhs = utils.tensor(name="rhs", data=rhs_data.tolist(), dtype=DType.FLOAT32)
+    lhs, lhs_np = _make_const("lhs", lhs_data, DType.FLOAT32)
+    rhs, rhs_np = _make_const("rhs", rhs_data, DType.FLOAT32)
 
     expr = LA.matmul(lhs, rhs)
-    expected = np.matmul(lhs_data, rhs_data)
+    expected = np.matmul(lhs_np, rhs_np)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_matmul_batched_matrix_matrix
 
@@ -122,13 +132,13 @@ def test_dot_vector_vector():
     """
     Dot product of two simple vectors should match NumPy's implementation.
     """
-    vec_left = utils.vector(name="a", value=[1.0, 2.0, 3.0], dtype=DType.FLOAT32)
-    vec_right = utils.vector(name="b", value=[4.0, 5.0, 6.0], dtype=DType.FLOAT32)
+    vec_left, left_np = _make_const("a", [1.0, 2.0, 3.0], DType.FLOAT32)
+    vec_right, right_np = _make_const("b", [4.0, 5.0, 6.0], DType.FLOAT32)
 
     expr = LA.dot(vec_left, vec_right)
-    expected = np.dot(vec_left.eval(), vec_right.eval())
+    expected = np.dot(left_np, right_np)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == ()
 # end test_dot_vector_vector
 
@@ -137,21 +147,15 @@ def test_dot_batched_vectors():
     """
     Batched vectors should produce a batch of dot products.
     """
-    lhs = utils.tensor(
-        name="lhs",
-        data=[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-        dtype=DType.FLOAT32
-    )
-    rhs = utils.tensor(
-        name="rhs",
-        data=[[7.0, 8.0, 9.0], [1.0, 2.0, 3.0]],
-        dtype=DType.FLOAT32
-    )
+    lhs_values = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    rhs_values = [[7.0, 8.0, 9.0], [1.0, 2.0, 3.0]]
+    lhs, lhs_np = _make_const("lhs", lhs_values, DType.FLOAT32)
+    rhs, rhs_np = _make_const("rhs", rhs_values, DType.FLOAT32)
 
     expr = LA.dot(lhs, rhs)
-    expected = np.sum(lhs.eval() * rhs.eval(), axis=-1)
+    expected = np.sum(lhs_np * rhs_np, axis=-1)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_dot_batched_vectors
 
@@ -160,13 +164,13 @@ def test_outer_vector_vector():
     """
     Standard outer product should expand vectors into a matrix.
     """
-    vec_left = utils.vector(name="u", value=[1.0, 2.0], dtype=DType.FLOAT32)
-    vec_right = utils.vector(name="v", value=[3.0, 4.0, 5.0], dtype=DType.FLOAT32)
+    vec_left, lhs_np = _make_const("u", [1.0, 2.0], DType.FLOAT32)
+    vec_right, rhs_np = _make_const("v", [3.0, 4.0, 5.0], DType.FLOAT32)
 
     expr = LA.outer(vec_left, vec_right)
-    expected = np.outer(vec_left.eval(), vec_right.eval())
+    expected = np.outer(lhs_np, rhs_np)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_outer_vector_vector
 
@@ -178,15 +182,13 @@ def test_outer_batched_vectors():
     lhs_data = [[1.0, 2.0], [3.0, 4.0]]
     rhs_data = [[5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]
 
-    lhs = utils.tensor(name="lhs", data=lhs_data, dtype=DType.FLOAT32)
-    rhs = utils.tensor(name="rhs", data=rhs_data, dtype=DType.FLOAT32)
+    lhs, lhs_np = _make_const("lhs", lhs_data, DType.FLOAT32)
+    rhs, rhs_np = _make_const("rhs", rhs_data, DType.FLOAT32)
 
     expr = LA.outer(lhs, rhs)
-    lhs_np = np.asarray(lhs_data, dtype=np.float32)
-    rhs_np = np.asarray(rhs_data, dtype=np.float32)
     expected = lhs_np[:, :, None] * rhs_np[:, None, :]
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_outer_batched_vectors
 
@@ -195,16 +197,16 @@ def test_trace_matrix_returns_scalar():
     """
     Trace of a single matrix should match NumPy and collapse to scalar.
     """
-    matrix = utils.matrix(
-        name="T",
-        value=[[1.0, 2.0, 3.0], [0.0, -1.0, 4.0], [5.0, 6.0, 0.0]],
-        dtype=DType.FLOAT64
+    matrix, matrix_np = _make_const(
+        "T",
+        [[1.0, 2.0, 3.0], [0.0, -1.0, 4.0], [5.0, 6.0, 0.0]],
+        DType.FLOAT64,
     )
 
     expr = LA.trace(matrix)
-    expected = np.trace(matrix.eval())
+    expected = np.trace(matrix_np)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == ()
     assert expr.dtype == matrix.dtype
 # end test_trace_matrix_returns_scalar
@@ -215,12 +217,78 @@ def test_trace_batched_matrices():
     Batched traces operate independently across leading dimensions.
     """
     batch_data = np.arange(2 * 3 * 3, dtype=np.float32).reshape(2, 3, 3)
-    matrices = utils.tensor(name="batched", data=batch_data.tolist(), dtype=DType.FLOAT32)
+    matrices, batch_np = _make_const("batched", batch_data, DType.FLOAT32)
 
     expr = LA.trace(matrices)
-    expected = np.trace(batch_data, axis1=-2, axis2=-1)
+    expected = np.trace(batch_np, axis1=-2, axis2=-1)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
     assert expr.dtype == matrices.dtype
 # end test_trace_batched_matrices
+
+
+def test_linear_algebra_batched_mixed_dtype_chain():
+    """
+    Combine batched matmul and dot across mixed dtypes.
+    """
+    lhs, lhs_np = _make_const(
+        "lhs_mixed",
+        np.arange(2 * 3 * 2, dtype=np.float64).reshape(2, 3, 2),
+        DType.FLOAT64,
+    )
+    rhs, rhs_np = _make_const(
+        "rhs_mixed",
+        np.arange(2 * 2 * 4, dtype=np.float32).reshape(2, 2, 4) * 0.5,
+        DType.FLOAT32,
+    )
+    gather_data = np.broadcast_to(
+        np.asarray([[1.0], [-0.5], [2.0], [-1.5]], dtype=np.float64),
+        (2, 4, 1),
+    )
+    gather, gather_np = _make_const("gather_vec", gather_data, DType.FLOAT64)
+
+    matmul_expr = LA.matmul(lhs, rhs)
+    expr = LA.matmul(matmul_expr, gather)
+    expected_matmul = np.matmul(lhs_np, rhs_np)
+    expected = np.matmul(expected_matmul, gather_np)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.dtype == DType.FLOAT64
+    assert expr.shape.dims == expected.shape
+# end test_linear_algebra_batched_mixed_dtype_chain
+
+
+def test_linear_algebra_with_elementwise_composition():
+    """
+    Compose linear algebra ops with elementwise transformations.
+    """
+    mat_a, mat_a_np = _make_const(
+        "comp_a",
+        [[1.0, 2.0], [3.0, 4.0]],
+        DType.FLOAT32,
+    )
+    mat_b, mat_b_np = _make_const(
+        "comp_b",
+        [[0.5, -1.0], [1.5, 2.5]],
+        DType.FLOAT32,
+    )
+    vec_c, vec_c_np = _make_const("comp_c", [2.0, -1.0], DType.FLOAT32)
+
+    combined_expr = EL.sqrt(
+        EL.absolute(
+            LA.matmul(mat_a, mat_b)
+            + EL.mul(
+                LA.matmul(mat_b, mat_a),
+                EL.neg(LA.outer(vec_c, vec_c))
+            )
+        )
+    )
+    matmul_np = np.matmul(mat_a_np, mat_b_np)
+    outer_np = np.outer(vec_c_np, vec_c_np)
+    matmul_flip = np.matmul(mat_b_np, mat_a_np)
+    expected = np.sqrt(np.abs(matmul_np + (matmul_flip * -outer_np)))
+
+    _assert_expr_allclose(combined_expr, expected)
+    assert combined_expr.shape.dims == expected.shape
+# end test_linear_algebra_with_elementwise_composition

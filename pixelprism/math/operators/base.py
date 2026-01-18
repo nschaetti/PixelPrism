@@ -40,7 +40,6 @@ from ..tensor import Tensor
 __all__ = [
     "Operands",
     "Operator",
-    "BinderOperator",
     "OperatorRegistry",
     "operator_registry",
 ]
@@ -214,42 +213,6 @@ class Operator(ABC):
     # endregion STATIC
 
 # end class Operator
-
-
-class BinderOperator(Operator):
-    """
-    Base class for operators that bind operands to a variable.
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._check_parameters(**kwargs)
-    # end def __init__
-
-    def eval_node(self, operands: Operands, **kwargs) -> Tensor:
-        """Evaluate the binder operator."""
-        return self._eval_node(operands=operands, **kwargs)
-    # end def eval_node
-
-    # region PRIVATE
-
-    @classmethod
-    @abstractmethod
-    def check_parameters(cls, **kwargs) -> bool:
-        """Check operator parameters."""
-    # end def check_shapes
-
-    def _check_parameters(self, **kwargs) -> bool:
-        """Check parameters."""
-        return self.__class__.check_parameters(**kwargs)
-    # end def _check_parameters
-
-    @abstractmethod
-    def _eval_node(self, operands: Operands, **kwargs) -> Tensor:
-        """Evaluate the operator."""
-    # end def _eval_node
-
-# end class BinderOperator
 
 
 class OperatorRegistry:

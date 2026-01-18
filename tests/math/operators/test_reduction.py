@@ -30,6 +30,7 @@
 import numpy as np
 import pytest
 
+import pixelprism.math as pm
 from pixelprism.math import utils, DType
 from pixelprism.math.functional import reduction as R
 
@@ -84,10 +85,32 @@ def test_reduction_scalar_result(op_name, op_func, np_func, operand_name, operan
     operand = operand_factory()
     expr = op_func(operand)
 
-    operand_values = operand.eval()
+    operand_values = operand.value
     expected = np.array(np_func(operand_values), dtype=operand_values.dtype)
 
-    np.testing.assert_allclose(expr.eval(), expected)
+    np.testing.assert_allclose(expr.eval().value, expected)
     assert expr.shape.dims == ()
     assert expr.dtype == operand.dtype
 # end test_reduction_scalar_result
+
+
+def test_reduction_expr_op_matrix():
+    # Variables
+    x = pm.var("x", dtype=pm.DType.FLOAT32, shape=(2, 2))
+    y = pm.var("y", dtype=pm.DType.FLOAT32, shape=(2, 2))
+
+    # Math equations
+    z1 = R.sum(x, axis=0)
+    z2 = R.sum(y, axis=1)
+    z3 = z1 + z2
+
+    # Set value and evaluate
+    with pm.new_context():
+        pm.set_value("x", [[1.0, 2.0], [3.0, 4.0]])
+        pm.set_value("y", [[5.0, 6.0], [7.0, 8.0]])
+        np.testing.assert_allclose(z1.eval().value, np.array([4.0, 6.0], dtype=np.float32))
+        np.testing.assert_allclose(z2.eval().value, np.array([11.0, 15.0], dtype=np.float32))
+        np.testing.assert_allclose(z3.eval().value, np.array([15.0, 21.0], dtype=np.float32))
+    # end with
+# end test test_reduction_expr_op_matrix
+

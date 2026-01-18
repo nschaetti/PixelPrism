@@ -357,7 +357,7 @@ class Exp(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return Tensor.exp(value)
+        return Tensor.exp(value.eval())
     # end def _eval
 
     def _backward(

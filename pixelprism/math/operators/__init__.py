@@ -29,7 +29,7 @@
 Operator package exports.
 """
 
-from .base import Operands, Operator, BinderOperator, OperatorRegistry, operator_registry
+from .base import Operands, Operator, OperatorRegistry, operator_registry
 from .elementwise import (
     Add,
     Div,
@@ -99,7 +99,6 @@ from .trigo import (
 __all__ = [
     "Operands",
     "Operator",
-    "BinderOperator",
     "OperatorRegistry",
     "operator_registry",
     "ElementwiseOperator",

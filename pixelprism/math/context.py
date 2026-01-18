@@ -81,11 +81,11 @@ True
 
 # Imports
 from __future__ import annotations
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional, List
 import numpy as np
 
 from .dtype import DType
-from .tensor import Tensor
+from .tensor import Tensor, DataType
 
 
 __all__ = [
@@ -366,15 +366,15 @@ class Context:
         return value
     # end def get
 
-    def set(self, name: str, value: Optional[Tensor]) -> None:
+    def set(self, name: str, value: Optional[DataType]) -> None:
         """Bind a tensor identifier to a value within this context.
 
         Parameters
         ----------
         name : str
             Identifier of the tensor to override.
-        value : Tensor
-            Value to store. It is converted to a NumPy array before storage.
+        value : DataType or None
+            Value to store. It is converted to a Tensor before storage.
         """
         self._values[name] = value
     # end def set
@@ -408,6 +408,16 @@ class Context:
             self._parent.remove_deep(name)
         # end if
     # end def remove_deep
+
+    def _to_tensor(self, data: DataType) -> Tensor:
+        """Convert a value to a Tensor.
+
+        Parameters
+        ----------
+        data : DataType
+            The value to convert.
+        """
+
 
     # endregion VALUE_MANAGEMENT
 
@@ -735,8 +745,60 @@ def pop_context(c: Context) -> None:
 # end def pop_context
 
 
-def set_value(name: str, value: Optional[Tensor]) -> None:
-    """Set a value in the current context"""
+def _get_list_of_list_first_element(lst: List[Any]) -> Optional[Any]:
+    """Return the first element of the first list in ``lst`` or ``None`` if empty."""
+    if len(lst) == 0:
+        return None
+    # end if
+
+    first = lst[0]
+
+    if isinstance(first, list):
+        return _get_list_of_list_first_element(first)
+    else:
+        return first
+    # end if
+# end def _get_list_of_list_first_element
+
+
+def set_value(name: str, value: Optional[DataType | Tensor]) -> None:
+    """
+    Set a value in the current context.
+
+    Parameters
+    ----------
+    name: str
+        Name of the variable to set.
+    value: int, float, bool, Tensor, list, tuple, tensor, np.ndarray, None
+        Value to set (or None if empty).
+    """
+    if isinstance(value, Tensor):
+        value = value.copy(copy_data=False)
+    elif isinstance(value, np.ndarray):
+        value = Tensor.from_numpy(value)
+    elif isinstance(value, int):
+        value = Tensor.from_numpy(np.array(value, dtype=np.int32))
+    elif isinstance(value, float):
+        value = Tensor.from_numpy(np.array(value, dtype=np.float32))
+    elif isinstance(value, bool):
+        value = Tensor.from_numpy(np.array(value, dtype=np.bool_))
+    elif isinstance(value, list | tuple):
+        if len(value) == 0:
+            value = Tensor.from_list([], dtype=DType.FLOAT32)
+        else:
+            first = _get_list_of_list_first_element(value)
+            if isinstance(first, int):
+                value = Tensor.from_list(value, dtype=DType.INT32)
+            elif isinstance(first, float):
+                value = Tensor.from_list(value, dtype=DType.FLOAT32)
+            else:
+                raise TypeError(f"Cannot convert list of type {type(first)!r}.")
+            # end if
+        # end if
+    else:
+        raise TypeError(f"Cannot set value of type {type(value)!r}.")
+    # end if
+
     context().set(name, value)
 # end def set_value
 
@@ -745,6 +807,17 @@ def get_value(name: str) -> Tensor:
     """Get a value from the current context"""
     return context().get(name)
 # end def get_value
+
+
+def get_value_dtype(name: str) -> Optional[DType]:
+    """Get the dtype of a value from the current context"""
+    value = lookup(name)
+    if value is None:
+        return None
+    else:
+        return value.dtype
+    # end if
+# end def get_value_dtype
 
 
 def lookup(name: str) -> Optional[Tensor]:

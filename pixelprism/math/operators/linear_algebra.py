@@ -31,8 +31,6 @@ Linear algebra operator implementations.
 
 # Imports
 from abc import ABC
-from typing import Sequence
-import numpy as np
 
 from ..dtype import DType
 from ..shape import Shape
@@ -376,7 +374,7 @@ class Trace(LinearAlgebraOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, = operands
-        return Tensor.trace(a.eval(), axis1=-2, axis2=-1)[0]
+        return Tensor.trace(a.eval(), axis1=-2, axis2=-1)
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -390,4 +388,3 @@ operator_registry.register(MatMul)
 operator_registry.register(Dot)
 operator_registry.register(Outer)
 operator_registry.register(Trace)
-

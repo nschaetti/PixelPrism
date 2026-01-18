@@ -1,21 +1,40 @@
 import pytest
 
 from pixelprism.math.dtype import DType
-from pixelprism.math.math_expr import MathExpr, MathLeaf
+from pixelprism.math.math_expr import (
+    MathExpr,
+    MathLeaf,
+    MathExprNotImplementedError,
+    MathExprOperatorError,
+)
 from pixelprism.math.shape import Shape
+from pixelprism.math.tensor import Tensor
 from pixelprism.math.operators import Operator
 
 
 class DummyLeaf(MathLeaf):
-    """Simple concrete leaf for exercising MathExpr behavior in tests."""
+    """Concrete MathLeaf carrying a scalar tensor."""
 
-    def __init__(self, name: str, value: float):
-        super().__init__(name=name, data=value, dtype=DType.FLOAT32, shape=Shape((1,)))
+    def __init__(self, name: str, value: float = 0.0):
+        self._data = float(value)
+        super().__init__(name=name, dtype=DType.FLOAT32, shape=Shape((1,)))
     # end def __init__
 
-    def _set(self, data):
-        self._data = data
+    def _eval(self) -> Tensor:
+        return Tensor(data=[self._data], dtype=DType.FLOAT32)
+    # end def _eval
+
+    def _set(self, data: float) -> None:
+        self._data = float(data)
     # end def _set
+
+    def variables(self) -> list:
+        return []
+    # end def variables
+
+    def constants(self) -> list:
+        return [self]
+    # end def constants
 
 # end class DummyLeak
 
@@ -39,8 +58,21 @@ class DummyOp(Operator):
         super().__init__()
     # end def __init__
 
-    def _eval(self, values):
-        return self._fn(values)
+    def contains(self, expr):
+        return False
+    # end def contains
+
+    def check_operands(self, operands):
+        return len(operands) == self.arity
+    # end def check_operands
+
+    def _eval(self, operands):
+        values = [
+            child.eval().value.item()
+            for child in operands
+        ]
+        result = self._fn(values)
+        return Tensor(data=[result], dtype=DType.FLOAT32)
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -125,11 +157,15 @@ def test_math_expr_eval_and_parent_registration():
         fn=lambda values: sum(values),
         expr_cls=TrackableMathExpr,
     )
-    node._register_as_parent_of(*node.children)
 
-    assert node.eval() == 30.0
-    # kwargs override leaf data
-    assert node.eval(left=3.0, right=4.0) == 7.0
+    first_eval = node.eval()
+    assert isinstance(first_eval, Tensor)
+    assert first_eval.value.item() == pytest.approx(30.0)
+
+    child1._set(3.0)
+    child2._set(4.0)
+    updated_eval = node.eval()
+    assert updated_eval.value.item() == pytest.approx(7.0)
 
     assert isinstance(child1.parents, frozenset)
     assert node in child1.parents
@@ -142,7 +178,7 @@ def test_math_expr_operator_mismatch_raises():
     child2 = DummyLeaf("two", 2.0)
     bad_op = DummyOp(name="bad", arity=1)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(MathExprOperatorError):
         MathExpr(
             name="bad_node",
             op=bad_op,
@@ -165,8 +201,9 @@ def test_math_expr_repr_hash_and_identity_semantics(monkeypatch):
     )
 
     rep = repr(node)
-    assert "MathExpr" in rep
+    assert rep.startswith(f"<{node.__class__.__name__} #")
     assert "identity" in rep
+    assert node.dtype.value in rep
     assert f"c:{node.arity}" in rep
 
     assert hash(node) == hash(node)
@@ -178,19 +215,59 @@ def test_math_expr_repr_hash_and_identity_semantics(monkeypatch):
 # end test test_math_expr_repr_hash_and_identity_semantics
 
 
-def test_math_expr_operator_overloads_default_to_none():
+def test_math_expr_operator_overloads_dispatch(monkeypatch):
     child = DummyLeaf("only", 1.0)
     node = _make_node((child,), fn=lambda values: values[0])
-    assert node + 1 is None
-    assert 1 + node is None
-    assert node - 1 is None
-    assert 1 - node is None
-    assert node * 2 is None
-    assert 2 * node is None
-    assert node / 2 is None
-    assert 2 / node is None
-    assert (node < 0) is None
-    assert (node <= 0) is None
-    assert (node > 0) is None
-    assert (node >= 0) is None
-# end test test_math_expr_operator_overloads_default_to_none
+    other = _make_node((child,), name="other", fn=lambda values: values[0])
+
+    class NonExpr:
+        def __add__(self, _):
+            return NotImplemented
+
+        def __sub__(self, _):
+            return NotImplemented
+
+        def __mul__(self, _):
+            return NotImplemented
+
+        def __truediv__(self, _):
+            return NotImplemented
+
+        def __pow__(self, _, __=None):
+            return NotImplemented
+    # end class NonExpr
+
+    non_expr = NonExpr()
+
+    monkeypatch.setattr(MathExpr, "add", lambda a, b: ("add", a, b))
+    monkeypatch.setattr(MathExpr, "sub", lambda a, b: ("sub", a, b))
+    monkeypatch.setattr(MathExpr, "mul", lambda a, b: ("mul", a, b))
+    monkeypatch.setattr(MathExpr, "div", lambda a, b: ("div", a, b))
+    monkeypatch.setattr(MathExpr, "pow", lambda a, b: ("pow", a, b))
+    monkeypatch.setattr(MathExpr, "neg", lambda a: ("neg", a))
+
+    assert node + other == ("add", node, other)
+    assert non_expr + node == ("add", non_expr, node)
+
+    assert node - other == ("sub", node, other)
+    assert non_expr - node == ("sub", non_expr, node)
+
+    assert node * other == ("mul", node, other)
+    assert non_expr * node == ("mul", non_expr, node)
+
+    assert node / other == ("div", node, other)
+    assert non_expr / node == ("div", non_expr, node)
+
+    assert node ** other == ("pow", node, other)
+    assert non_expr ** node == ("pow", non_expr, node)
+    assert ("neg", node) == -node
+
+    with pytest.raises(MathExprNotImplementedError):
+        _ = node < other
+    with pytest.raises(MathExprNotImplementedError):
+        _ = node <= other
+    with pytest.raises(MathExprNotImplementedError):
+        _ = node > other
+    with pytest.raises(MathExprNotImplementedError):
+        _ = node >= other
+# end test test_math_expr_operator_overloads_dispatch

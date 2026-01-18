@@ -26,7 +26,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from typing import Any, Union, Optional, List
+from typing import Any, Union, Optional
 import numpy as np
 
 from .math_expr import MathExpr, MathLeaf
@@ -90,21 +90,20 @@ def as_expr(
     """
     if isinstance(obj, MathExpr):
         return obj
-    elif isinstance(obj, ScalarType) or isinstance(obj, NestedListType) or isinstance(obj, np.ndarray):
+    if isinstance(obj, ScalarType) or isinstance(obj, np.ndarray):
         return const(
             name=f"constant_{MathExpr.next_id()}",
             data=obj,
             dtype=dtype
         )
-    elif isinstance(obj, MathLeaf):
+    if isinstance(obj, MathLeaf):
         return obj
-    elif isinstance(obj, List):
+    if isinstance(obj, (list, tuple)):
         return const(
             name=f"constant_{MathExpr.next_id()}",
             data=obj,
             dtype=dtype or DType.FLOAT64
         )
-    else:
-        raise TypeError(f"Cannot convert {type(obj)} to MathExpr")
+    raise TypeError(f"Cannot convert {type(obj)} to MathExpr")
     # end if
 # end def as_expr

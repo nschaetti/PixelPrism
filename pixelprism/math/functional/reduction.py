@@ -41,45 +41,54 @@ __all__ = [
 
 def sum(
         op1: MathExpr,
+        axis: MathExpr | int | None = None
 ) -> MathExpr:
     """
     Sum of a tensor.
     """
     op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
     return apply_operator(
-        "sum",
-        (op1,),
-        f"sum({op1.name})"
+        op_name="sum",
+        operands=(op1,),
+        display_name=f"sum({op1.name})",
+        axis=axis
     )
 # end def sum
 
 
 def mean(
         op1: MathExpr,
+        axis: MathExpr | int | None = None
 ) -> MathExpr:
     """
     Mean of a tensor.
     """
     op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
     return apply_operator(
         "mean",
         (op1,),
-        f"mean({op1.name})"
+        f"mean({op1.name})",
+        axis=axis
     )
 # end def mean
 
 
 def std(
         op1: MathExpr,
+        axis: MathExpr | int | None = None
 ) -> MathExpr:
     """
     Sum of a tensor.
     """
     op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
     return apply_operator(
         "std",
         (op1,),
-        f"std({op1.name})"
+        f"std({op1.name})",
+        axis=axis
     )
 # end def std
 

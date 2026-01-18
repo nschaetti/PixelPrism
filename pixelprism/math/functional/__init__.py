@@ -48,6 +48,7 @@ from .elementwise import (
     rad2deg,
     absolute,
     abs,
+    neg,
 )
 from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
 from .linear_algebra import matmul, dot, outer, trace
@@ -85,6 +86,8 @@ __all__ = [
     "rad2deg",
     "absolute",
     "abs",
+    "neg",
+    # Discretization
     "sign",
     "floor",
     "ceil",

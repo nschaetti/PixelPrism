@@ -52,7 +52,9 @@ from ._helpers import (
     SCALAR_KINDS,
     TENSOR_SCALAR_KINDS,
     UNARY_SCALAR_KINDS,
+    assert_expr_allclose as _assert_expr_allclose,
     as_expected_array as _as_expected_array,
+    eval_expr_value as _eval_expr_value,
     make_tensor_array as _make_tensor_array,
     operand_factory as _operand_factory,
 )
@@ -85,7 +87,7 @@ def test_trig_unary_scalar_operators(kind, label, op_func, np_func, scalar_value
     operand = _operand_factory(kind, scalar_value)
     expr = op_func(operand)
     expected = np_func(_as_expected_array(operand))
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
 # end test test_trig_unary_scalar_operators
 
 
@@ -96,8 +98,8 @@ def test_trig_unary_tensor_operators(label, op_func, np_func, _, tensor_values):
     """
     tensor = _make_tensor_array(tensor_values, f"tensor_trig_{label}")
     expr = op_func(tensor)
-    expected = np_func(tensor.eval())
-    np.testing.assert_allclose(expr.eval(), expected)
+    expected = np_func(_eval_expr_value(tensor))
+    _assert_expr_allclose(expr, expected)
 # end test test_trig_unary_tensor_operators
 
 
@@ -111,7 +113,7 @@ def test_atan2_scalar_combinations(lhs_kind, rhs_kind):
     x = _operand_factory(rhs_kind, 0.3)
     expr = atan2_op(y, x)
     expected = np.arctan2(_as_expected_array(y), _as_expected_array(x))
-    np.testing.assert_allclose(expr.eval(), expected)
+    _assert_expr_allclose(expr, expected)
 # end test test_atan2_scalar_combinations
 
 
@@ -122,8 +124,8 @@ def test_atan2_tensor_tensor_same_shape():
     y = _make_tensor_array([[0.1, 0.2], [0.3, 0.4]], "atan2_y")
     x = _make_tensor_array([[0.5, 0.6], [0.7, 0.8]], "atan2_x")
     expr = atan2_op(y, x)
-    expected = np.arctan2(y.eval(), x.eval())
-    np.testing.assert_allclose(expr.eval(), expected)
+    expected = np.arctan2(_eval_expr_value(y), _eval_expr_value(x))
+    _assert_expr_allclose(expr, expected)
 # end test test_atan2_tensor_tensor_same_shape
 
 
@@ -135,10 +137,10 @@ def test_atan2_tensor_scalar_combinations(scalar_kind):
     y = _make_tensor_array([[0.1, 0.2], [0.3, 0.4]], "atan2_tensor")
     x_scalar = _operand_factory(scalar_kind, 0.5)
     expr = atan2_op(y, x_scalar)
-    expected = np.arctan2(y.eval(), _as_expected_array(x_scalar))
-    np.testing.assert_allclose(expr.eval(), expected)
+    expected = np.arctan2(_eval_expr_value(y), _as_expected_array(x_scalar))
+    _assert_expr_allclose(expr, expected)
 
     expr2 = atan2_op(x_scalar, y)
-    expected2 = np.arctan2(_as_expected_array(x_scalar), y.eval())
-    np.testing.assert_allclose(expr2.eval(), expected2)
+    expected2 = np.arctan2(_as_expected_array(x_scalar), _eval_expr_value(y))
+    _assert_expr_allclose(expr2, expected2)
 # end test test_atan2_tensor_scalar_combinations
