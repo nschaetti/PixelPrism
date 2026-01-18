@@ -178,6 +178,35 @@ class Shape:
 
     # region PUBLIC
 
+    def _check_transpose(self, axes: Sequence[int]) -> None:
+        """Validate a permutation of axes."""
+        if len(axes) != self.dims:
+            raise ValueError(
+                f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
+            )
+        # end if
+        if sorted(axes) != list(range(self.dims)):
+            raise ValueError("Permutation contains invalid axis indices.")
+        # end if
+    # end def _check_transpose
+
+    def transpose(self, axes: Optional[List[int]] = None) -> "Shape":
+        """Return the shape with axes permuted."""
+        if axes is not None:
+            self._check_transpose(axes)
+            new_shape = [self.dims[i] for i in axes]
+        else:
+            new_shape = list(self.dims)
+            new_shape.reverse()
+        # end if
+        return Shape(dims=tuple(new_shape))
+    # end def transpose
+
+    def transpose_(self):
+        """Transpose the shape in-place."""
+        self._dims = self.transpose().dims
+    # end def transpose_
+
     def drop_axis(self, axis: int) -> "Shape":
         """Return a new shape with the specified axis removed."""
         if axis < 0 or axis >= self.rank:
@@ -346,34 +375,34 @@ class Shape:
         return Shape(tuple(dims))
     # end def concat_result
 
-    def transpose(self, permutation: Sequence[int]) -> "Shape":
-        """Return the shape after applying an axis permutation.
-
-        Parameters
-        ----------
-        permutation : Sequence[int]
-            Axis permutation describing the new order.
-
-        Returns
-        -------
-        Shape
-            Permuted shape following the given axis order.
-
-        Raises
-        ------
-        ValueError
-            If the permutation length is incorrect or contains invalid axis
-            indices.
-        """
-        if len(permutation) != self.rank:
-            raise ValueError("Permutation must include every axis exactly once.")
-        # end if
-        if sorted(permutation) != list(range(self.rank)):
-            raise ValueError("Permutation contains invalid axis indices.")
-        # end if
-        dims = tuple(self._dims[idx] for idx in permutation)
-        return Shape(dims)
-    # end def transpose
+    # def transpose(self, permutation: Sequence[int]) -> "Shape":
+    #     """Return the shape after applying an axis permutation.
+    #
+    #     Parameters
+    #     ----------
+    #     permutation : Sequence[int]
+    #         Axis permutation describing the new order.
+    #
+    #     Returns
+    #     -------
+    #     Shape
+    #         Permuted shape following the given axis order.
+    #
+    #     Raises
+    #     ------
+    #     ValueError
+    #         If the permutation length is incorrect or contains invalid axis
+    #         indices.
+    #     """
+    #     if len(permutation) != self.rank:
+    #         raise ValueError("Permutation must include every axis exactly once.")
+    #     # end if
+    #     if sorted(permutation) != list(range(self.rank)):
+    #         raise ValueError("Permutation contains invalid axis indices.")
+    #     # end if
+    #     dims = tuple(self._dims[idx] for idx in permutation)
+    #     return Shape(dims)
+    # # end def transpose
 
     def can_reshape(self, new_shape: "Shape") -> bool:
         """Check whether reshape is symbolically valid.

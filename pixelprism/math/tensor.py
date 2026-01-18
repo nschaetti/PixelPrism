@@ -28,7 +28,7 @@
 
 
 # Imports
-from typing import List, Dict, Union, Any, Optional, Tuple, Callable
+from typing import List, Dict, Union, Any, Optional, Tuple, Callable, Sequence
 from typing import TypeAlias
 import numpy as np
 
@@ -338,6 +338,10 @@ class Tensor:
         """Reshape the tensor."""
         return Tensor(data=self._data.reshape(shape.dims))
     # end def reshape
+
+    def tolist(self):
+        return self._data.tolist()
+    # end def tolist
 
     # endregion PUBLIC
 
@@ -714,11 +718,41 @@ class Tensor:
         return Tensor(data=np.asarray(result))
     # end def clip
 
+    def matmul(self, other: Union["Tensor", DataType, np.ndarray]) -> 'Tensor':
+        """Matrix multiplication."""
+        return self._binary_op(other, np.matmul)
+    # end def matmul
+
+    def einsum(self, equation: str, *operands: Union['Tensor', DataType, np.ndarray]) -> 'Tensor':
+        """Compute the tensor product of the given operands using the given equation."""
+        operands = [_as_numpy_operand(self)] + [_as_numpy_operand(o) for o in operands]
+        result = np.einsum(equation, *operands)
+        return Tensor(data=np.asarray(result))
+    # end def einsum
+
     def trace(self, offset: int = 0, axis1: int = 0, axis2: int = 1) -> 'Tensor':
         """Compute the trace of a matrix."""
         result = np.trace(self._data, offset=offset, axis1=axis1, axis2=axis2)
         return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
     # end def trace
+
+    def transpose(self, axes: Optional[List[int]] = None) -> 'Tensor':
+        """Transpose the tensor."""
+        result = np.transpose(self._data, axes=axes)
+        return Tensor(data=np.asarray(result))
+    # end def transpose
+
+    def inverse(self) -> 'Tensor':
+        """Compute the inverse of a square matrix."""
+        result = np.linalg.inv(self._data)
+        return Tensor(data=np.asarray(result))
+    # end def inverse
+
+    def det(self) -> 'Tensor':
+        """Compute the determinant of a square matrix."""
+        result = np.linalg.det(self._data)
+        return Tensor(data=np.asarray(result))
+    # end def det
 
     def sum(self, axis: Optional[int] = None) -> 'Tensor':
         """Compute the sum of the tensor along the given axis."""
@@ -816,6 +850,7 @@ def _as_numpy_operand(value: Union["Tensor", DataType, np.ndarray]) -> np.ndarra
     """Convert Tensor or array-like input to a NumPy array."""
     if isinstance(value, Tensor):
         return value.value
+    # end if
     return np.asarray(value)
 # end def _as_numpy_operand
 
@@ -1031,6 +1066,26 @@ def einsum(
     # end if
     return Tensor(data=np.asarray(result))
 # end def einsum
+
+
+def trace(tensor: Tensor, offset: int = 0, axis1: int = 0, axis2: int = 1) -> Tensor:
+    return _call_tensor_method("trace", tensor, offset=offset, axis1=axis1, axis2=axis2)
+# end def trace
+
+
+def transpose(tensor: Tensor, axes: Optional[List[int]] = None) -> Tensor:
+    return _call_tensor_method("transpose", tensor, axes=axes)
+# end def transpose
+
+
+def det(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("det", tensor)
+# end def det
+
+
+def inverse(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("inverse", tensor)
+# end def inverse
 
 
 def mean(

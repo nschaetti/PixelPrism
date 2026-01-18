@@ -34,6 +34,7 @@ import pixelprism.math as pm
 from pixelprism.math import DType
 from pixelprism.math.functional import linear_algebra as LA
 from pixelprism.math.functional import elementwise as EL
+from pixelprism.math.functional.helpers import apply_operator as _apply_operator
 from ._helpers import assert_expr_allclose as _assert_expr_allclose
 
 
@@ -42,6 +43,24 @@ def _make_const(name, values, dtype):
     array = np.asarray(values, dtype=dtype.to_numpy())
     return pm.const(name=name, data=array, dtype=dtype), array
 # end def _make_const
+
+
+def _transpose(expr):
+    """Apply the registered transpose operator."""
+    return _apply_operator("transpose", (expr,), f"transpose({expr.name})")
+# end def _transpose
+
+
+def _det(expr):
+    """Apply the registered determinant operator."""
+    return _apply_operator("det", (expr,), f"det({expr.name})")
+# end def _det
+
+
+def _inverse(expr):
+    """Apply the registered inverse operator."""
+    return _apply_operator("inverse", (expr,), f"inverse({expr.name})")
+# end def _inverse
 
 
 def test_matmul_vector_matrix():
@@ -191,6 +210,130 @@ def test_outer_batched_vectors():
     _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
 # end test_outer_batched_vectors
+
+
+def test_transpose_matrix_matches_numpy():
+    """
+    Transposing a 2-D tensor should swap axes like NumPy.
+    """
+    matrix, matrix_np = _make_const(
+        "transpose_matrix",
+        [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+        DType.FLOAT32,
+    )
+    expr = _transpose(matrix)
+    expected = np.transpose(matrix_np)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == expected.shape
+    assert expr.dtype == matrix.dtype
+# end test_transpose_matrix_matches_numpy
+
+
+def test_transpose_batched_tensor_reverses_axes():
+    """
+    Batched tensors should transpose all axes.
+    """
+    data = np.arange(2 * 3 * 4, dtype=np.float64).reshape(2, 3, 4)
+    tensor, tensor_np = _make_const("transpose_batched", data, DType.FLOAT64)
+
+    expr = _transpose(tensor)
+    expected = np.transpose(tensor_np)
+    _assert_expr_allclose(expr, expected)
+    assert tuple(expr.eval().shape.dims) == tuple(expected.shape)
+    assert tuple(expr.shape.dims) == expected.shape
+    assert expr.dtype == tensor.dtype
+# end test_transpose_batched_tensor_reverses_axes
+
+
+def test_transpose_is_involution():
+    """
+    Transpose applied twice should equal the original expression.
+    """
+    matrix, matrix_np = _make_const(
+        "transpose_involution",
+        [[0.0, 1.0], [2.0, 3.0]],
+        DType.FLOAT32,
+    )
+    expr = _transpose(_transpose(matrix))
+
+    _assert_expr_allclose(expr, matrix_np)
+    assert expr.shape.dims == matrix.shape.dims
+# end test_transpose_is_involution
+
+
+def test_det_scalar_result_matches_numpy():
+    """
+    Determinant of a square matrix should match NumPy.
+    """
+    matrix, matrix_np = _make_const(
+        "det_square",
+        [[2.0, 0.0], [0.0, -4.0]],
+        DType.FLOAT64,
+    )
+    expr = _det(matrix)
+    expected = np.linalg.det(matrix_np)
+    _assert_expr_allclose(expr, expected, atol=1e-12)
+    assert expr.shape.dims == ()
+    assert expr.dtype == matrix.dtype
+# end test_det_scalar_result_matches_numpy
+
+
+def test_det_higher_order_matrix():
+    """
+    Determinant should produce a scalar for larger matrices.
+    """
+    matrix, matrix_np = _make_const(
+        "det_three",
+        [[3.0, 1.0, -1.0], [2.0, 0.0, 1.0], [1.0, 4.0, 2.0]],
+        DType.FLOAT32,
+    )
+    expr = _det(matrix)
+    expected = np.linalg.det(matrix_np)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == ()
+    assert expr.dtype == matrix.dtype
+# end test_det_higher_order_matrix
+
+
+def test_inverse_matrix_matches_numpy():
+    """
+    Inverting a full-rank matrix should match NumPy.
+    """
+    matrix, matrix_np = _make_const(
+        "inv_square",
+        [[1.0, 2.0], [3.0, 4.0]],
+        DType.FLOAT64,
+    )
+    expr = _inverse(matrix)
+    expected = np.linalg.inv(matrix_np)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == expected.shape
+    assert expr.dtype == DType.FLOAT32
+# end test_inverse_matrix_matches_numpy
+
+
+def test_inverse_batched_matrices():
+    """
+    Batched inverse should operate per matrix in the batch.
+    """
+    data = np.array(
+        [
+            [[4.0, 7.0], [2.0, 6.0]],
+            [[1.0, 2.0], [3.0, 5.0]],
+        ],
+        dtype=np.float32,
+    )
+    matrix, matrix_np = _make_const("inv_batched", data, DType.FLOAT32)
+    expr = _inverse(matrix)
+    expected = np.linalg.inv(matrix_np)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == expected.shape
+    assert expr.dtype == DType.FLOAT32
+# end test_inverse_batched_matrices
 
 
 def test_trace_matrix_returns_scalar():

@@ -70,7 +70,10 @@ from .linear_algebra import (
     MatMul,
     Dot,
     Outer,
-    Trace
+    Trace,
+    Transpose,
+    Det,
+    Inverse
 )
 from .reduction import (
     ReductionOperator,
@@ -163,6 +166,9 @@ __all__ = [
     "Dot",
     "Outer",
     "Trace",
+    "Transpose",
+    "Det",
+    "Inverse",
     # Reduction
     "Sum",
     "Mean",

@@ -25,7 +25,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
+from typing import Sequence, Union, Optional
 
 from pixelprism.math.math_expr import MathExpr
 from pixelprism.math.build import as_expr
@@ -35,7 +35,10 @@ __all__ = [
     "matmul",
     "dot",
     "outer",
-    "trace"
+    "trace",
+    "transpose",
+    "det",
+    "inverse",
 ]
 
 
@@ -104,4 +107,47 @@ def trace(
     )
 # end def trace
 
+
+def transpose(
+        op1: MathExpr,
+        axes: Optional[Union[MathExpr, Sequence[int]]] = None
+) -> MathExpr:
+    """
+    Transpose of a matrix.
+    """
+    return apply_operator(
+        op_name="transpose",
+        operands=(op1,),
+        display_name=f"transpose({axes})" if axes is not None else "transpose()",
+        axes=axes
+    )
+# end def transpose
+
+
+def det(
+        op1: MathExpr,
+) -> MathExpr:
+    """
+    Determinant of a matrix.
+    """
+    return apply_operator(
+        op_name="det",
+        operands=(op1,),
+        display_name="det()"
+    )
+# end def det
+
+
+def inverse(
+        op1: MathExpr,
+) -> MathExpr:
+    """
+    Inverse of a matrix.
+    """
+    return apply_operator(
+        op_name="inv",
+        operands=(op1,),
+        display_name="inv()"
+    )
+# end def inverse
 

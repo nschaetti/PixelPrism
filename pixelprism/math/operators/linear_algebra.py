@@ -31,7 +31,7 @@ Linear algebra operator implementations.
 
 # Imports
 from abc import ABC
-from typing import Optional
+from typing import Optional, Sequence, Union, Any, List
 
 from ..dtype import DType
 from ..shape import Shape
@@ -44,7 +44,10 @@ __all__ = [
     "MatMul",
     "Dot",
     "Outer",
-    "Trace"
+    "Trace",
+    "Transpose",
+    "Det",
+    "Inverse",
 ]
 
 
@@ -406,7 +409,157 @@ class Trace(LinearAlgebraOperator):
 # end class Trace
 
 
+class Transpose(LinearAlgebraParametricOperator):
+    """
+    Transpose operator.
+    """
+
+    NAME = "transpose"
+    ARITY = 1
+
+    def __init__(self, axes: Optional[Union["MathExpr", List[int]]] = None, **kwargs: Any):
+        """
+        Transpose
+        """
+        super(Transpose, self).__init__()
+        from ..math_expr import Variable
+        if axes and isinstance(axes, list):
+            from ..utils import random_const_name, const
+            self._check_axes(axes)
+            axes = const(random_const_name(f"{self.__class__.__name__.lower()}-axes-"), axes, dtype=DType.INT32)
+        elif axes and isinstance(axes, Variable):
+            # Only constant (otherwise we have dynamic shapes)
+            raise ValueError(f"{self.__class__.__name__} does not support dynamic axes.")
+        # end if
+        self._axes = axes
+    # end def __init__
+
+    def _check_axes(self, axes: Sequence[int]) -> None:
+        if len(axes) != len(set(axes)):
+            raise ValueError(f"Duplicate axes {axes} in transpose.")
+        # end if
+        for axis in axes:
+            if type(axis) != int:
+                raise ValueError(f"Invalid axis type {type(axis)} in transpose.")
+            # end if
+            if axis < 0:
+                raise ValueError(f"Invalid axis {axis} in transpose.")
+            # end if
+        # end for
+    # end def _check_axes
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, = operands
+        axes = self._axes.eval().tolist() if self._axes else None
+        return a.eval().transpose(axes=axes)
+    # end def _eval
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        raise NotImplementedError("Transpose does not support backward.")
+    # end def backward
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        """
+        Promote operand dtypes.
+        """
+        a,  = operands
+        return a.dtype
+    # end def infer_dtype
+
+    def infer_shape(self, operands: Operands) -> Shape:
+        a: 'MathExpr' = operands[0]
+        axes = self._axes.eval().tolist() if self._axes else None
+        return a.shape.transpose(axes=axes)
+    # end def infer_shape
+
+    def check_shapes(self, operands: Operands) -> bool:
+        return True
+    # end def check_shapes
+
+# end class Transpose
+
+
+class Det(LinearAlgebraOperator):
+    """
+    Compute the determinant of a square matrix.
+    """
+
+    NAME = "det"
+    ARITY = 1
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, = operands
+        return a.eval().det()
+    # end def _eval
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        raise NotImplementedError("Transpose does not support backward.")
+    # end def backward
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        """
+        Promote operand dtypes.
+        """
+        a,  = operands
+        return a.dtype
+    # end def infer_dtype
+
+    def infer_shape(self, operands: Operands) -> Shape:
+        a: 'MathExpr' = operands[0]
+        new_shape = a.shape.copy()
+        new_shape = new_shape[:-2]
+        return Shape(new_shape)
+    # end def infer_shape
+
+    def check_shapes(self, operands: Operands) -> bool:
+        a: 'MathExpr' = operands[0]
+        return a.rank >= 2 and a.shape[-1] == a.shape[-2]
+    # end def check_shapes
+
+# end class Det
+
+
+class Inverse(LinearAlgebraOperator):
+    """
+    Compute the inverse of a square matrix.
+    """
+
+    NAME = "inverse"
+    ARITY = 1
+
+    def infer_shape(self, operands: Operands) -> Shape:
+        a: 'MathExpr' = operands[0]
+        return a.shape.copy()
+    # end def infer_shape
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        """
+        Infer the dtype from the input dtype.
+        """
+        return DType.FLOAT32
+    # end def infer_dtype
+
+    def check_shapes(self, operands: Operands) -> bool:
+        a: 'MathExpr' = operands[0]
+        return a.rank >= 2 and a.shape[-1] == a.shape[-2]
+    # end def check_shapes
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, = operands
+        return a.eval().inverse()
+    # end def _eval
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        raise NotImplementedError("Inverse does not support backward.")
+    # end def backward
+
+# end class Inverse
+
+
 operator_registry.register(MatMul)
 operator_registry.register(Dot)
 operator_registry.register(Outer)
 operator_registry.register(Trace)
+operator_registry.register(Transpose)
+operator_registry.register(Det)
+operator_registry.register(Inverse)

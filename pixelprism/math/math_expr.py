@@ -59,6 +59,7 @@ __all__ = [
     "MathLeaf",
     "Variable",
     "Constant",
+    "SliceExpr",
     "MathExprError",
     "MathExprOperatorError",
     "MathExprValidationError",
@@ -778,6 +779,15 @@ class MathExpr:
         return matmul(operand1, operand2)
     # end def matmul
 
+    @staticmethod
+    def getitem(operand: MathExpr, index: Union[int, slice]) -> MathExpr:
+        """
+        Create a getitem node.
+        """
+        from .functional.structure import getitem
+        return getitem(operand, index)
+    # end def getitem
+
     # endregion OPERATORS
 
     # region STATIC
@@ -988,6 +998,11 @@ class MathExpr:
         """
         raise MathExprNotImplementedError("Ordering comparisons are not implemented for MathExpr.")
     # end __ge__
+
+    # Get item
+    def __getitem__(self, item: Union[int, slice]):
+        return MathExpr.getitem(item)
+    # end def __getitem__
 
     # endregion OVERRIDE
 
@@ -1825,3 +1840,139 @@ class Constant(MathLeaf):
     # endregion OVERRIDE
 
 # end class Constant
+
+
+class SliceExpr:
+    """
+    Immutable representation of a Python-style slice using Constant bounds.
+
+    Parameters
+    ----------
+    start : Constant or int or None
+        Inclusive lower bound of the slice.
+    stop : Constant or int or None
+        Exclusive upper bound of the slice.
+    step : Constant or int or None
+        Slice stride.
+    """
+
+    __slots__ = ("_start", "_stop", "_step")
+
+    def __init__(
+            self,
+            start: Optional[Union[Constant, int]] = None,
+            stop: Optional[Union[Constant, int]] = None,
+            step: Optional[Union[Constant, int]] = None
+    ):
+        self._start = self._coerce_bound("start", start)
+        self._stop = self._coerce_bound("stop", stop)
+        self._step = self._coerce_bound("step", step)
+    # end __init__
+
+    # region PRIVATE
+
+    @staticmethod
+    def _coerce_bound(
+            name: str,
+            value: Optional[Union[Constant, int]]
+    ) -> Optional[Constant]:
+        if value is None:
+            return None
+        if isinstance(value, Constant):
+            SliceExpr._validate_constant(name, value)
+            return value
+        if isinstance(value, int):
+            tensor = Tensor(data=value, dtype=DType.INT64)
+            return Constant(
+                name=f"slice_{name}_{MathExpr.next_id()}",
+                data=tensor
+            )
+        raise TypeError(f"{name} must be a Constant or int, got {type(value)}")
+    # end def _coerce_bound
+
+    @staticmethod
+    def _validate_constant(name: str, const: Constant) -> None:
+        if const.dtype not in {DType.INT32, DType.INT64}:
+            raise MathExprValidationError(f"{name} must be an integer constant, got {const.dtype}")
+        if const.shape.dims != ():
+            raise MathExprValidationError(f"{name} must be scalar, got shape {const.shape}")
+    # end def _validate_constant
+
+    @staticmethod
+    def _const_to_python(const: Optional[Constant]) -> Optional[int]:
+        if const is None:
+            return None
+        return int(const.value.value.item())
+    # end def _const_to_python
+
+    # endregion PRIVATE
+
+    # region PROPERTIES
+
+    @property
+    def start(self) -> Optional[Constant]:
+        """Return the Constant representing the slice start."""
+        return self._start
+
+    @property
+    def stop(self) -> Optional[Constant]:
+        """Return the Constant representing the slice stop."""
+        return self._stop
+
+    @property
+    def step(self) -> Optional[Constant]:
+        """Return the Constant representing the slice stride."""
+        return self._step
+
+    @property
+    def start_value(self) -> Optional[int]:
+        """Return the Python integer value for start (if defined)."""
+        return self._const_to_python(self._start)
+
+    @property
+    def stop_value(self) -> Optional[int]:
+        """Return the Python integer value for stop (if defined)."""
+        return self._const_to_python(self._stop)
+
+    @property
+    def step_value(self) -> Optional[int]:
+        """Return the Python integer value for step (if defined)."""
+        return self._const_to_python(self._step)
+
+    @property
+    def as_slice(self) -> slice:
+        """Return a native ``slice`` built from the stored constants."""
+        return slice(self.start_value, self.stop_value, self.step_value)
+
+    # endregion PROPERTIES
+
+    # region STATIC
+
+    @staticmethod
+    def create(
+            start: Optional[Union[Constant, int]] = None,
+            stop: Optional[Union[Constant, int]] = None,
+            step: Optional[Union[Constant, int]] = None
+    ) -> "SliceExpr":
+        """Instantiate a :class:`SliceExpr` from Constant or integer bounds."""
+        return SliceExpr(start=start, stop=stop, step=step)
+
+    @staticmethod
+    def from_slice(py_slice: slice) -> "SliceExpr":
+        """Instantiate from a Python ``slice``."""
+        return SliceExpr(
+            start=py_slice.start,
+            stop=py_slice.stop,
+            step=py_slice.step
+        )
+
+    # endregion STATIC
+
+    # region OVERRIDE
+
+    def __repr__(self) -> str:
+        return f"SliceExpr(start={self.start_value}, stop={self.stop_value}, step={self.step_value})"
+
+    # endregion OVERRIDE
+
+# end class SliceExpr

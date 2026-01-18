@@ -179,6 +179,7 @@ class Sum(AxisReductionOperator):
         axis_value = self._axis_value()
         if axis_value is not None:
             return a.eval().sum(axis=axis_value)
+        # end if
         return a.eval().sum()
     # end def _eval
 
