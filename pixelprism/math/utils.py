@@ -37,6 +37,7 @@ from .math_expr import Variable, Constant
 
 __all__ = [
     "var",
+    "random_const_name",
     "const",
     "tensor",
     "scalar",
@@ -120,6 +121,12 @@ def var(name: str, dtype: AnyDType, shape: AnyShape) -> Variable:
     """
     return Variable.create(name=name, dtype=DType.create(dtype), shape=Shape.create(shape))
 # end def var
+
+
+def random_const_name(prefix: str = "const") -> str:
+    """Generate a unique constant name based on the given prefix."""
+    return f"{prefix}_{np.random.randint(0, 1000000):06d}"
+# end def random_const_name
 
 
 def const(name: str, data: DataType, dtype: Optional[AnyDType] = None) -> Constant:

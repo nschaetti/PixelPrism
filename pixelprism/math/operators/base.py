@@ -30,7 +30,8 @@ Operator base classes and registry.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Sequence, Type, Tuple
+from typing import List, Sequence, Type, Tuple, Any, Optional
+import numpy as np
 
 from ..dtype import DType
 from ..shape import Shape
@@ -40,6 +41,7 @@ from ..tensor import Tensor
 __all__ = [
     "Operands",
     "Operator",
+    "ParametricOperator",
     "OperatorRegistry",
     "operator_registry",
 ]
@@ -96,7 +98,12 @@ class Operator(ABC):
     # region PUBLIC
 
     @abstractmethod
-    def contains(self, expr: "MathExpr") -> bool:
+    def contains(
+            self,
+            expr: "MathExpr",
+            by_ref: bool = False,
+            look_for: Optional[str] = None
+    ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
     # end def contains
 
@@ -174,28 +181,25 @@ class Operator(ABC):
 
     # region STATIC
 
-    @classmethod
     @abstractmethod
     def infer_dtype(
-            cls,
+            self,
             operands: Operands
     ) -> DType:
         """Return the output data type of the operator."""
     # end def infer_dtype
 
-    @classmethod
     @abstractmethod
     def infer_shape(
-            cls,
+            self,
             operands: Operands
     ) -> Shape:
         """Return the output shape of the operator."""
     # end def infer_shape
 
-    @classmethod
     @abstractmethod
     def check_shapes(
-            cls,
+            self,
             operands: Operands
     ) -> bool:
         """Check that the operands have compatible shapes."""
@@ -210,9 +214,55 @@ class Operator(ABC):
         return len(operands) == cls.ARITY
     # end def check_arity
 
+    @staticmethod
+    def _resolve_parameter(v: Any):
+        if v is None:
+            return None
+        try:
+            from ..math_expr import MathExpr  # local import to avoid cycles
+        except Exception:  # pragma: no cover - defensive
+            MathExpr = None  # type: ignore
+        # end try
+        if MathExpr is not None and isinstance(v, MathExpr):
+            return v.eval().item()
+        # end if
+        return v
+    # end def _resolve_parameter
+
     # endregion STATIC
 
 # end class Operator
+
+
+class ParametricOperator(ABC):
+    """
+    Operator with parameters.
+    """
+
+    def __init__(self, **kwargs):
+        """
+        Constructor.
+
+        Parameters
+        ----------
+        operands : Operands
+            Operands of the operator.
+        """
+        self._parameters: dict[str, Any] = kwargs
+        self._check_parameters(**kwargs)
+    # end def __init__
+
+    def _check_parameters(self, **kwargs) -> bool:
+        return self.check_parameters(**kwargs)
+    # end def _check_parameters
+
+    @classmethod
+    @abstractmethod
+    def check_parameters(cls, **kwargs) -> bool:
+        """Check that the operands have compatible shapes."""
+    # end def check_shapes
+
+# end class ParametricOperator
 
 
 class OperatorRegistry:

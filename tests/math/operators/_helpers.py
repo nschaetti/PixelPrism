@@ -109,3 +109,5 @@ def operand_factory(kind: str, value: float):
     if kind == "list":
         return [value]
     raise ValueError(f"Unknown operand kind: {kind}")
+
+

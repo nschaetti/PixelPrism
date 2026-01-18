@@ -28,11 +28,11 @@
 """
 Discretization-related elementwise operators.
 """
-from typing import Sequence, Any
+from typing import Sequence, Any, Optional, Union
 
 from ..tensor import Tensor
-from .base import Operands, Operator, operator_registry
-from .elementwise import UnaryElementwiseOperator
+from .base import Operands, Operator, ParametricOperator, operator_registry
+from .elementwise import UnaryElementwiseOperator, UnaryElementwiseParametricOperator
 
 __all__ = [
     "Sign",
@@ -147,19 +147,30 @@ class Rint(UnaryElementwiseOperator):
 # end class Rint
 
 
-class Round(UnaryElementwiseOperator):
+class Round(UnaryElementwiseParametricOperator):
     """Element-wise rounding with configurable decimals."""
 
     NAME = "round"
 
-    def __init__(self, *, decimals: int = 0, **kwargs: Any):
+    def __init__(
+            self,
+            *,
+            decimals: Optional[Union['MathExpr', int]] = None,
+            **kwargs: Any
+    ):
         super().__init__(**kwargs)
-        self._decimals = decimals
+        from ..utils import const, random_const_name
+        from ..math_expr import MathExpr
+        if decimals is None:
+            decimals = const(random_const_name("round-decimals-"), 0)
+        # end if
+        self._decimals: 'MathExpr' = decimals if isinstance(decimals, MathExpr) \
+            else const(name=random_const_name("round-decimals-"), data=decimals)
     # end def __init__
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().round(decimals=self._decimals)
+        return value.eval().round(decimals=self._resolve_parameter(self._decimals))
     # end def _eval
 
     def _backward(
@@ -172,7 +183,7 @@ class Round(UnaryElementwiseOperator):
 # end class Round
 
 
-class Clip(UnaryElementwiseOperator):
+class Clip(UnaryElementwiseParametricOperator):
     """Element-wise clipping operator."""
 
     NAME = "clip"
@@ -180,39 +191,30 @@ class Clip(UnaryElementwiseOperator):
     def __init__(
             self,
             *,
-            min_value: Any = None,
-            max_value: Any = None,
+            min_value: Optional[Union['MathExpr', int]] = None,
+            max_value: Optional[Union['MathExpr', int]] = None,
             **kwargs: Any
     ):
+        super().__init__(**kwargs)
+        from ..utils import const, random_const_name
+        from ..math_expr import MathExpr
         if min_value is None and max_value is None:
             raise ValueError("Clip requires at least one of min_value or max_value.")
-        super().__init__(**kwargs)
-        self._min_value = min_value
-        self._max_value = max_value
+        # end if
+        self._min_value = min_value if isinstance(min_value, MathExpr) or min_value is None \
+            else const(random_const_name("clip-min-"), min_value)
+        self._max_value = max_value if isinstance(max_value, MathExpr) or max_value is None \
+            else const(random_const_name("clip-max-"), max_value)
     # end def __init__
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         tensor = value.eval()
         return tensor.clip(
-            min_value=self._resolve_bound(self._min_value),
-            max_value=self._resolve_bound(self._max_value)
+            min_value=self._resolve_parameter(self._min_value),
+            max_value=self._resolve_parameter(self._max_value)
         )
     # end def _eval
-
-    @staticmethod
-    def _resolve_bound(bound: Any):
-        if bound is None:
-            return None
-        try:
-            from ..math_expr import MathExpr  # local import to avoid cycles
-        except Exception:  # pragma: no cover - defensive
-            MathExpr = None  # type: ignore
-        # end try
-        if MathExpr is not None and isinstance(bound, MathExpr):
-            return bound.eval()
-        return bound
-    # end def _resolve_bound
 
     def _backward(
             self,

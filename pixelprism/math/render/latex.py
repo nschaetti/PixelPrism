@@ -832,7 +832,7 @@ def _format_summation(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -
         renderer._render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
-    bounded_name = expr.op.bounded_variable.name
+    bounded_name = expr.op.bounded_var
     lower = renderer._render_operand(expr.op.lower, rule.precedence, allow_equal=True)
     upper = renderer._render_operand(expr.op.upper, rule.precedence, allow_equal=True)
     return r"\sum_{" + bounded_name + "=" + lower + "}^{" + upper + "}{" + operands[0] + "}"

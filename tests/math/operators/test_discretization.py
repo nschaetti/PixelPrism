@@ -27,6 +27,7 @@
 #
 
 import numpy as np
+import pytest
 from itertools import count
 
 import pixelprism.math as pm
@@ -41,6 +42,74 @@ def _make_value(values):
     idx = next(_CONST_COUNTER)
     return pm.const(f"disc_const_{idx}", data=values, dtype=pm.DType.FLOAT64)
 # end def _make_value
+
+
+def _round_decimals_cases():
+    """Build a variety of decimal parameter inputs for the round operator."""
+    def _var_case():
+        var = pm.var("round_dec_var", dtype=pm.DType.INT32, shape=())
+
+        def _ctx():
+            pm.set_value("round_dec_var", 3)
+        # end def _ctx
+
+        return var, _ctx, 3
+    # end def _var_case
+
+    return (
+        ("python_int", lambda: (1, None, 1)),
+        ("constant", lambda: (
+            pm.const("round_dec_const", data=2, dtype=pm.DType.INT32),
+            None,
+            2
+        )),
+        ("variable", _var_case),
+        ("math_expr", lambda: (
+            pm.const("round_dec_a", data=1, dtype=pm.DType.INT32) +
+            pm.const("round_dec_b", data=2, dtype=pm.DType.INT32) -
+            pm.const("round_dec_c", data=1, dtype=pm.DType.INT32),
+            None,
+            2
+        )),
+    )
+# end def _round_decimals_cases
+
+
+def _clip_bound_cases():
+    """Build combinations of clip bounds with different parameter types."""
+    def _var_bounds():
+        vmin = pm.var("clip_min_var", dtype=pm.DType.FLOAT32, shape=())
+        vmax = pm.var("clip_max_var", dtype=pm.DType.FLOAT32, shape=())
+
+        def _ctx():
+            pm.set_value("clip_min_var", -0.25)
+            pm.set_value("clip_max_var", 0.6)
+        # end def _ctx
+
+        return vmin, vmax, _ctx, -0.25, 0.6
+    # end def _var_bounds
+
+    return (
+        ("python_min", lambda: (-0.5, None, None, -0.5, None)),
+        ("constant_max", lambda: (
+            None,
+            pm.const("clip_max_const", data=0.75, dtype=pm.DType.FLOAT32),
+            None,
+            None,
+            0.75
+        )),
+        ("variable_bounds", _var_bounds),
+        ("math_expr_bounds", lambda: (
+            pm.const("clip_min_expr_a", data=-1.0, dtype=pm.DType.FLOAT32) +
+            pm.const("clip_min_expr_b", data=0.1, dtype=pm.DType.FLOAT32),
+            pm.const("clip_max_expr_a", data=1.0, dtype=pm.DType.FLOAT32) -
+            pm.const("clip_max_expr_b", data=0.2, dtype=pm.DType.FLOAT32),
+            None,
+            -0.9,
+            0.8
+        )),
+    )
+# end def _clip_bound_cases
 
 
 def test_basic_discretization_ops_match_numpy():
@@ -91,6 +160,81 @@ def test_clip_operator_bounds():
         np.clip(mid, -0.25, 0.75)
     )
 # end test_clip_operator_bounds
+
+
+@pytest.mark.parametrize("case_name, case_builder", _round_decimals_cases())
+def test_round_operator_parameter_types(case_name, case_builder):
+    """
+    Ensure round consumes decimals from ints, constants, variables, and generic expressions.
+    """
+    decimals_param, ctx_setup, expected_decimals = case_builder()
+    data = _make_value([1.234, -1.266, 2.555])
+    expr = D.round(data, decimals=decimals_param)
+
+    with pm.new_context():
+        if ctx_setup is not None:
+            ctx_setup()
+        np.testing.assert_allclose(
+            expr.eval().value,
+            np.round(data.eval().value, expected_decimals)
+        )
+    # end with
+# end test_round_operator_parameter_types
+
+
+_ROUND_INVALID_CASES = (
+    ("string", lambda: "invalid", TypeError),
+    ("float", lambda: 1.5, TypeError),
+    ("vector_expr", lambda: pm.const(
+        "round_bad_vector",
+        data=[1, 2],
+        dtype=pm.DType.INT32
+    ), ValueError),
+)
+
+
+@pytest.mark.parametrize("case_name, builder, expected_exc", _ROUND_INVALID_CASES)
+def test_round_invalid_decimals_inputs(case_name, builder, expected_exc):
+    data = _make_value([1.0, -1.5])
+    with pytest.raises(expected_exc):
+        expr = D.round(data, decimals=builder())
+        expr.eval()
+    # end with
+# end test_round_invalid_decimals_inputs
+
+
+@pytest.mark.parametrize("case_name, case_builder", _clip_bound_cases())
+def test_clip_operator_parameter_types(case_name, case_builder):
+    """
+    Clip should accept ints, constants, variables, and scalar expressions for bounds.
+    """
+    min_param, max_param, ctx_setup, expected_min, expected_max = case_builder()
+    data = _make_value([-1.5, -0.1, 0.2, 1.75])
+    expr = D.clip(data, min_value=min_param, max_value=max_param)
+
+    with pm.new_context():
+        if ctx_setup is not None:
+            ctx_setup()
+        np.testing.assert_allclose(
+            expr.eval().value,
+            np.clip(data.eval().value, expected_min, expected_max)
+        )
+    # end with
+# end test_clip_operator_parameter_types
+
+
+def test_clip_invalid_bounds_raise():
+    data = _make_value([-1.0, 0.0, 1.0])
+    with pytest.raises(ValueError):
+        D.clip(data)
+
+    with pytest.raises(TypeError):
+        D.clip(data, min_value="low")
+
+    with pytest.raises(ValueError):
+        bad_bound = pm.const("clip_bad_bound", data=[-1.0, 0.0], dtype=pm.DType.FLOAT32)
+        D.clip(data, min_value=bad_bound).eval()
+# end test_clip_invalid_bounds_raise
 
 
 def test_math_expr_discretization_ops_scalar():

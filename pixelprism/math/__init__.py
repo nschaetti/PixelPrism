@@ -105,6 +105,7 @@ from .tensor import (
 )
 from .utils import (
     var,
+    random_const_name,
     const,
     tensor,
     scalar,
@@ -119,7 +120,7 @@ from .utils import (
     diag,
     eye_like,
     zeros_like,
-    ones_like
+    ones_like,
 )
 
 __all__ = [
@@ -213,9 +214,10 @@ __all__ = [
     "rint",
     "round",
     "clip",
-    "einsum",
+    # "einsum",
     # Utils
     "var",
+    "random_const_name",
     "const",
     "tensor",
     "scalar",

@@ -178,6 +178,38 @@ class Shape:
 
     # region PUBLIC
 
+    def drop_axis(self, axis: int) -> "Shape":
+        """Return a new shape with the specified axis removed."""
+        if axis < 0 or axis >= self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        if axis == self.rank - 1:
+            return Shape(self._dims[:axis])
+        elif axis == 0:
+            return Shape(self._dims[1:])
+        else:
+            return Shape(self._dims[:axis] + self._dims[axis + 1 :])
+        # end if
+    # end def drop_axis
+
+    def drop_axis_(self, axis: int) -> None:
+        """Remove the specified axis from the shape in-place."""
+        self._dims = self.drop_axis(axis)._dims
+    # end def drop_axis
+
+    def insert_axis(self, axis: int, size: Dim) -> "Shape":
+        """Return a new shape with the specified axis inserted."""
+        if axis < 0 or axis > self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        return Shape(self._dims[:axis] + (size,) + self._dims[axis:])
+    # end def insert_axis
+
+    def insert_axis_(self, axis: int, size: Dim) -> None:
+        """Insert the specified axis into the shape in-place."""
+        self._dims = self.insert_axis(axis, size)._dims
+    # end def insert_axis_
+
     def as_tuple(self) -> tuple[Dim, ...]:
         """Return the shape as a tuple.
 

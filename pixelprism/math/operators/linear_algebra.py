@@ -31,13 +31,16 @@ Linear algebra operator implementations.
 
 # Imports
 from abc import ABC
+from typing import Optional
 
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor, einsum
-from .base import Operands, Operand, operator_registry, Operator
+from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
 
 __all__ = [
+    "LinearAlgebraOperator",
+    "LinearAlgebraParametricOperator",
     "MatMul",
     "Dot",
     "Outer",
@@ -55,13 +58,17 @@ class LinearAlgebraOperator(Operator, ABC):
         return True
     # end def check_operands
 
-    def contains(self, expr: "MathExpr") -> bool:
+    def contains(
+            self,
+            expr: "MathExpr",
+            by_ref: bool = False,
+            look_for: Optional[str] = None
+    ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         return False
     # end def contains
 
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
+    def infer_dtype(self, operands: Operands) -> DType:
         """
         Promote operand dtypes.
         """
@@ -69,13 +76,28 @@ class LinearAlgebraOperator(Operator, ABC):
         return DType.promote(a.dtype, b.dtype)
     # end def infer_dtype
 
-    @classmethod
-    def check_parameters(cls, **kwargs) -> bool:
+    def check_parameters(self, **kwargs) -> bool:
         """Check that the operands have compatible shapes."""
         pass
     # end def check_shapes
 
 # end class LinearAlgebraOperator
+
+
+class LinearAlgebraParametricOperator(LinearAlgebraOperator, ParametricOperator, ABC):
+    """Linear algebra parametric operator."""
+
+    def contains(
+            self,
+            expr: "MathExpr",
+            by_ref: bool = False,
+            look_for: Optional[str] = None
+    ) -> bool:
+        """Does the operator contain the given expression (in parameters)?"""
+        raise NotImplementedError("Parametric operators must implement contains(..).")
+    # end def contains
+
+# end class LinearAlgebraParametricOperator
 
 
 class MatMul(LinearAlgebraOperator):

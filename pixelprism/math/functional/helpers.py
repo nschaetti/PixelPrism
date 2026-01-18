@@ -87,16 +87,16 @@ def apply_operator(
         )
     # end if
 
+    # Instantiate operator
+    op = op_cls(**kwargs)
+
     # We check that shapes of the operands are compatible
-    if not op_cls.check_shapes(operands):
+    if not op.check_shapes(operands):
         shapes = ", ".join(str(o.shape) for o in operands)
         raise TypeError(
             f"Incompatible shapes for operator {op_cls.NAME}: {shapes}"
         )
     # end if
-
-    # Instantiate operator
-    op = op_cls(**kwargs)
 
     # We check that the operator approves the operand(s)
     if not op.check_operands(operands):

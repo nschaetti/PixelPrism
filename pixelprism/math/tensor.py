@@ -170,7 +170,7 @@ def _get_dtype(
     elif isinstance(data, list):
         raise ValueError("Cannot infer dtype from list of values, specify dtype explicitly.")
     else:
-        raise ValueError(f"Unsupported or unknown data type when creating tensor: {type(data)}")
+        raise TypeError(f"Unsupported or unknown data type when creating tensor: {type(data)}")
     # end if
     return dtype
 # end if
@@ -293,7 +293,7 @@ class Tensor:
         if self.rank == 0:
             return self._data.item()
         else:
-            raise TypeError("Cannot convert a tensor to a single integer value.")
+            raise ValueError("Cannot convert a tensor to a single integer value.")
         # end if
     # end def item
 
@@ -738,6 +738,36 @@ class Tensor:
         return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
     # end def std
 
+    def median(self, axis: Optional[int] = None) -> 'Tensor':
+        """Compute the median of the tensor along the given axis."""
+        result = np.median(self._data, axis=axis)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def median
+
+    def q1(self, axis: Optional[int] = None) -> 'Tensor':
+        """Compute the first quartile of the tensor along the given axis."""
+        result = np.percentile(self._data, 25, axis=axis)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def q1
+
+    def q3(self, axis: Optional[int] = None) -> 'Tensor':
+        """Compute the third quartile of the tensor along the given axis."""
+        result = np.percentile(self._data, 75, axis=axis)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def q3
+
+    def max(self, axis: Optional[int] = None) -> 'Tensor':
+        """Compute the maximum of the tensor along the given axis."""
+        result = np.max(self._data, axis=axis)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def max
+
+    def min(self, axis: Optional[int] = None) -> 'Tensor':
+        """Compute the minimum of the tensor along the given axis."""
+        result = np.min(self._data, axis=axis)
+        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+    # end def min
+
     # endregion MATH METHODS
 
     # region STATIC
@@ -1001,3 +1031,60 @@ def einsum(
     # end if
     return Tensor(data=np.asarray(result))
 # end def einsum
+
+
+def mean(
+        tensor: Tensor,
+        axis: Optional[int] = None
+) -> Tensor:
+    return _call_tensor_method("mean", tensor, axis=axis)
+# end def mean
+
+
+def std(
+        tensor: Tensor,
+        axis: Optional[int] = None,
+        ddof: int = 0
+) -> Tensor:
+    return _call_tensor_method("std", tensor, axis=axis, ddof=ddof)
+# end def std
+
+
+def median(
+        tensor: Tensor,
+        axis: Optional[int] = None
+) -> Tensor:
+    return _call_tensor_method("median", tensor, axis=axis)
+# end def median
+
+
+def q1(
+        tensor: Tensor,
+        axis: Optional[int] = None
+) -> Tensor:
+    return _call_tensor_method("q1", tensor, axis=axis)
+# end def q1
+
+
+def q3(
+        tensor: Tensor,
+        axis: Optional[int] = None
+) -> Tensor:
+    return _call_tensor_method("q3", tensor, axis=axis)
+# end def q3
+
+
+def max(
+        tensor: Tensor,
+        axis: Optional[int] = None
+) -> Tensor:
+    return _call_tensor_method("max", tensor, axis=axis)
+# end def max
+
+
+def min(
+        tensor: Tensor,
+        axis: Optional[int] = None
+) -> Tensor:
+    return _call_tensor_method("min", tensor, axis=axis)
+# end def min

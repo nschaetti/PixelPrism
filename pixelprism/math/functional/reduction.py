@@ -25,6 +25,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+from typing import Union
 
 # Imports
 from pixelprism.math.math_expr import MathExpr
@@ -35,7 +36,13 @@ __all__ = [
     "sum",
     "mean",
     "std",
-    "summation"
+    "median",
+    "max",
+    "min",
+    "q1",
+    "q3",
+    "summation",
+    "product"
 ]
 
 
@@ -93,11 +100,66 @@ def std(
 # end def std
 
 
+def median(
+        op1: MathExpr,
+        axis: MathExpr | int | None = None
+) -> MathExpr:
+    """Median of a tensor."""
+    op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
+    return apply_operator("median", (op1,), f"median({op1.name})", axis=axis)
+# end def median
+
+
+def max(
+        op1: MathExpr,
+        axis: MathExpr | int | None = None
+) -> MathExpr:
+    """Tensor maximum along the given axis."""
+    op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
+    return apply_operator("max", (op1,), f"max({op1.name})", axis=axis)
+# end def max
+
+
+def min(
+        op1: MathExpr,
+        axis: MathExpr | int | None = None
+) -> MathExpr:
+    """Tensor minimum along the given axis."""
+    op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
+    return apply_operator("min", (op1,), f"min({op1.name})", axis=axis)
+# end def min
+
+
+def q1(
+        op1: MathExpr,
+        axis: MathExpr | int | None = None
+) -> MathExpr:
+    """First quartile (25th percentile) along an axis."""
+    op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
+    return apply_operator("q1", (op1,), f"q1({op1.name})", axis=axis)
+# end def q1
+
+
+def q3(
+        op1: MathExpr,
+        axis: MathExpr | int | None = None
+) -> MathExpr:
+    """Third quartile (75th percentile) along an axis."""
+    op1 = as_expr(op1)
+    axis = as_expr(axis) if axis is not None else None
+    return apply_operator("q3", (op1,), f"q3({op1.name})", axis=axis)
+# end def q3
+
+
 def summation(
         op1: MathExpr,
-        lower: "MathExpr",
-        upper: "MathExpr",
-        bounded_variable: "Tensor"
+        lower: Union["MathExpr", int],
+        upper: Union["MathExpr", int],
+        i: str
 ) -> MathExpr:
     """
     Sum of a tensor.
@@ -109,7 +171,27 @@ def summation(
         f"sum({op1.name})",
         lower=lower,
         upper=upper,
-        bounded_variable=bounded_variable
+        i=i
     )
 # end def sum
 
+
+def product(
+        op1: MathExpr,
+        lower: Union["MathExpr", int],
+        upper: Union["MathExpr", int],
+        i: str
+) -> MathExpr:
+    """
+    Product of a tensor over a bounded variable.
+    """
+    op1 = as_expr(op1)
+    return apply_operator(
+        "product",
+        (op1,),
+        f"product({op1.name})",
+        lower=lower,
+        upper=upper,
+        i=i
+    )
+# end def product

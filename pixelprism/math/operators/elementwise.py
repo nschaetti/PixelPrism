@@ -29,8 +29,9 @@
 Elementwise operator implementations.
 """
 from abc import ABC
-from typing import Sequence
+from typing import Sequence, Optional
 
+from . import ParametricOperator
 from ..tensor import Tensor
 from ..dtype import DType
 from ..shape import Shape
@@ -39,6 +40,7 @@ from .base import Operands, Operator, operator_registry
 __all__ = [
     "ElementwiseOperator",
     "UnaryElementwiseOperator",
+    "UnaryElementwiseParametricOperator",
     "Add",
     "Sub",
     "Mul",
@@ -77,15 +79,19 @@ class ElementwiseOperator(Operator, ABC):
         return True
     # end def check_operands
 
-    def contains(self, expr: "MathExpr") -> bool:
+    def contains(
+            self,
+            expr: "MathExpr",
+            by_ref: bool = False,
+            look_for: Optional[str] = None
+    ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         return False
     # end def contains
 
     # region STATIC
 
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
+    def check_shapes(self, operands: Operands) -> bool:
         """
         Check that both operands have identical shapes or support scalar broadcasting.
         """
@@ -93,7 +99,7 @@ class ElementwiseOperator(Operator, ABC):
         if a.rank != b.rank:
             if a.rank != 0 and b.rank != 0:
                 raise ValueError(
-                    f"{cls.NAME} requires operands with identical ranks if not scalar, "
+                    f"{self.NAME} requires operands with identical ranks if not scalar, "
                     f"got {a.rank} and {b.rank}."
                 )
             # end if
@@ -101,7 +107,7 @@ class ElementwiseOperator(Operator, ABC):
             # Same rank, but require same shape
             if a.shape != b.shape:
                 raise ValueError(
-                    f"{cls.NAME} requires operands with identical shapes, "
+                    f"{self.NAME} requires operands with identical shapes, "
                     f"got {a.shape} and {b.shape}."
                 )
             # end if
@@ -109,8 +115,7 @@ class ElementwiseOperator(Operator, ABC):
         return True
     # end def check_shapes
 
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
+    def infer_shape(self, operands: Operands) -> Shape:
         """
         Output shape is identical to operand shapes.
         """
@@ -124,8 +129,7 @@ class ElementwiseOperator(Operator, ABC):
         # end if
     # end def infer_shape
 
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
+    def infer_dtype(self, operands: Operands) -> DType:
         """
         Promote operand dtypes.
         """
@@ -307,27 +311,29 @@ class UnaryElementwiseOperator(Operator, ABC):
         return True
     # end def check_operands
 
-    def contains(self, expr: "MathExpr") -> bool:
+    def contains(
+            self,
+            expr: "MathExpr",
+            by_ref: bool = False,
+            look_for: Optional[str] = None
+    ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         return False
     # end def contains
 
     # region STATIC
 
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
+    def check_shapes(self, operands: Operands) -> bool:
         """Unary operators always match operand shape."""
         return True
     # end def check_shapes
 
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
+    def infer_shape(self, operands: Operands) -> Shape:
         """Shape matches operand."""
         return operands[0].shape
     # end def infer_shape
 
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
+    def infer_dtype(self, operands: Operands) -> DType:
         """Return floating dtype for results."""
         operand_dtype = operands[0].dtype
         if operand_dtype.is_float:
@@ -344,6 +350,11 @@ class UnaryElementwiseOperator(Operator, ABC):
     # endregion STATIC
 
 # end class UnaryElementwiseOperator
+
+
+class UnaryElementwiseParametricOperator(UnaryElementwiseOperator, ParametricOperator, ABC):
+    pass
+# end class UnaryElementwiseParametricOperator
 
 
 class Exp(UnaryElementwiseOperator):

@@ -409,16 +409,17 @@ class MathExpr:
 
     def contains(
             self,
-            var: Union[str, MathExpr],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
-            check_operator: bool = True
+            check_operator: bool = True,
+            look_for: Optional[str] = None
     ) -> bool:
         """
         Test whether ``var`` appears in the expression tree.
 
         Parameters
         ----------
-        var : str or MathExpr
+        leaf : str or MathExpr
             Reference searched for within the tree.  Strings are matched
             against node names; ``MathExpr`` instances are matched either by
             identity or by their ``name``.
@@ -427,15 +428,44 @@ class MathExpr:
         check_operator : bool, default True
             When ``True`` the search also queries the operator to determine if
             it captures ``var`` internally.
+        look_for : Optional[str], default None
+            Can be None, "var", or "const"
 
         Returns
         -------
         bool
             ``True`` when ``var`` was located in ``self`` or any child.
         """
-        rets = [c.contains(var, by_ref=by_ref, check_operator=check_operator) for c in self._children]
-        return any(rets) or (by_ref and self == var) or (check_operator and self._op.contains(var))
+        rets = [
+            c.contains(leaf, by_ref=by_ref, check_operator=check_operator, look_for=look_for)
+            for c in self._children
+        ]
+        return (
+                any(rets) or
+                (by_ref and self == leaf) or
+                (check_operator and self._op.contains(leaf, by_ref=by_ref, look_for=look_for))
+        )
     # end def contains
+
+    def contains_variable(
+            self,
+            variable: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        """Return True if the expression contains a variable `variable`"""
+        return self.contains(variable, by_ref=by_ref, check_operator=check_operator, look_for="var")
+    # end def contains_variable
+
+    def contains_constant(
+            self,
+            constant: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        """Return True if the expression contains a constant `constant`"""
+        return self.contains(constant, by_ref=by_ref, check_operator=check_operator, look_for="const")
+    # end def contains_constant
 
     def replace(self, old_m: MathExpr, new_m: MathExpr):
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
@@ -739,6 +769,15 @@ class MathExpr:
         return elementwise_log10(operand)
     # end def log10
 
+    @staticmethod
+    def matmul(operand1: MathExpr, operand2: MathExpr) -> MathExpr:
+        """
+        Create a matrix multiplication node.
+        """
+        from .functional.linear_algebra import matmul
+        return matmul(operand1, operand2)
+    # end def matmul
+
     # endregion OPERATORS
 
     # region STATIC
@@ -890,6 +929,14 @@ class MathExpr:
         return MathExpr.neg(self)
     # end def __neg__
 
+    def __matmul__(self, other):
+        return MathExpr.matmul(self, other)
+    # end def __matmul__
+
+    def __rmatmul__(self, other):
+        return MathExpr.matmul(other, self)
+    # end def __rmatmul__
+
     # Override less
     def __lt__(self, other) -> MathExpr:
         """
@@ -1026,21 +1073,24 @@ class MathLeaf(MathExpr, ABC):
 
     def contains(
             self,
-            var: Union[str, MathExpr],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
-            check_operator: bool = True
+            check_operator: bool = True,
+            look_for: Optional[str] = None
     ) -> bool:
         """
         Check if ``var`` references this leaf.
 
         Parameters
         ----------
-        var : str or MathExpr
+        leaf : str or MathExpr
             Variable name or expression to look for.
         by_ref : bool, default False
             When ``True`` only identity matches are considered.
         check_operator : bool, default True
             Ignored for leaves; included for API compatibility.
+        look_for : Optional[str], default None
+            Can be None (all), "var" or "const"
 
         Returns
         -------
@@ -1053,16 +1103,16 @@ class MathLeaf(MathExpr, ABC):
             If ``by_ref`` is ``True`` while ``var`` is provided as a string.
         """
         if by_ref:
-            if type(var) is str:
-                raise MathExprValidationError(f"Cannot find by reference if string given: var={var}.")
+            if type(leaf) is str:
+                raise MathExprValidationError(f"Cannot find by reference if string given: var={leaf}.")
             # end if
-            if isinstance(var, MathExpr) and var is self:
+            if isinstance(leaf, MathExpr) and leaf is self:
                 return True
             # end if
         else:
-            if type(var) is str and var == self.name:
+            if type(leaf) is str and leaf == self.name:
                 return True
-            elif isinstance(var, MathExpr) and var.name == self.name:
+            elif isinstance(leaf, MathExpr) and leaf.name == self.name:
                 return True
             # end if
         # end if
@@ -1260,6 +1310,48 @@ class Variable(MathLeaf):
         """
         return []
     # end def constants
+
+    def contains(
+            self,
+            leaf: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True,
+            look_for: Optional[str] = None
+    ) -> bool:
+        """
+        Check if ``var`` references this leaf.
+
+        Parameters
+        ----------
+        leaf : str or MathExpr
+            Variable name or expression to look for.
+        by_ref : bool, default False
+            When ``True`` only identity matches are considered.
+        check_operator : bool, default True
+            Ignored for leaves; included for API compatibility.
+        look_for : Optional[str], default None
+            Can be None (all), "var" or "const"
+
+        Returns
+        -------
+        bool
+            ``True`` when the leaf matches ``var``.
+
+        Raises
+        ------
+        MathExprValidationError
+            If ``by_ref`` is ``True`` while ``var`` is provided as a string.
+        """
+        if look_for is None or look_for == "var":
+            return super(Variable, self).contains(
+                leaf=leaf,
+                by_ref=by_ref,
+                check_operator=check_operator,
+                look_for=None
+            )
+        # end if
+        return False
+    # en def contains
 
     def copy(
             self,
@@ -1584,6 +1676,48 @@ class Constant(MathLeaf):
         """
         return [self]
     # end def constants
+
+    def contains(
+            self,
+            leaf: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True,
+            look_for: Optional[str] = None
+    ) -> bool:
+        """
+        Check if ``var`` references this leaf.
+
+        Parameters
+        ----------
+        leaf : str or MathExpr
+            Variable name or expression to look for.
+        by_ref : bool, default False
+            When ``True`` only identity matches are considered.
+        check_operator : bool, default True
+            Ignored for leaves; included for API compatibility.
+        look_for : Optional[str], default None
+            Can be None (all), "var" or "const"
+
+        Returns
+        -------
+        bool
+            ``True`` when the leaf matches ``var``.
+
+        Raises
+        ------
+        MathExprValidationError
+            If ``by_ref`` is ``True`` while ``var`` is provided as a string.
+        """
+        if look_for is None or look_for == "const":
+            super(Constant, self).contains(
+                leaf=leaf,
+                by_ref=by_ref,
+                check_operator=check_operator,
+                look_for=None
+            )
+        # end if
+        return False
+    # en def contains
 
     def copy(
             self,
