@@ -342,6 +342,18 @@ class MathExpr:
         return self._shape.rank == 2
     # end is_matrix
 
+    def is_constant(self):
+        """Does the expression contain only constant values?"""
+        rets = [o.is_constant() for o in self._children]
+        return all(rets)
+    # end def is_constant
+
+    def is_variable(self):
+        """Does the expression contain a variable?"""
+        rets = [o.is_variable() for o in self._children]
+        return any(rets)
+    # end def is_variable
+
     def is_higher_order(self):
         """
         Is the expression higher order?
@@ -1086,6 +1098,16 @@ class MathLeaf(MathExpr, ABC):
         """
     # end def constants
 
+    def is_constant(self):
+        """Does the expression contain only constant values?"""
+        raise NotImplementedError("Leaf nodes do not support is_constant.")
+    # end def is_constant
+
+    def is_variable(self):
+        """Does the expression contain a variable?"""
+        raise NotImplementedError("Leaf nodes do not support is_variable.")
+    # end def is_variable
+
     def contains(
             self,
             leaf: Union[str, MathExpr],
@@ -1325,6 +1347,16 @@ class Variable(MathLeaf):
         """
         return []
     # end def constants
+
+    def is_constant(self):
+        """Does the expression contain only constant values?"""
+        return False
+    # end def is_constant
+
+    def is_variable(self):
+        """Does the expression contain a variable?"""
+        return True
+    # end def is_variable
 
     def contains(
             self,
@@ -1692,6 +1724,16 @@ class Constant(MathLeaf):
         return [self]
     # end def constants
 
+    def is_constant(self):
+        """Does the expression contain only constant values?"""
+        return True
+    # end def is_constant
+
+    def is_variable(self):
+        """Does the expression contain a variable?"""
+        return False
+    # end def is_variable
+
     def contains(
             self,
             leaf: Union[str, MathExpr],
@@ -1844,105 +1886,233 @@ class Constant(MathLeaf):
 
 class SliceExpr:
     """
-    Immutable representation of a Python-style slice using Constant bounds.
+    Immutable representation of a Python-style slice using :class:`MathExpr` bounds.
+
+    The object mirrors the behavior of Python's native ``slice`` but stores
+    each bound as an expression so transformations can reason about those values
+    symbolically.  Bounds must be constant integer expressions so they can be
+    materialized where necessary.
 
     Parameters
     ----------
-    start : Constant or int or None
-        Inclusive lower bound of the slice.
-    stop : Constant or int or None
-        Exclusive upper bound of the slice.
-    step : Constant or int or None
-        Slice stride.
+    start : MathExpr or int or None, optional
+        Inclusive lower bound of the slice. ``None`` matches Python semantics.
+    stop : MathExpr or int or None, optional
+        Exclusive upper bound of the slice. ``None`` matches Python semantics.
+    step : MathExpr or int or None, optional
+        Slice stride. ``None`` matches Python semantics.
+
+    Attributes
+    ----------
+    start : Optional[MathExpr]
+        Symbolic representation of the ``start`` bound.
+    stop : Optional[MathExpr]
+        Symbolic representation of the ``stop`` bound.
+    step : Optional[MathExpr]
+        Symbolic representation of the ``step`` bound.
     """
 
     __slots__ = ("_start", "_stop", "_step")
 
     def __init__(
             self,
-            start: Optional[Union[Constant, int]] = None,
-            stop: Optional[Union[Constant, int]] = None,
-            step: Optional[Union[Constant, int]] = None
+            start: Optional[Union[MathExpr, int]] = None,
+            stop: Optional[Union[MathExpr, int]] = None,
+            step: Optional[Union[MathExpr, int]] = None
     ):
+        """
+        Initialize a new :class:`SliceExpr`.
+
+        Parameters
+        ----------
+        start : MathExpr or int or None, optional
+            Inclusive lower bound of the slice.
+        stop : MathExpr or int or None, optional
+            Exclusive upper bound of the slice.
+        step : MathExpr or int or None, optional
+            Slice stride.
+        """
         self._start = self._coerce_bound("start", start)
         self._stop = self._coerce_bound("stop", stop)
         self._step = self._coerce_bound("step", step)
-    # end __init__
+    # end def __init__
 
     # region PRIVATE
 
     @staticmethod
     def _coerce_bound(
             name: str,
-            value: Optional[Union[Constant, int]]
-    ) -> Optional[Constant]:
+            value: Optional[Union[MathExpr, int]]
+    ) -> Optional[MathExpr]:
+        """
+        Normalize Python and symbolic bounds into :class:`MathExpr` instances.
+
+        Parameters
+        ----------
+        name : str
+            Bound name for diagnostics.
+        value : Optional[Union[MathExpr, int]]
+            User-provided bound.
+
+        Returns
+        -------
+        Optional[MathExpr]
+            Normalized bound expression, or ``None``.
+
+        Raises
+        ------
+        TypeError
+            If ``value`` is not ``None``, ``int``, or :class:`MathExpr`.
+        MathExprValidationError
+            If ``value`` violates constant scalar integer requirements.
+        """
         if value is None:
             return None
-        if isinstance(value, Constant):
-            SliceExpr._validate_constant(name, value)
-            return value
+        # end if
         if isinstance(value, int):
             tensor = Tensor(data=value, dtype=DType.INT64)
-            return Constant(
+            value = Constant(
                 name=f"slice_{name}_{MathExpr.next_id()}",
                 data=tensor
             )
-        raise TypeError(f"{name} must be a Constant or int, got {type(value)}")
+        # end if
+        if not isinstance(value, MathExpr):
+            raise TypeError(f"{name} must be a MathExpr or int, got {type(value)}")
+        # end if
+        SliceExpr._validate_bound(name, value)
+        return value
     # end def _coerce_bound
 
     @staticmethod
-    def _validate_constant(name: str, const: Constant) -> None:
-        if const.dtype not in {DType.INT32, DType.INT64}:
-            raise MathExprValidationError(f"{name} must be an integer constant, got {const.dtype}")
-        if const.shape.dims != ():
-            raise MathExprValidationError(f"{name} must be scalar, got shape {const.shape}")
-    # end def _validate_constant
+    def _validate_bound(name: str, expr: MathExpr) -> None:
+        """
+        Validate that ``expr`` is a scalar integer constant expression.
+
+        Parameters
+        ----------
+        name : str
+            Bound identifier for error messages.
+        expr : MathExpr
+            Expression to validate.
+
+        Raises
+        ------
+        MathExprValidationError
+            If ``expr`` is not constant, not scalar, or not integer typed.
+        """
+        if not expr.is_constant():
+            raise MathExprValidationError(f"{name} must be composed of constants.")
+        # end if
+        if expr.dtype not in {DType.INT32, DType.INT64}:
+            raise MathExprValidationError(f"{name} must be an integer expression, got {expr.dtype}")
+        # end if
+        if expr.shape.dims != ():
+            raise MathExprValidationError(f"{name} must be scalar, got shape {expr.shape}")
+        # end if
+    # end def _validate_bound
 
     @staticmethod
-    def _const_to_python(const: Optional[Constant]) -> Optional[int]:
-        if const is None:
+    def _expr_to_python(expr: Optional[MathExpr]) -> Optional[int]:
+        """
+        Convert a symbolic bound to its Python integer value.
+
+        Parameters
+        ----------
+        expr : Optional[MathExpr]
+            Symbolic expression representing a slice bound.
+
+        Returns
+        -------
+        Optional[int]
+            Python integer bound or ``None`` when ``expr`` is ``None``.
+        """
+        if expr is None:
             return None
-        return int(const.value.value.item())
-    # end def _const_to_python
+        # end if
+        tensor = expr.eval()
+        return int(tensor.value.item())
+    # end def _expr_to_python
 
     # endregion PRIVATE
 
     # region PROPERTIES
 
     @property
-    def start(self) -> Optional[Constant]:
-        """Return the Constant representing the slice start."""
+    def start(self) -> Optional[MathExpr]:
+        """
+        Returns
+        -------
+        Optional[MathExpr]
+            Symbolic expression for the ``start`` bound.
+        """
         return self._start
+    # end def start
 
     @property
-    def stop(self) -> Optional[Constant]:
-        """Return the Constant representing the slice stop."""
+    def stop(self) -> Optional[MathExpr]:
+        """
+        Returns
+        -------
+        Optional[MathExpr]
+            Symbolic expression for the ``stop`` bound.
+        """
         return self._stop
+    # end def stop
 
     @property
-    def step(self) -> Optional[Constant]:
-        """Return the Constant representing the slice stride."""
+    def step(self) -> Optional[MathExpr]:
+        """
+        Returns
+        -------
+        Optional[MathExpr]
+            Symbolic expression for the ``step`` bound.
+        """
         return self._step
+    # end def step
 
     @property
     def start_value(self) -> Optional[int]:
-        """Return the Python integer value for start (if defined)."""
-        return self._const_to_python(self._start)
+        """
+        Returns
+        -------
+        Optional[int]
+            Concrete Python value for ``start`` when defined.
+        """
+        return self._expr_to_python(self._start)
+    # end def start_value
 
     @property
     def stop_value(self) -> Optional[int]:
-        """Return the Python integer value for stop (if defined)."""
-        return self._const_to_python(self._stop)
+        """
+        Returns
+        -------
+        Optional[int]
+            Concrete Python value for ``stop`` when defined.
+        """
+        return self._expr_to_python(self._stop)
+    # end def stop_value
 
     @property
     def step_value(self) -> Optional[int]:
-        """Return the Python integer value for step (if defined)."""
-        return self._const_to_python(self._step)
+        """
+        Returns
+        -------
+        Optional[int]
+            Concrete Python value for ``step`` when defined.
+        """
+        return self._expr_to_python(self._step)
+    # end def step_value
 
     @property
     def as_slice(self) -> slice:
-        """Return a native ``slice`` built from the stored constants."""
+        """
+        Returns
+        -------
+        slice
+            Native ``slice`` object mirroring ``self``.
+        """
         return slice(self.start_value, self.stop_value, self.step_value)
+    # end def as_slice
 
     # endregion PROPERTIES
 
@@ -1950,28 +2120,65 @@ class SliceExpr:
 
     @staticmethod
     def create(
-            start: Optional[Union[Constant, int]] = None,
-            stop: Optional[Union[Constant, int]] = None,
-            step: Optional[Union[Constant, int]] = None
+            start: Optional[Union[MathExpr, int]] = None,
+            stop: Optional[Union[MathExpr, int]] = None,
+            step: Optional[Union[MathExpr, int]] = None
     ) -> "SliceExpr":
-        """Instantiate a :class:`SliceExpr` from Constant or integer bounds."""
+        """
+        Instantiate a :class:`SliceExpr` from Python or symbolic bounds.
+
+        Parameters
+        ----------
+        start : MathExpr or int or None, optional
+            Inclusive lower bound of the slice.
+        stop : MathExpr or int or None, optional
+            Exclusive upper bound of the slice.
+        step : MathExpr or int or None, optional
+            Stride applied between slice elements.
+
+        Returns
+        -------
+        SliceExpr
+            Newly constructed slice expression.
+        """
         return SliceExpr(start=start, stop=stop, step=step)
+    # end def create
 
     @staticmethod
     def from_slice(py_slice: slice) -> "SliceExpr":
-        """Instantiate from a Python ``slice``."""
+        """
+        Instantiate a :class:`SliceExpr` from a Python ``slice``.
+
+        Parameters
+        ----------
+        py_slice : slice
+            Python slice whose bounds should be mirrored.
+
+        Returns
+        -------
+        SliceExpr
+            Symbolic slice equivalent to ``py_slice``.
+        """
         return SliceExpr(
             start=py_slice.start,
             stop=py_slice.stop,
             step=py_slice.step
         )
+    # end def from_slice
 
     # endregion STATIC
 
     # region OVERRIDE
 
     def __repr__(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Human-readable representation showing resolved Python bounds.
+        """
         return f"SliceExpr(start={self.start_value}, stop={self.stop_value}, step={self.step_value})"
+    # end def __repr__
 
     # endregion OVERRIDE
 

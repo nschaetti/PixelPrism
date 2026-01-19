@@ -26,9 +26,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+# Imports
 import pytest
-
 import pixelprism.math as pm
+
 from pixelprism.math.math_expr import SliceExpr, MathExprValidationError
 
 
@@ -63,3 +64,24 @@ def test_slice_expr_rejects_non_integer_constant():
     with pytest.raises(MathExprValidationError):
         SliceExpr.create(start=bad_const)
 # end test_slice_expr_rejects_non_integer_constant
+
+
+def test_slice_expr_accepts_constant_expression():
+    start = pm.const("slice_start_expr", data=1, dtype=pm.DType.INT64)
+    offset = pm.const("slice_offset_expr", data=2, dtype=pm.DType.INT64)
+    stop_base = pm.const("slice_stop_expr", data=4, dtype=pm.DType.INT64)
+    expr = SliceExpr.create(start=start + offset, stop=offset + stop_base)
+
+    assert expr.start_value == 3
+    assert expr.stop_value == 6
+    assert isinstance(expr.start, pm.MathExpr)
+# end test_slice_expr_accepts_constant_expression
+
+
+def test_slice_expr_rejects_non_constant_expression():
+    var = pm.var("slice_var", dtype=pm.DType.INT32, shape=())
+    const = pm.const("slice_const", data=5, dtype=pm.DType.INT32)
+
+    with pytest.raises(MathExprValidationError):
+        SliceExpr.create(start=var + const)
+# end test_slice_expr_rejects_non_constant_expression
