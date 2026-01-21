@@ -41,7 +41,7 @@ import numbers
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Sequence, Tuple
 import numpy as np
-from ..math_expr import MathExpr, Constant
+from ..math_expr import MathNode, Constant
 
 __all__ = ["to_latex"]
 
@@ -121,7 +121,7 @@ class _OpRule:
     """
 
     precedence: int
-    formatter: Callable[["_LatexRenderer", MathExpr, "_OpRule"], str]
+    formatter: Callable[["_LatexRenderer", MathNode, "_OpRule"], str]
 # end class _OpRule
 
 
@@ -136,13 +136,13 @@ class _LatexRenderer:
     _LEAF_PRECEDENCE = 100
     _FUNCTION_PRECEDENCE = 80
 
-    def render(self, expr: MathExpr) -> str:
+    def render(self, expr: MathNode) -> str:
         """
         Convert ``expr`` into a LaTeX math string.
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Expression tree root to render.
 
         Returns
@@ -160,13 +160,13 @@ class _LatexRenderer:
         return latex
     # end def render
 
-    def _emit(self, expr: MathExpr) -> Tuple[str, int]:
+    def _emit(self, expr: MathNode) -> Tuple[str, int]:
         """
         Recursively render ``expr`` and return its precedence.
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Expression being formatted.
 
         Returns
@@ -194,13 +194,13 @@ class _LatexRenderer:
         return latex, self._FUNCTION_PRECEDENCE
     # end def _emit
 
-    def _get_operator(self, expr: MathExpr) -> Any:
+    def _get_operator(self, expr: MathNode) -> Any:
         """
         Retrieve the operator descriptor attached to ``expr``.
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Expression whose operator should be returned.
 
         Returns
@@ -217,7 +217,7 @@ class _LatexRenderer:
 
     def _render_operand(
         self,
-        expr: MathExpr,
+        expr: MathNode,
         parent_prec: int,
         *,
         allow_equal: bool,
@@ -227,7 +227,7 @@ class _LatexRenderer:
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Operand to render.
         parent_prec : int
             Precedence of the parent operator.
@@ -246,13 +246,13 @@ class _LatexRenderer:
         return latex
     # end def _render_operand
 
-    def _render_group(self, expr: MathExpr) -> str:
+    def _render_group(self, expr: MathNode) -> str:
         """
         Render an expression without adjusting precedence.
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Expression to render.
 
         Returns
@@ -264,13 +264,13 @@ class _LatexRenderer:
         return latex
     # end def _render_group
 
-    def _render_leaf(self, expr: MathExpr) -> str:
+    def _render_leaf(self, expr: MathNode) -> str:
         """
         Render a leaf node, preferring literal values when available.
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Leaf expression.
 
         Returns
@@ -295,7 +295,7 @@ class _LatexRenderer:
         return r"\mathrm{expr}"
     # end def _render_leaf
 
-    def _render_constant_leaf(self, expr: MathExpr) -> str | None:
+    def _render_constant_leaf(self, expr: MathNode) -> str | None:
         """
         Render the stored value for immutable leaves when feasible.
         """
@@ -332,7 +332,7 @@ class _LatexRenderer:
         return None
     # end def _render_constant_leaf
 
-    def _extract_leaf_data(self, expr: MathExpr) -> Any | None:
+    def _extract_leaf_data(self, expr: MathNode) -> Any | None:
         """
         Retrieve raw payload stored on a leaf expression.
         """
@@ -347,13 +347,13 @@ class _LatexRenderer:
         return None
     # end def _extract_leaf_data
 
-    def _extract_scalar_name(self, expr: MathExpr) -> str | None:
+    def _extract_scalar_name(self, expr: MathNode) -> str | None:
         """
         Attempt to extract a scalar name from ``expr``.
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Expression to inspect.
 
         Returns
@@ -440,13 +440,13 @@ class _LatexRenderer:
         return latex_map.get(name, name)
     # end def _extract_scalar_literal
 
-    def _coerce_scalar(self, expr: MathExpr) -> numbers.Number | None:
+    def _coerce_scalar(self, expr: MathNode) -> numbers.Number | None:
         """
         Convert an expression's stored data into a scalar.
 
         Parameters
         ----------
-        expr : MathExpr
+        expr : MathNode
             Leaf expression containing potential data.
 
         Returns
@@ -574,7 +574,7 @@ class _LatexRenderer:
     def _render_named_function(
         self,
         command: str,
-        operands: Sequence[MathExpr],
+        operands: Sequence[MathNode],
     ) -> str:
         """
         Render a known math function such as ``sin`` or ``sqrt``.
@@ -583,7 +583,7 @@ class _LatexRenderer:
         ----------
         command : str
             LaTeX command to emit.
-        operands : Sequence[MathExpr]
+        operands : Sequence[MathNode]
             Operands to render as arguments.
 
         Returns
@@ -609,7 +609,7 @@ class _LatexRenderer:
     def _render_generic_function(
         self,
         name: str,
-        operands: Sequence[MathExpr],
+        operands: Sequence[MathNode],
     ) -> str:
         """
         Render an operator using ``\\operatorname{}``.
@@ -618,7 +618,7 @@ class _LatexRenderer:
         ----------
         name : str
             Operator name.
-        operands : Sequence[MathExpr]
+        operands : Sequence[MathNode]
             Child expressions.
 
         Returns
@@ -633,7 +633,7 @@ class _LatexRenderer:
 # end class _LatexRenderer
 
 
-def _format_add(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format addition expressions.
 
@@ -641,7 +641,7 @@ def _format_add(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Addition node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -659,7 +659,7 @@ def _format_add(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_add
 
 
-def _format_sub(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format subtraction expressions.
 
@@ -667,7 +667,7 @@ def _format_sub(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Subtraction node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -686,7 +686,7 @@ def _format_sub(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_sub
 
 
-def _format_neg(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format negation expressions.
 
@@ -694,7 +694,7 @@ def _format_neg(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Negation node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -712,7 +712,7 @@ def _format_neg(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_neg
 
 
-def _format_mul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format multiplication expressions.
 
@@ -720,7 +720,7 @@ def _format_mul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Multiplication node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -738,7 +738,7 @@ def _format_mul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_mul
 
 
-def _format_matmul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format matrix multiplication expressions.
 
@@ -746,7 +746,7 @@ def _format_matmul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> s
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Matrix multiplication node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -767,7 +767,7 @@ def _format_matmul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> s
 # end def _format_matmul
 
 
-def _format_dot(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     """
     if len(expr.children) != 2:
@@ -781,7 +781,7 @@ def _format_dot(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_dot
 
 
-def _format_outer(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     """
     if len(expr.children) != 2:
@@ -795,7 +795,7 @@ def _format_outer(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> st
 # end def _format_outer
 
 
-def _format_mean(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -809,7 +809,7 @@ def _format_mean(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str
 # end def _format_mean
 
 
-def _format_sum(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -822,7 +822,7 @@ def _format_sum(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     return r"\sum" + str(operands[0])
 # end def _format_sum
 
-def _format_summation(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -839,7 +839,7 @@ def _format_summation(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -
  # end def _format_sum
 
 
-def _format_std(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -853,7 +853,7 @@ def _format_std(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_std
 
 
-def _format_div(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format division expressions.
 
@@ -861,7 +861,7 @@ def _format_div(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Division node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -880,7 +880,7 @@ def _format_div(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_div
 
 
-def _format_pow(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format exponentiation expressions.
 
@@ -888,7 +888,7 @@ def _format_pow(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Power node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -907,7 +907,7 @@ def _format_pow(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
 # end def _format_pow
 
 
-def _format_transpose(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -> str:
+def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
     """
     Format transpose expressions.
 
@@ -915,7 +915,7 @@ def _format_transpose(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule) -
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathExpr
+    expr : MathNode
         Transpose node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -985,13 +985,13 @@ _FUNCTION_COMMANDS: Dict[str, str] = {
 }
 
 
-def to_latex(expr: MathExpr) -> str:
+def to_latex(expr: MathNode) -> str:
     """
     Convert a :class:`MathExpr` into LaTeX math code.
 
     Parameters
     ----------
-    expr : MathExpr
+    expr : MathNode
         Expression tree to convert. The expression is treated as immutable
         input; it will not be evaluated or mutated.
 

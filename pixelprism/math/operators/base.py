@@ -219,11 +219,11 @@ class Operator(ABC):
         if v is None:
             return None
         try:
-            from ..math_expr import MathExpr  # local import to avoid cycles
+            from ..math_expr import MathNode  # local import to avoid cycles
         except Exception:  # pragma: no cover - defensive
             MathExpr = None  # type: ignore
         # end try
-        if MathExpr is not None and isinstance(v, MathExpr):
+        if MathNode is not None and isinstance(v, MathNode):
             return v.eval().item()
         # end if
         return v

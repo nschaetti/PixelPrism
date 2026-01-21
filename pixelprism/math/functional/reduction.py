@@ -28,7 +28,7 @@
 from typing import Union
 
 # Imports
-from pixelprism.math.math_expr import MathExpr
+from pixelprism.math.math_expr import MathNode
 from pixelprism.math.build import as_expr
 from .helpers import apply_operator
 
@@ -47,9 +47,9 @@ __all__ = [
 
 
 def sum(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """
     Sum of a tensor.
     """
@@ -65,9 +65,9 @@ def sum(
 
 
 def mean(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """
     Mean of a tensor.
     """
@@ -83,9 +83,9 @@ def mean(
 
 
 def std(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """
     Sum of a tensor.
     """
@@ -101,9 +101,9 @@ def std(
 
 
 def median(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """Median of a tensor."""
     op1 = as_expr(op1)
     axis = as_expr(axis) if axis is not None else None
@@ -112,9 +112,9 @@ def median(
 
 
 def max(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """Tensor maximum along the given axis."""
     op1 = as_expr(op1)
     axis = as_expr(axis) if axis is not None else None
@@ -123,9 +123,9 @@ def max(
 
 
 def min(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """Tensor minimum along the given axis."""
     op1 = as_expr(op1)
     axis = as_expr(axis) if axis is not None else None
@@ -134,9 +134,9 @@ def min(
 
 
 def q1(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """First quartile (25th percentile) along an axis."""
     op1 = as_expr(op1)
     axis = as_expr(axis) if axis is not None else None
@@ -145,9 +145,9 @@ def q1(
 
 
 def q3(
-        op1: MathExpr,
-        axis: MathExpr | int | None = None
-) -> MathExpr:
+        op1: MathNode,
+        axis: MathNode | int | None = None
+) -> MathNode:
     """Third quartile (75th percentile) along an axis."""
     op1 = as_expr(op1)
     axis = as_expr(axis) if axis is not None else None
@@ -156,11 +156,11 @@ def q3(
 
 
 def summation(
-        op1: MathExpr,
-        lower: Union["MathExpr", int],
-        upper: Union["MathExpr", int],
+        op1: MathNode,
+        lower: Union["MathNode", int],
+        upper: Union["MathNode", int],
         i: str
-) -> MathExpr:
+) -> MathNode:
     """
     Sum of a tensor.
     """
@@ -177,11 +177,11 @@ def summation(
 
 
 def product(
-        op1: MathExpr,
-        lower: Union["MathExpr", int],
-        upper: Union["MathExpr", int],
+        op1: MathNode,
+        lower: Union["MathNode", int],
+        upper: Union["MathNode", int],
         i: str
-) -> MathExpr:
+) -> MathNode:
     """
     Product of a tensor over a bounded variable.
     """

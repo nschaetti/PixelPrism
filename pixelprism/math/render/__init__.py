@@ -16,7 +16,7 @@ import cairosvg
 from PIL import Image
 
 from pixelprism.utils.latex import render_latex_to_svg
-from ..math_expr import MathExpr
+from ..math_expr import MathNode
 from .cache import LatexRenderCache
 from .latex import to_latex
 
@@ -39,7 +39,7 @@ def latex_to_svg(latex: str, output_path: str) -> None:
 # end def latex_to_svg
 
 
-def render_latex(expr: MathExpr, output_path: str | None = None) -> Image.Image:
+def render_latex(expr: MathNode, output_path: str | None = None) -> Image.Image:
     """
     Convert ``expr`` to LaTeX, render it as SVG, and return a PIL image.
 

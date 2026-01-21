@@ -26,10 +26,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from pixelprism.math import MathExpr, tensor, operator_registry
+from pixelprism.math import MathNode, tensor, operator_registry
 
 
-Operands = tuple[MathExpr, ...]
+Operands = tuple[MathNode, ...]
 
 
 def apply_operator(
@@ -37,7 +37,7 @@ def apply_operator(
         operands: Operands,
         display_name: str,
         **kwargs
-) -> MathExpr:
+) -> MathNode:
     """
     Build a MathExpr by applying a registered operator to operands.
 
@@ -54,7 +54,7 @@ def apply_operator(
 
     Returns
     -------
-    MathExpr
+    MathNode
         A new operator node wrapping the operands.
 
     Raises
@@ -103,7 +103,7 @@ def apply_operator(
         raise ValueError(f"Invalid parameters for operator {op.name}: {kwargs}")
     # end if
 
-    return MathExpr(
+    return MathNode(
         name=display_name,
         op=op,
         children=operands,

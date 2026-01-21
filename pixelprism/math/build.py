@@ -29,7 +29,7 @@
 from typing import Any, Union, Optional
 import numpy as np
 
-from .math_expr import MathExpr, MathLeaf
+from .math_expr import MathNode, MathLeaf
 from .dtype import ScalarType, DType, AnyDType, NestedListType
 from .tensor import DataType
 from .utils import tensor, const
@@ -39,9 +39,9 @@ __all__ = ["as_expr"]
 
 
 def as_expr(
-        obj: Union[MathExpr, DataType],
+        obj: Union[MathNode, DataType],
         dtype: Optional[AnyDType] = None,
-) -> MathExpr:
+) -> MathNode:
     """
     Convert Python and NumPy inputs to a :class:`~pixelprism.math.MathExpr`.
 
@@ -63,7 +63,7 @@ def as_expr(
 
     Parameters
     ----------
-    obj : MathExpr | DataType | numpy.ndarray
+    obj : MathNode | DataType | numpy.ndarray
         Input object to convert.
     dtype : AnyDType | None, default None
         Target dtype for scalar, list, and array inputs. When ``None``,
@@ -71,7 +71,7 @@ def as_expr(
 
     Returns
     -------
-    MathExpr
+    MathNode
         A math expression node representing the input.
 
     Examples
@@ -88,11 +88,11 @@ def as_expr(
     >>> as_expr([[1, 2], [3, 4]], dtype=None).dtype
     <DType.FLOAT64: 'float64'>
     """
-    if isinstance(obj, MathExpr):
+    if isinstance(obj, MathNode):
         return obj
     if isinstance(obj, ScalarType) or isinstance(obj, np.ndarray):
         return const(
-            name=f"constant_{MathExpr.next_id()}",
+            name=f"constant_{MathNode.next_id()}",
             data=obj,
             dtype=dtype
         )
@@ -100,7 +100,7 @@ def as_expr(
         return obj
     if isinstance(obj, (list, tuple)):
         return const(
-            name=f"constant_{MathExpr.next_id()}",
+            name=f"constant_{MathNode.next_id()}",
             data=obj,
             dtype=dtype or DType.FLOAT64
         )

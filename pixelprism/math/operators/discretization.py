@@ -160,11 +160,11 @@ class Round(UnaryElementwiseParametricOperator):
     ):
         super().__init__(**kwargs)
         from ..utils import const, random_const_name
-        from ..math_expr import MathExpr
+        from ..math_expr import MathNode
         if decimals is None:
             decimals = const(random_const_name("round-decimals-"), 0)
         # end if
-        self._decimals: 'MathExpr' = decimals if isinstance(decimals, MathExpr) \
+        self._decimals: 'MathNode' = decimals if isinstance(decimals, MathNode) \
             else const(name=random_const_name("round-decimals-"), data=decimals)
     # end def __init__
 
@@ -197,13 +197,13 @@ class Clip(UnaryElementwiseParametricOperator):
     ):
         super().__init__(**kwargs)
         from ..utils import const, random_const_name
-        from ..math_expr import MathExpr
+        from ..math_expr import MathNode
         if min_value is None and max_value is None:
             raise ValueError("Clip requires at least one of min_value or max_value.")
         # end if
-        self._min_value = min_value if isinstance(min_value, MathExpr) or min_value is None \
+        self._min_value = min_value if isinstance(min_value, MathNode) or min_value is None \
             else const(random_const_name("clip-min-"), min_value)
-        self._max_value = max_value if isinstance(max_value, MathExpr) or max_value is None \
+        self._max_value = max_value if isinstance(max_value, MathNode) or max_value is None \
             else const(random_const_name("clip-max-"), max_value)
     # end def __init__
 

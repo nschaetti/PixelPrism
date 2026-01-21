@@ -1,0 +1,102 @@
+:root {
+  /* Catppuccin Latte base tokens used for the light scheme */
+  --catppuccin-latte-base: #eff1f5;
+  --catppuccin-latte-mantle: #e6e9ef;
+  --catppuccin-latte-crust: #dce0e8;
+  --catppuccin-latte-text: #4c4f69;
+  --catppuccin-latte-subtext0: #6c6f85;
+  --catppuccin-latte-subtext1: #5c5f77;
+  --catppuccin-latte-overlay2: #6c7086;
+  --catppuccin-latte-overlay1: #7c7f93;
+  --catppuccin-latte-overlay0: #8c8fa1;
+  --catppuccin-latte-surface2: #bcc0cc;
+  --catppuccin-latte-surface1: #ccd0da;
+  --catppuccin-latte-surface0: #e6e9ef;
+  --catppuccin-latte-blue: #1e66f5;
+  --catppuccin-latte-lavender: #7287fd;
+  --catppuccin-latte-rosewater: #dc8a78;
+  --catppuccin-latte-green: #40a02b;
+  --catppuccin-latte-pink: #ea76cb;
+
+  /* Catppuccin Mocha base tokens used for the dark scheme */
+  --catppuccin-mocha-base: #1e1e2e;
+  --catppuccin-mocha-mantle: #181825;
+  --catppuccin-mocha-crust: #11111b;
+  --catppuccin-mocha-text: #cdd6f4;
+  --catppuccin-mocha-subtext0: #a6adc8;
+  --catppuccin-mocha-subtext1: #bac2de;
+  --catppuccin-mocha-overlay2: #9399b2;
+  --catppuccin-mocha-overlay1: #7f849c;
+  --catppuccin-mocha-overlay0: #6c7086;
+  --catppuccin-mocha-surface2: #585b70;
+  --catppuccin-mocha-surface1: #45475a;
+  --catppuccin-mocha-surface0: #313244;
+  --catppuccin-mocha-blue: #89b4fa;
+  --catppuccin-mocha-lavender: #b4befe;
+  --catppuccin-mocha-rosewater: #f5e0dc;
+  --catppuccin-mocha-green: #a6e3a1;
+  --catppuccin-mocha-pink: #f5c2e7;
+}
+
+[data-md-color-scheme="catppuccin-latte"] {
+  /* Primary/accent colors drive navigation, buttons, and focus states */
+  --md-primary-fg-color: #9ae2c3;
+  --md-primary-fg-color--light: #bcf0d6;
+  --md-primary-fg-color--dark: #4f9e7f;
+  --md-accent-fg-color: var(--catppuccin-latte-pink);
+
+  /* Default fg/bg colors affect page background and body text */
+  --md-default-bg-color: #1e2129;
+  --md-default-fg-color: #f5f5f7;
+  --md-default-fg-color--light: rgba(245, 245, 247, 0.86);
+  --md-default-fg-color--lighter: rgba(245, 245, 247, 0.72);
+  --md-typeset-color: #fefefe;
+
+  /* Code blocks inherit these colors */
+  --md-code-bg-color: var(--catppuccin-latte-surface0);
+  --md-code-fg-color: var(--catppuccin-latte-text);
+
+  /* Link colors and footer backgrounds */
+  --md-typeset-a-color: var(--catppuccin-latte-blue);
+  --md-footer-bg-color: var(--catppuccin-latte-mantle);
+  --md-footer-fg-color: var(--catppuccin-latte-text);
+  color-scheme: light;
+}
+
+[data-md-color-scheme="catppuccin-mocha"] {
+  /* Primary/accent colors for the dark scheme */
+  --md-primary-fg-color: #9ae2c3;
+  --md-primary-fg-color--light: #bcf0d6;
+  --md-primary-fg-color--dark: #4f9e7f;
+  --md-accent-fg-color: var(--catppuccin-mocha-pink);
+
+  /* Default fg/bg colors for pages and typography */
+  --md-default-bg-color: #1e2129;
+  --md-default-fg-color: #ffffff;
+  --md-default-fg-color--light: rgba(255, 255, 255, 0.86);
+  --md-default-fg-color--lighter: rgba(255, 255, 255, 0.72);
+  --md-typeset-color: #ffffff;
+
+  /* Code block colors */
+  --md-code-bg-color: var(--catppuccin-mocha-surface0);
+  --md-code-fg-color: var(--catppuccin-mocha-rosewater);
+
+  /* Links and footer chrome */
+  --md-typeset-a-color: var(--catppuccin-mocha-lavender);
+  --md-footer-bg-color: var(--catppuccin-mocha-crust);
+  --md-footer-fg-color: var(--catppuccin-mocha-text);
+  color-scheme: dark;
+}
+
+/* Slight rounding on inline code for both schemes */
+[data-md-color-scheme="catppuccin-mocha"] .md-typeset code,
+[data-md-color-scheme="catppuccin-latte"] .md-typeset code {
+  border-radius: 0.4rem;
+}
+
+/* Link hover tweaks for both schemes */
+[data-md-color-scheme="catppuccin-mocha"] .md-typeset a:hover,
+[data-md-color-scheme="catppuccin-latte"] .md-typeset a:hover {
+  text-decoration: none;
+  opacity: 0.9;
+}

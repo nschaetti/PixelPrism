@@ -26,7 +26,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 from pixelprism.math.functional.helpers import apply_operator
-from pixelprism.math.math_expr import MathExpr
+from pixelprism.math.math_expr import MathNode
 from pixelprism.math.build import as_expr
 
 
@@ -56,22 +56,22 @@ __all__ = [
 
 
 def add(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Element-wise addition of two operands.
 
     Parameters
     ----------
-    op1 : MathExpr
+    op1 : MathNode
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathExpr
+    op2 : MathNode
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression node representing the addition.
 
     Raises
@@ -101,22 +101,22 @@ def add(
 
 
 def sub(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Element-wise subtraction of two operands.
 
     Parameters
     ----------
-    op1 : MathExpr
+    op1 : MathNode
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathExpr
+    op2 : MathNode
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression node representing the subtraction.
 
     Raises
@@ -146,22 +146,22 @@ def sub(
 
 
 def mul(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Element-wise multiplication of two operands.
 
     Parameters
     ----------
-    op1 : MathExpr
+    op1 : MathNode
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathExpr
+    op2 : MathNode
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression node representing the multiplication.
 
     Raises
@@ -191,22 +191,22 @@ def mul(
 
 
 def div(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Element-wise division of two operands.
 
     Parameters
     ----------
-    op1 : MathExpr
+    op1 : MathNode
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathExpr
+    op2 : MathNode
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression node representing the division.
 
     Raises
@@ -236,22 +236,22 @@ def div(
 
 
 def pow(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Element-wise exponentiation of two operands.
 
     Parameters
     ----------
-    op1 : MathExpr
+    op1 : MathNode
         Base operand.
-    op2 : MathExpr
+    op2 : MathNode
         Exponent operand.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression node representing the exponentiation.
     """
     op1 = as_expr(op1)
@@ -264,7 +264,7 @@ def pow(
 # end def pow
 
 
-def exp(op: MathExpr) -> MathExpr:
+def exp(op: MathNode) -> MathNode:
     """
     Element-wise exponential of an operand.
     """
@@ -277,7 +277,7 @@ def exp(op: MathExpr) -> MathExpr:
 # end def exp
 
 
-def exp2(op: MathExpr) -> MathExpr:
+def exp2(op: MathNode) -> MathNode:
     """
     Element-wise base-2 exponential of an operand.
     """
@@ -290,7 +290,7 @@ def exp2(op: MathExpr) -> MathExpr:
 # end def exp2
 
 
-def expm1(op: MathExpr) -> MathExpr:
+def expm1(op: MathNode) -> MathNode:
     """
     Element-wise exp(x) - 1 of an operand.
     """
@@ -303,7 +303,7 @@ def expm1(op: MathExpr) -> MathExpr:
 # end def expm1
 
 
-def log(op: MathExpr) -> MathExpr:
+def log(op: MathNode) -> MathNode:
     """
     Element-wise natural logarithm of an operand.
     """
@@ -316,7 +316,7 @@ def log(op: MathExpr) -> MathExpr:
 # end def log
 
 
-def log1p(op: MathExpr) -> MathExpr:
+def log1p(op: MathNode) -> MathNode:
     """
     Element-wise log(1 + x) of an operand.
     """
@@ -329,7 +329,7 @@ def log1p(op: MathExpr) -> MathExpr:
 # end def log1p
 
 
-def log2(op: MathExpr) -> MathExpr:
+def log2(op: MathNode) -> MathNode:
     """
     Element-wise base-2 logarithm of an operand.
     """
@@ -342,7 +342,7 @@ def log2(op: MathExpr) -> MathExpr:
 # end def log2
 
 
-def log10(op: MathExpr) -> MathExpr:
+def log10(op: MathNode) -> MathNode:
     """
     Element-wise base-10 logarithm of an operand.
     """
@@ -355,7 +355,7 @@ def log10(op: MathExpr) -> MathExpr:
 # end def log10
 
 
-def sqrt(op: MathExpr) -> MathExpr:
+def sqrt(op: MathNode) -> MathNode:
     """
     Element-wise square root of an operand.
     """
@@ -368,7 +368,7 @@ def sqrt(op: MathExpr) -> MathExpr:
 # end def sqrt
 
 
-def square(op: MathExpr) -> MathExpr:
+def square(op: MathNode) -> MathNode:
     """
     Element-wise square of an operand.
     """
@@ -381,7 +381,7 @@ def square(op: MathExpr) -> MathExpr:
 # end def square
 
 
-def cbrt(op: MathExpr) -> MathExpr:
+def cbrt(op: MathNode) -> MathNode:
     """
     Element-wise cubic root of an operand.
     """
@@ -394,7 +394,7 @@ def cbrt(op: MathExpr) -> MathExpr:
 # end def cbrt
 
 
-def reciprocal(op: MathExpr) -> MathExpr:
+def reciprocal(op: MathNode) -> MathNode:
     """
     Element-wise reciprocal of an operand.
     """
@@ -407,7 +407,7 @@ def reciprocal(op: MathExpr) -> MathExpr:
 # end def reciprocal
 
 
-def deg2rad(op: MathExpr) -> MathExpr:
+def deg2rad(op: MathNode) -> MathNode:
     """
     Convert degrees to radians element-wise.
     """
@@ -420,7 +420,7 @@ def deg2rad(op: MathExpr) -> MathExpr:
 # end def deg2rad
 
 
-def rad2deg(op: MathExpr) -> MathExpr:
+def rad2deg(op: MathNode) -> MathNode:
     """
     Convert radians to degrees element-wise.
     """
@@ -433,7 +433,7 @@ def rad2deg(op: MathExpr) -> MathExpr:
 # end def rad2deg
 
 
-def absolute(op: MathExpr) -> MathExpr:
+def absolute(op: MathNode) -> MathNode:
     """
     Element-wise absolute value of an operand.
     """
@@ -446,7 +446,7 @@ def absolute(op: MathExpr) -> MathExpr:
 # end def absolute
 
 
-def abs(op: MathExpr) -> MathExpr:
+def abs(op: MathNode) -> MathNode:
     """
     Element-wise absolute value alias.
     """
@@ -459,18 +459,18 @@ def abs(op: MathExpr) -> MathExpr:
 # end def abs
 
 
-def neg(op: MathExpr) -> MathExpr:
+def neg(op: MathNode) -> MathNode:
     """
     Element-wise negation of a single operand.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to negate. Non-expressions are converted via :func:`as_expr`.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression node representing the negation.
 
     Raises

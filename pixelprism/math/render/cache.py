@@ -10,7 +10,7 @@ from __future__ import annotations
 import weakref
 from typing import Callable
 
-from ..math_expr import MathExpr
+from ..math_expr import MathNode
 
 __all__ = ["LatexRenderCache"]
 
@@ -28,9 +28,9 @@ class LatexRenderCache:
     """
 
     def __init__(self) -> None:
-        self._store: "weakref.WeakKeyDictionary[MathExpr, str]" = weakref.WeakKeyDictionary()
+        self._store: "weakref.WeakKeyDictionary[MathNode, str]" = weakref.WeakKeyDictionary()
 
-    def get(self, expr: MathExpr, factory: Callable[[MathExpr], str]) -> str:
+    def get(self, expr: MathNode, factory: Callable[[MathNode], str]) -> str:
         """
         Retrieve the cached LaTeX string for ``expr`` or compute it on-demand.
 

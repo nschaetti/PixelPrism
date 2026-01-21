@@ -7,7 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Iterable, Mapping, Tuple
 
-from pixelprism.math import MathExpr
+from pixelprism.math import MathNode
 
 
 @dataclass(frozen=True)
@@ -28,22 +28,22 @@ class Graph:
 # end class Graph
 
 
-def extract(expr: MathExpr) -> Graph:
+def extract(expr: MathNode) -> Graph:
     """
     Extract a backend-independent graph from a MathExpr.
     """
-    visited: Dict[MathExpr, str] = {}
+    visited: Dict[MathNode, str] = {}
     nodes: Dict[str, Node] = {}
     edges: list[Tuple[str, str]] = []
 
-    def _label(node: MathExpr) -> str:
+    def _label(node: MathNode) -> str:
         if node.name:
             return node.name
         # end if
         return node.__class__.__name__
     # end def _label
 
-    def _meta(node: MathExpr) -> Dict[str, str]:
+    def _meta(node: MathNode) -> Dict[str, str]:
         meta: Dict[str, str] = {
             "id": node.identifier,
             "type": node.__class__.__name__,
@@ -68,7 +68,7 @@ def extract(expr: MathExpr) -> Graph:
         return meta
     # end def _meta
 
-    def _visit(node: MathExpr) -> str:
+    def _visit(node: MathNode) -> str:
         if node in visited:
             return visited[node]
         # end if

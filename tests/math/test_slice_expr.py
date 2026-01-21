@@ -74,7 +74,7 @@ def test_slice_expr_accepts_constant_expression():
 
     assert expr.start_value == 3
     assert expr.stop_value == 6
-    assert isinstance(expr.start, pm.MathExpr)
+    assert isinstance(expr.start, pm.MathNode)
 # end test_slice_expr_accepts_constant_expression
 
 

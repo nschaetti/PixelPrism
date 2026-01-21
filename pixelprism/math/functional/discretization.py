@@ -29,7 +29,7 @@
 # Imports
 from pixelprism.math.build import as_expr
 from pixelprism.math.functional.helpers import apply_operator
-from pixelprism.math.math_expr import MathExpr
+from pixelprism.math.math_expr import MathNode
 
 
 __all__ = [
@@ -43,42 +43,42 @@ __all__ = [
 ]
 
 
-def sign(op: MathExpr) -> MathExpr:
+def sign(op: MathNode) -> MathNode:
     """Element-wise sign."""
     op = as_expr(op)
     return apply_operator("sign", (op,), f"sign({op.name})")
 # end def sign
 
 
-def floor(op: MathExpr) -> MathExpr:
+def floor(op: MathNode) -> MathNode:
     """Element-wise floor."""
     op = as_expr(op)
     return apply_operator("floor", (op,), f"floor({op.name})")
 # end def floor
 
 
-def ceil(op: MathExpr) -> MathExpr:
+def ceil(op: MathNode) -> MathNode:
     """Element-wise ceiling."""
     op = as_expr(op)
     return apply_operator("ceil", (op,), f"ceil({op.name})")
 # end def ceil
 
 
-def trunc(op: MathExpr) -> MathExpr:
+def trunc(op: MathNode) -> MathNode:
     """Element-wise truncation."""
     op = as_expr(op)
     return apply_operator("trunc", (op,), f"trunc({op.name})")
 # end def trunc
 
 
-def rint(op: MathExpr) -> MathExpr:
+def rint(op: MathNode) -> MathNode:
     """Element-wise rounding to the nearest integer."""
     op = as_expr(op)
     return apply_operator("rint", (op,), f"rint({op.name})")
 # end def rint
 
 
-def round(op: MathExpr, decimals: int = 0) -> MathExpr:
+def round(op: MathNode, decimals: int = 0) -> MathNode:
     """Element-wise rounding with configurable decimals."""
     op = as_expr(op)
     return apply_operator("round", (op,), f"round({op.name})", decimals=decimals)
@@ -86,10 +86,10 @@ def round(op: MathExpr, decimals: int = 0) -> MathExpr:
 
 
 def clip(
-        op: MathExpr,
-        min_value: MathExpr | float | int | None = None,
-        max_value: MathExpr | float | int | None = None
-) -> MathExpr:
+        op: MathNode,
+        min_value: MathNode | float | int | None = None,
+        max_value: MathNode | float | int | None = None
+) -> MathNode:
     """Element-wise clipping with optional bounds."""
     if min_value is None and max_value is None:
         raise ValueError("clip requires at least one of min_value or max_value.")

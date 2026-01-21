@@ -67,8 +67,8 @@ def _resolve_operator_class(package, class_name: str) -> Type:
 
 
 def add(
-        operand1: m.MathExpr,
-        operand2: m.MathExpr
+        operand1: m.MathNode,
+        operand2: m.MathNode
 ) -> m.MathOperator:
     """
     Add two math_old expressions.

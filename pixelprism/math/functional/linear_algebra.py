@@ -27,7 +27,7 @@
 #
 from typing import Sequence, Union, Optional
 
-from pixelprism.math.math_expr import MathExpr
+from pixelprism.math.math_expr import MathNode
 from pixelprism.math.build import as_expr
 from .helpers import apply_operator
 
@@ -43,9 +43,9 @@ __all__ = [
 
 
 def matmul(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Matrix-multiplication of two operands.
     """
@@ -60,9 +60,9 @@ def matmul(
 
 
 def dot(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Dot product of two operands.
     """
@@ -77,9 +77,9 @@ def dot(
 
 
 def outer(
-        op1: MathExpr,
-        op2: MathExpr
-) -> MathExpr:
+        op1: MathNode,
+        op2: MathNode
+) -> MathNode:
     """
     Outer product of two operands.
     """
@@ -94,8 +94,8 @@ def outer(
 
 
 def trace(
-        op1: MathExpr
-) -> MathExpr:
+        op1: MathNode
+) -> MathNode:
     """
     Trace of a matrix.
     """
@@ -109,9 +109,9 @@ def trace(
 
 
 def transpose(
-        op1: MathExpr,
-        axes: Optional[Union[MathExpr, Sequence[int]]] = None
-) -> MathExpr:
+        op1: MathNode,
+        axes: Optional[Union[MathNode, Sequence[int]]] = None
+) -> MathNode:
     """
     Transpose of a matrix.
     """
@@ -125,8 +125,8 @@ def transpose(
 
 
 def det(
-        op1: MathExpr,
-) -> MathExpr:
+        op1: MathNode,
+) -> MathNode:
     """
     Determinant of a matrix.
     """
@@ -139,8 +139,8 @@ def det(
 
 
 def inverse(
-        op1: MathExpr,
-) -> MathExpr:
+        op1: MathNode,
+) -> MathNode:
     """
     Inverse of a matrix.
     """

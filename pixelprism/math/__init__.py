@@ -61,7 +61,7 @@ from .helpers import (
     transpose_python,
     unravel_index,
 )
-from .math_expr import MathExpr, MathLeaf, Variable, Constant
+from .math_expr import MathNode, MathLeaf, Variable, Constant
 from .operators import Operator, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
 from .shape import Dim, Dims, Shape, AnyShape
 from .tensor import (
@@ -147,7 +147,7 @@ __all__ = [
     "ScalarType",
     "NestedListType",
     # Math Expr
-    "MathExpr",
+    "MathNode",
     "MathLeaf",
     "Variable",
     "Constant",

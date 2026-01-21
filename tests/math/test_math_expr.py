@@ -2,7 +2,7 @@ import pytest
 
 from pixelprism.math.dtype import DType
 from pixelprism.math.math_expr import (
-    MathExpr,
+    MathNode,
     MathLeaf,
     MathExprNotImplementedError,
     MathExprOperatorError,
@@ -39,7 +39,7 @@ class DummyLeaf(MathLeaf):
 # end class DummyLeak
 
 
-class TrackableMathExpr(MathExpr):
+class TrackableMathNode(MathNode):
     """MathExpr subclass that supports weak references for parent tracking."""
     pass
 # end class TrackableMathExpr
@@ -102,7 +102,7 @@ def _make_node(
         name="node",
         op_name="sum",
         fn=None,
-        expr_cls=MathExpr
+        expr_cls=MathNode
 ):
     return expr_cls(
         name=name,
@@ -134,7 +134,7 @@ def test_math_expr_basic_properties_and_leaf_detection():
     assert node.is_node()
     assert not node.is_leaf()
 
-    leaf_like = MathExpr(
+    leaf_like = MathNode(
         name="leafish",
         op=None,
         children=(),
@@ -155,7 +155,7 @@ def test_math_expr_eval_and_parent_registration():
     node = _make_node(
         (child1, child2),
         fn=lambda values: sum(values),
-        expr_cls=TrackableMathExpr,
+        expr_cls=TrackableMathNode,
     )
 
     first_eval = node.eval()
@@ -179,7 +179,7 @@ def test_math_expr_operator_mismatch_raises():
     bad_op = DummyOp(name="bad", arity=1)
 
     with pytest.raises(MathExprOperatorError):
-        MathExpr(
+        MathNode(
             name="bad_node",
             op=bad_op,
             children=(child1, child2),
@@ -239,12 +239,12 @@ def test_math_expr_operator_overloads_dispatch(monkeypatch):
 
     non_expr = NonExpr()
 
-    monkeypatch.setattr(MathExpr, "add", lambda a, b: ("add", a, b))
-    monkeypatch.setattr(MathExpr, "sub", lambda a, b: ("sub", a, b))
-    monkeypatch.setattr(MathExpr, "mul", lambda a, b: ("mul", a, b))
-    monkeypatch.setattr(MathExpr, "div", lambda a, b: ("div", a, b))
-    monkeypatch.setattr(MathExpr, "pow", lambda a, b: ("pow", a, b))
-    monkeypatch.setattr(MathExpr, "neg", lambda a: ("neg", a))
+    monkeypatch.setattr(MathNode, "add", lambda a, b: ("add", a, b))
+    monkeypatch.setattr(MathNode, "sub", lambda a, b: ("sub", a, b))
+    monkeypatch.setattr(MathNode, "mul", lambda a, b: ("mul", a, b))
+    monkeypatch.setattr(MathNode, "div", lambda a, b: ("div", a, b))
+    monkeypatch.setattr(MathNode, "pow", lambda a, b: ("pow", a, b))
+    monkeypatch.setattr(MathNode, "neg", lambda a: ("neg", a))
 
     assert node + other == ("add", node, other)
     assert non_expr + node == ("add", non_expr, node)

@@ -34,7 +34,7 @@ from __future__ import annotations
 import numpy as np
 
 import pixelprism.math as pm
-from pixelprism.math.math_expr import MathExpr
+from pixelprism.math.math_expr import MathNode
 from pixelprism.math.tensor import Tensor
 
 SCALAR_KINDS = (
@@ -55,18 +55,18 @@ TENSOR_SCALAR_KINDS = (
 )
 
 
-def make_tensor(value: float, name: str) -> MathExpr:
+def make_tensor(value: float, name: str) -> MathNode:
     """Create a scalar constant expression for tests."""
     return pm.const(name=name, data=value, dtype=pm.DType.FLOAT32)
 
 
-def make_tensor_array(values, name: str) -> MathExpr:
+def make_tensor_array(values, name: str) -> MathNode:
     """Create an array constant expression for tests."""
     data = np.asarray(values, dtype=np.float32)
     return pm.const(name=name, data=data, dtype=pm.DType.FLOAT32)
 
 
-def eval_expr_value(expr: MathExpr) -> np.ndarray:
+def eval_expr_value(expr: MathNode) -> np.ndarray:
     """Evaluate a MathExpr and return its NumPy array payload."""
     result = expr.eval()
     if isinstance(result, Tensor):
@@ -75,14 +75,14 @@ def eval_expr_value(expr: MathExpr) -> np.ndarray:
 # end def eval_expr_value
 
 
-def assert_expr_allclose(expr: MathExpr, expected, **kwargs) -> None:
+def assert_expr_allclose(expr: MathNode, expected, **kwargs) -> None:
     """Assert that a MathExpr evaluates close to ``expected``."""
     np.testing.assert_allclose(eval_expr_value(expr), np.asarray(expected), **kwargs)
 # end def assert_expr_allclose
 
 
 def as_expected_array(value):
-    if isinstance(value, MathExpr):
+    if isinstance(value, MathNode):
         return eval_expr_value(value)
     if isinstance(value, Tensor):
         return value.value

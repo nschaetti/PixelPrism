@@ -30,7 +30,7 @@ Trigonometric functional helpers.
 """
 
 from pixelprism.math.build import as_expr
-from pixelprism.math.math_expr import MathExpr
+from pixelprism.math.math_expr import MathNode
 
 from .helpers import apply_operator
 
@@ -54,7 +54,7 @@ __all__ = [
 ]
 
 
-def _unary(name: str, operand: MathExpr, display: str) -> MathExpr:
+def _unary(name: str, operand: MathNode, display: str) -> MathNode:
     """
     Apply a registered unary trigonometric operator.
 
@@ -62,14 +62,14 @@ def _unary(name: str, operand: MathExpr, display: str) -> MathExpr:
     ----------
     name : str
         Operator name registered in :class:`pixelprism.math.operators.OperatorRegistry`.
-    operand : MathExpr
+    operand : MathNode
         Operand to convert via :func:`as_expr`.
     display : str
         Display template referencing ``{op.name}``.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression node wrapping the operator application.
 
     Examples
@@ -85,7 +85,7 @@ def _unary(name: str, operand: MathExpr, display: str) -> MathExpr:
 # end def _unary
 
 
-def _binary(name: str, op1: MathExpr, op2: MathExpr, display: str) -> MathExpr:
+def _binary(name: str, op1: MathNode, op2: MathNode, display: str) -> MathNode:
     """
     Apply a registered binary trigonometric operator.
 
@@ -93,16 +93,16 @@ def _binary(name: str, op1: MathExpr, op2: MathExpr, display: str) -> MathExpr:
     ----------
     name : str
         Operator name.
-    op1 : MathExpr
+    op1 : MathNode
         First operand.
-    op2 : MathExpr
+    op2 : MathNode
         Second operand.
     display : str
         Template referencing ``{lhs.name}`` and ``{rhs.name}``.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Resulting operator node.
 
     Examples
@@ -120,18 +120,18 @@ def _binary(name: str, op1: MathExpr, op2: MathExpr, display: str) -> MathExpr:
 # end def _binary
 
 
-def sin(op: MathExpr) -> MathExpr:
+def sin(op: MathNode) -> MathNode:
     """
     Element-wise sine of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\sin(op)`.
 
     Examples
@@ -145,7 +145,7 @@ def sin(op: MathExpr) -> MathExpr:
 # end def sin
 
 
-def cos(op: MathExpr) -> MathExpr:
+def cos(op: MathNode) -> MathNode:
     """
     Element-wise cosine of ``op``.
 
@@ -160,18 +160,18 @@ def cos(op: MathExpr) -> MathExpr:
 # end def cos
 
 
-def tan(op: MathExpr) -> MathExpr:
+def tan(op: MathNode) -> MathNode:
     """
     Element-wise tangent of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\tan(op)`.
 
     Examples
@@ -185,18 +185,18 @@ def tan(op: MathExpr) -> MathExpr:
 # end def tan
 
 
-def asin(op: MathExpr) -> MathExpr:
+def asin(op: MathNode) -> MathNode:
     """
     Element-wise inverse sine of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\arcsin(op)`.
 
     Examples
@@ -210,7 +210,7 @@ def asin(op: MathExpr) -> MathExpr:
 # end def asin
 
 
-def acos(op: MathExpr) -> MathExpr:
+def acos(op: MathNode) -> MathNode:
     """
     Element-wise inverse cosine of ``op``.
 
@@ -225,7 +225,7 @@ def acos(op: MathExpr) -> MathExpr:
 # end def acos
 
 
-def atan(op: MathExpr) -> MathExpr:
+def atan(op: MathNode) -> MathNode:
     """
     Element-wise inverse tangent of ``op``.
 
@@ -240,20 +240,20 @@ def atan(op: MathExpr) -> MathExpr:
 # end def atan
 
 
-def atan2(op1: MathExpr, op2: MathExpr) -> MathExpr:
+def atan2(op1: MathNode, op2: MathNode) -> MathNode:
     """
     Element-wise :func:`numpy.arctan2` of ``op1`` and ``op2``.
 
     Parameters
     ----------
-    op1 : MathExpr
+    op1 : MathNode
         Numerator operand (``y``).
-    op2 : MathExpr
+    op2 : MathNode
         Denominator operand (``x``).
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\operatorname{atan2}(op1, op2)`.
 
     Examples
@@ -269,18 +269,18 @@ def atan2(op1: MathExpr, op2: MathExpr) -> MathExpr:
 # end def atan2
 
 
-def sec(op: MathExpr) -> MathExpr:
+def sec(op: MathNode) -> MathNode:
     """
     Element-wise secant of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`1/\\cos(op)`.
 
     Examples
@@ -294,18 +294,18 @@ def sec(op: MathExpr) -> MathExpr:
 # end def sec
 
 
-def csc(op: MathExpr) -> MathExpr:
+def csc(op: MathNode) -> MathNode:
     """
     Element-wise cosecant of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`1/\\sin(op)`.
 
     Examples
@@ -319,18 +319,18 @@ def csc(op: MathExpr) -> MathExpr:
 # end def csc
 
 
-def cot(op: MathExpr) -> MathExpr:
+def cot(op: MathNode) -> MathNode:
     """
     Element-wise cotangent of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`1/\\tan(op)`.
 
     Examples
@@ -344,18 +344,18 @@ def cot(op: MathExpr) -> MathExpr:
 # end def cot
 
 
-def sinh(op: MathExpr) -> MathExpr:
+def sinh(op: MathNode) -> MathNode:
     """
     Element-wise hyperbolic sine of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\sinh(op)`.
 
     Examples
@@ -369,18 +369,18 @@ def sinh(op: MathExpr) -> MathExpr:
 # end def sinh
 
 
-def cosh(op: MathExpr) -> MathExpr:
+def cosh(op: MathNode) -> MathNode:
     """
     Element-wise hyperbolic cosine of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\cosh(op)`.
 
     Examples
@@ -394,18 +394,18 @@ def cosh(op: MathExpr) -> MathExpr:
 # end def cosh
 
 
-def tanh(op: MathExpr) -> MathExpr:
+def tanh(op: MathNode) -> MathNode:
     """
     Element-wise hyperbolic tangent of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\tanh(op)`.
 
     Examples
@@ -419,18 +419,18 @@ def tanh(op: MathExpr) -> MathExpr:
 # end def tanh
 
 
-def asinh(op: MathExpr) -> MathExpr:
+def asinh(op: MathNode) -> MathNode:
     """
     Element-wise inverse hyperbolic sine of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\operatorname{asinh}(op)`.
 
     Examples
@@ -444,18 +444,18 @@ def asinh(op: MathExpr) -> MathExpr:
 # end def asinh
 
 
-def acosh(op: MathExpr) -> MathExpr:
+def acosh(op: MathNode) -> MathNode:
     """
     Element-wise inverse hyperbolic cosine of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\operatorname{acosh}(op)`.
 
     Examples
@@ -469,18 +469,18 @@ def acosh(op: MathExpr) -> MathExpr:
 # end def acosh
 
 
-def atanh(op: MathExpr) -> MathExpr:
+def atanh(op: MathNode) -> MathNode:
     """
     Element-wise inverse hyperbolic tangent of ``op``.
 
     Parameters
     ----------
-    op : MathExpr
+    op : MathNode
         Operand to transform.
 
     Returns
     -------
-    MathExpr
+    MathNode
         Expression representing :math:`\\operatorname{atanh}(op)`.
 
     Examples

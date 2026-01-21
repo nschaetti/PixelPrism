@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Callable, Dict
 
-from pixelprism.math import MathExpr
+from pixelprism.math import MathNode
 
 from .extract import Graph, extract
 
@@ -46,7 +46,7 @@ _BACKENDS: Dict[str, Callable[[], Callable[..., object]]] = {
 
 
 def inspect(
-        expr: MathExpr,
+        expr: MathNode,
         *,
         backend: str = "topological",
         **backend_kwargs
