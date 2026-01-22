@@ -62,6 +62,9 @@ from .discretization import (
     round,
     clip,
 )
+from .structure import (
+    getitem
+)
 
 
 __all__ = [
@@ -130,5 +133,7 @@ __all__ = [
     "q1",
     "q3",
     "summation",
-    "product"
+    "product",
+    # Structure
+    "getitem"
 ]

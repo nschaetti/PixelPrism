@@ -88,6 +88,9 @@ from .reduction import (
     Summation,
     Product,
 )
+from .structure import (
+    Getitem
+)
 from .trigo import (
     Acos,
     Acosh,
@@ -180,4 +183,6 @@ __all__ = [
     "Q3",
     "Summation",
     "Product",
+    # Structure
+    "Getitem",
 ]

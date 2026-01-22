@@ -33,6 +33,8 @@ Structure operator implementations.
 from abc import ABC
 from typing import Optional, Sequence, Union, Any, List
 
+import numpy as np
+
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor, einsum
@@ -48,6 +50,15 @@ class StructureOperator(Operator, ABC):
     """
     Linear algebra operator.
     """
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        self._parameters: dict[str, Any] = kwargs
+
+        if not self.check_parameters(**kwargs):
+            raise ValueError(f"Invalid parameters for operator {self.NAME}: {kwargs}")
+        # end if
+    # end def __init__
 
     def contains(
             self,
@@ -70,20 +81,26 @@ class StructureOperator(Operator, ABC):
 class Getitem(StructureOperator):
     """Getitem operator."""
 
-    def __init__(self, indices: List[Union[SliceExpr, int]], **kwargs):
-        super().__init__(**kwargs)
+    NAME = "getitem"
+    ARITY = 1
+
+    def __init__(self, indices: List[Union[SliceExpr, int]]):
+        super().__init__(indices=indices)
         self._indices = indices
     # end def __init__
 
     # region PUBLIC
 
-    def check_parameters(self, **kwargs) -> bool:
-        def _check_slice(s: SliceExpr) -> bool:
-            return s.step is None or s.step.eval() != 0
+    def check_parameters(self, indices: List[Union[SliceExpr, int]]) -> bool:
+        def _check_slice(s: Union[SliceExpr, int]) -> bool:
+            if isinstance(s, int):
+                return True
+            # end if
+            return s.step is None or self._get_scalar(s.step) != 0
         # end def _check_slice
         return all([
             _check_slice(o)
-            for o in self._indices
+            for o in indices
         ])
     # end for
 
@@ -96,12 +113,28 @@ class Getitem(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        pass
+        new_shape = list(operands[0].shape.dims)
+        for n_i, (i, n) in enumerate(zip(self._indices, operands[0].shape.dims)):
+            if isinstance(i, int):
+                new_shape[n_i] = 0
+            else:
+                new_shape[n_i] = self._compute_new_dim(
+                    start=self._get_scalar(i.start) if i.start is not None else 0,
+                    stop=self._get_scalar(i.stop) if i.stop is not None else None,
+                    step=self._get_scalar(i.step) if i.step is not None else 1,
+                    n=n
+                )
+            # end if
+        # end for
+        if 0 in new_shape:
+            new_shape.remove(0)
+        # end if
+        return Shape(new_shape)
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
         for n_i, i in enumerate(self._indices):
-            start = i.start.eval() if isinstance(i, SliceExpr) else i
+            start = self._get_scalar(i.start) if isinstance(i, SliceExpr) else i
             if start < -operands[0].shape[n_i] or start >= operands[0].shape[n_i]:
                 return False
             # end if
@@ -122,10 +155,44 @@ class Getitem(StructureOperator):
 
     # region PRIVATE
 
+    def _get_scalar(self, e: Union[MathNode, int]) -> Union[int, float]:
+        if isinstance(e, int):
+            return e
+        else:
+            return e.eval().item()
+        # end if
+    # end def _get_scalar
+
+    def _compute_new_dim(self, start: int, stop: Optional[int], step: int, n: int):
+        """
+        Compute the new dimension.
+        """
+        stop = self._compute_stop(start=start, stop=stop, step=step, n=n)
+        range_is = np.arange(start, stop, step)
+        range_is = range_is[range_is >= 0]
+        range_is = range_is[range_is < n]
+        return range_is.size
+    # end if
+
+    def _compute_stop(self, start: int, stop: Optional[int], step: int, n: int) -> int:
+        """Compute the stop value for a slice."""
+        if stop is None:
+            if step > 0:
+                if start >= 0:
+                    return n
+            else:
+                if start < 0:
+                    return -n-1
+            return 0
+        else:
+            return stop
+        # end if
+    # end def _compute_stop
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        indices = list()
+        indices: List[Union[SliceExpr, int]] = list()
         for i in self._indices:
-            indices.append(i.eval() if isinstance(i, SliceExpr) else i)
+            indices.append(i.to_slice() if isinstance(i, SliceExpr) else i)
         # end for
         return operands[0].eval()[*indices]
     # end def _eval
@@ -138,3 +205,5 @@ class Getitem(StructureOperator):
 
 # end class GetItem
 
+
+operator_registry.register(Getitem)

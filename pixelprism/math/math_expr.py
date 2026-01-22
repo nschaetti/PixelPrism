@@ -51,7 +51,6 @@ import numpy as np
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .operators.base import Operator
 from .context import get_value
 
 __all__ = [
@@ -242,7 +241,7 @@ class MathNode(MathExpr):
             self,
             *,
             name: Optional[str],
-            op: Optional[Operator],
+            op: Optional,
             children: Tuple["MathNode", ...],
             dtype: DType,
             shape: Shape
@@ -265,7 +264,7 @@ class MathNode(MathExpr):
         """
         self._id: int = MathNode._next_id
         self._name: str = name
-        self._op: Operator = op
+        self._op = op
         self._children: Tuple["MathNode", ...] = children
         self._dtype: DType = dtype
         self._shape: Shape = shape
