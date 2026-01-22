@@ -2044,7 +2044,7 @@ class SliceExpr(MathExpr):
         self._stop: Optional[MathNode] = self._coerce_bound("stop", stop)
         self._step: Optional[MathNode] = self._coerce_bound("step", step)
 
-        if self._step.eval() == 0:
+        if self._step and self._step.eval() == 0:
             raise MathExprValidationError(f"Slice step cannot be zero.")
         # end if
     # end def __init__
