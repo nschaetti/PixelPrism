@@ -126,7 +126,7 @@ class Getitem(StructureOperator):
                 )
             # end if
         # end for
-        if 0 in new_shape:
+        if len(new_shape) > 1 and 0 in new_shape:
             new_shape.remove(0)
         # end if
         return Shape(new_shape)
@@ -167,6 +167,7 @@ class Getitem(StructureOperator):
         """
         Compute the new dimension.
         """
+        start = self._compute_start(start=start, n=n)
         stop = self._compute_stop(start=start, stop=stop, step=step, n=n)
         range_is = np.arange(start, stop, step)
         range_is = range_is[range_is >= 0]
@@ -174,18 +175,16 @@ class Getitem(StructureOperator):
         return range_is.size
     # end if
 
+    def _compute_start(self, start: int, n: int) -> int:
+        return start + n if start < 0 else start
+    # end def _compute_start
+
     def _compute_stop(self, start: int, stop: Optional[int], step: int, n: int) -> int:
         """Compute the stop value for a slice."""
         if stop is None:
-            if step > 0:
-                if start >= 0:
-                    return n
-            else:
-                if start < 0:
-                    return -n-1
-            return 0
+            return -1 if step < 0 else n
         else:
-            return stop
+            return stop + n if stop < 0 else stop
         # end if
     # end def _compute_stop
 
