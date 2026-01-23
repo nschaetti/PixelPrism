@@ -71,7 +71,7 @@ class ElementwiseOperator(Operator, ABC):
     """
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
     # end def __init__
 
     def check_operands(self, operands: Operands) -> bool:
@@ -88,6 +88,16 @@ class ElementwiseOperator(Operator, ABC):
         """Does the operator contain the given expression (in parameters)?"""
         return False
     # end def contains
+
+    def __str__(self) -> str:
+        """Return a concise human-readable identifier."""
+        return f"{self.NAME}()"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        """Return a debug-friendly representation."""
+        return f"{self.__class__.__name__}(arity={self.ARITY})"
+    # end def __repr__
 
     # region STATIC
 
@@ -303,7 +313,7 @@ class UnaryElementwiseOperator(Operator, ABC):
     ARITY = 1
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
     # end def __init__
 
     def check_operands(self, operands: Operands) -> bool:
@@ -320,6 +330,16 @@ class UnaryElementwiseOperator(Operator, ABC):
         """Does the operator contain the given expression (in parameters)?"""
         return False
     # end def contains
+
+    def __str__(self) -> str:
+        """Return a concise human-readable identifier."""
+        return f"{self.NAME}()"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        """Return a debug-friendly representation."""
+        return f"{self.__class__.__name__}(arity={self.ARITY})"
+    # end def __repr__
 
     # region STATIC
 

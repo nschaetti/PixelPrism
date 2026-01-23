@@ -804,6 +804,15 @@ class Tensor:
 
     # endregion MATH METHODS
 
+    # region RESHAPE
+
+    def flatten(self) -> 'Tensor':
+        """Flatten the tensor into a 1D array."""
+        return Tensor(data=np.reshape(self._data, (-1,)))
+    # end def flatten
+
+    # endregion RESHAPE
+
     # region STATIC
 
     @staticmethod
@@ -1143,3 +1152,11 @@ def min(
 ) -> Tensor:
     return _call_tensor_method("min", tensor, axis=axis)
 # end def min
+
+#
+# Reshape
+#
+
+def flatten(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("flatten", tensor)
+# end def flatten

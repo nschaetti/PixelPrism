@@ -86,6 +86,14 @@ class ReductionOperator(Operator, ParametricOperator, ABC):
         raise NotImplementedError("Parametric reduction operators must check their parameters (not implemented).")
     # end def check_shapes
 
+    def __str__(self) -> str:
+        return f"{self.NAME}()"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
+    # end def __repr__
+
 # end class ReductionOperator
 
 
@@ -135,6 +143,14 @@ class AxisReductionOperator(ReductionOperator, ABC):
             return int(self._axis.eval().item())
         return int(self._axis)
     # end def _axis_value
+
+    def __str__(self) -> str:
+        return f"{self.NAME}(axis={self._axis_value()})"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(axis={self._axis_value()})"
+    # end def __repr__
 
     def infer_shape(self, operands: Operands) -> Shape:
         axis_value = self._axis_value()
@@ -584,6 +600,29 @@ class Summation(ReductionOperator):
         raise NotImplementedError(f"{self.NAME} does not support backward.")
     # end def _backward
 
+    def __str__(self) -> str:
+        return (
+            f"{self.NAME}(lower={self._format_bound(self._lower)}, "
+            f"upper={self._format_bound(self._upper)}, i='{self._i}')"
+        )
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}(lower={self._format_bound(self._lower)}, "
+            f"upper={self._format_bound(self._upper)}, i='{self._i}')"
+        )
+    # end def __repr__
+
+    def _format_bound(self, bound):
+        if hasattr(bound, "eval"):
+            evaluated = bound.eval()
+            if hasattr(evaluated, "item"):
+                return evaluated.item()
+            return evaluated
+        return bound
+    # end def _format_bound
+
 # end class Summation
 
 
@@ -746,6 +785,29 @@ class Product(ReductionOperator):
         raise NotImplementedError(f"{self.NAME} does not support backward.")
     # end def _backward
 
+    def __str__(self) -> str:
+        return (
+            f"{self.NAME}(lower={self._format_bound(self._lower)}, "
+            f"upper={self._format_bound(self._upper)}, i='{self._i}')"
+        )
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}(lower={self._format_bound(self._lower)}, "
+            f"upper={self._format_bound(self._upper)}, i='{self._i}')"
+        )
+    # end def __repr__
+
+    def _format_bound(self, bound):
+        if hasattr(bound, "eval"):
+            evaluated = bound.eval()
+            if hasattr(evaluated, "item"):
+                return evaluated.item()
+            return evaluated
+        return bound
+    # end def _format_bound
+
 # end class Product
 
 
@@ -759,4 +821,3 @@ operator_registry.register(Q1)
 operator_registry.register(Q3)
 operator_registry.register(Summation)
 operator_registry.register(Product)
-

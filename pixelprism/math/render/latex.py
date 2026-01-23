@@ -39,9 +39,10 @@ from __future__ import annotations
 import math
 import numbers
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Sequence, Tuple
+from typing import Any, Callable, Dict, Sequence, Tuple, List, Union, Optional
 import numpy as np
-from ..math_expr import MathNode, Constant
+from ..math_expr import MathNode, Constant, SliceExpr
+from ..operators import Operator
 
 __all__ = ["to_latex"]
 
@@ -121,7 +122,7 @@ class _OpRule:
     """
 
     precedence: int
-    formatter: Callable[["_LatexRenderer", MathNode, "_OpRule"], str]
+    formatter: Callable[["_LatexRenderer", MathNode, "_OpRule", Operator], str]
 # end class _OpRule
 
 
@@ -182,15 +183,22 @@ class _LatexRenderer:
         op_name = op.name.lower()
         if op_name in _OP_RULES:
             rule = _OP_RULES[op_name]
-            return rule.formatter(self, expr, rule), rule.precedence
+            return rule.formatter(self, expr, rule, op), rule.precedence
         # end if
 
         if op_name in _FUNCTION_COMMANDS:
-            latex = self._render_named_function(_FUNCTION_COMMANDS[op_name], expr.children)
+            latex = self._render_named_function(
+                command=_FUNCTION_COMMANDS[op_name],
+                operands=expr.children,
+                operator=op
+            )
             return latex, self._FUNCTION_PRECEDENCE
         # end if
 
-        latex = self._render_generic_function(op_name, expr.children)
+        latex = self._render_generic_function(
+            op_name,
+            expr.children
+        )
         return latex, self._FUNCTION_PRECEDENCE
     # end def _emit
 
@@ -572,9 +580,10 @@ class _LatexRenderer:
     # end def _format_matrix
 
     def _render_named_function(
-        self,
-        command: str,
-        operands: Sequence[MathNode],
+            self,
+            command: str,
+            operands: Sequence[MathNode],
+            operator: Operator
     ) -> str:
         """
         Render a known math function such as ``sin`` or ``sqrt``.
@@ -597,6 +606,22 @@ class _LatexRenderer:
             # end if
             inner = self._render_group(operands[0])
             return rf"\sqrt{{{inner}}}"
+        # end if
+
+        if command == r"\exp":
+            if len(operands) != 1:
+                raise ValueError("exp expects a single operand.")
+            # end if
+            inner = self._render_group(operands[0])
+            return rf"e^{{{inner}}}"
+        # end if
+
+        if command == r"\sqrt[3]":
+            if len(operands) != 1:
+                raise ValueError("sqrt[3] expects a single operand.")
+            # end if
+            inner = self._render_group(operands[0])
+            return rf"\sqrt[3]{{{inner}}}"
         # end if
 
         args = ", ".join(self._render_group(op) for op in operands)
@@ -633,7 +658,7 @@ class _LatexRenderer:
 # end class _LatexRenderer
 
 
-def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format addition expressions.
 
@@ -659,7 +684,7 @@ def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
 # end def _format_add
 
 
-def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format subtraction expressions.
 
@@ -686,7 +711,7 @@ def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
 # end def _format_sub
 
 
-def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format negation expressions.
 
@@ -712,7 +737,7 @@ def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
 # end def _format_neg
 
 
-def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format multiplication expressions.
 
@@ -738,50 +763,7 @@ def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
 # end def _format_mul
 
 
-def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
-    """
-    Format matrix multiplication expressions.
-
-    Parameters
-    ----------
-    renderer : _LatexRenderer
-        Renderer instance driving the traversal.
-    expr : MathNode
-        Matrix multiplication node.
-    rule : _OpRule
-        Formatting rule used for precedence.
-
-    Returns
-    -------
-    str
-        Formatted LaTeX fragment.
-    """
-    if len(expr.children) < 2:
-        raise ValueError("matmul expects at least two operands.")
-    # end if
-    operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
-        for child in expr.children
-    ]
-    return r" \times ".join(operands)
-# end def _format_matmul
-
-
-def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
-    """
-    """
-    if len(expr.children) != 2:
-        raise ValueError("dot expects exactly two operands.")
-    # end if
-    operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
-        for child in expr.children
-    ]
-    return r"\cdot".join(operands)
-# end def _format_dot
-
-
-def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     """
     if len(expr.children) != 2:
@@ -791,11 +773,11 @@ def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> st
         renderer._render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
-    return r"\otimes".join(operands)
+    return r" \otimes ".join(operands)
 # end def _format_outer
 
 
-def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -809,7 +791,7 @@ def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str
 # end def _format_mean
 
 
-def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -819,14 +801,14 @@ def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
         renderer._render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
-    return r"\sum" + str(operands[0])
+    return r"\operatorname{sum}(" + str(operands[0]) + r")"
 # end def _format_sum
 
-def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     """
     if len(expr.children) != 1:
-        raise ValueError("sum expects exactly two operands.")
+        raise ValueError("summation expects exactly one operand.")
     # end if
     operands = [
         renderer._render_operand(child, rule.precedence, allow_equal=True)
@@ -836,10 +818,26 @@ def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -
     lower = renderer._render_operand(expr.op.lower, rule.precedence, allow_equal=True)
     upper = renderer._render_operand(expr.op.upper, rule.precedence, allow_equal=True)
     return r"\sum_{" + bounded_name + "=" + lower + "}^{" + upper + "}{" + operands[0] + "}"
- # end def _format_sum
+# end def _format_sum
 
 
-def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_product(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator):
+     """Format product expressions."""
+     if len(expr.children) != 1:
+         raise ValueError("product expects exactly two operand.")
+     # end if
+     operands = [
+         renderer._render_operand(child, rule.precedence, allow_equal=True)
+         for child in expr.children
+     ]
+     bounded_name = expr.op.bounded_var
+     lower = renderer._render_operand(expr.op.lower, rule.precedence, allow_equal=True)
+     upper = renderer._render_operand(expr.op.upper, rule.precedence, allow_equal=True)
+     return r"\prod_{" + bounded_name + "=" + lower + "}^{" + upper + "}{" + operands[0] + "}"
+# end def _format_product
+
+
+def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -853,7 +851,27 @@ def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
 # end def _format_std
 
 
-def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_q1(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Q1"""
+    if len(expr.children) != 1:
+        raise ValueError("q1 expects exactly two operands.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    return rf"\operatorname{{q_1}}({{{inner}}})"
+# end def _format_q1
+
+
+def _format_q3(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Q3"""
+    if len(expr.children) != 1:
+        raise ValueError("q3 expects exactly two operands.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    return rf"\operatorname{{q_3}}({{{inner}}})"
+# end def _format_q3
+
+
+def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format division expressions.
 
@@ -880,7 +898,7 @@ def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
 # end def _format_div
 
 
-def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format exponentiation expressions.
 
@@ -907,7 +925,156 @@ def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
 # end def _format_pow
 
 
-def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -> str:
+def _format_square(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """
+    """
+    if len(expr.children) != 1:
+        raise ValueError("square expects exactly 1 operand.")
+    # end if
+    base = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"{base}^2"
+# end def _format_pow
+
+
+def _format_exp2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format 2-base exponential expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("exp2 expects exactly one operand.")
+    # end if
+    base = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"2^{{{base}}}"
+# end def _format_exp2
+
+def _format_log2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format 2-base logarithm expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("log2 expects exactly one operand.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    base = 2
+    return rf"\log_{{{base}}}({{{inner}}})"
+# end def _format_log2
+
+def _format_log10(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format 10-base logarithm expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("log10 expects exactly one operand.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    base = 10
+    return rf"\log_{{{base}}}({{{inner}}})"
+# end def _format_log10
+
+
+def _format_reciprocal(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format reciprocal expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("reciprocal expects exactly one operand.")
+    # end if
+    base = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\frac{{1}}{{{base}}}"
+# end def _format_reciprocal
+
+
+def _format_abs(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format absolute value expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("abs expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\left|{{{operand}}} \right|"
+# end def _format_abs
+
+
+#
+# Discretization operators
+#
+
+def _format_sign(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format sign expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("sign expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\mathrm{{sgn}}({{{operand}}})"
+# end def _format_sign
+
+
+def _format_floor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format floor expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("floor expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\lfloor{{{operand}}} \rfloor"
+# end def _format_floor
+
+
+def _format_ceil(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format ceiling expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("ceil expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\lceil{{{operand}}} \rceil"
+# end def _format_ceil
+
+
+def _format_round(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format rounding expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("round expects exactly 1 operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+
+    decimals = op.get_parameter('decimals')
+    if decimals is not None and isinstance(decimals, MathNode):
+        decimals = renderer._render_operand(op.get_parameter('decimals'), rule.precedence, allow_equal=False)
+    elif isinstance(decimals, int):
+        decimals = str(decimals)
+    else:
+        decimals = 0
+    # end if
+
+    return rf"\operatorname{{round}}({{{operand}}}, {{{decimals}}})"
+# end def _format_round
+
+
+def _format_clip(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format clipping expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("clip expects exactly 1 operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+
+    lower = op.get_parameter('lower')
+    if lower is not None and isinstance(lower, MathNode):
+        lower = renderer._render_operand(op.get_parameter('lower'), rule.precedence, allow_equal=False)
+    elif isinstance(lower, int):
+        lower = str(lower)
+    else:
+        lower = "-\infty"
+    # end if
+
+    upper = op.get_parameter('upper')
+    if upper is not None and isinstance(upper, MathNode):
+        upper = renderer._render_operand(op.get_parameter('upper'), rule.precedence, allow_equal=False)
+    elif isinstance(upper, int):
+        upper = str(upper)
+    else:
+        upper = "\infty"
+    # end if
+
+    return rf"\operatorname{{clip}}({{{operand}}}, {{{lower}}}, {{{upper}}})"
+# end def _format_clip
+
+
+#
+# Linear algebra
+#
+
+
+def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format transpose expressions.
 
@@ -933,21 +1100,147 @@ def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule) -
 # end def _format_transpose
 
 
+def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """
+    Format matrix multiplication expressions.
+
+    Parameters
+    ----------
+    renderer : _LatexRenderer
+        Renderer instance driving the traversal.
+    expr : MathNode
+        Matrix multiplication node.
+    rule : _OpRule
+        Formatting rule used for precedence.
+
+    Returns
+    -------
+    str
+        Formatted LaTeX fragment.
+    """
+    if len(expr.children) < 2:
+        raise ValueError("matmul expects at least two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"".join(operands)
+# end def _format_matmul
+
+
+def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """
+    """
+    if len(expr.children) != 2:
+        raise ValueError("dot expects exactly two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r" \cdot ".join(operands)
+# end def _format_dot
+
+
+#
+# Structure
+#
+
+
+def _format_getitem(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format getitem expressions."""
+    if len(expr.children) != 1:
+        raise ValueError("getitem expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    indices: List[Union[SliceExpr, int]] = op.get_parameter('indices')
+    indices_str = ",".join([str(ind) for ind in indices])
+    if indices_str[:2] == "0:":
+        indices_str = indices_str[1:]
+    # end if
+    return rf"{{{operand}}}_{{{indices_str}}}"
+# end def _format_getitem
+
+
+def _format_structure_unary(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, *, op: Operator, name: str) -> str:
+    if len(expr.children) != 1:
+        raise ValueError(f"{name} expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    axes_suffix = _format_axes_suffix(op.get_parameter('axes'))
+    command = rf"\operatorname{{{name}}}"
+    if axes_suffix:
+        command = rf"{command}"
+    # end if
+    if axes_suffix:
+        return rf"{command}({operand};\, {axes_suffix})"
+    else:
+        return rf"{command}({{{operand}}})"
+    # end if
+# end def _format_structure_unary
+
+
+def _format_axes_suffix(axes: Optional[Sequence[int]]) -> str:
+    if axes is None:
+        return ""
+    if len(axes) == 0:
+        return ""
+    formatted = ", ".join(str(axis) for axis in axes)
+    return rf"{formatted}"
+# end def _format_axes_suffix
+
+
+def _format_squeeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    return _format_structure_unary(renderer, expr, rule, op=op, name="squeeze")
+# end def _format_squeeze
+
+
+def _format_unsqueeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    return _format_structure_unary(renderer, expr, rule, op=op, name="unsqueeze")
+# end def _format_unsqueeze
+
+
+# Base
 _ADD_RULE = _OpRule(precedence=10, formatter=_format_add)
 _SUB_RULE = _OpRule(precedence=10, formatter=_format_sub)
 _NEG_RULE = _OpRule(precedence=30, formatter=_format_neg)
 _MUL_RULE = _OpRule(precedence=20, formatter=_format_mul)
+_DIV_RULE = _OpRule(precedence=20, formatter=_format_div)
+_POW_RULE = _OpRule(precedence=40, formatter=_format_pow)
+_RECIPROCAL_RULE = _OpRule(precedence=40, formatter=_format_reciprocal)
+_ABS_RULE = _OpRule(precedence=40, formatter=_format_abs)
+_SQUARE_RULE = _OpRule(precedence=40, formatter=_format_square)
+_EXP2_RULE = _OpRule(precedence=40, formatter=_format_exp2)
+_LOG2_RULE = _OpRule(precedence=40, formatter=_format_log2)
+_LOG10_RULE = _OpRule(precedence=40, formatter=_format_log10)
+
+# Discretization
+_SIGN_RULE = _OpRule(precedence=40, formatter=_format_sign)
+_FLOOR_RULE = _OpRule(precedence=40, formatter=_format_floor)
+_CEIL_RULE = _OpRule(precedence=40, formatter=_format_ceil)
+_ROUND_RULE = _OpRule(precedence=40, formatter=_format_round)
+_CLIP_RULE = _OpRule(precedence=40, formatter=_format_clip)
+
+# Linear algebra
+_TRANSPOSE_RULE = _OpRule(precedence=50, formatter=_format_transpose)
 _MATMUL_RULE = _OpRule(precedence=20, formatter=_format_matmul)
 _DOT_RULE = _OpRule(precedence=20, formatter=_format_dot)
 _OUTER_RULE = _OpRule(precedence=20, formatter=_format_outer)
-_DIV_RULE = _OpRule(precedence=20, formatter=_format_div)
-_POW_RULE = _OpRule(precedence=40, formatter=_format_pow)
-_TRANSPOSE_RULE = _OpRule(precedence=50, formatter=_format_transpose)
 
+# Reduction
 _SUM_RULE = _OpRule(precedence=100, formatter=_format_sum)
 _MEAN_RULE = _OpRule(precedence=100, formatter=_format_mean)
 _STD_RULE = _OpRule(precedence=100, formatter=_format_std)
+_Q1_RULE = _OpRule(precedence=100, formatter=_format_q1)
+_Q3_RULE = _OpRule(precedence=100, formatter=_format_q3)
 _SUMMATION_RULE = _OpRule(precedence=100, formatter=_format_summation)
+_PRODUCTS_RULE = _OpRule(precedence=100, formatter=_format_product)
+
+# Structure
+_GETITEM_RULE = _OpRule(precedence=50, formatter=_format_getitem)
+_SQUEEZE_RULE = _OpRule(precedence=50, formatter=_format_squeeze)
+_UNSQUEEZE_RULE = _OpRule(precedence=50, formatter=_format_unsqueeze)
 
 
 _OP_RULES: Dict[str, _OpRule] = {
@@ -958,21 +1251,41 @@ _OP_RULES: Dict[str, _OpRule] = {
     "negative": _NEG_RULE,
     "mul": _MUL_RULE,
     "multiply": _MUL_RULE,
-    "product": _MUL_RULE,
-    "matmul": _MATMUL_RULE,
-    "matrix_multiply": _MATMUL_RULE,
-    "dot": _DOT_RULE,
-    "outer": _OUTER_RULE,
     "div": _DIV_RULE,
     "divide": _DIV_RULE,
     "pow": _POW_RULE,
     "power": _POW_RULE,
+    "reciprocal": _RECIPROCAL_RULE,
+    "abs": _ABS_RULE,
+    "absolute": _ABS_RULE,
+    "square": _SQUARE_RULE,
+    "exp2": _EXP2_RULE,
+    "log2": _LOG2_RULE,
+    "log10": _LOG10_RULE,
+    # Discretization
+    "sign": _SIGN_RULE,
+    "floor": _FLOOR_RULE,
+    "ceil": _CEIL_RULE,
+    "round": _ROUND_RULE,
+    "clip": _CLIP_RULE,
+    # "product": _MUL_RULE,
+    "matmul": _MATMUL_RULE,
+    "matrix_multiply": _MATMUL_RULE,
+    "dot": _DOT_RULE,
+    "outer": _OUTER_RULE,
     "transpose": _TRANSPOSE_RULE,
     # Reduction
     "mean": _MEAN_RULE,
     "sum": _SUM_RULE,
     "std": _STD_RULE,
+    "q1": _Q1_RULE,
+    "q3": _Q3_RULE,
     "summation": _SUMMATION_RULE,
+    "product": _PRODUCTS_RULE,
+    # Structure
+    "getitem": _GETITEM_RULE,
+    "squeeze": _SQUEEZE_RULE,
+    "unsqueeze": _UNSQUEEZE_RULE,
 }
 
 _FUNCTION_COMMANDS: Dict[str, str] = {
@@ -982,6 +1295,7 @@ _FUNCTION_COMMANDS: Dict[str, str] = {
     "exp": r"\exp",
     "log": r"\log",
     "sqrt": r"\sqrt",
+    "cbrt": r"\sqrt[3]"
 }
 
 

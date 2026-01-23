@@ -77,6 +77,7 @@ class Operator(ABC):
         if not hasattr(self, "NAME"):
             raise TypeError("Operator subclasses must define NAME")
         # end if
+        self._parameters: dict[str, Any] = kwargs
     # end def __init__
 
     # region PROPERTIES
@@ -111,6 +112,16 @@ class Operator(ABC):
     def check_operands(self, operands: Operands) -> bool:
         """Check that the operands have the correct arity."""
     # end def check_operands
+
+    def get_parameters(self) -> dict[str, Any]:
+        """Return the operator parameters."""
+        return self._parameters.copy()
+    # end def get_parameters
+
+    def get_parameter(self, name: str) -> Any:
+        """Return the value of a parameter."""
+        return self._parameters.get(name)
+    # end def get_parameter
 
     def eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
@@ -204,6 +215,16 @@ class Operator(ABC):
     ) -> bool:
         """Check that the operands have compatible shapes."""
     # end def check_shapes
+
+    @abstractmethod
+    def __str__(self) -> str:
+        """Return a concise human-readable name for the operator."""
+    # end def __str__
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        """Return a debug-friendly description for the operator."""
+    # end def __repr__
 
     @classmethod
     def check_arity(
@@ -322,4 +343,3 @@ class OperatorRegistry:
 
 # The operator registry
 operator_registry = OperatorRegistry()
-

@@ -34,6 +34,7 @@ from abc import ABC
 from typing import Optional, Sequence, Union, Any, List
 
 from ..dtype import DType
+from ..math_expr import MathExpr
 from ..shape import Shape
 from ..tensor import Tensor, einsum
 from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
@@ -70,6 +71,14 @@ class LinearAlgebraOperator(Operator, ABC):
         """Does the operator contain the given expression (in parameters)?"""
         return False
     # end def contains
+
+    def __str__(self) -> str:
+        return f"{self.NAME}()"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(arity={self.ARITY})"
+    # end def __repr__
 
     def infer_dtype(self, operands: Operands) -> DType:
         """
@@ -468,13 +477,27 @@ class Transpose(LinearAlgebraParametricOperator):
 
     def infer_shape(self, operands: Operands) -> Shape:
         a: 'MathExpr' = operands[0]
-        axes = self._axes.eval().tolist() if self._axes else None
+        if self._axes and isinstance(self._axes, MathExpr):
+            axes = self._axes.eval().tolist()
+        else:
+            axes = self._axes
+        # end if
         return a.shape.transpose(axes=axes)
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
         return True
     # end def check_shapes
+
+    def __str__(self) -> str:
+        axes = self._axes.eval().tolist() if self._axes else None
+        return f"{self.NAME}(axes={axes})"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        axes = self._axes.eval().tolist() if self._axes else None
+        return f"{self.__class__.__name__}(axes={axes})"
+    # end def __repr__
 
 # end class Transpose
 

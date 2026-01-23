@@ -2373,6 +2373,18 @@ class SliceExpr(MathExpr):
 
     # region OVERRIDE
 
+    def __str__(self):
+        """
+        Returns
+        -------
+        str
+            Human-readable description of the slice expression.
+        """
+        s = f"{self.start_value}:{self.stop_value}:{self.step_value}"
+        s = s.replace("None", "")
+        return s
+    # end def __str__
+
     def __repr__(self) -> str:
         """
         Returns

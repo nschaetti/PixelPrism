@@ -180,12 +180,12 @@ class Shape:
 
     def _check_transpose(self, axes: Sequence[int]) -> None:
         """Validate a permutation of axes."""
-        if len(axes) != self.dims:
+        if len(axes) != self.n_dims:
             raise ValueError(
                 f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
             )
         # end if
-        if sorted(axes) != list(range(self.dims)):
+        if sorted(axes) != list(range(self.n_dims)):
             raise ValueError("Permutation contains invalid axis indices.")
         # end if
     # end def _check_transpose

@@ -89,7 +89,10 @@ from .reduction import (
     Product,
 )
 from .structure import (
-    Getitem
+    Getitem,
+    Flatten,
+    Squeeze,
+    Unsqueeze,
 )
 from .trigo import (
     Acos,
@@ -185,4 +188,7 @@ __all__ = [
     "Product",
     # Structure
     "Getitem",
+    "Flatten",
+    "Squeeze",
+    "Unsqueeze",
 ]

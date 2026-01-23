@@ -27,13 +27,16 @@
 #
 
 # Imports
-from typing import Union, List
+from typing import Union, List, Sequence, Optional
 from pixelprism.math.math_expr import MathNode, SliceExpr
 from pixelprism.math.build import as_expr
 from .helpers import apply_operator
 
 __all__ = [
-    "getitem"
+    "getitem",
+    "flatten",
+    "squeeze",
+    "unsqueeze",
 ]
 
 
@@ -49,3 +52,39 @@ def getitem(op1: MathNode, indices: List[Union[SliceExpr, int]]) -> MathNode:
         indices=indices
     )
 # end def sum
+
+
+def flatten(op1: MathNode) -> MathNode:
+    """Flatten a tensor."""
+    op1 = as_expr(op1)
+    return apply_operator(
+        op_name="flatten",
+        operands=(op1,),
+        display_name=f"flatten({op1.name})"
+    )
+# end def flatten
+
+
+def squeeze(op1: MathNode, axes: Optional[Sequence[int]] = None) -> MathNode:
+    """Remove size-1 axes from a tensor."""
+    op1 = as_expr(op1)
+    axes_param = tuple(axes) if axes is not None else None
+    return apply_operator(
+        op_name="squeeze",
+        operands=(op1,),
+        display_name=f"squeeze({op1.name})",
+        axes=axes_param
+    )
+# end def squeeze
+
+
+def unsqueeze(op1: MathNode, axes: Sequence[int]) -> MathNode:
+    """Insert size-1 axes at the requested positions."""
+    op1 = as_expr(op1)
+    return apply_operator(
+        op_name="unsqueeze",
+        operands=(op1,),
+        display_name=f"unsqueeze({op1.name})",
+        axes=tuple(axes)
+    )
+# end def unsqueeze

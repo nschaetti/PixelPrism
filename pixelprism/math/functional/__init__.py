@@ -63,7 +63,10 @@ from .discretization import (
     clip,
 )
 from .structure import (
-    getitem
+    getitem,
+    flatten,
+    squeeze,
+    unsqueeze
 )
 
 
@@ -135,5 +138,8 @@ __all__ = [
     "summation",
     "product",
     # Structure
-    "getitem"
+    "getitem",
+    "flatten",
+    "squeeze",
+    "unsqueeze"
 ]

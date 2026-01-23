@@ -155,10 +155,9 @@ class Round(UnaryElementwiseParametricOperator):
     def __init__(
             self,
             *,
-            decimals: Optional[Union['MathExpr', int]] = None,
-            **kwargs: Any
+            decimals: Optional[Union['MathExpr', int]] = None
     ):
-        super().__init__(**kwargs)
+        super().__init__(decimals=decimals)
         from ..utils import const, random_const_name
         from ..math_expr import MathNode
         if decimals is None:
@@ -180,6 +179,16 @@ class Round(UnaryElementwiseParametricOperator):
     ) -> Sequence["MathExpr"]:
         raise NotImplementedError("Round does not support backward.")
     # end def _backward
+
+    def __str__(self) -> str:
+        decimals = self._resolve_parameter(self._decimals)
+        return f"{self.NAME}(decimals={decimals})"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        decimals = self._resolve_parameter(self._decimals)
+        return f"{self.__class__.__name__}(decimals={decimals})"
+    # end def __repr__
 # end class Round
 
 
@@ -192,10 +201,9 @@ class Clip(UnaryElementwiseParametricOperator):
             self,
             *,
             min_value: Optional[Union['MathExpr', int]] = None,
-            max_value: Optional[Union['MathExpr', int]] = None,
-            **kwargs: Any
+            max_value: Optional[Union['MathExpr', int]] = None
     ):
-        super().__init__(**kwargs)
+        super().__init__(min_value=min_value, max_value=max_value)
         from ..utils import const, random_const_name
         from ..math_expr import MathNode
         if min_value is None and max_value is None:
@@ -223,6 +231,26 @@ class Clip(UnaryElementwiseParametricOperator):
     ) -> Sequence["MathExpr"]:
         raise NotImplementedError("Clip does not support backward.")
     # end def _backward
+
+    def __str__(self) -> str:
+        return (
+            f"{self.NAME}(min_value={self._format_bound(self._min_value)}, "
+            f"max_value={self._format_bound(self._max_value)})"
+        )
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}(min_value={self._format_bound(self._min_value)}, "
+            f"max_value={self._format_bound(self._max_value)})"
+        )
+    # end def __repr__
+
+    def _format_bound(self, bound):
+        if bound is None:
+            return None
+        return self._resolve_parameter(bound)
+    # end def _format_bound
 # end class Clip
 
 
@@ -233,4 +261,3 @@ operator_registry.register(Trunc)
 operator_registry.register(Rint)
 operator_registry.register(Round)
 operator_registry.register(Clip)
-
