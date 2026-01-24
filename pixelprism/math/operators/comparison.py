@@ -40,6 +40,11 @@ from .elementwise import UnaryElementwiseOperator, UnaryElementwiseParametricOpe
 
 __all__ = [
     "Eq",
+    "Ne",
+    "Lt",
+    "Le",
+    "Gt",
+    "Ge",
 ]
 
 
@@ -48,12 +53,12 @@ class ComparisonOperator(Operator, ABC):
 # end class ComparisonOperator
 
 
-class Eq(ComparisonOperator):
-    """Element-wise equality operator."""
+class _BinaryComparisonOperator(ComparisonOperator):
+    """Shared binary comparison implementation."""
 
     ARITY = 2
     IS_BINARY = False
-    NAME = "eq"
+    TENSOR_METHOD: str
 
     def contains(self, expr: "MathExpr", by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
@@ -71,11 +76,14 @@ class Eq(ComparisonOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (a, b) = operands
-        return a.eval().equal(b.eval())
+        left = a.eval()
+        right = b.eval()
+        method = getattr(left, self.TENSOR_METHOD)
+        return method(right)
     # end def _eval
 
     def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
-        raise NotImplementedError("Eq does not support backward.")
+        raise NotImplementedError(f"{self.__class__.__name__} does not support backward.")
     # end def _backward
 
     def infer_dtype(self, operands: Operands) -> DType:
@@ -98,8 +106,58 @@ class Eq(ComparisonOperator):
         return f"{self.__class__.__name__}(a, b)"
     # end def __repr__
 
+class Eq(_BinaryComparisonOperator):
+    """Element-wise equality operator."""
+
+    NAME = "eq"
+    TENSOR_METHOD = "equal"
 # end class Eq
+
+
+class Ne(_BinaryComparisonOperator):
+    """Element-wise inequality operator."""
+
+    NAME = "ne"
+    TENSOR_METHOD = "not_equal"
+# end class Ne
+
+
+class Lt(_BinaryComparisonOperator):
+    """Element-wise less-than operator."""
+
+    NAME = "lt"
+    TENSOR_METHOD = "less"
+# end class Lt
+
+
+class Le(_BinaryComparisonOperator):
+    """Element-wise less-than-or-equal operator."""
+
+    NAME = "le"
+    TENSOR_METHOD = "less_equal"
+# end class Le
+
+
+class Gt(_BinaryComparisonOperator):
+    """Element-wise greater-than operator."""
+
+    NAME = "gt"
+    TENSOR_METHOD = "greater"
+# end class Gt
+
+
+class Ge(_BinaryComparisonOperator):
+    """Element-wise greater-than-or-equal operator."""
+
+    NAME = "ge"
+    TENSOR_METHOD = "greater_equal"
+# end class Ge
 
 
 # Register operators
 operator_registry.register(Eq)
+operator_registry.register(Ne)
+operator_registry.register(Lt)
+operator_registry.register(Le)
+operator_registry.register(Gt)
+operator_registry.register(Ge)

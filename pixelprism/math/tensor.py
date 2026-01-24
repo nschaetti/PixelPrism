@@ -636,6 +636,7 @@ class Tensor:
 
     def less(self, other: 'Tensor') -> 'Tensor':
         """Elementwise less-than."""
+        return self._binary_op(other, np.less)
     # end def less
 
     # endregion MATH COMPARISON
@@ -1304,4 +1305,3 @@ def less(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
 def less_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("less_equal", tensor_a, tensor_b)
 # end def less_equal
-

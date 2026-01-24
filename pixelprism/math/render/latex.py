@@ -724,6 +724,61 @@ def _format_eq(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_eq
 
 
+def _format_ne(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format inequality comparisons."""
+    if len(expr.children) != 2:
+        raise ValueError("ne expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return rf"{left} \neq {right}"
+# end def _format_ne
+
+
+def _format_lt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format strict less-than comparisons."""
+    if len(expr.children) != 2:
+        raise ValueError("lt expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return f"{left} < {right}"
+# end def _format_lt
+
+
+def _format_le(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format less-than-or-equal comparisons."""
+    if len(expr.children) != 2:
+        raise ValueError("le expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return rf"{left} \le {right}"
+# end def _format_le
+
+
+def _format_gt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format strict greater-than comparisons."""
+    if len(expr.children) != 2:
+        raise ValueError("gt expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return f"{left} > {right}"
+# end def _format_gt
+
+
+def _format_ge(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format greater-than-or-equal comparisons."""
+    if len(expr.children) != 2:
+        raise ValueError("ge expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return rf"{left} \ge {right}"
+# end def _format_ge
+
+
 def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format negation expressions.
@@ -1274,6 +1329,11 @@ def _format_vstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
 _ADD_RULE = _OpRule(precedence=10, formatter=_format_add)
 _SUB_RULE = _OpRule(precedence=10, formatter=_format_sub)
 _EQ_RULE = _OpRule(precedence=5, formatter=_format_eq)
+_NE_RULE = _OpRule(precedence=5, formatter=_format_ne)
+_LT_RULE = _OpRule(precedence=5, formatter=_format_lt)
+_LE_RULE = _OpRule(precedence=5, formatter=_format_le)
+_GT_RULE = _OpRule(precedence=5, formatter=_format_gt)
+_GE_RULE = _OpRule(precedence=5, formatter=_format_ge)
 _NEG_RULE = _OpRule(precedence=30, formatter=_format_neg)
 _MUL_RULE = _OpRule(precedence=20, formatter=_format_mul)
 _DIV_RULE = _OpRule(precedence=20, formatter=_format_div)
@@ -1321,6 +1381,11 @@ _OP_RULES: Dict[str, _OpRule] = {
     "sub": _SUB_RULE,
     "subtract": _SUB_RULE,
     "eq": _EQ_RULE,
+    "ne": _NE_RULE,
+    "lt": _LT_RULE,
+    "le": _LE_RULE,
+    "gt": _GT_RULE,
+    "ge": _GE_RULE,
     "neg": _NEG_RULE,
     "negative": _NEG_RULE,
     "mul": _MUL_RULE,

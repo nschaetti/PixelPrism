@@ -31,7 +31,12 @@ Operator package exports.
 
 from .base import Operands, Operator, OperatorRegistry, ParametricOperator, operator_registry
 from .comparison import (
-    Eq
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
 )
 from .elementwise import (
     Add,
@@ -130,6 +135,11 @@ __all__ = [
     "UnaryElementwiseOperator",
     # Comparison
     "Eq",
+    "Ne",
+    "Lt",
+    "Le",
+    "Gt",
+    "Ge",
     # Element-wise
     "Add",
     "Sub",
