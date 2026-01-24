@@ -67,6 +67,9 @@ from .shape import Dim, Dims, Shape, AnyShape
 from .tensor import (
     Tensor,
     DataType,
+    concatenate,
+    hstack,
+    vstack,
     pow,
     square,
     sqrt,
@@ -179,6 +182,9 @@ __all__ = [
     # Tensor
     "Tensor",
     "DataType",
+    "concatenate",
+    "hstack",
+    "vstack",
     "pow",
     "square",
     "sqrt",

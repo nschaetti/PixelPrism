@@ -633,11 +633,18 @@ class MathNode(MathExpr):
         MathExprOperatorError
             If the operator arity does not match ``self.arity``.
         """
-        if self._op is not None and self.arity != self._op.arity:
-            raise MathExprOperatorError(
-                f"Operator and arity mismatch: "
-                f"{self._op.name}({self.arity}) != {self.__class__.__name__}({self._op.arity})"
-            )
+        if self._op is None:
+            return
+        # end if
+        if not self._op.is_variadic:
+            if self.arity != self._op.arity:
+                raise MathExprOperatorError(
+                    f"Operator and arity mismatch: "
+                    f"{self._op.name}({self._op.arity}) != {self.__class__.__name__}({self.arity})"
+                )
+            # end if
+        else:
+            self._op.arity = self.arity
         # end if
     # end _def_check_operator
 

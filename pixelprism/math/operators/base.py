@@ -59,6 +59,9 @@ class Operator(ABC):
     # How many operands
     ARITY: int
 
+    # Is an operator with variable number of operands ?
+    IS_VARIADIC: bool = False
+
     # Operator name
     NAME: str
 
@@ -93,6 +96,20 @@ class Operator(ABC):
         """Return the arity of the operator."""
         return self.ARITY
     # end def arity
+
+    @arity.setter
+    def arity(self, value: int) -> None:
+        if not self.IS_VARIADIC:
+            raise ValueError("Cannot set arity of non-variable operator")
+        # end if
+        self.ARITY = value
+    # end def arity
+
+    @property
+    def is_variadic(self) -> bool:
+        """Return whether the operator accepts a variable number of operands."""
+        return self.IS_VARIADIC
+    # end def is_variadic
 
     # endregion PROPERTIES
 

@@ -37,13 +37,21 @@ import numpy as np
 
 from ..dtype import DType
 from ..shape import Shape
-from ..tensor import Tensor, einsum
+from ..tensor import (
+    Tensor,
+    concatenate as tensor_concatenate,
+    hstack as tensor_hstack,
+    vstack as tensor_vstack,
+)
 from ..math_expr import SliceExpr, MathNode
 from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
 
 __all__ = [
     "Getitem",
     "Flatten",
+    "Concatenate",
+    "HStack",
+    "VStack",
     "Squeeze",
     "Unsqueeze",
 ]
@@ -298,6 +306,166 @@ class Flatten(StructureOperator):
 # end class Flatten
 
 
+class Concatenate(StructureOperator):
+    """Concatenate tensors along an axis, mirroring ``np.concatenate``."""
+
+    NAME = "concatenate"
+    ARITY = -1  # variable number of operands
+    IS_VARIADIC = True
+
+    def __init__(self, axis: Optional[int] = 0):
+        super().__init__(axis=axis)
+        self._axis = axis
+    # end def __init__
+
+    @classmethod
+    def check_arity(cls, operands: Operands):
+        """Allow a variable number of operands with at least one entry."""
+        return len(operands) >= 1
+    # end def check_arity
+
+    def eval(self, operands: Operands, **kwargs) -> Tensor:
+        """Override default arity enforcement for variadic operators."""
+        if not operands:
+            raise ValueError("Concatenate expects at least one operand.")
+        # end if
+        return self._eval(operands=operands, **kwargs)
+    # end def eval
+
+    def check_parameters(self, axis: Optional[int] = 0) -> bool:
+        return axis is None or isinstance(axis, int)
+    # end def check_parameters
+
+    def check_operands(self, operands: Operands) -> bool:
+        return len(operands) >= 1
+    # end def check_operands
+
+    def contains(
+            self,
+            expr: "MathNode",
+            by_ref: bool = False,
+            look_for: Optional[str] = None
+    ) -> bool:
+        return False
+    # end def contains
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        tensors = [operand.eval() for operand in operands]
+        return tensor_concatenate(tensors, axis=self._axis)
+    # end def _eval
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        raise NotImplementedError("Concatenate does not support backward.")
+    # end def _backward
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        dtype = operands[0].dtype
+        for operand in operands[1:]:
+            dtype = DType.promote(dtype, operand.dtype)
+        # end for
+        return dtype
+    # end def infer_dtype
+
+    def infer_shape(self, operands: Operands) -> Shape:
+        if not operands:
+            raise ValueError("Cannot infer shape without operands.")
+        # end if
+        if self._axis is None:
+            return Shape((self._flattened_size(operands),))
+        # end if
+        base_shape = operands[0].shape
+        axis = self._normalized_axis(base_shape.rank)
+        dims = list(base_shape.dims)
+        dims[axis] = sum(operand.shape[axis] for operand in operands)
+        return Shape(tuple(dims))
+    # end def infer_shape
+
+    def check_shapes(self, operands: Operands) -> bool:
+        if not operands:
+            raise ValueError("Concatenate requires at least one operand.")
+        # end if
+        if self._axis is None:
+            return True
+        reference = operands[0].shape
+        axis = self._normalized_axis(reference.rank)
+        for operand in operands[1:]:
+            if operand.shape.rank != reference.rank:
+                raise ValueError("All operands must share the same rank for concatenation.")
+            # end if
+            for idx, (dim_ref, dim_other) in enumerate(zip(reference.dims, operand.shape.dims)):
+                if idx == axis:
+                    continue
+                if dim_ref != dim_other:
+                    raise ValueError("Operand dimensions must match on non-concatenated axes.")
+                # end if
+            # end for
+        # end for
+        return True
+    # end def check_shapes
+
+    def __str__(self) -> str:
+        return f"{self.NAME}(axis={self._axis})"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(axis={self._axis})"
+    # end def __repr__
+
+    def _normalized_axis(self, rank: int) -> int:
+        if self._axis is None:
+            raise ValueError("Axis is None when normalization was requested.")
+        return Shape._normalize_axis(self._axis, rank)
+    # end def _normalized_axis
+
+    def _flattened_size(self, operands: Operands) -> int:
+        total = 0
+        for operand in operands:
+            size = operand.shape.size
+            if size is None:
+                raise ValueError("Cannot concatenate unknown-size tensors along axis=None.")
+            # end if
+            total += size
+        # end for
+        return total
+    # end def _flattened_size
+
+# end class Concatenate
+
+
+class HStack(Concatenate):
+    """Concatenate tensors along axis 1, matching :func:`numpy.hstack` semantics."""
+
+    NAME = "hstack"
+
+    def __init__(self):
+        super().__init__(axis=1)
+    # end def __init__
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        tensors = [operand.eval() for operand in operands]
+        return tensor_hstack(tensors)
+    # end def _eval
+
+# end class HStack
+
+
+class VStack(Concatenate):
+    """Concatenate tensors along axis 0, matching :func:`numpy.vstack` semantics."""
+
+    NAME = "vstack"
+
+    def __init__(self):
+        super().__init__(axis=0)
+    # end def __init__
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        tensors = [operand.eval() for operand in operands]
+        return tensor_vstack(tensors)
+    # end def _eval
+
+# end class VStack
+
+
 class Squeeze(StructureOperator):
     """Remove axes of length one optionally restricted by ``axes``."""
 
@@ -463,5 +631,8 @@ class Unsqueeze(StructureOperator):
 
 operator_registry.register(Getitem)
 operator_registry.register(Flatten)
+operator_registry.register(Concatenate)
+operator_registry.register(HStack)
+operator_registry.register(VStack)
 operator_registry.register(Squeeze)
 operator_registry.register(Unsqueeze)

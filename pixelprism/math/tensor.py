@@ -39,6 +39,9 @@ from .shape import Shape
 __all__ = [
     "Tensor",
     "DataType",
+    "concatenate",
+    "hstack",
+    "vstack",
     "pow",
     "square",
     "sqrt",
@@ -811,6 +814,24 @@ class Tensor:
         return Tensor(data=np.reshape(self._data, (-1,)))
     # end def flatten
 
+    def concatenate(self, *others: "Tensor", axis: Optional[int] = 0) -> 'Tensor':
+        """Concatenate the current tensor with additional tensors."""
+        tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
+        return concatenate(tensors, axis=axis)
+    # end def concatenate
+
+    def hstack(self, *others: "Tensor") -> 'Tensor':
+        """Concatenate tensors along axis 1."""
+        tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
+        return hstack(tensors)
+    # end def hstack
+
+    def vstack(self, *others: "Tensor") -> 'Tensor':
+        """Concatenate tensors along axis 0."""
+        tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
+        return vstack(tensors)
+    # end def vstack
+
     # endregion RESHAPE
 
     # region STATIC
@@ -853,6 +874,20 @@ def _call_tensor_method(name: str, tensor: Tensor, *args, **kwargs) -> Tensor:
     method = getattr(_require_tensor(tensor), name)
     return method(*args, **kwargs)
 # end def _call_tensor_method
+
+
+def _concatenate_tensors(
+        tensors: Sequence[Tensor],
+        axis: Optional[int]
+) -> Tensor:
+    """Internal helper to concatenate tensors consistently."""
+    tensors_tuple = tuple(_require_tensor(tensor) for tensor in tensors)
+    if not tensors_tuple:
+        raise ValueError("Concatenation requires at least one tensor.")
+    arrays = [tensor.value for tensor in tensors_tuple]
+    result = np.concatenate(arrays, axis=axis)
+    return Tensor(data=np.asarray(result))
+# end def _concatenate_tensors
 
 
 def _as_numpy_operand(value: Union["Tensor", DataType, np.ndarray]) -> np.ndarray:
@@ -1160,3 +1195,24 @@ def min(
 def flatten(tensor: Tensor) -> Tensor:
     return _call_tensor_method("flatten", tensor)
 # end def flatten
+
+
+def concatenate(
+        tensors: Sequence[Tensor],
+        axis: Optional[int] = 0
+) -> Tensor:
+    """Concatenate multiple tensors using NumPy semantics."""
+    return _concatenate_tensors(tensors, axis=axis)
+# end def concatenate
+
+
+def hstack(tensors: Sequence[Tensor]) -> Tensor:
+    """Concatenate tensors along axis 1."""
+    return _concatenate_tensors(tensors, axis=1)
+# end def hstack
+
+
+def vstack(tensors: Sequence[Tensor]) -> Tensor:
+    """Concatenate tensors along axis 0."""
+    return _concatenate_tensors(tensors, axis=0)
+# end def vstack

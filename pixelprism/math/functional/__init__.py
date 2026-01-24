@@ -65,6 +65,9 @@ from .discretization import (
 from .structure import (
     getitem,
     flatten,
+    concatenate,
+    hstack,
+    vstack,
     squeeze,
     unsqueeze
 )
@@ -140,6 +143,9 @@ __all__ = [
     # Structure
     "getitem",
     "flatten",
+    "concatenate",
+    "hstack",
+    "vstack",
     "squeeze",
     "unsqueeze"
 ]

@@ -91,6 +91,9 @@ from .reduction import (
 from .structure import (
     Getitem,
     Flatten,
+    Concatenate,
+    HStack,
+    VStack,
     Squeeze,
     Unsqueeze,
 )
@@ -189,6 +192,9 @@ __all__ = [
     # Structure
     "Getitem",
     "Flatten",
+    "Concatenate",
+    "HStack",
+    "VStack",
     "Squeeze",
     "Unsqueeze",
 ]

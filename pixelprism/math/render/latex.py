@@ -1201,6 +1201,25 @@ def _format_unsqueeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, o
 # end def _format_unsqueeze
 
 
+def _format_concat(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    name = "concatenate"
+    if len(expr.children) < 2:
+        raise ValueError(f"{name} expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    axes_suffix = _format_axes_suffix(op.get_parameter('axes'))
+    command = rf"\operatorname{{{name}}}"
+    if axes_suffix:
+        command = rf"{command}"
+    # end if
+    if axes_suffix:
+        return rf"{command}({operand};\, {axes_suffix})"
+    else:
+        return rf"{command}({{{operand}}})"
+    # end if
+# end def _format_concat
+
+
 # Base
 _ADD_RULE = _OpRule(precedence=10, formatter=_format_add)
 _SUB_RULE = _OpRule(precedence=10, formatter=_format_sub)
@@ -1241,6 +1260,7 @@ _PRODUCTS_RULE = _OpRule(precedence=100, formatter=_format_product)
 _GETITEM_RULE = _OpRule(precedence=50, formatter=_format_getitem)
 _SQUEEZE_RULE = _OpRule(precedence=50, formatter=_format_squeeze)
 _UNSQUEEZE_RULE = _OpRule(precedence=50, formatter=_format_unsqueeze)
+_CONCAT_RULE = _OpRule(precedence=50, formatter=_format_concat)
 
 
 _OP_RULES: Dict[str, _OpRule] = {
@@ -1286,6 +1306,7 @@ _OP_RULES: Dict[str, _OpRule] = {
     "getitem": _GETITEM_RULE,
     "squeeze": _SQUEEZE_RULE,
     "unsqueeze": _UNSQUEEZE_RULE,
+    "concatenate": _CONCAR_RULE,
 }
 
 _FUNCTION_COMMANDS: Dict[str, str] = {
