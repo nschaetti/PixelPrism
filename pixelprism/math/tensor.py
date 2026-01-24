@@ -79,6 +79,12 @@ __all__ = [
     "round",
     "clip",
     "einsum",
+    "equal",
+    "not_equal",
+    "less",
+    "less_equal",
+    "greater",
+    "greater_equal",
 ]
 
 
@@ -522,7 +528,7 @@ class Tensor:
 
     # endregion OVERRIDE
 
-    # region MATH METHODS
+    # region MATH BASE
 
     def pow(self, exponent: Union['Tensor', DataType, np.ndarray]) -> 'Tensor':
         """Elementwise power equivalent to numpy.power."""
@@ -583,6 +589,58 @@ class Tensor:
         """Elementwise log(1 + x) with higher accuracy for small x."""
         return self._unary_op(np.log1p)
     # end def log1p
+
+    def absolute(self) -> 'Tensor':
+        """Elementwise absolute value."""
+        return self._unary_op(np.absolute)
+    # end def absolute
+
+    def abs(self) -> 'Tensor':
+        """Alias for absolute to mirror numpy."""
+        return self.absolute()
+    # end def abs
+
+    def __abs__(self) -> 'Tensor':
+        """Support Python's built-in abs()."""
+        return self.absolute()
+    # end def __abs__
+
+    # endregion MATH BASE
+
+    # region MATH COMPARISON
+
+    def equal(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise equality."""
+        return self._binary_op(other, np.equal)
+    # end def equal
+
+    def not_equal(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise inequality."""
+        return self._binary_op(other, np.not_equal)
+    # end def not_equal
+
+    def greater_equal(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise greater-than-or-equal-to."""
+        return self._binary_op(other, np.greater_equal)
+    # end def greater_equal
+
+    def greater(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise greater-than."""
+        return self._binary_op(other, np.greater)
+    # end def greater
+
+    def less_equal(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise less-than-or-equal-to."""
+        return self._binary_op(other, np.less_equal)
+    # end def less_equal
+
+    def less(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise less-than."""
+    # end def less
+
+    # endregion MATH COMPARISON
+
+    # region MATH TRIGO
 
     def sin(self) -> 'Tensor':
         """Elementwise sine."""
@@ -662,20 +720,9 @@ class Tensor:
         return self._unary_op(np.rad2deg)
     # end def rad2deg
 
-    def absolute(self) -> 'Tensor':
-        """Elementwise absolute value."""
-        return self._unary_op(np.absolute)
-    # end def absolute
+    # endregion MATH TRIGO
 
-    def abs(self) -> 'Tensor':
-        """Alias for absolute to mirror numpy."""
-        return self.absolute()
-    # end def abs
-
-    def __abs__(self) -> 'Tensor':
-        """Support Python's built-in abs()."""
-        return self.absolute()
-    # end def __abs__
+    # region MATH DISCRETE
 
     def sign(self) -> 'Tensor':
         """Elementwise sign indicator."""
@@ -721,6 +768,10 @@ class Tensor:
         return Tensor(data=np.asarray(result))
     # end def clip
 
+    # endregion MATH DISCRETE
+
+    # region MATH LINEAR
+
     def matmul(self, other: Union["Tensor", DataType, np.ndarray]) -> 'Tensor':
         """Matrix multiplication."""
         return self._binary_op(other, np.matmul)
@@ -756,6 +807,10 @@ class Tensor:
         result = np.linalg.det(self._data)
         return Tensor(data=np.asarray(result))
     # end def det
+
+    # endregion MATH LINEAR
+
+    # region MATH REDUCTION
 
     def sum(self, axis: Optional[int] = None) -> 'Tensor':
         """Compute the sum of the tensor along the given axis."""
@@ -805,7 +860,7 @@ class Tensor:
         return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
     # end def min
 
-    # endregion MATH METHODS
+    # endregion MATH REDUCTION
 
     # region RESHAPE
 
@@ -1216,3 +1271,37 @@ def vstack(tensors: Sequence[Tensor]) -> Tensor:
     """Concatenate tensors along axis 0."""
     return _concatenate_tensors(tensors, axis=0)
 # end def vstack
+
+#
+# Comparison
+#
+
+def equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("equal", tensor_a, tensor_b)
+# end def equal
+
+
+def not_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("not_equal", tensor_a, tensor_b)
+# end def not_equal
+
+
+def greater(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("greater", tensor_a, tensor_b)
+# end def greater
+
+
+def greater_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("greater_equal", tensor_a, tensor_b)
+# end def greater_equal
+
+
+def less(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("less", tensor_a, tensor_b)
+# end def less
+
+
+def less_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("less_equal", tensor_a, tensor_b)
+# end def less_equal
+

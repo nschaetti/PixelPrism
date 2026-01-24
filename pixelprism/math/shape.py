@@ -686,6 +686,11 @@ class Shape:
         bool
             ``True`` when both shapes share identical dimensions.
         """
+        if isinstance(other, tuple):
+            return self._dims == other
+        elif isinstance(other, list):
+            return self._dims == tuple(other)
+        # end if
         if not isinstance(other, Shape):
             return False
         # end if

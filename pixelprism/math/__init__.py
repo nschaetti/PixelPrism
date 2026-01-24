@@ -104,7 +104,13 @@ from .tensor import (
     trunc,
     rint,
     round,
-    clip
+    clip,
+    equal,
+    not_equal,
+    less_equal,
+    less,
+    greater_equal,
+    greater,
 )
 from .utils import (
     var,

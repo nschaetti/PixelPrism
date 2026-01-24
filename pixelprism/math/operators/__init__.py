@@ -30,6 +30,9 @@ Operator package exports.
 """
 
 from .base import Operands, Operator, OperatorRegistry, ParametricOperator, operator_registry
+from .comparison import (
+    Eq
+)
 from .elementwise import (
     Add,
     Div,
@@ -117,6 +120,7 @@ from .trigo import (
 )
 
 __all__ = [
+    # Base
     "Operands",
     "Operator",
     "ParametricOperator",
@@ -124,6 +128,9 @@ __all__ = [
     "operator_registry",
     "ElementwiseOperator",
     "UnaryElementwiseOperator",
+    # Comparison
+    "Eq",
+    # Element-wise
     "Add",
     "Sub",
     "Mul",
@@ -144,6 +151,7 @@ __all__ = [
     "Rad2deg",
     "Absolute",
     "Abs",
+    # Discrete
     "Sign",
     "Floor",
     "Ceil",
@@ -152,6 +160,7 @@ __all__ = [
     "Round",
     "Clip",
     "Neg",
+    # Trigo
     "Sin",
     "Cos",
     "Tan",

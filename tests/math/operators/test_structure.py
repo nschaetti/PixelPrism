@@ -393,6 +393,11 @@ def test_concatenate_detects_mismatched_shapes():
 # end test_concatenate_detects_mismatched_shapes
 
 
+#
+# hstack
+#
+
+
 def test_hstack_concatenates_along_second_axis():
     """HStack should mirror numpy.hstack for rank >= 2 tensors."""
     left = np.arange(6, dtype=np.float32).reshape(2, 3)
@@ -423,6 +428,11 @@ def test_hstack_requires_second_axis():
     with pytest.raises(ValueError):
         operator.check_shapes([expr_a, expr_b])
 # end test_hstack_requires_second_axis
+
+
+#
+# vstack
+#
 
 
 def test_vstack_concatenates_along_first_axis():

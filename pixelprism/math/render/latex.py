@@ -711,6 +711,19 @@ def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_sub
 
 
+def _format_eq(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """
+    Format equality comparisons with the \\equiv symbol.
+    """
+    if len(expr.children) != 2:
+        raise ValueError("eq expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return rf"{left} \equiv {right}"
+# end def _format_eq
+
+
 def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format negation expressions.
@@ -1163,12 +1176,28 @@ def _format_getitem(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op:
 # end def _format_getitem
 
 
-def _format_structure_unary(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, *, op: Operator, name: str) -> str:
-    if len(expr.children) != 1:
-        raise ValueError(f"{name} expects exactly one operand.")
+def _format_structure_unary(
+        renderer: _LatexRenderer,
+        expr: MathNode,
+        rule: _OpRule, *,
+        op: Operator,
+        name: str,
+        num_operands: int = 1,
+) -> str:
+    if not op.is_variadic and len(expr.children) != num_operands:
+        raise ValueError(f"{name} expects exactly {num_operands} operands.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
-    axes_suffix = _format_axes_suffix(op.get_parameter('axes'))
+    if op.arity <= 0:
+        operand = ""
+    elif op.arity == 1:
+        operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    elif op.arity >= 2:
+        operand = "(" + ",".join([
+            renderer._render_operand(c, rule.precedence, allow_equal=False)
+            for c in expr.children
+        ]) + ")"
+    # end if
+    axes_suffix = _format_axes_suffix(op.get_parameter('axes')) or _format_axis_suffix(op.get_parameter('axis'))
     command = rf"\operatorname{{{name}}}"
     if axes_suffix:
         command = rf"{command}"
@@ -1181,11 +1210,22 @@ def _format_structure_unary(renderer: _LatexRenderer, expr: MathNode, rule: _OpR
 # end def _format_structure_unary
 
 
+def _format_axis_suffix(axis: Optional[int]) -> Optional[str]:
+    if axis is None:
+        return None
+    else:
+        return rf"\mathrm{{axis={axis}}}"
+    # end if
+# end def _format_axis_suffis
+
+
 def _format_axes_suffix(axes: Optional[Sequence[int]]) -> str:
     if axes is None:
         return ""
+    # end if
     if len(axes) == 0:
         return ""
+    # end if
     formatted = ", ".join(str(axis) for axis in axes)
     return rf"{formatted}"
 # end def _format_axes_suffix
@@ -1202,27 +1242,38 @@ def _format_unsqueeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, o
 
 
 def _format_concat(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
-    name = "concatenate"
-    if len(expr.children) < 2:
-        raise ValueError(f"{name} expects exactly one operand.")
-    # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
-    axes_suffix = _format_axes_suffix(op.get_parameter('axes'))
-    command = rf"\operatorname{{{name}}}"
-    if axes_suffix:
-        command = rf"{command}"
-    # end if
-    if axes_suffix:
-        return rf"{command}({operand};\, {axes_suffix})"
-    else:
-        return rf"{command}({{{operand}}})"
-    # end if
+    return _format_structure_unary(renderer, expr, rule, op=op, name="concat", num_operands=-1)
 # end def _format_concat
+
+
+def _format_hstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    if len(expr.children) <= 1:
+        raise ValueError("hstack expects at least two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"[" + r"\;".join(operands) + r"]"
+# end def _format_hstack
+
+
+def _format_vstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    if len(expr.children) <= 1:
+        raise ValueError("vstack expects at least two operands.")
+    # end if
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"\begin{bmatrix}" + r" \\ ".join(operands) + r"\end{bmatrix}"
+# end def _format_vstack
 
 
 # Base
 _ADD_RULE = _OpRule(precedence=10, formatter=_format_add)
 _SUB_RULE = _OpRule(precedence=10, formatter=_format_sub)
+_EQ_RULE = _OpRule(precedence=5, formatter=_format_eq)
 _NEG_RULE = _OpRule(precedence=30, formatter=_format_neg)
 _MUL_RULE = _OpRule(precedence=20, formatter=_format_mul)
 _DIV_RULE = _OpRule(precedence=20, formatter=_format_div)
@@ -1261,12 +1312,15 @@ _GETITEM_RULE = _OpRule(precedence=50, formatter=_format_getitem)
 _SQUEEZE_RULE = _OpRule(precedence=50, formatter=_format_squeeze)
 _UNSQUEEZE_RULE = _OpRule(precedence=50, formatter=_format_unsqueeze)
 _CONCAT_RULE = _OpRule(precedence=50, formatter=_format_concat)
+_HSTACK_RULE = _OpRule(precedence=50, formatter=_format_hstack)
+_VSTACK_RULE = _OpRule(precedence=50, formatter=_format_vstack)
 
 
 _OP_RULES: Dict[str, _OpRule] = {
     "add": _ADD_RULE,
     "sub": _SUB_RULE,
     "subtract": _SUB_RULE,
+    "eq": _EQ_RULE,
     "neg": _NEG_RULE,
     "negative": _NEG_RULE,
     "mul": _MUL_RULE,
@@ -1306,7 +1360,9 @@ _OP_RULES: Dict[str, _OpRule] = {
     "getitem": _GETITEM_RULE,
     "squeeze": _SQUEEZE_RULE,
     "unsqueeze": _UNSQUEEZE_RULE,
-    "concatenate": _CONCAR_RULE,
+    "concatenate": _CONCAT_RULE,
+    "hstack": _HSTACK_RULE,
+    "vstack": _VSTACK_RULE,
 }
 
 _FUNCTION_COMMANDS: Dict[str, str] = {
