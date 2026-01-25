@@ -375,7 +375,7 @@ def test_tensor_elementwise_operators_match_numpy():
     ]
     for tensor_result, expected in cases:
         np.testing.assert_array_equal(tensor_result.value, expected)
-        assert tensor_result.shape.dims == expected.shape
+        assert tensor_result.input_shape.dims == expected.input_shape
         assert tensor_result.dtype == DType.from_numpy(expected.dtype)
 # end test test_tensor_elementwise_operators_match_numpy
 
@@ -397,15 +397,15 @@ def test_tensor_getitem_preserves_dtype_and_shape():
 
     np.testing.assert_array_equal(first_row.value, data[0])
     assert first_row.dtype == DType.INT32
-    assert first_row.shape.dims == data[0].shape
+    assert first_row.input_shape.dims == data[0].input_shape
 
     np.testing.assert_array_equal(first_col.value, data[:, 0])
     assert first_col.dtype == DType.INT32
-    assert first_col.shape.dims == data[:, 0].shape
+    assert first_col.input_shape.dims == data[:, 0].shape
 
     np.testing.assert_array_equal(sub_block.value, data[1:, 2:])
     assert sub_block.dtype == DType.INT32
-    assert sub_block.shape.dims == data[1:, 2:].shape
+    assert sub_block.input_shape.dims == data[1:, 2:].shape
 # end test test_tensor_getitem_preserves_dtype_and_shape
 
 
@@ -428,7 +428,7 @@ def test_tensor_math_methods_match_numpy():
         result = getattr(tensor, method)()
         expected = numpy_fn(data)
         np.testing.assert_allclose(result.value, expected)
-        assert result.shape.dims == data.shape
+        assert result.input_shape.dims == data.shape
         assert result.dtype == DType.from_numpy(expected.dtype)
     # end def assert_unary
 

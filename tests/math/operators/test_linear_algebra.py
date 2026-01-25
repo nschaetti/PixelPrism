@@ -435,3 +435,88 @@ def test_linear_algebra_with_elementwise_composition():
     _assert_expr_allclose(combined_expr, expected)
     assert combined_expr.shape.dims == expected.shape
 # end test_linear_algebra_with_elementwise_composition
+
+
+@pytest.mark.parametrize(
+    "values,dtype,expected_dtype",
+    [
+        ([1.0, -2.5, 3.0, -4.5], DType.FLOAT32, DType.FLOAT32),
+        ([1.0, -2.5, 3.0, -4.5], DType.FLOAT64, DType.FLOAT64),
+        ([1, -5, 2, 7], DType.INT32, DType.FLOAT32),
+    ]
+)
+def test_infty_norm_vector_types(values, dtype, expected_dtype):
+    """
+    Infinity norm promotes to floating dtypes and collapses to a scalar.
+    """
+    vector, vector_np = _make_const("inf_vec", values, dtype)
+    expr = LA.infty_norm(vector)
+    expected = np.max(np.abs(vector_np.astype(expected_dtype.to_numpy())), axis=-1)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == ()
+    assert expr.dtype == expected_dtype
+# end test_infty_norm_vector_types
+
+
+def test_infty_norm_batched_vectors():
+    """
+    Batched vectors should preserve their leading dimensions after the norm.
+    """
+    values = np.array(
+        [
+            [1.0, -3.0, 5.0],
+            [2.5, -0.5, 0.0],
+            [-1.25, 4.75, -2.25],
+        ],
+        dtype=np.float64
+    )
+    vector, vector_np = _make_const("inf_batch", values, DType.FLOAT64)
+
+    expr = LA.infty_norm(vector)
+    expected = np.max(np.abs(vector_np), axis=-1)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == expected.shape
+    assert expr.dtype == DType.FLOAT64
+# end test_infty_norm_batched_vectors
+
+
+@pytest.mark.parametrize(
+    "values,dtype,expected_dtype",
+    [
+        ([[1.0, -2.0], [3.0, 4.0]], DType.FLOAT32, DType.FLOAT32),
+        ([[1.0, 2.0, 3.0], [4.0, -5.0, 6.0]], DType.FLOAT64, DType.FLOAT64),
+        ([[2, -1], [0, 5]], DType.INT32, DType.FLOAT32),
+    ]
+)
+def test_frobenius_norm_single_matrix(values, dtype, expected_dtype):
+    """
+    Frobenius norm collapses 2-D matrices to scalars honoring dtype promotion.
+    """
+    matrix, matrix_np = _make_const("fro_single", values, dtype)
+
+    expr = LA.frobenius_norm(matrix)
+    working = matrix_np.astype(expected_dtype.to_numpy())
+    expected = np.sqrt(np.sum(np.square(working), axis=(-2, -1)))
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == ()
+    assert expr.dtype == expected_dtype
+# end test_frobenius_norm_single_matrix
+
+
+def test_frobenius_norm_batched_matrices():
+    """
+    Batched Frobenius norm reduces the last two axes independently.
+    """
+    data = np.arange(2 * 3 * 3 * 3, dtype=np.float32).reshape(2, 3, 3, 3)
+    matrix, matrix_np = _make_const("fro_batch", data, DType.FLOAT32)
+
+    expr = LA.frobenius_norm(matrix)
+    expected = np.sqrt(np.sum(np.square(matrix_np), axis=(-2, -1)))
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == expected.shape
+    assert expr.dtype == DType.FLOAT32
+# end test_frobenius_norm_batched_matrices

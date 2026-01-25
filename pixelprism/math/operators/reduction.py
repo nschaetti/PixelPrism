@@ -157,7 +157,7 @@ class AxisReductionOperator(ReductionOperator, ABC):
         if axis_value is None:
             return Shape(dims=())
         # end if
-        return operands[0].shape.drop_axis(axis_value)
+        return operands[0].input_shape.drop_axis(axis_value)
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -167,8 +167,8 @@ class AxisReductionOperator(ReductionOperator, ABC):
         axis_value = self._axis_value()
         if axis_value is not None and axis_value < 0:
             raise ValueError(f"Axis {axis_value} is negative.")
-        elif axis_value is not None and axis_value >= operands[0].shape.rank:
-            raise ValueError(f"Axis {axis_value} is out of bounds for rank {operands[0].shape.rank}.")
+        elif axis_value is not None and axis_value >= operands[0].input_shape.rank:
+            raise ValueError(f"Axis {axis_value} is out of bounds for rank {operands[0].input_shape.rank}.")
         # end if
         return True
     # end def check_shapes
@@ -563,7 +563,7 @@ class Summation(ReductionOperator):
 
     def infer_shape(self, operands: Operands) -> Shape:
         body, = operands
-        return body.shape
+        return body.input_shape
     # end def infer_shape
 
     def infer_dtype(self, operands: Operands) -> DType:
@@ -585,7 +585,7 @@ class Summation(ReductionOperator):
         upper = self.upper.eval().item()
 
         # Iterate
-        ret_value = Tensor.zeros(body.shape, dtype=body.dtype)
+        ret_value = Tensor.zeros(body.input_shape, dtype=body.dtype)
         with new_context():
             for i in range(lower, upper + 1):
                 set_value(self._i, i)
@@ -749,7 +749,7 @@ class Product(ReductionOperator):
 
     def infer_shape(self, operands: Operands) -> Shape:
         body, = operands
-        return body.shape
+        return body.input_shape
     # end def infer_shape
 
     def infer_dtype(self, operands: Operands) -> DType:
@@ -768,7 +768,7 @@ class Product(ReductionOperator):
         upper = self.upper.eval().item()
 
         dtype = body.dtype
-        init = np.ones(shape=body.shape.dims, dtype=dtype.to_numpy())
+        init = np.ones(shape=body.input_shape.dims, dtype=dtype.to_numpy())
         ret_value = Tensor(data=init, dtype=dtype)
 
         with new_context():

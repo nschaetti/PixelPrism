@@ -115,10 +115,10 @@ class ElementwiseOperator(Operator, ABC):
             # end if
         else:
             # Same rank, but require same shape
-            if a.shape != b.shape:
+            if a.input_shape != b.input_shape:
                 raise ValueError(
                     f"{self.NAME} requires operands with identical shapes, "
-                    f"got {a.shape} and {b.shape}."
+                    f"got {a.input_shape} and {b.input_shape}."
                 )
             # end if
         # end if
@@ -131,11 +131,11 @@ class ElementwiseOperator(Operator, ABC):
         """
         a, b = operands
         if a.rank == b.rank:
-            return operands[0].shape
+            return operands[0].input_shape
         elif a.rank > b.rank:
-            return operands[0].shape
+            return operands[0].input_shape
         else:
-            return operands[1].shape
+            return operands[1].input_shape
         # end if
     # end def infer_shape
 
@@ -350,7 +350,7 @@ class UnaryElementwiseOperator(Operator, ABC):
 
     def infer_shape(self, operands: Operands) -> Shape:
         """Shape matches operand."""
-        return operands[0].shape
+        return operands[0].input_shape
     # end def infer_shape
 
     def infer_dtype(self, operands: Operands) -> DType:
@@ -805,7 +805,7 @@ class Neg(UnaryElementwiseOperator):
     @classmethod
     def infer_shape(cls, operands: Operands) -> Shape:
         """Shape matches operand."""
-        return operands[0].shape
+        return operands[0].input_shape
     # end def infer_shape
 
     @classmethod

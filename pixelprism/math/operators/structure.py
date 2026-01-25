@@ -43,7 +43,7 @@ from ..tensor import (
     hstack as tensor_hstack,
     vstack as tensor_vstack,
 )
-from ..math_expr import SliceExpr, MathNode
+from ..math_expr import SliceExpr, MathNode, MathExpr
 from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
 
 __all__ = [
@@ -120,6 +120,11 @@ class Getitem(StructureOperator):
         self._indices = indices
     # end def __init__
 
+    @property
+    def indices(self):
+        return self._indices
+    # end def indices
+
     # region PUBLIC
 
     def check_parameters(self, indices: List[Union[SliceExpr, int]]) -> bool:
@@ -144,8 +149,8 @@ class Getitem(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        new_shape = list(operands[0].shape.dims)
-        for n_i, (i, n) in enumerate(zip(self._indices, operands[0].shape.dims)):
+        new_shape = list(operands[0].input_shape.dims)
+        for n_i, (i, n) in enumerate(zip(self._indices, operands[0].input_shape.dims)):
             if isinstance(i, int):
                 new_shape[n_i] = 0
             else:
@@ -166,7 +171,7 @@ class Getitem(StructureOperator):
     def check_shapes(self, operands: Operands) -> bool:
         for n_i, i in enumerate(self._indices):
             start = self._get_scalar(i.start) if isinstance(i, SliceExpr) else i
-            if start < -operands[0].shape[n_i] or start >= operands[0].shape[n_i]:
+            if start < -operands[0].input_shape[n_i] or start >= operands[0].input_shape[n_i]:
                 return False
             # end if
         # end for
@@ -231,6 +236,10 @@ class Getitem(StructureOperator):
         raise NotImplementedError("GetItem does not support backward.")
     # end def _backward
 
+    # endregion PRIVATE
+
+    # region OVERRIDE
+
     def __str__(self) -> str:
         return f"{self.NAME}(indices={self._format_indices()})"
     # end def __str__
@@ -250,9 +259,69 @@ class Getitem(StructureOperator):
         return formatted
     # end def _format_indices
 
-    # endregion PRIVATE
+    # endregion OVERRIDE
 
 # end class GetItem
+
+
+class SetItem(StructureOperator):
+    """Setitem operator."""
+
+    NAME = "setitem"
+    ARITY = 2
+
+    def __init__(self, tensor: MathExpr, value: MathExpr, indices: Union[SliceExpr, int]) -> None:
+        """Construct a setitem operator."""
+        super().__init__(
+            indices=indices
+        )
+        self._indices = indices
+        self._tensor = tensor
+        self._value = value
+    # end def __init__
+
+    # region PROPERTIES
+
+    @property
+    def tensor(self) -> MathExpr:
+        return self._tensor
+    # end def
+
+    @property
+    def value(self) -> MathExpr:
+        return self._value
+    # end def value
+
+    @property
+    def indices(self):
+        return self._indices
+    # end def indices
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def check_operands(self, operands: Operands) -> bool:
+        pass
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        pass
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        pass
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        pass
+
+    def infer_shape(self, operands: Operands) -> Shape:
+        pass
+
+    def check_shapes(self, operands: Operands) -> bool:
+        pass
+
+    # endregion PUBLIC
+
+# end class SetItem
 
 
 class Flatten(StructureOperator):
@@ -274,8 +343,8 @@ class Flatten(StructureOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         tensor = operands[0].eval()
-        target_dims = self._target_dims(tensor.shape.dims)
-        if target_dims == tensor.shape.dims:
+        target_dims = self._target_dims(tensor.input_shape.dims)
+        if target_dims == tensor.input_shape.dims:
             return tensor
         return tensor.reshape(Shape(target_dims))
     # end def _eval
@@ -289,7 +358,7 @@ class Flatten(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        return Shape(self._target_dims(operands[0].shape.dims))
+        return Shape(self._target_dims(operands[0].input_shape.dims))
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -373,10 +442,10 @@ class Concatenate(StructureOperator):
         if self._axis is None:
             return Shape((self._flattened_size(operands),))
         # end if
-        base_shape = operands[0].shape
+        base_shape = operands[0].input_shape
         axis = self._normalized_axis(base_shape.rank)
         dims = list(base_shape.dims)
-        dims[axis] = sum(operand.shape[axis] for operand in operands)
+        dims[axis] = sum(operand.input_shape[axis] for operand in operands)
         return Shape(tuple(dims))
     # end def infer_shape
 
@@ -386,13 +455,13 @@ class Concatenate(StructureOperator):
         # end if
         if self._axis is None:
             return True
-        reference = operands[0].shape
+        reference = operands[0].input_shape
         axis = self._normalized_axis(reference.rank)
         for operand in operands[1:]:
-            if operand.shape.rank != reference.rank:
+            if operand.input_shape.rank != reference.rank:
                 raise ValueError("All operands must share the same rank for concatenation.")
             # end if
-            for idx, (dim_ref, dim_other) in enumerate(zip(reference.dims, operand.shape.dims)):
+            for idx, (dim_ref, dim_other) in enumerate(zip(reference.dims, operand.input_shape.dims)):
                 if idx == axis:
                     continue
                 if dim_ref != dim_other:
@@ -420,7 +489,7 @@ class Concatenate(StructureOperator):
     def _flattened_size(self, operands: Operands) -> int:
         total = 0
         for operand in operands:
-            size = operand.shape.size
+            size = operand.input_shape.size
             if size is None:
                 raise ValueError("Cannot concatenate unknown-size tensors along axis=None.")
             # end if
@@ -490,8 +559,8 @@ class Squeeze(StructureOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         tensor = operands[0].eval()
-        target_dims = self._target_dims(tensor.shape.dims)
-        if target_dims == tensor.shape.dims:
+        target_dims = self._target_dims(tensor.input_shape.dims)
+        if target_dims == tensor.input_shape.dims:
             return tensor
         return tensor.reshape(Shape(target_dims))
     # end def _eval
@@ -501,11 +570,11 @@ class Squeeze(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        return Shape(self._target_dims(operands[0].shape.dims))
+        return Shape(self._target_dims(operands[0].input_shape.dims))
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
-        dims = operands[0].shape.dims
+        dims = operands[0].input_shape.dims
         axes = self._normalized_axes(dims)
         if self._axes is None:
             return True
@@ -579,7 +648,7 @@ class Unsqueeze(StructureOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         tensor = operands[0].eval()
-        target_dims = self._target_dims(tensor.shape.dims)
+        target_dims = self._target_dims(tensor.input_shape.dims)
         return tensor.reshape(Shape(target_dims))
     # end def _eval
 
@@ -588,11 +657,11 @@ class Unsqueeze(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        return Shape(self._target_dims(operands[0].shape.dims))
+        return Shape(self._target_dims(operands[0].input_shape.dims))
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
-        self._normalized_axes(len(operands[0].shape.dims))  # validation
+        self._normalized_axes(len(operands[0].input_shape.dims))  # validation
         return True
     # end def check_shapes
 

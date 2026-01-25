@@ -44,6 +44,9 @@ from .boolean import (
     Or,
     Xor,
 )
+from .builders import (
+    BuildTensor
+)
 from .elementwise import (
     Add,
     Div,
@@ -88,7 +91,9 @@ from .linear_algebra import (
     Transpose,
     Det,
     Inverse,
-    Norm
+    Norm,
+    InftyNorm,
+    FrobeniusNorm,
 )
 from .reduction import (
     ReductionOperator,
@@ -140,7 +145,9 @@ __all__ = [
     "operator_registry",
     "ElementwiseOperator",
     "UnaryElementwiseOperator",
-    # Comparison
+    # Builders
+    "BuildTensor",
+    # Boolean
     "Eq",
     "Ne",
     "Lt",

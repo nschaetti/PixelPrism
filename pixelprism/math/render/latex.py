@@ -924,8 +924,29 @@ def _format_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
         raise ValueError("norm expects exactly one operand.")
     # end if
     inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    return rf"\left\Vert{inner}\right\Vert"
+    order = op.get_parameter('order')
+    return rf"\left\Vert{{{inner}}}\right\Vert_{{{order}}}"
 # end def _format_norm
+
+
+def _format_infty_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format the infinity norm."""
+    if len(expr.children) != 1:
+        raise ValueError("infty_norm expects exactly one operand.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    return rf"\lVert {inner} \rVert_\infty"
+# end def _format_infty_norm
+
+
+def _format_frobenius_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format the Frobenius norm."""
+    if len(expr.children) != 1:
+        raise ValueError("frobenius_norm expects exactly one operand.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    return rf"\lVert {inner} \rVert_F"
+# end def _format_frobenius_norm
 
 
 def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
@@ -1446,6 +1467,8 @@ _DOT_RULE = _OpRule(precedence=20, formatter=_format_dot)
 _OUTER_RULE = _OpRule(precedence=20, formatter=_format_outer)
 _INVERSE_RULE = _OpRule(precedence=50, formatter=_format_inverse)
 _NORM_RULE = _OpRule(precedence=50, formatter=_format_norm)
+_INFTY_NORM_RULE = _OpRule(precedence=50, formatter=_format_infty_norm)
+_FROBENIUS_NORM_RULE = _OpRule(precedence=50, formatter=_format_frobenius_norm)
 
 # Reduction
 _SUM_RULE = _OpRule(precedence=100, formatter=_format_sum)
@@ -1511,6 +1534,8 @@ _OP_RULES: Dict[str, _OpRule] = {
     "transpose": _TRANSPOSE_RULE,
     "inverse": _INVERSE_RULE,
     "norm": _NORM_RULE,
+    "infty_norm": _INFTY_NORM_RULE,
+    "frobenius_norm": _FROBENIUS_NORM_RULE,
     # Reduction
     "mean": _MEAN_RULE,
     "sum": _SUM_RULE,

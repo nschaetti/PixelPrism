@@ -86,7 +86,7 @@ class DummyOp(Operator):
 
     @classmethod
     def infer_shape(cls, operands):
-        return operands[0].shape if operands else Shape(())
+        return operands[0].input_shape if operands else Shape(())
     # end def infer_shape
 
     @classmethod

@@ -688,7 +688,7 @@ class Animation:
                     final_frame = RenderEngine.render(image_canvas)
 
                     # Ensure the final frame is the correct size and type
-                    assert final_frame.data.shape[:2] == (height, width), "Final frame size mismatch"
+                    assert final_frame.data.input_shape[:2] == (height, width), "Final frame size mismatch"
                     assert final_frame.data.dtype == np.uint8, "Final frame data type mismatch"
 
                     # Save as RGB

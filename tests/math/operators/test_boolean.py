@@ -205,8 +205,8 @@ def test_boolean_binary_operator_matches_numpy(op_name, op_cls, np_func, lhs_val
 
     np.testing.assert_array_equal(result.value, expected, err_msg=f"{op_name} mismatch")
     assert result.dtype == pm.DType.BOOL
-    assert result.shape.dims == expected.shape
-    assert operator.infer_shape([lhs_expr, rhs_expr]).dims == expected.shape
+    assert result.shape.dims == expected.input_shape
+    assert operator.infer_shape([lhs_expr, rhs_expr]).dims == expected.input_shape
     assert operator.infer_dtype([lhs_expr, rhs_expr]) == pm.DType.BOOL
 # end test_boolean_binary_operator_matches_numpy
 
@@ -236,8 +236,8 @@ def test_not_operator_matches_numpy(values):
     expected = np.logical_not(arr)
     np.testing.assert_array_equal(result.value, expected)
     assert result.dtype == pm.DType.BOOL
-    assert result.shape.dims == expected.shape
-    assert operator.infer_shape([expr]).dims == expected.shape
+    assert result.shape.dims == expected.input_shape
+    assert operator.infer_shape([expr]).dims == expected.input_shape
     assert operator.infer_dtype([expr]) == pm.DType.BOOL
 # end test_not_operator_matches_numpy
 

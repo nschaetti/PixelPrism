@@ -345,6 +345,14 @@ class MathNode(MathExpr):
     # end def shape
 
     @property
+    def input_shape(self) -> Shape:
+        """
+        Backwards-compatible alias used throughout operator implementations.
+        """
+        return self._shape
+    # end def input_shape
+
+    @property
     def rank(self) -> int:
         """
         Returns

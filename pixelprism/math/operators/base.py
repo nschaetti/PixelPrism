@@ -249,7 +249,10 @@ class Operator(ABC):
             operands: Operands
     ):
         """Check that the operands have the correct arity."""
-        return len(operands) == cls.ARITY
+        if not cls.IS_VARIADIC:
+            return len(operands) == cls.ARITY
+        # end if
+        return True
     # end def check_arity
 
     @staticmethod

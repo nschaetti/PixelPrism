@@ -27,6 +27,32 @@
 #
 
 
+from .boolean import (
+    eq,
+    ne,
+    lt,
+    le,
+    gt,
+    ge,
+    logical_not,
+    any,
+    all,
+    logical_and,
+    logical_or,
+    logical_xor,
+)
+from .builders import (
+    build_tensor
+)
+from .discretization import (
+    sign,
+    floor,
+    ceil,
+    trunc,
+    rint,
+    round,
+    clip,
+)
 from .elementwise import (
     add,
     sub,
@@ -50,31 +76,29 @@ from .elementwise import (
     abs,
     neg,
 )
-from .boolean import (
-    eq,
-    ne,
-    lt,
-    le,
-    gt,
-    ge,
-    logical_not,
-    any,
-    all,
-    logical_and,
-    logical_or,
-    logical_xor,
+from .linear_algebra import (
+    matmul,
+    dot,
+    outer,
+    trace,
+    transpose,
+    det,
+    inverse,
+    norm,
+    infty_norm,
+    frobenius_norm,
 )
-from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
-from .linear_algebra import matmul, dot, outer, trace, transpose, det, inverse, norm
-from .reduction import sum, mean, std, median, max, min, q1, q3, summation, product
-from .discretization import (
-    sign,
-    floor,
-    ceil,
-    trunc,
-    rint,
-    round,
-    clip,
+from .reduction import (
+    sum,
+    mean,
+    std,
+    median,
+    max,
+    min,
+    q1,
+    q3,
+    summation,
+    product
 )
 from .structure import (
     getitem,
@@ -85,10 +109,28 @@ from .structure import (
     squeeze,
     unsqueeze
 )
+from .trigo import (
+    sin,
+    cos,
+    acos,
+    acosh,
+    atan,
+    cot,
+    atan2,
+    csc,
+    sec,
+    tan,
+    asin,
+    cosh,
+    sinh,
+    tanh,
+    asinh,
+    atanh
+)
 
 
 __all__ = [
-    # Comparison
+    # Boolean
     "eq",
     "ne",
     "lt",
@@ -101,6 +143,8 @@ __all__ = [
     "logical_and",
     "logical_or",
     "logical_xor",
+    # Builders
+    "build_tensor",
     # Element wise
     "add",
     "sub",
@@ -157,6 +201,8 @@ __all__ = [
     "det",
     "inverse",
     "norm",
+    "infty_norm",
+    "frobenius_norm",
     # Reduction
     "sum",
     "mean",

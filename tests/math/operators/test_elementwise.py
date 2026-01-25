@@ -358,7 +358,7 @@ def test_elementwise_combined_expression_chain():
     expected = np.sqrt((a_np * b_np) + (c_np / d_np))
 
     _assert_expr_allclose(combined, expected)
-    assert combined.shape.dims == expected.shape
+    assert combined.shape.dims == expected.input_shape
 # end test_elementwise_combined_expression_chain
 
 

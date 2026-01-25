@@ -25,8 +25,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-from typing import Sequence, Union, Optional
 
+from typing import Sequence, Union, Optional
 from pixelprism.math.math_expr import MathNode
 from pixelprism.math.build import as_expr
 from .helpers import apply_operator
@@ -40,6 +40,8 @@ __all__ = [
     "det",
     "inverse",
     "norm",
+    "infty_norm",
+    "frobenius_norm",
 ]
 
 
@@ -160,7 +162,33 @@ def norm(
     return apply_operator(
         op_name="norm",
         operands=(op1,),
-        display_name=f"norm({order})" if order is not None else "norm()"
+        display_name=f"norm({order})" if order is not None else "norm()",
+        order=order
     )
 # end norm
 
+
+def infty_norm(op1: MathNode) -> MathNode:
+    """
+    Convenience wrapper for the Infinity norm operator.
+    """
+    op1 = as_expr(op1)
+    return apply_operator(
+        op_name="infty_norm",
+        operands=(op1,),
+        display_name=f"‖{op1.name}‖_∞",
+    )
+# end def infty_norm
+
+
+def frobenius_norm(op1: MathNode) -> MathNode:
+    """
+    Convenience wrapper for the Frobenius norm operator.
+    """
+    op1 = as_expr(op1)
+    return apply_operator(
+        op_name="frobenius_norm",
+        operands=(op1,),
+        display_name=f"‖{op1.name}‖_F",
+    )
+# end def frobenius_norm

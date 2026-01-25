@@ -195,7 +195,7 @@ def tensor(
     >>> import numpy as np
     >>> from pixelprism.math import utils
     >>> logits = utils.tensor([[1, 2], [3, 4]])
-    >>> logits.shape
+    >>> logits.input_shape
     (2, 2)
     """
     return Tensor(data=data, dtype=dtype, mutable=mutable)
@@ -263,7 +263,7 @@ def vector(
     --------
     >>> import pixelprism.math as ppmath
     >>> weights = ppmath.vector([0.2, 0.3, 0.5])
-    >>> weights.shape
+    >>> weights.input_shape
     (3,)
     """
     return _dim_tensor(data=value, ndim=1, dtype=dtype, mutable=mutable)
@@ -331,7 +331,7 @@ def empty(
     --------
     >>> import pixelprism.math as ppmath
     >>> scratch = ppmath.empty((2, 3))
-    >>> scratch.shape
+    >>> scratch.input_shape
     (2, 3)
     """
     dims = _normalize_shape(shape)
@@ -634,7 +634,7 @@ def zeros_like(
     >>> import pixelprism.math as ppmath
     >>> template = np.arange(6).reshape(2, 3)
     >>> zeros_clone = ppmath.zeros_like(template)
-    >>> zeros_clone.shape
+    >>> zeros_clone.input_shape
     (2, 3)
     """
     base = np.asarray(x)
