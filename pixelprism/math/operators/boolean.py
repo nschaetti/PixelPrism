@@ -45,6 +45,12 @@ __all__ = [
     "Le",
     "Gt",
     "Ge",
+    "Not",
+    "Any",
+    "All",
+    "And",
+    "Or",
+    "Xor",
 ]
 
 
@@ -106,6 +112,97 @@ class _BinaryComparisonOperator(ComparisonOperator):
         return f"{self.__class__.__name__}(a, b)"
     # end def __repr__
 
+
+class _BinaryBooleanComparisonOperator(_BinaryComparisonOperator, ABC):
+    """Binary operators that only accept boolean tensors."""
+
+    def _ensure_boolean_operands(self, operands: Operands) -> None:
+        for operand in operands:
+            if operand.dtype != DType.BOOL:
+                raise TypeError(f"{self.NAME} expects boolean tensors, got {operand.dtype}.")
+            # end if
+        # end for
+    # end def _ensure_boolean_operands
+
+    def check_operands(self, operands: Operands) -> bool:
+        return super().check_operands(operands) and all(op.dtype == DType.BOOL for op in operands)
+    # end def check_operands
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        self._ensure_boolean_operands(operands)
+        return super()._eval(operands, **kwargs)
+    # end def _eval
+# end class _BinaryBooleanComparisonOperator
+
+
+class _UnaryBooleanComparisonOperator(ComparisonOperator, ABC):
+    """Shared unary boolean comparison implementation."""
+
+    ARITY = 1
+    TENSOR_METHOD: str
+
+    def check_operands(self, operands: Operands) -> bool:
+        operand, = operands
+        return operand.dtype == DType.BOOL
+    # end def check_operands
+
+    def contains(self, expr: "MathExpr", by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+        return False
+    # end def contains
+
+    def _ensure_boolean_operand(self, operand: "MathExpr") -> None:
+        if operand.dtype != DType.BOOL:
+            raise TypeError(f"{self.NAME} expects boolean tensors, got {operand.dtype}.")
+        # end if
+    # end def _ensure_boolean_operand
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        (expr,) = operands
+        self._ensure_boolean_operand(expr)
+        tensor = expr.eval()
+        method = getattr(tensor, self.TENSOR_METHOD)
+        return method()
+    # end def _eval
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        raise NotImplementedError(f"{self.__class__.__name__} does not support backward.")
+    # end def _backward
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        return DType.BOOL
+    # end def infer_dtype
+
+    def infer_shape(self, operands: Operands) -> Shape:
+        operand, = operands
+        return self._result_shape(operand)
+    # end def infer_shape
+
+    def _result_shape(self, operand: "MathExpr") -> Shape:
+        return operand.shape
+    # end def _result_shape
+
+    def check_shapes(self, operands: Operands) -> bool:
+        return True
+    # end def check_shapes
+
+    def __str__(self) -> str:
+        return f"{self.NAME}(a)"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(a)"
+    # end def __repr__
+
+
+class _ScalarBooleanComparisonOperator(_UnaryBooleanComparisonOperator, ABC):
+    """Boolean reductions that always return scalars."""
+
+    def _result_shape(self, operand: "MathExpr") -> Shape:
+        return Shape(dims=())
+    # end def _result_shape
+
+# end class _ScalarBooleanComparisonOperator
+
 class Eq(_BinaryComparisonOperator):
     """Element-wise equality operator."""
 
@@ -154,6 +251,54 @@ class Ge(_BinaryComparisonOperator):
 # end class Ge
 
 
+class Not(_UnaryBooleanComparisonOperator):
+    """Element-wise logical negation for boolean tensors."""
+
+    NAME = "not"
+    TENSOR_METHOD = "logical_not"
+# end class Not
+
+
+class Any(_ScalarBooleanComparisonOperator):
+    """Check whether any element in a boolean tensor is True."""
+
+    NAME = "any"
+    TENSOR_METHOD = "any"
+# end class Any
+
+
+class All(_ScalarBooleanComparisonOperator):
+    """Check whether every element in a boolean tensor is True."""
+
+    NAME = "all"
+    TENSOR_METHOD = "all"
+# end class All
+
+
+class And(_BinaryBooleanComparisonOperator):
+    """Element-wise logical AND."""
+
+    NAME = "and"
+    TENSOR_METHOD = "logical_and"
+# end class And
+
+
+class Or(_BinaryBooleanComparisonOperator):
+    """Element-wise logical OR."""
+
+    NAME = "or"
+    TENSOR_METHOD = "logical_or"
+# end class Or
+
+
+class Xor(_BinaryBooleanComparisonOperator):
+    """Element-wise logical XOR."""
+
+    NAME = "xor"
+    TENSOR_METHOD = "logical_xor"
+# end class Xor
+
+
 # Register operators
 operator_registry.register(Eq)
 operator_registry.register(Ne)
@@ -161,3 +306,9 @@ operator_registry.register(Lt)
 operator_registry.register(Le)
 operator_registry.register(Gt)
 operator_registry.register(Ge)
+operator_registry.register(Not)
+operator_registry.register(Any)
+operator_registry.register(All)
+operator_registry.register(And)
+operator_registry.register(Or)
+operator_registry.register(Xor)

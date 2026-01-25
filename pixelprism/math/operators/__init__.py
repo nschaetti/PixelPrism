@@ -30,13 +30,19 @@ Operator package exports.
 """
 
 from .base import Operands, Operator, OperatorRegistry, ParametricOperator, operator_registry
-from .comparison import (
+from .boolean import (
     Eq,
     Ne,
     Lt,
     Le,
     Gt,
     Ge,
+    Not,
+    Any,
+    All,
+    And,
+    Or,
+    Xor,
 )
 from .elementwise import (
     Add,
@@ -140,6 +146,12 @@ __all__ = [
     "Le",
     "Gt",
     "Ge",
+    "Not",
+    "Any",
+    "All",
+    "And",
+    "Or",
+    "Xor",
     # Element-wise
     "Add",
     "Sub",

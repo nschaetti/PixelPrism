@@ -757,6 +757,69 @@ def _format_le(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_le
 
 
+def _format_and(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format logical conjunction."""
+    if len(expr.children) != 2:
+        raise ValueError("and expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return rf"{left} \land {right}"
+# end def _format_and
+
+
+def _format_or(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format logical disjunction."""
+    if len(expr.children) != 2:
+        raise ValueError("or expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return rf"{left} \lor {right}"
+# end def _format_or
+
+
+def _format_xor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format logical exclusive-or."""
+    if len(expr.children) != 2:
+        raise ValueError("xor expects exactly two operands.")
+    # end if
+    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    return rf"{left} \oplus {right}"
+# end def _format_xor
+
+
+def _format_not(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format logical negation."""
+    if len(expr.children) != 1:
+        raise ValueError("not expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\neg {operand}"
+# end def _format_not
+
+
+def _format_any(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format boolean any reduction."""
+    if len(expr.children) != 1:
+        raise ValueError("any expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\operatorname{{any}}({operand})"
+# end def _format_any
+
+
+def _format_all(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format boolean all reduction."""
+    if len(expr.children) != 1:
+        raise ValueError("all expects exactly one operand.")
+    # end if
+    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    return rf"\operatorname{{all}}({operand})"
+# end def _format_all
+
+
 def _format_gt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """Format strict greater-than comparisons."""
     if len(expr.children) != 2:
@@ -1334,6 +1397,10 @@ _LT_RULE = _OpRule(precedence=5, formatter=_format_lt)
 _LE_RULE = _OpRule(precedence=5, formatter=_format_le)
 _GT_RULE = _OpRule(precedence=5, formatter=_format_gt)
 _GE_RULE = _OpRule(precedence=5, formatter=_format_ge)
+_AND_RULE = _OpRule(precedence=5, formatter=_format_and)
+_OR_RULE = _OpRule(precedence=5, formatter=_format_or)
+_XOR_RULE = _OpRule(precedence=5, formatter=_format_xor)
+_NOT_RULE = _OpRule(precedence=30, formatter=_format_not)
 _NEG_RULE = _OpRule(precedence=30, formatter=_format_neg)
 _MUL_RULE = _OpRule(precedence=20, formatter=_format_mul)
 _DIV_RULE = _OpRule(precedence=20, formatter=_format_div)
@@ -1366,6 +1433,8 @@ _Q1_RULE = _OpRule(precedence=100, formatter=_format_q1)
 _Q3_RULE = _OpRule(precedence=100, formatter=_format_q3)
 _SUMMATION_RULE = _OpRule(precedence=100, formatter=_format_summation)
 _PRODUCTS_RULE = _OpRule(precedence=100, formatter=_format_product)
+_ANY_RULE = _OpRule(precedence=100, formatter=_format_any)
+_ALL_RULE = _OpRule(precedence=100, formatter=_format_all)
 
 # Structure
 _GETITEM_RULE = _OpRule(precedence=50, formatter=_format_getitem)
@@ -1386,6 +1455,10 @@ _OP_RULES: Dict[str, _OpRule] = {
     "le": _LE_RULE,
     "gt": _GT_RULE,
     "ge": _GE_RULE,
+    "and": _AND_RULE,
+    "or": _OR_RULE,
+    "xor": _XOR_RULE,
+    "not": _NOT_RULE,
     "neg": _NEG_RULE,
     "negative": _NEG_RULE,
     "mul": _MUL_RULE,
@@ -1421,6 +1494,8 @@ _OP_RULES: Dict[str, _OpRule] = {
     "q3": _Q3_RULE,
     "summation": _SUMMATION_RULE,
     "product": _PRODUCTS_RULE,
+    "any": _ANY_RULE,
+    "all": _ALL_RULE,
     # Structure
     "getitem": _GETITEM_RULE,
     "squeeze": _SQUEEZE_RULE,

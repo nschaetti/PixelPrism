@@ -50,13 +50,19 @@ from .elementwise import (
     abs,
     neg,
 )
-from .comparison import (
+from .boolean import (
     eq,
     ne,
     lt,
     le,
     gt,
     ge,
+    logical_not,
+    any,
+    all,
+    logical_and,
+    logical_or,
+    logical_xor,
 )
 from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
 from .linear_algebra import matmul, dot, outer, trace, transpose, det, inverse
@@ -89,6 +95,12 @@ __all__ = [
     "le",
     "gt",
     "ge",
+    "logical_not",
+    "any",
+    "all",
+    "logical_and",
+    "logical_or",
+    "logical_xor",
     # Element wise
     "add",
     "sub",

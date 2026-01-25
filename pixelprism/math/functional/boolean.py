@@ -39,6 +39,12 @@ __all__ = [
     "le",
     "gt",
     "ge",
+    "logical_not",
+    "any",
+    "all",
+    "logical_and",
+    "logical_or",
+    "logical_xor",
 ]
 
 
@@ -86,3 +92,48 @@ def gt(lhs, rhs) -> MathNode:
 def ge(lhs, rhs) -> MathNode:
     return _binary_comparison("ge", lhs, rhs, "≥")
 # end def ge
+
+
+def logical_not(value) -> MathNode:
+    operand = as_expr(value)
+    return apply_operator(
+        "not",
+        (operand,),
+        f"¬{operand.name}",
+    )
+# end def logical_not
+
+
+def any(value) -> MathNode:
+    operand = as_expr(value)
+    return apply_operator(
+        "any",
+        (operand,),
+        f"any({operand.name})",
+    )
+# end def any
+
+
+def all(value) -> MathNode:
+    operand = as_expr(value)
+    return apply_operator(
+        "all",
+        (operand,),
+        f"all({operand.name})",
+    )
+# end def all
+
+
+def logical_and(lhs, rhs) -> MathNode:
+    return _binary_comparison("and", lhs, rhs, "∧")
+# end def logical_and
+
+
+def logical_or(lhs, rhs) -> MathNode:
+    return _binary_comparison("or", lhs, rhs, "∨")
+# end def logical_or
+
+
+def logical_xor(lhs, rhs) -> MathNode:
+    return _binary_comparison("xor", lhs, rhs, "⊕")
+# end def logical_xor

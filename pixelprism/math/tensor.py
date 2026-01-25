@@ -85,6 +85,12 @@ __all__ = [
     "less_equal",
     "greater",
     "greater_equal",
+    "logical_not",
+    "logical_and",
+    "logical_or",
+    "logical_xor",
+    "any",
+    "all",
 ]
 
 
@@ -639,6 +645,26 @@ class Tensor:
         return self._binary_op(other, np.less)
     # end def less
 
+    def logical_not(self) -> 'Tensor':
+        """Elementwise logical inversion."""
+        return self._unary_op(np.logical_not)
+    # end def logical_not
+
+    def logical_and(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise logical conjunction."""
+        return self._binary_op(other, np.logical_and)
+    # end def logical_and
+
+    def logical_or(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise logical disjunction."""
+        return self._binary_op(other, np.logical_or)
+    # end def logical_or
+
+    def logical_xor(self, other: 'Tensor') -> 'Tensor':
+        """Elementwise logical exclusive-or."""
+        return self._binary_op(other, np.logical_xor)
+    # end def logical_xor
+
     # endregion MATH COMPARISON
 
     # region MATH TRIGO
@@ -860,6 +886,18 @@ class Tensor:
         result = np.min(self._data, axis=axis)
         return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
     # end def min
+
+    def any(self) -> 'Tensor':
+        """Return True if any element evaluates to True."""
+        result = np.any(self._data)
+        return Tensor(data=np.asarray(result, dtype=np.bool_))
+    # end def any
+
+    def all(self) -> 'Tensor':
+        """Return True if all elements evaluate to True."""
+        result = np.all(self._data)
+        return Tensor(data=np.asarray(result, dtype=np.bool_))
+    # end def all
 
     # endregion MATH REDUCTION
 
@@ -1305,3 +1343,18 @@ def less(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
 def less_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("less_equal", tensor_a, tensor_b)
 # end def less_equal
+
+
+def logical_not(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("logical_not", tensor)
+# end def not
+
+
+def any(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("any", tensor)
+# end def any
+
+
+def all(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("all", tensor)
+# end def all
