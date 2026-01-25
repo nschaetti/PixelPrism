@@ -87,7 +87,8 @@ from .linear_algebra import (
     Trace,
     Transpose,
     Det,
-    Inverse
+    Inverse,
+    Norm
 )
 from .reduction import (
     ReductionOperator,
@@ -209,6 +210,7 @@ __all__ = [
     "Transpose",
     "Det",
     "Inverse",
+    "Norm",
     # Reduction
     "Sum",
     "Mean",

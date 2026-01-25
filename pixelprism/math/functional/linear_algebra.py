@@ -39,6 +39,7 @@ __all__ = [
     "transpose",
     "det",
     "inverse",
+    "norm",
 ]
 
 
@@ -145,9 +146,21 @@ def inverse(
     Inverse of a matrix.
     """
     return apply_operator(
-        op_name="inv",
+        op_name="inverse",
         operands=(op1,),
         display_name="inv()"
     )
 # end def inverse
+
+
+def norm(
+        op1: MathNode,
+        order: Optional[Union[MathNode, int, float]] = None
+) -> MathNode:
+    return apply_operator(
+        op_name="norm",
+        operands=(op1,),
+        display_name=f"norm({order})" if order is not None else "norm()"
+    )
+# end norm
 

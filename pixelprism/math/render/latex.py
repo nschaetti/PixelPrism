@@ -908,6 +908,26 @@ def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: O
 # end def _format_outer
 
 
+def _format_inverse(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format the inverse of a matrix."""
+    if len(expr.children) != 1:
+        raise ValueError("inverse expects exactly one operand.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    return rf"{inner}^{{-1}}"
+# end def _format_inverse
+
+
+def _format_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    """Format the norm of a vector."""
+    if len(expr.children) != 1:
+        raise ValueError("norm expects exactly one operand.")
+    # end if
+    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    return rf"\left\Vert{inner}\right\Vert"
+# end def _format_norm
+
+
 def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     """
@@ -1424,6 +1444,8 @@ _TRANSPOSE_RULE = _OpRule(precedence=50, formatter=_format_transpose)
 _MATMUL_RULE = _OpRule(precedence=20, formatter=_format_matmul)
 _DOT_RULE = _OpRule(precedence=20, formatter=_format_dot)
 _OUTER_RULE = _OpRule(precedence=20, formatter=_format_outer)
+_INVERSE_RULE = _OpRule(precedence=50, formatter=_format_inverse)
+_NORM_RULE = _OpRule(precedence=50, formatter=_format_norm)
 
 # Reduction
 _SUM_RULE = _OpRule(precedence=100, formatter=_format_sum)
@@ -1481,11 +1503,14 @@ _OP_RULES: Dict[str, _OpRule] = {
     "round": _ROUND_RULE,
     "clip": _CLIP_RULE,
     # "product": _MUL_RULE,
+    # Linear Algebra
     "matmul": _MATMUL_RULE,
     "matrix_multiply": _MATMUL_RULE,
     "dot": _DOT_RULE,
     "outer": _OUTER_RULE,
     "transpose": _TRANSPOSE_RULE,
+    "inverse": _INVERSE_RULE,
+    "norm": _NORM_RULE,
     # Reduction
     "mean": _MEAN_RULE,
     "sum": _SUM_RULE,

@@ -835,6 +835,11 @@ class Tensor:
         return Tensor(data=np.asarray(result))
     # end def det
 
+    def norm(self, ord: Union[int, float] = 2) -> 'Tensor':
+        """Compute the norm of the tensor."""
+        result = np.linalg.norm(self._data, ord=ord)
+    # end def norm
+
     # endregion MATH LINEAR
 
     # region MATH REDUCTION
@@ -1052,6 +1057,7 @@ def log1p(tensor: Tensor) -> Tensor:
     return _call_tensor_method("log1p", tensor)
 # end def log1p
 
+# region TRIGO
 
 def sin(tensor: Tensor) -> Tensor:
     return _call_tensor_method("sin", tensor)
@@ -1120,7 +1126,6 @@ def arctanh(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arctanh", tensor)
 # end def arctanh
 
-
 def deg2rad(tensor: Tensor) -> Tensor:
     return _call_tensor_method("deg2rad", tensor)
 # end def deg2rad
@@ -1130,6 +1135,7 @@ def rad2deg(tensor: Tensor) -> Tensor:
     return _call_tensor_method("rad2deg", tensor)
 # end def rad2deg
 
+# endregion TRIGO
 
 def absolute(tensor: Tensor) -> Tensor:
     return _call_tensor_method("absolute", tensor)
@@ -1179,6 +1185,7 @@ def clip(
     return _call_tensor_method("clip", tensor, min_value=min_value, max_value=max_value)
 # end def clip
 
+# region LINEAR_ALGEBRA
 
 def einsum(
         subscripts: str,
@@ -1225,6 +1232,13 @@ def inverse(tensor: Tensor) -> Tensor:
     return _call_tensor_method("inverse", tensor)
 # end def inverse
 
+
+def norm(tensor: Tensor, ord: Union[int, float] = 2) -> Tensor:
+    return _call_tensor_method("norm", tensor, ord=ord)
+# end def norm
+
+
+# endregion LINEAR_ALGEBRA
 
 def mean(
         tensor: Tensor,
@@ -1286,6 +1300,8 @@ def min(
 # Reshape
 #
 
+# region SHAPE
+
 def flatten(tensor: Tensor) -> Tensor:
     return _call_tensor_method("flatten", tensor)
 # end def flatten
@@ -1311,9 +1327,13 @@ def vstack(tensors: Sequence[Tensor]) -> Tensor:
     return _concatenate_tensors(tensors, axis=0)
 # end def vstack
 
+# endregion SHAPE
+
 #
-# Comparison
+# Boolean
 #
+
+# region BOOLEAN
 
 def equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("equal", tensor_a, tensor_b)
@@ -1358,3 +1378,20 @@ def any(tensor: Tensor) -> Tensor:
 def all(tensor: Tensor) -> Tensor:
     return _call_tensor_method("all", tensor)
 # end def all
+
+
+def logical_and(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("logical_and", tensor_a, tensor_b)
+# end def logical_and
+
+
+def logical_or(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("logical_or", tensor_a, tensor_b)
+# end def logical_or
+
+
+def logical_xor(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+    return _call_tensor_method("logical_xor", tensor_a, tensor_b)
+# end def logical_xor
+
+# endregion BOOLEAN

@@ -33,6 +33,7 @@ Linear algebra operator implementations.
 from abc import ABC
 from typing import Optional, Sequence, Union, Any, List
 
+from .. import const
 from ..dtype import DType
 from ..math_expr import MathExpr
 from ..shape import Shape
@@ -430,7 +431,7 @@ class Transpose(LinearAlgebraParametricOperator):
         """
         Transpose
         """
-        super(Transpose, self).__init__()
+        super(Transpose, self).__init__(axes=axes)
         from ..math_expr import Variable
         if axes and isinstance(axes, list):
             from ..utils import random_const_name, const
@@ -579,6 +580,64 @@ class Inverse(LinearAlgebraOperator):
 # end class Inverse
 
 
+class Norm(LinearAlgebraParametricOperator):
+    """
+    Compute the norm of a vector.
+    """
+
+    NAME = "norm"
+    ARITY = 1
+    IS_SCALAR = False
+
+    def __init__(self, order: Union[MathExpr, int, float] = None):
+        super(Norm, self).__init__(order=order)
+        from ..utils import random_const_name
+        if not order:
+            self._order = const(
+                name=random_const_name(f"{self.__class__.__name__.lower()}-order-"),
+                data=2,
+                dtype=DType.INT32
+            )
+        elif isinstance(order, (int, float)):
+            self._order = const(
+                name=random_const_name(f"{self.__class__.__name__.lower()}-order-"),
+                data=order,
+                dtype=DType.FLOAT32
+            )
+        else:
+            self._order = order
+        # end if
+    # end def __init__
+
+    def infer_shape(
+            self,
+            operands: Operands
+    ) -> Shape:
+        """Infer the shape of the output."""
+        return Shape.scalar()
+    # end def infer_shape
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        """Infer the dtype of the output."""
+        return DType.FLOAT32
+    # end def infer_dtype
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        a, = operands
+        return a.eval().norm()
+    # end def
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        raise NotImplementedError("Norm does not support backward.")
+    # end def _backward
+
+    def check_shapes(self, operands: Operands) -> bool:
+        return operands[0].rank == 1
+    # end def check_shapes
+
+# end class Norm
+
+
 operator_registry.register(MatMul)
 operator_registry.register(Dot)
 operator_registry.register(Outer)
@@ -586,3 +645,5 @@ operator_registry.register(Trace)
 operator_registry.register(Transpose)
 operator_registry.register(Det)
 operator_registry.register(Inverse)
+operator_registry.register(Norm)
+

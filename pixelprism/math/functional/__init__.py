@@ -65,7 +65,7 @@ from .boolean import (
     logical_xor,
 )
 from .trigo import sin, cos, acos, acosh, atan, cot, atan2, csc, sec, tan, asin, cosh, sinh, tanh, asinh, atanh
-from .linear_algebra import matmul, dot, outer, trace, transpose, det, inverse
+from .linear_algebra import matmul, dot, outer, trace, transpose, det, inverse, norm
 from .reduction import sum, mean, std, median, max, min, q1, q3, summation, product
 from .discretization import (
     sign,
@@ -156,6 +156,7 @@ __all__ = [
     "transpose",
     "det",
     "inverse",
+    "norm",
     # Reduction
     "sum",
     "mean",
