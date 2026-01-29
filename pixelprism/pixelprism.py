@@ -27,11 +27,10 @@
 
 # Imports
 import importlib.util
-
 import click
 
-from .video_composer import VideoComposer
-from .utils import setup_logger
+from pixelprism import VideoComposer
+from pixelprism.utils import setup_logger
 
 
 # Setup logger

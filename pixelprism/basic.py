@@ -44,7 +44,7 @@
 
 
 # Imports
-from pixelprism.math_old import Point2D, TPoint2D, Scalar, TScalar, Color
+from pixelprism.data import Point2D, TPoint2D, Scalar, TScalar, Color
 import pixelprism.utils as utils
 
 

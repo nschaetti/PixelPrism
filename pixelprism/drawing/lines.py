@@ -43,14 +43,12 @@
 #
 
 # Imports
-from __future__ import annotations
-
 import numpy as np
-from typing import List, Union
+from typing import Union, List
 from pixelprism.base import Context
 import pixelprism.utils as utils
 from pixelprism.animate import MovableMixin, FadeableMixin, animeattr, CallableMixin
-from pixelprism.math_old import Point2D, Color, Scalar, Event, call_after, EventType, Style, Transform, TPoint2D
+from pixelprism.data import Point2D, Color, Scalar, Event, call_after, EventType, Style, Transform, TPoint2D
 from . import BoundingBoxMixin, BoundingBox
 from .drawablemixin import DrawableMixin
 
@@ -132,7 +130,7 @@ class Line(
     # region PROPERTIES
 
     @property
-    def start(self) -> Point2D:
+    def start(self):
         """
         Get the start point of the line.
 
@@ -143,7 +141,7 @@ class Line(
     # end start
 
     @property
-    def end(self) -> Point2D:
+    def end(self):
         """
         Get the end point of the line.
 
@@ -202,7 +200,7 @@ class Line(
     # end ex
 
     @property
-    def middle_point(self) -> Point2D:
+    def middle_point(self):
         """
         Get the middle point of the line.
 
@@ -213,7 +211,7 @@ class Line(
     # end middle_point
 
     @property
-    def length(self) -> float:
+    def length(self):
         """
         Get the length of the line.
 
@@ -270,12 +268,12 @@ class Line(
 
     # region PUBLIC
 
-    # Update math_old
+    # Update data
     def update_data(
             self
     ):
         """
-        Update the math_old of the line.
+        Update the data of the line.
         """
         self.update_points()
         self.update_bbox()
@@ -583,7 +581,7 @@ class Line(
     # region OVERRIDE
 
     # str
-    def __str__(self) -> str:
+    def __str__(self):
         """
         Get the string representation of the line.
 
@@ -594,7 +592,7 @@ class Line(
     # end __str__
 
     # repr
-    def __repr__(self) -> str:
+    def __repr__(self):
         """
         Get the string representation of the line.
 
@@ -637,3 +635,4 @@ class Line(
     # endregion CLASS_METHODS
 
 # end Line
+

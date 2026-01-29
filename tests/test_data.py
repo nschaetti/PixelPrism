@@ -48,7 +48,7 @@
 
 # Imports
 import unittest
-from pixelprism.math_old.scalar import Scalar
+from pixelprism.data.scalar import Scalar
 
 
 class TestScalar(unittest.TestCase):

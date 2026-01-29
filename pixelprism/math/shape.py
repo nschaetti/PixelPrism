@@ -38,149 +38,115 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-"""Symbolic tensor shape representation."""
+"""Tensor shape representation."""
 
 # Imports
 from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Tuple
-from ._helpers import num_elements
+from dataclasses import dataclass
 
 
-Dim = Optional[int]
+__all__ = ["Shape", "Dim", "Dims", "AnyShape"]
+
+
+
+Dim = int
 Dims = Tuple[Dim, ...]
+AnyShape = 'Shape' | Dims
 
 
-__all__ = ["Shape", "Dim", "Dims"]
+def _num_elements(dims: Sequence[int | None]) -> int | None:
+    """Compute the product of symbolic dimensions when possible.
+
+    Parameters
+    ----------
+    dims : Sequence[int | None]
+        Sequence of tensor dimensions, which may include ``None`` for unknown
+        values.
+
+    Returns
+    -------
+    int | None
+        Number of elements or ``None`` when any dimension is unknown.
+    """
+    total = 1
+    for dim in dims:
+        total *= dim
+    # end for
+    return total
+# end def _num_elements
 
 
 class Shape:
-    """Represents a symbolic tensor shape."""
+    """
+    Immutable descriptor for symbolic tensor shapes.
+
+    A :class:`Shape` records the axis lengths associated with a math expression.
+    Each axis can be a concrete ``int``.  Shapes are lightweight, hashable, and safe to
+    share across nodes, ensuring downstream passes can reason about tensor
+    metadata without mutating the original objects.
+
+    Validation & normalization
+    --------------------------
+    The constructor eagerly validates every dimension through ``_check_dim`` to
+    guarantee negative or otherwise malformed values never propagate past the
+    creation site.  Internally, axes are stored as an immutable tuple, giving
+    deterministic hashing/printing behaviour and keeping equality semantics
+    simple.
+
+    Convenience properties
+    ----------------------
+    ``dims`` exposes the canonical tuple representation, ``rank``/``n_dims``
+    provide fast access to the tensor arity, and ``size`` returns the product
+    of all known axes (``None`` when at least one axis is symbolic).  These
+    helpers prevent ad‑hoc recomputation scattered around the code base.
+
+    Compatibility helpers
+    ---------------------
+    Many operators need to verify that their operands can participate in
+    elementwise arithmetic.  ``is_elementwise_compatible`` performs the check by
+    comparing ranks and allowing either matching integers or symbolic ``None``
+    values.  ``merge_elementwise`` builds on top of that by returning a new
+    :class:`Shape` where each axis is the tightened version of both operands,
+    raising :class:`ValueError`` when a conflict is detected.  Having these
+    utilities on the shape class keeps validation logic centralized and
+    consistent across operators.
+
+    Subclassing
+    -----------
+    ``Shape`` is intentionally concrete.  Higher-level abstractions should wrap
+    it rather than subclassing to avoid diverging validation paths.  Should
+    additional metadata (like layout or batching semantics) be required, they
+    can be attached via separate objects keyed by ``Shape`` instances.
+    """
 
     def __init__(self, dims: Iterable[Dim]):
         """Initialize a Shape.
 
-        Args:
-            dims: Iterable of dimension sizes.
+        Parameters
+        ----------
+        dims : Iterable[Dim]
+            Iterable of dimension sizes to store in the shape.
         """
         dims_tuple = tuple(dims)
         for dim in dims_tuple:
             self._check_dim(dim)
         # end for
         self._dims: Dims = dims_tuple
+        self._n_dims: int = len(dims_tuple)
     # end def __init__
 
-    @staticmethod
-    def _check_dim(dim: Dim) -> None:
-        """Validate a single dimension value.
-
-        Args:
-            dim: Dimension to validate.
-
-        Raises:
-            ValueError: If the dimension is invalid.
-        """
-        if dim is None:
-            return
-        # end if
-        if not isinstance(dim, int) or dim < 0:
-            raise ValueError("Shape dimensions must be non-negative integers or None.")
-        # end if
-    # end def _check_dim
-
-    @staticmethod
-    def _dims_equal(dim_a: Dim, dim_b: Dim) -> bool:
-        """Check whether two dimensions are symbolically compatible.
-
-        Args:
-            dim_a: First dimension.
-            dim_b: Second dimension.
-
-        Returns:
-            bool: True if both dimensions can represent the same size.
-        """
-        if dim_a is None or dim_b is None:
-            return True
-        # end if
-        return dim_a == dim_b
-    # end def _dims_equal
-
-    @staticmethod
-    def _merge_dims(dim_a: Dim, dim_b: Dim) -> Dim:
-        """Merge two dimensions into the most specific shared size.
-
-        Args:
-            dim_a: First dimension.
-            dim_b: Second dimension.
-
-        Returns:
-            Dim: Dimension compatible with both inputs.
-
-        Raises:
-            ValueError: If the dimensions are incompatible.
-        """
-        if dim_a is None:
-            return dim_b
-        # end if
-        if dim_b is None:
-            return dim_a
-        # end if
-        if dim_a != dim_b:
-            raise ValueError(f"Incompatible dimensions: {dim_a} vs {dim_b}.")
-        # end if
-        return dim_a
-    # end def _merge_dims
-
-    @staticmethod
-    def _sum_dims(dim_a: Dim, dim_b: Dim) -> Dim:
-        """Sum two dimensions symbolically.
-
-        Args:
-            dim_a: First dimension.
-            dim_b: Second dimension.
-
-        Returns:
-            Dim: Sum of known dimensions or None when unknown.
-        """
-        if dim_a is None or dim_b is None:
-            return None
-        # end if
-        return dim_a + dim_b
-    # end def _sum_dims
-
-    @staticmethod
-    def _normalize_axis(axis: int, rank: int, allow_new_axis: bool = False) -> int:
-        """Normalize axis indices, supporting negatives.
-
-        Args:
-            axis: Requested axis index.
-            rank: Tensor rank.
-            allow_new_axis: Whether axis == rank is acceptable.
-
-        Returns:
-            int: Normalized non-negative axis index.
-
-        Raises:
-            ValueError: If the axis exceeds allowed bounds.
-        """
-        upper = rank + (1 if allow_new_axis else 0)
-        if not -upper <= axis < upper:
-            raise ValueError(f"Axis {axis} out of bounds for rank {rank}.")
-        # end if
-        if axis < 0:
-            axis += upper
-        # end if
-        return axis
-    # end def _normalize_axis
+    # region PROPERTIES
 
     @property
     def dims(self) -> Dims:
         """Return the dimensions tuple.
 
-        Returns:
-            Dims: Tuple describing tensor dimensions.
+        Returns
+        -------
+        Dims
+            Tuple describing tensor dimensions (each value is an ``int`` or
+            ``None``).
         """
         return self._dims
     # end def dims
@@ -189,103 +155,127 @@ class Shape:
     def rank(self) -> int:
         """Return the tensor rank.
 
-        Returns:
-            int: Number of dimensions.
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
         """
         return len(self._dims)
     # end def rank
-
-    def __len__(self) -> int:
-        """Return the rank for len().
-
-        Returns:
-            int: Tensor rank.
-        """
-        return self.rank
-    # end def __len__
-
-    def __getitem__(self, index: int) -> Dim:
-        """Return the dimension at the provided index.
-
-        Args:
-            index: Axis index.
-
-        Returns:
-            Dim: Dimension size or None.
-        """
-        return self._dims[index]
-    # end def __getitem__
 
     @property
     def size(self) -> Optional[int]:
         """Return the total number of elements when known.
 
-        Returns:
-            Optional[int]: Number of elements or None if unknown.
+        Returns
+        -------
+        Optional[int]
+            Number of elements represented by the shape.
         """
-        return num_elements(self._dims)
+        return _num_elements(self._dims)
     # end def size
 
-    def as_tuple(self) -> Dims:
-        """Expose the raw dimensions tuple.
+    @property
+    def n_dims(self) -> int:
+        """Return the number of dimensions.
 
-        Returns:
-            Dims: Underlying tuple of dimensions.
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
         """
-        return self._dims
-    # end def as_tuple
+        return self.rank
+    # end def n_dims
 
-    def __eq__(self, other: object) -> bool:
-        """Compare shapes for equality.
+    # endregion PROPERTIES
 
-        Args:
-            other: Object to compare against.
+    # region PUBLIC
 
-        Returns:
-            bool: True when both shapes share identical dimensions.
-        """
-        if not isinstance(other, Shape):
-            return False
+    def _check_transpose(self, axes: Sequence[int]) -> None:
+        """Validate a permutation of axes."""
+        if len(axes) != self.n_dims:
+            raise ValueError(
+                f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
+            )
         # end if
-        return self._dims == other._dims
-    # end def __eq__
+        if sorted(axes) != list(range(self.n_dims)):
+            raise ValueError("Permutation contains invalid axis indices.")
+        # end if
+    # end def _check_transpose
 
-    def __hash__(self) -> int:
-        """Return a hash for the shape.
+    def transpose(self, axes: Optional[List[int]] = None) -> "Shape":
+        """Return the shape with axes permuted."""
+        if axes is not None:
+            self._check_transpose(axes)
+            new_shape = [self.dims[i] for i in axes]
+        else:
+            new_shape = list(self.dims)
+            new_shape.reverse()
+        # end if
+        return Shape(dims=tuple(new_shape))
+    # end def transpose
 
-        Returns:
-            int: Hash value.
+    def transpose_(self):
+        """Transpose the shape in-place."""
+        self._dims = self.transpose().dims
+    # end def transpose_
+
+    def drop_axis(self, axis: int) -> "Shape":
+        """Return a new shape with the specified axis removed."""
+        if axis < 0 or axis >= self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        if axis == self.rank - 1:
+            return Shape(self._dims[:axis])
+        elif axis == 0:
+            return Shape(self._dims[1:])
+        else:
+            return Shape(self._dims[:axis] + self._dims[axis + 1 :])
+        # end if
+    # end def drop_axis
+
+    def drop_axis_(self, axis: int) -> None:
+        """Remove the specified axis from the shape in-place."""
+        self._dims = self.drop_axis(axis)._dims
+    # end def drop_axis
+
+    def insert_axis(self, axis: int, size: Dim) -> "Shape":
+        """Return a new shape with the specified axis inserted."""
+        if axis < 0 or axis > self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        return Shape(self._dims[:axis] + (size,) + self._dims[axis:])
+    # end def insert_axis
+
+    def insert_axis_(self, axis: int, size: Dim) -> None:
+        """Insert the specified axis into the shape in-place."""
+        self._dims = self.insert_axis(axis, size)._dims
+    # end def insert_axis_
+
+    def as_tuple(self) -> tuple[Dim, ...]:
+        """Return the shape as a tuple.
+
+        Returns
+        -------
+        tuple[Dim, ...]
+            The shape as a tuple of dimensions.
         """
-        return hash(self._dims)
-    # end def __hash__
-
-    def __repr__(self) -> str:
-        """Return the repr() form of the shape.
-
-        Returns:
-            str: Developer-friendly representation.
-        """
-        return f"Shape({self._dims})"
-    # end def __repr__
-
-    def __str__(self) -> str:
-        """Return the str() form of the shape.
-
-        Returns:
-            str: Readable representation.
-        """
-        dims_str = "x".join("?" if dim is None else str(dim) for dim in self._dims)
-        return f"Shape({dims_str})"
-    # end def __str__
+        return tuple([d for d in self._dims])
+    # end def as_tuple
 
     def is_elementwise_compatible(self, other: "Shape") -> bool:
         """Check whether elementwise operations are allowed.
 
-        Args:
-            other: Shape to compare.
+        Parameters
+        ----------
+        other : Shape
+            Shape to compare.
 
-        Returns:
-            bool: True when ranks and dimensions are compatible.
+        Returns
+        -------
+        bool
+            ``True`` when ranks are identical and dimensions are compatible for
+            elementwise operations.
         """
         if self.rank != other.rank:
             return False
@@ -301,14 +291,20 @@ class Shape:
     def merge_elementwise(self, other: "Shape") -> "Shape":
         """Return the merged shape for elementwise operations.
 
-        Args:
-            other: Shape to merge.
+        Parameters
+        ----------
+        other : Shape
+            Shape to merge.
 
-        Returns:
-            Shape: Resulting shape.
+        Returns
+        -------
+        Shape
+            Resulting shape compatible with both inputs.
 
-        Raises:
-            ValueError: If shapes are incompatible.
+        Raises
+        ------
+        ValueError
+            If shapes are incompatible for elementwise operations.
         """
         if self.rank != other.rank:
             raise ValueError("Elementwise operations require equal ranks.")
@@ -320,14 +316,21 @@ class Shape:
     def matmul_result(self, other: "Shape") -> "Shape":
         """Return the result shape of a matrix multiplication.
 
-        Args:
-            other: Right-hand operand shape.
+        Parameters
+        ----------
+        other : Shape
+            Right-hand operand shape.
 
-        Returns:
-            Shape: Resulting matmul shape.
+        Returns
+        -------
+        Shape
+            Resulting shape of the matrix multiplication.
 
-        Raises:
-            ValueError: If shapes are incompatible.
+        Raises
+        ------
+        ValueError
+            If ranks are below 2, ranks differ, or inner dimensions are
+            incompatible.
         """
         if self.rank < 2 or other.rank < 2:
             raise ValueError("MatMul requires rank >= 2 for both operands.")
@@ -352,15 +355,23 @@ class Shape:
     def concat_result(self, other: "Shape", axis: int) -> "Shape":
         """Return the result shape of concatenation along an axis.
 
-        Args:
-            other: Shape to concatenate with.
-            axis: Concatenation axis.
+        Parameters
+        ----------
+        other : Shape
+            Shape to concatenate with.
+        axis : int
+            Concatenation axis.
 
-        Returns:
-            Shape: Concatenated shape.
+        Returns
+        -------
+        Shape
+            Concatenated shape along the specified axis.
 
-        Raises:
-            ValueError: If ranks differ.
+        Raises
+        ------
+        ValueError
+            If ranks differ or dimensions other than the concatenation axis are
+            incompatible.
         """
         if self.rank != other.rank:
             raise ValueError("Concat requires operands with equal rank.")
@@ -377,16 +388,254 @@ class Shape:
         return Shape(tuple(dims))
     # end def concat_result
 
+    # def transpose(self, permutation: Sequence[int]) -> "Shape":
+    #     """Return the shape after applying an axis permutation.
+    #
+    #     Parameters
+    #     ----------
+    #     permutation : Sequence[int]
+    #         Axis permutation describing the new order.
+    #
+    #     Returns
+    #     -------
+    #     Shape
+    #         Permuted shape following the given axis order.
+    #
+    #     Raises
+    #     ------
+    #     ValueError
+    #         If the permutation length is incorrect or contains invalid axis
+    #         indices.
+    #     """
+    #     if len(permutation) != self.rank:
+    #         raise ValueError("Permutation must include every axis exactly once.")
+    #     # end if
+    #     if sorted(permutation) != list(range(self.rank)):
+    #         raise ValueError("Permutation contains invalid axis indices.")
+    #     # end if
+    #     dims = tuple(self._dims[idx] for idx in permutation)
+    #     return Shape(dims)
+    # # end def transpose
+
+    def can_reshape(self, new_shape: "Shape") -> bool:
+        """Check whether reshape is symbolically valid.
+
+        Parameters
+        ----------
+        new_shape : Shape
+            Target shape to test against.
+
+        Returns
+        -------
+        bool
+            ``True`` if both shapes represent the same number of elements.
+        """
+        own_size = self.size
+        target_size = new_shape.size
+        return own_size == target_size
+    # end def can_reshape
+
+    def reshape(self, new_shape: "Shape") -> "Shape":
+        """Return the symbolic shape after reshape.
+
+        Parameters
+        ----------
+        new_shape : Shape
+            Target shape.
+
+        Returns
+        -------
+        Shape
+            Target shape when the reshape is valid.
+
+        Raises
+        ------
+        ValueError
+            If the reshape would change the number of elements.
+        """
+        if not self.can_reshape(new_shape):
+            raise ValueError("Reshape requires matching number of elements.")
+        # end if
+        return new_shape
+    # end def reshape
+
+    # endregion PUBLIC
+
+    # region STATIC
+
     @staticmethod
-    def stack_result(shapes: Sequence["Shape"], axis: int) -> "Shape":
+    def create(shape: AnyShape) -> Shape:
+        """Create a shape from a tuple or sequence."""
+        if isinstance(shape, tuple):
+            return Shape(shape)
+        elif isinstance(shape, Sequence):
+            return Shape(shape)
+        elif isinstance(shape, int):
+            return Shape((shape,))
+        elif isinstance(shape, Shape):
+            return shape.copy()
+        else:
+            raise TypeError(f"Unsupported shape type: {type(shape)}")
+        # end if
+    # end def create
+
+    @staticmethod
+    def scalar() -> "Shape":
+        return Shape(())
+    # end def scalar
+
+    @staticmethod
+    def vector(n: Dim) -> "Shape":
+        return Shape((n,))
+    # end def vector
+
+    @staticmethod
+    def matrix(n: Dim, m: Dim) -> "Shape":
+        return Shape((n, m))
+    # end def matrix
+
+    @staticmethod
+    def _check_dim(dim: Dim) -> None:
+        """Validate a single dimension value.
+
+        Parameters
+        ----------
+        dim : Dim
+            Dimension to validate. Allowed values are non-negative integers.
+
+        Raises
+        ------
+        ValueError
+            If the dimension is negative or not an integer/``None``.
+        """
+        if dim is None:
+            raise ValueError("Shape dimensions cannot be None.")
+        # end if
+        if not isinstance(dim, int) or dim < 0:
+            raise ValueError("Shape dimensions must be non-negative integers or None.")
+        # end if
+    # end def _check_dim
+
+    @staticmethod
+    def _dims_equal(dim_a: Dim, dim_b: Dim) -> bool:
+        """Check whether two dimensions are symbolically compatible.
+
+        Parameters
+        ----------
+        dim_a : Dim
+            First dimension.
+        dim_b : Dim
+            Second dimension.
+
+        Returns
+        -------
+        bool
+            ``True`` if both dimensions can represent the same size.
+        """
+        return dim_a == dim_b
+    # end def _dims_equal
+
+    @staticmethod
+    def _merge_dims(dim_a: Dim, dim_b: Dim) -> Dim:
+        """Merge two dimensions into the most specific shared size.
+
+        Parameters
+        ----------
+        dim_a : Dim
+            First dimension.
+        dim_b : Dim
+            Second dimension.
+
+        Returns
+        -------
+        Dim
+            Dimension compatible with both inputs.
+
+        Raises
+        ------
+        ValueError
+            If the dimensions are incompatible.
+        """
+        if dim_a != dim_b:
+            raise ValueError(f"Incompatible dimensions: {dim_a} vs {dim_b}.")
+        # end if
+        return dim_a
+    # end def _merge_dims
+
+    @staticmethod
+    def _sum_dims(dim_a: Dim, dim_b: Dim) -> Dim:
+        """Sum two dimensions symbolically.
+
+        Parameters
+        ----------
+        dim_a : Dim
+            First dimension.
+        dim_b : Dim
+            Second dimension.
+
+        Returns
+        -------
+        Dim
+            Sum of both dimensions when known, otherwise ``None``.
+        """
+        return dim_a + dim_b
+    # end def _sum_dims
+
+    @staticmethod
+    def _normalize_axis(axis: int, rank: int, allow_new_axis: bool = False) -> int:
+        """Normalize axis indices, supporting negatives.
+
+        Parameters
+        ----------
+        axis : int
+            Requested axis index, possibly negative.
+        rank : int
+            Tensor rank.
+        allow_new_axis : bool, optional
+            Whether an axis equal to the current rank is acceptable (used for
+            operations that add a dimension). Defaults to ``False``.
+
+        Returns
+        -------
+        int
+            Normalized non-negative axis index within the allowed bounds.
+
+        Raises
+        ------
+        ValueError
+            If the axis is outside the valid range.
+        """
+        upper = rank + (1 if allow_new_axis else 0)
+        if not -upper <= axis < upper:
+            raise ValueError(f"Axis {axis} out of bounds for rank {rank}.")
+        # end if
+        if axis < 0:
+            axis += upper
+        # end if
+        return axis
+    # end def _normalize_axis
+
+    @staticmethod
+    def stack_shape(shapes: Sequence["Shape"], axis: int) -> "Shape":
         """Return the result shape of stacking tensors.
 
-        Args:
-            shapes: Shapes of tensors to stack.
-            axis: Axis index for the new dimension.
+        Parameters
+        ----------
+        shapes : Sequence[Shape]
+            Shapes of tensors to stack. All shapes must be elementwise
+            compatible.
+        axis : int
+            Axis index for the new dimension.
 
-        Returns:
-            Shape: Resulting stacked shape.
+        Returns
+        -------
+        Shape
+            Resulting stacked shape including the new dimension size.
+
+        Raises
+        ------
+        ValueError
+            If no shapes are provided or shapes are incompatible.
         """
         if not shapes:
             raise ValueError("Stack requires at least one shape.")
@@ -399,64 +648,102 @@ class Shape:
         dims = list(base.dims)
         dims.insert(axis_norm, len(shapes))
         return Shape(tuple(dims))
-    # end def stack_result
+    # end def stack_shape
 
-    def transpose(self, permutation: Sequence[int]) -> "Shape":
-        """Return the shape after applying an axis permutation.
+    def copy(self):
+        """Return a copy of the shape."""
+        return Shape(self._dims)
+    # end def copy
 
-        Args:
-            permutation: Axis permutation.
+    # endregion STATIC
 
-        Returns:
-            Shape: Permuted shape.
+    # region OVERRIDE
 
-        Raises:
-            ValueError: If permutation is invalid.
+    def __len__(self) -> int:
+        """Return the rank for len().
+
+        Returns
+        -------
+        int
+            Tensor rank.
         """
-        if len(permutation) != self.rank:
-            raise ValueError("Permutation must include every axis exactly once.")
-        # end if
-        if sorted(permutation) != list(range(self.rank)):
-            raise ValueError("Permutation contains invalid axis indices.")
-        # end if
-        dims = tuple(self._dims[idx] for idx in permutation)
-        return Shape(dims)
-    # end def transpose
+        return self.rank
+    # end def __len__
 
-    def can_reshape(self, new_shape: "Shape") -> bool:
-        """Check whether reshape is symbolically valid.
+    def __getitem__(self, index: int) -> Dim:
+        """Return the dimension at the provided index.
 
-        Args:
-            new_shape: Target shape.
+        Parameters
+        ----------
+        index : int
+            Axis index to access.
 
-        Returns:
-            bool: True if reshape preserves element count.
+        Returns
+        -------
+        Dim
+            Dimension size at the given axis.
         """
-        own_size = self.size
-        target_size = new_shape.size
-        if own_size is None or target_size is None:
-            return True
-        # end if
-        return own_size == target_size
-    # end def can_reshape
+        return self._dims[index]
+    # end def __getitem__
 
-    def reshape(self, new_shape: "Shape") -> "Shape":
-        """Return the symbolic shape after reshape.
+    def __eq__(self, other: object) -> bool:
+        """Compare shapes for equality.
 
-        Args:
-            new_shape: Target shape.
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
 
-        Returns:
-            Shape: Target shape if compatible.
-
-        Raises:
-            ValueError: If reshape is invalid.
+        Returns
+        -------
+        bool
+            ``True`` when both shapes share identical dimensions.
         """
-        if not self.can_reshape(new_shape):
-            raise ValueError("Reshape requires matching number of elements.")
+        if isinstance(other, tuple):
+            return self._dims == other
+        elif isinstance(other, list):
+            return self._dims == tuple(other)
         # end if
-        return new_shape
-    # end def reshape
+        if not isinstance(other, Shape):
+            return False
+        # end if
+        return self._dims == other._dims
+    # end def __eq__
+
+    def __hash__(self) -> int:
+        """Return a hash for the shape.
+
+        Returns
+        -------
+        int
+            Hash value derived from the dimensions.
+        """
+        return hash(self._dims)
+    # end def __hash__
+
+    def __repr__(self) -> str:
+        """Return the repr() form of the shape.
+
+        Returns
+        -------
+        str
+            Developer-friendly representation including raw dimensions.
+        """
+        return f"{self._dims}"
+    # end def __repr__
+
+    def __str__(self) -> str:
+        """Return the str() form of the shape.
+
+        Returns
+        -------
+        str
+            Readable representation.
+        """
+        return self.__repr__()
+    # end def __str__
+
+    # endregion OVERRIDE
 
 # end class Shape
 

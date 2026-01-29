@@ -51,7 +51,7 @@ from pixelprism.widgets import DrawableWidget
 from pixelprism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixelprism.drawing import Line, DebugGrid
 from pixelprism.animate import Move, EaseInOutInterpolator, FadeIn, FadeOut, Range
-from pixelprism.math_old import Point2D, Scalar, Color, Style, Transform
+from pixelprism.data import Point2D, Scalar, Color, Style, Transform
 
 
 # Animation class

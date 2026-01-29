@@ -48,7 +48,7 @@
 #
 
 # Imports
-from typing import Any, Optional
+from typing import Optional
 import os
 import threading
 import cv2
@@ -269,7 +269,7 @@ class Animation:
             keep_frames: int = 0,
             debug_frames: int = False,
             save_frames: bool = False,
-            **kwargs: Any
+            **kwargs
     ):
         """
         Initialize the animation with an input and output path.
@@ -410,7 +410,7 @@ class Animation:
         Returns:
             EffectBase: Effect object
         """
-        from pixelprism.effects.effect_base import EffectBase
+        from pixel_prism.effects.effect_base import EffectBase
         return self.effects.get(name)
     # end get_effect
 
@@ -716,7 +716,7 @@ class Animation:
 
                     # Ensure the final frame is the correct size and type
                     assert final_frame.data.shape[:2] == (height, width), "Final frame size mismatch"
-                    assert final_frame.data.dtype == np.uint8, "Final frame math_old type mismatch"
+                    assert final_frame.data.dtype == np.uint8, "Final frame data type mismatch"
 
                     # Save as RGB
                     out.write(final_frame.data[:, :, :3])

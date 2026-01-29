@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-from pixelprism.math import MathExpr, Shape, Value
+from pixelprism.math import MathExpr, Shape
 
 
 @dataclass(frozen=True)

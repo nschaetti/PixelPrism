@@ -54,3 +54,4 @@ class EffectBase:
     # end apply
 
 # end EffectBase
+

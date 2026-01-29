@@ -57,7 +57,7 @@ from pixelprism.animate.able import (
     DestroyableMixin
 )
 from pixelprism.animate import FadeableMixin, MovableMixin
-from pixelprism.math_old import Point2D, Color
+from pixelprism.data import Point2D, Color
 import pixelprism.utils as utils
 from .drawablemixin import DrawableMixin
 from .vector_graphics import VectorGraphics
@@ -124,7 +124,7 @@ class MathTex(
         # Generate a random filename for the SVG file
         random_svg_path = generate_temp_svg_filename()
 
-        # Generate the SVG file from the math_old string
+        # Generate the SVG file from the math string
         self.update_svg(random_svg_path)
 
         # Create the vector graphics object

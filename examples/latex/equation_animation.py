@@ -52,7 +52,7 @@ from pixelprism.widgets.containers import Viewport
 from pixelprism.widgets import DrawableWidget
 from pixelprism.base import DrawableImage, ImageCanvas, CoordSystem
 from pixelprism.drawing import MathTex
-from pixelprism.math_old import Point2D
+from pixelprism.data import Point2D
 
 
 # DrawableWidgetAnimation class
@@ -65,7 +65,7 @@ class MathTexAnimation(Animation):
 
     def build_math_text(self, coord_system):
         """
-        Build the math_old text.
+        Build the math text.
         """
         # Create a Point2D for the position of the LaTeX widget
         latex_position = coord_system.center

@@ -49,7 +49,7 @@
 # Imports
 from pixelprism import utils
 from pixelprism.base import Context
-from pixelprism.math_old import Color, Scalar, Point2D
+from pixelprism.data import Color, Scalar, Point2D
 
 
 class BoundingBoxMixin(object):

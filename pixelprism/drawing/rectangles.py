@@ -43,14 +43,13 @@
 #
 
 # Imports
-from typing import Any, Callable, Tuple
-from pixelprism.math_old import Point2D, Scalar, Color, Style, Transform, call_after, EventType, Event, TPoint2D
+from typing import Tuple, Any, Callable
+from pixelprism.data import Point2D, Scalar, Color, Style, Transform, call_after, EventType, Event, TPoint2D
 from pixelprism.animate import MovableMixin, FadeableMixin, CallableMixin, animeattr
 import pixelprism.utils as utils
 from .bounding_box import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin
-from ..base import Context
 
 
 # A 2D rectangle
@@ -273,10 +272,10 @@ class Rectangle(
 
     # region PUBLIC
 
-    # Update math_old
+    # Update data
     def update_data(self):
         """
-        Update the math_old of the rectangle.
+        Update the data of the rectangle.
         """
         self.update_points()
         self.update_bbox()
@@ -751,3 +750,4 @@ class Rectangle(
     # endregion STATIC
 
 # end Rectangle
+

@@ -46,8 +46,8 @@ import numpy as np
 # Imports
 from pixelprism import utils, p2
 from pixelprism.animate import Range, EaseInOutInterpolator
-from pixelprism.math_old import Scalar, tpoint2d, meshgrid, tmatrix2d, TMatrix2D
-from pixelprism.math_old.matrices import mv_t, mm_t
+from pixelprism.data import Scalar, tpoint2d, meshgrid, tmatrix2d, TMatrix2D
+from pixelprism.data.matrices import mv_t, mm_t
 from pixelprism.animation import Animation
 from pixelprism.widgets.containers import Viewport
 from pixelprism.widgets import DrawableWidget

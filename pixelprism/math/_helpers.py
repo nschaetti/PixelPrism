@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Iterator, List, Sequence, Tuple, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .value import Value
-# end if
-
 
 def is_sequence_like(value: Any) -> bool:
     """Return True when an object supports len() and iteration.

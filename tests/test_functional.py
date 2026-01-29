@@ -26,21 +26,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Test the functional operations in pixelprism.math_old.functional.
+Test the functional operations in pixelprism.data.functional.
 """
 
 import unittest
 import numpy as np
 
-from pixelprism.math_old.scalar import Scalar
-from pixelprism.math_old.points import Point2D
-from pixelprism.math_old.matrices import Matrix2D
-import pixelprism.math_old.functional as F
+from pixelprism.data.scalar import Scalar
+from pixelprism.data.points import Point2D
+from pixelprism.data.matrices import Matrix2D
+import pixelprism.data.functional as F
 
 
 class TestFunctional(unittest.TestCase):
     """
-    Test the functional operations in pixelprism.math_old.functional.
+    Test the functional operations in pixelprism.data.functional.
     """
 
     def test_scalar_add(self):

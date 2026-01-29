@@ -74,9 +74,9 @@ def draw_points(
 
     # if has_alpha:
     if has_alpha:
-        # print(f"Before: {np.mean(image.math_old[:, :, 3])}")
+        # print(f"Before: {np.mean(image.data[:, :, 3])}")
         image.data[:, :, 3][mask[:, :, 1]] = 255
-        # print(f"After: {np.mean(image.math_old[:, :, 3])}")
+        # print(f"After: {np.mean(image.data[:, :, 3])}")
     # end if
 
     return image

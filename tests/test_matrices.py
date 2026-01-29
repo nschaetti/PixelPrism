@@ -45,10 +45,10 @@
 # Imports
 import unittest
 import numpy as np
-from pixelprism.math_old import (
+from pixelprism.data import (
     Matrix2D, TMatrix2D, EventType
 )
-from pixelprism.math_old import Scalar
+from pixelprism.data import Scalar
 
 
 class TestMatrix2D(unittest.TestCase):
@@ -243,7 +243,7 @@ class TestMatrix2D(unittest.TestCase):
         # Check if the on_change event was triggered with the correct matrix
         self.assertEqual(len(changes), 1)
         self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
-        np.testing.assert_array_equal(changes[0][1], new_matrix)  # Check matrix math_old
+        np.testing.assert_array_equal(changes[0][1], new_matrix)  # Check matrix data
     # end test_on_change_set_matrix
 
     def test_on_change_modify_matrix_element(self):
@@ -294,7 +294,7 @@ class TestMatrix2D(unittest.TestCase):
         # Check if the on_change event was triggered
         self.assertEqual(len(changes), 1)
         self.assertEqual(changes[0][0], EventType.MATRIX_CHANGED)  # Check event type
-        np.testing.assert_array_equal(matrix1.data, np.identity(3) + np.ones((3, 3)))  # Check new matrix math_old
+        np.testing.assert_array_equal(matrix1.data, np.identity(3) + np.ones((3, 3)))  # Check new matrix data
     # end test_on_change_addition
 
 # end TestMatrix2D

@@ -43,12 +43,12 @@
 #
 
 # Imports
-from typing import Any, Optional, Union
+from typing import Optional, Union
 import math
 from pixelprism import utils, p2, s
 from pixelprism.animate import animeattr
 from pixelprism.base import Context
-from pixelprism.math_old import (
+from pixelprism.data import (
     Color,
     Scalar,
     Point2D,
@@ -132,7 +132,7 @@ class DrawableMixin:
     # region PUBLIC
 
     # Apply transformation from context
-    def apply_context(self, context: Context) -> None:
+    def apply_context(self, context: Context):
         """
         Apply transformation from context.
 
@@ -142,12 +142,12 @@ class DrawableMixin:
         self.transform.apply_context(context)
     # end apply_context
 
-    # Update object math_old
+    # Update object data
     def update_data(
             self
-    ) -> None:
+    ):
         """
-        Update the math_old of the drawable.
+        Update the data of the drawable.
         """
         raise NotImplementedError(f"{self.__class__.__name__}.update_data method must be implemented in subclass.")
     # end update_data
@@ -155,9 +155,9 @@ class DrawableMixin:
     # Translate object
     def translate(
             self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+            *args,
+            **kwargs
+    ):
         """
         Translate the object.
 
@@ -171,9 +171,9 @@ class DrawableMixin:
     # Scale object
     def scale(
             self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+            *args,
+            **kwargs
+    ):
         """
         Scale the object.
 
@@ -187,24 +187,23 @@ class DrawableMixin:
     # Rotate object
     def rotate(
             self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+            *args,
+            **kwargs
+    ):
         """
         Rotate the object.
 
         Args:
-            *args: Positional arguments forwarded to the concrete implementation.
-            **kwargs: Keyword arguments forwarded to the concrete implementation.
+            angle (float): Angle to rotate
         """
         self._rotate_object(*args, **kwargs)
     # end rotate
 
     def draw(
             self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+            *args,
+            **kwargs
+    ):
         """
         Draw the point to the context.
 
@@ -222,9 +221,9 @@ class DrawableMixin:
     # Scale object (to override)
     def _scale_object(
             self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+            *args,
+            **kwargs
+    ):
         """
         Scale the object.
         """
@@ -236,9 +235,9 @@ class DrawableMixin:
     # Translate object (to override)
     def _translate_object(
             self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+            *args,
+            **kwargs
+    ):
         """
         Translate the object.
         """
@@ -250,9 +249,9 @@ class DrawableMixin:
     # Rotate object (to override)
     def _rotate_object(
             self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+            *args,
+            **kwargs
+    ):
         """
         Rotate the object.
         """
@@ -283,3 +282,5 @@ class DrawableMixin:
     # endregion EVENTS
 
 # end DrawableMixin
+
+

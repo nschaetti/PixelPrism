@@ -27,11 +27,11 @@
 
 # Imports
 from typing import Optional, Union
-
 import cairo
 
 from pixelprism.animate import animeattr, FadeableMixin
-from pixelprism.math_old import (
+# from pixelprism.math_old import (
+from pixelprism.data import (
     Color,
     Scalar,
     Event,

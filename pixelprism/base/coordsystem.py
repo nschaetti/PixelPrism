@@ -44,7 +44,7 @@
 
 # Imports
 import cairo
-from pixelprism.math_old import Point2D as p2
+from pixelprism.data import Point2D as p2
 
 
 # Coordinate system

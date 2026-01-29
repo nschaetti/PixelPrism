@@ -46,7 +46,7 @@
 import math
 from pixelprism.animate import MovableMixin
 from pixelprism.animate import FadeableMixin
-from pixelprism.math_old import Point2D, Scalar, Event, Transform, call_after, EventType, Style
+from pixelprism.data import Point2D, Scalar, Event, Transform, call_after, EventType, Style
 from . import BoundingBox
 from .drawablemixin import DrawableMixin
 from .boundingboxmixin import BoundingBoxMixin

@@ -68,7 +68,7 @@ class ImageCanvas:
         """
         # Check image size
         assert len(self.layers) == 0 or (image.height == self.height and image.width == self.width), \
-            f"Image size {image.shape} does not match canvas size ({self.width}, {self.height})."
+            f"Image size {image.input_shape} does not match canvas size ({self.width}, {self.height})."
 
         # Add the layer
         self.layers.append(Layer(name, image, blend_mode, active))

@@ -46,7 +46,7 @@
 import math
 from typing import Tuple, Union, Any
 import cairo
-from pixelprism.math_old import Color, Point2D, Scalar, Transform, Style
+from pixelprism.data import Color, Point2D, Scalar, Transform, Style
 from .coordsystem import CoordSystem
 
 
@@ -785,7 +785,7 @@ class Context:
     # Create surface
     def create_surface(self):
         """
-        Create a Cairo surface from the image math_old.
+        Create a Cairo surface from the image data.
         """
         # Create context
         return cairo.ImageSurface.create_for_data(

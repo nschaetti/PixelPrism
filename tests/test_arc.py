@@ -48,7 +48,7 @@ import math
 import numpy as np
 from unittest.mock import Mock
 from pixelprism import p2, s, c
-from pixelprism.math_old import Point2D, Scalar, Color
+from pixelprism.data import Point2D, Scalar, Color
 from pixelprism.drawing import Arc
 
 

@@ -56,7 +56,7 @@ from pixelprism.widgets.containers import Viewport
 from pixelprism.widgets import DrawableWidget
 from pixelprism.base import DrawableImage, ImageCanvas
 from pixelprism.drawing import MathTex, Arc
-from pixelprism.math_old import Point2D, Scalar
+from pixelprism.data import Point2D, Scalar
 
 
 # DrawableWidgetAnimation class

@@ -31,7 +31,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import numpy as np
-from pixelprism.math_old import Point2D, Scalar
+from pixelprism.data import Point2D, Scalar
 
 
 class Transform(object):

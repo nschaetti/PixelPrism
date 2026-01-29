@@ -65,7 +65,7 @@ from pixelprism.drawing import (
     PathArc,
     VectorGraphics
 )
-from pixelprism.math_old import Scalar
+from pixelprism.data import Scalar
 
 
 # A simple vector graphics animation

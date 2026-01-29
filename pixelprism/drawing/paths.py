@@ -52,7 +52,7 @@ from __future__ import annotations
 from typing import Any, Callable, List, Optional, Tuple, Union
 import cairo
 import numpy as np
-from pixelprism.math_old import Point2D, Color, Scalar, Event, Transform
+from pixelprism.data import Point2D, Color, Scalar, Event
 import pixelprism.utils as utils
 from pixelprism.drawing import BoundingBoxMixin, BoundingBox
 from pixelprism.animate.able import (
@@ -626,10 +626,10 @@ class PathSegment(
 
     # region PUBLIC
 
-    # Update math_old
+    # Update data
     def update_data(self):
         """
-        Update the math_old of the path segment.
+        Update the data of the path segment.
         """
         # Update length
         self._length = sum([element.length for element in self._elements]) if len(self._elements) > 0 else 0
@@ -1168,7 +1168,7 @@ class PathSegment(
             elements: List[PathElement]
     ) -> 'PathSegment':
         """
-        Create a path segment from math_old.
+        Create a path segment from data.
 
         Args:
             start (Point2D): Start point of the path segment
@@ -1386,10 +1386,10 @@ class Path(
 
     # region PUBLIC
 
-    # Update math_old
+    # Update data
     def update_data(self):
         """
-        Update the math_old of the path.
+        Update the data of the path.
         """
         # Update length
         self._length = self.compute_length()
@@ -2135,7 +2135,7 @@ class Path(
         # Get the angle
         scale = interpolated_t * (end_value - 1) + 1
 
-        # print(f"math_old = {scale} / {self.scalablemixin_state.scale}")
+        # print(f"data = {scale} / {self.scalablemixin_state.scale}")
 
         # Difference
         da = scale / self.scalablemixin_state.scale

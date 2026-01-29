@@ -45,7 +45,7 @@
 # Imports
 from typing import Tuple, Any
 from pixelprism import c
-from pixelprism.math_old import Point2D, Scalar, Color
+from pixelprism.data import Point2D, Scalar, Color
 import pixelprism.utils as utils
 from .drawablemixin import DrawableMixin
 
