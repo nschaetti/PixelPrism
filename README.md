@@ -1,6 +1,4 @@
-# 🦊 PixelPrism — Where Maths meet Art
-
-PixelPrism is a Python library that applies advanced visual effects to videos and images.
+# 🦊 PixelPrism — Where Mathematics Meets Art
 
 <p align="center">
     <picture>
