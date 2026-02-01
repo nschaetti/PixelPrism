@@ -148,41 +148,15 @@ class Operator(ABC):
         return self._eval(operands=operands, **kwargs)
     # end def eval
 
-    def backward(
+    def diff(
             self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
+            wrt: "Variable",
+            operands: Operands
+    ) -> "MathExpr":
         """
-        Local backward rule for this operator.
-
-        Given the gradient with respect to the output of this operator
-        (out_grad), return the gradients with respect to each input
-        operand, in the same order as `node.children`.
-
-        Parameters
-        ----------
-        out_grad : 'MathExpr'
-            Gradient of the loss with respect to the output of this node
-            (∂L / ∂out).
-        node : 'MathExpr'
-            The operator node being differentiated. Provides access to
-            the input expressions (children).
-
-        Returns
-        -------
-        Sequence['MathExpr']
-            Gradients with respect to each input operand
-            (∂L / ∂input_i), in the same order as node.children.
-
-        Notes
-        -----
-        - This method defines a *local* differentiation rule.
-        - It does not choose the variable with respect to which the
-          derivative is taken.
-        - It must not perform any global graph traversal or accumulation.
+        Local derivative of the operator wrt the given expression.
         """
-        return self._backward(out_grad, node)
+        return self._diff(wrt=wrt, operands=operands)
     # end def backward
 
     # endregion PUBLIC
@@ -195,11 +169,11 @@ class Operator(ABC):
     # end def _eval
 
     @abstractmethod
-    def _backward(
+    def _diff(
             self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
+            wrt: "Variable",
+            operands: Operands,
+    ) -> "MathExpr":
         """
         Local backward rule for this operator.
         """

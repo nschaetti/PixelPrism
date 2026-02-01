@@ -47,7 +47,6 @@ import weakref
 from abc import ABC, abstractmethod
 from typing import Any, FrozenSet, List, Optional, Tuple, Union, Dict
 import numpy as np
-
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
@@ -91,6 +90,13 @@ class MathExprLookupError(MathExprError):
 
 class MathExprNotImplementedError(MathExprError):
     """Raised when a subclass fails to implement an abstract requirement."""
+# end class MathExprNotImplementedError
+
+
+def _rand_name(prefix: str) -> str:
+    """Generate a unique constant name based on the given prefix."""
+    return f"{prefix}_{np.random.randint(0, 1000000):06d}"
+# end def random_const_name
 
 
 class MathExpr(ABC):
@@ -106,6 +112,23 @@ class MathExpr(ABC):
             Result of executing ``self.op`` with evaluated children.
         """
     # end def eval
+
+    @abstractmethod
+    def diff(self, wrt: Variable) -> MathExpr:
+        """
+        Compute the derivative of this expression with respect to ``wrt``.
+
+        Parameters
+        ----------
+        wrt : Variable
+            The variable to differentiate with respect to.
+
+        Returns
+        -------
+        MathExpr
+            The derivative of ``self`` with respect to ``wrt``.
+        """
+    # end def backward
 
     @abstractmethod
     def variables(self) -> List[MathExpr]:
@@ -388,6 +411,23 @@ class MathNode(MathExpr):
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    def diff(self, wrt: Variable) -> MathExpr:
+        """
+        Compute the derivative of this expression with respect to ``wrt``.
+
+        Parameters
+        ----------
+        wrt : Variable
+            The variable to differentiate with respect to.
+
+        Returns
+        -------
+        MathExpr
+            The derivative of ``self`` with respect to ``wrt``.
+        """
+        return self._op.diff(wrt=wrt, operands=self._children)
+    # end def diff
 
     def eval(self) -> Tensor:
         """
@@ -1192,7 +1232,14 @@ class MathLeaf(MathNode, ABC):
             Runtime tensor value.
         """
         return self._eval()
-    # end _get
+    # end _eval
+
+    def diff(self, wrt: Variable) -> MathExpr:
+        """
+        Compute the derivative of the leaf with respect to a variable.
+        """
+        return self._diff(wrt=wrt)
+    # end def diff
 
     @abstractmethod
     def variables(self) -> list:
@@ -1314,6 +1361,14 @@ class MathLeaf(MathNode, ABC):
         """
         raise MathExprNotImplementedError("Leaf nodes must implement _eval.")
     # end def _eval
+
+    @abstractmethod
+    def _diff(self, wrt: Variable) -> MathExpr:
+        """
+        Compute the derivative of this leaf with respect to a variable.
+        """
+        raise MathExprNotImplementedError("Leaf nodes must implement _diff.")
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -1640,6 +1695,23 @@ class Variable(MathLeaf):
         return var_val
     # end def _eval
 
+    def _diff(self, wrt: Variable) -> MathExpr:
+        """
+        Compute the derivative of this leaf with respect to a variable.
+        """
+        if wrt is self:
+            return Constant(
+                name=_rand_name(f"{self.name}_autodiff_"),
+                data=Tensor(data=1, dtype=self._dtype)
+            )
+        else:
+            return Constant(
+                name=_rand_name(f"{self.name}_autodiff_"),
+                data=Tensor(data=0, dtype=self._dtype)
+            )
+        # end if
+    # end def _diff
+
     # endregion PRIVATE
 
     # region OVERRIDE
@@ -1957,6 +2029,16 @@ class Constant(MathLeaf):
         """
         return self._data.copy()
     # end def _eval
+
+    def _diff(self, wrt: Variable) -> MathExpr:
+        """
+        Compute the derivative of this leaf with respect to a variable.
+        """
+        return Constant(
+            name=_rand_name(f"{self.name}_autodiff_"),
+            data=Tensor(data=0, dtype=self._dtype)
+        )
+    # end def _diff
 
     # endregion PRIVATE
 

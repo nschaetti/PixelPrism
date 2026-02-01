@@ -168,7 +168,7 @@ class Add(ElementwiseOperator):
 
     # region PRIVATE
 
-    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+    def _eval(self, operands: Operands) -> Tensor:
         """
         Evaluate element-wise addition.
         """
@@ -176,12 +176,9 @@ class Add(ElementwiseOperator):
         return a.eval() + b.eval()
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Add does not support backward.")
+    def _diff(self, wrt: "Variable", operands: Operands) -> "MathExpr":
+        a, b = operands
+        return a.diff(wrt) + b.diff(wrt)
     # end def _backward
 
     # endregion PRIVATE
@@ -205,12 +202,9 @@ class Sub(ElementwiseOperator):
         return a.eval() - b.eval()
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Sub does not support backward.")
+    def _diff(self, wrt: "Variable", operands: Operands) -> "MathExpr":
+        a, b = operands
+        return a.diff(wrt) - b.diff(wrt)
     # end def _backward
 
     # endregion PRIVATE
@@ -234,12 +228,9 @@ class Mul(ElementwiseOperator):
         return a.eval() * b.eval()
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Mul does not support backward.")
+    def _diff(self, wrt: "Variable", operands: Operands) -> "MathExpr":
+        a, b = operands
+        return a.diff(wrt) * b + b.diff(wrt) * a
     # end def _backward
 
     # endregion PRIVATE
