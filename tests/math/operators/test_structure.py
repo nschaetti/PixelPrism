@@ -33,14 +33,13 @@ import pytest
 import pixelprism.math as pm
 from pixelprism.math.math_expr import SliceExpr
 from pixelprism.math.operators.structure import (
-    Concatenate,
     Getitem,
     Flatten,
-    HStack,
-    VStack,
     Squeeze,
     Unsqueeze,
+    Reshape,
 )
+from pixelprism.math.functional.structure import reshape as reshape_fn
 
 
 def _const_matrix(name="getitem_matrix"):
@@ -264,6 +263,49 @@ def test_flatten_three_dimensional_tensor():
 # end test_flatten_three_dimensional_tensor
 
 
+def test_reshape_vector_to_matrix():
+    """Reshape should handle simple dimensional changes."""
+    expr, values = _const_vector()
+    operator = Reshape(shape=(2, 5))
+
+    reshaped = operator.eval([expr])
+    expected = values.reshape(2, 5)
+
+    np.testing.assert_allclose(reshaped.value, expected)
+    assert operator.infer_shape([expr]).dims == (2, 5)
+    assert operator.infer_dtype([expr]) == expr.dtype
+# end test_reshape_vector_to_matrix
+
+
+def test_reshape_with_negative_one_dimension():
+    """Reshape should infer a single dimension when -1 is provided."""
+    expr, values = _const_matrix()
+    operator = Reshape(shape=(-1, 3))
+
+    reshaped = operator.eval([expr])
+    expected = values.reshape(-1, 3)
+
+    np.testing.assert_allclose(reshaped.value, expected)
+    assert operator.infer_shape([expr]).dims == expected.shape
+# end test_reshape_with_negative_one_dimension
+
+
+def test_reshape_invalid_size_raises():
+    """Incompatible target sizes should raise via the functional helper."""
+    expr, _ = _const_vector()
+    with pytest.raises(TypeError):
+        reshape_fn(expr, (3, 3))
+# end test_reshape_invalid_size_raises
+
+
+def test_reshape_invalid_negative_dimension_raises():
+    """Dimensions less than -1 should be rejected."""
+    expr, _ = _const_vector()
+    with pytest.raises(ValueError):
+        reshape_fn(expr, (2, -2))
+# end test_reshape_invalid_negative_dimension_raises
+
+
 def test_squeeze_removes_all_unit_axes_by_default():
     """Squeeze defaults to removing every dimension equal to one."""
     expr, values = _const_tensor_with_unit_dims()
@@ -323,144 +365,3 @@ def test_unsqueeze_supports_negative_axes():
     np.testing.assert_allclose(tensor.value, expected)
     assert operator.infer_shape([expr]).dims == tuple(expected.shape)
 # end test_unsqueeze_supports_negative_axes
-
-#
-# Concatenate
-#
-
-def test_concatenate_axis0_matches_numpy_result():
-    """Concatenate should follow numpy along the leading axis."""
-    values_a = np.arange(6, dtype=np.float32).reshape(2, 3)
-    values_b = np.arange(6, 12, dtype=np.float32).reshape(2, 3)
-    expr_a = pm.const("concat_a", data=values_a.copy(), dtype=pm.DType.FLOAT32)
-    expr_b = pm.const("concat_b", data=values_b.copy(), dtype=pm.DType.FLOAT32)
-    operator = Concatenate(axis=0)
-    operands = [expr_a, expr_b]
-    assert operator.check_operands(operands)
-    assert operator.check_shapes(operands)
-    tensor = operator.eval(operands)
-    expected = np.concatenate([values_a, values_b], axis=0)
-    np.testing.assert_allclose(tensor.value, expected)
-    assert operator.infer_shape(operands).dims == tuple(expected.shape)
-    assert operator.infer_dtype(operands) == pm.DType.FLOAT32
-# end test_concatenate_axis0_matches_numpy_result
-
-
-def test_concatenate_negative_axis_three_inputs():
-    """Concatenate should handle multiple operands and negative axes."""
-    left = np.arange(8, dtype=np.float32).reshape(2, 2, 2)
-    mid = np.arange(8, 16, dtype=np.float32).reshape(2, 2, 2)
-    right = np.arange(16, 24, dtype=np.float32).reshape(2, 2, 2)
-    exprs = [
-        pm.const(f"concat_three_{idx}", data=values.copy(), dtype=pm.DType.FLOAT32)
-        for idx, values in enumerate((left, mid, right))
-    ]
-    operator = Concatenate(axis=-1)
-    assert operator.check_shapes(exprs)
-    tensor = operator.eval(exprs)
-    expected = np.concatenate([left, mid, right], axis=-1)
-    np.testing.assert_allclose(tensor.value, expected)
-    assert operator.infer_shape(exprs).dims == tuple(expected.shape)
-# end test_concatenate_negative_axis_three_inputs
-
-
-def test_concatenate_axis_none_flattens_inputs():
-    """Axis None should flatten every operand before concatenation."""
-    a = np.arange(6, dtype=np.float32).reshape(2, 3)
-    b = np.arange(3, dtype=np.float32)
-    expr_a = pm.const("concat_flat_a", data=a.copy(), dtype=pm.DType.FLOAT32)
-    expr_b = pm.const("concat_flat_b", data=b.copy(), dtype=pm.DType.FLOAT32)
-    operator = Concatenate(axis=None)
-    operands = [expr_a, expr_b]
-    tensor = operator.eval(operands)
-    expected = np.concatenate([a.flatten(), b.flatten()], axis=0)
-    np.testing.assert_allclose(tensor.value, expected)
-    assert operator.check_shapes(operands)
-    assert operator.infer_shape(operands).dims == tuple(expected.shape)
-# end test_concatenate_axis_none_flattens_inputs
-
-
-def test_concatenate_detects_mismatched_shapes():
-    """Concatenate should reject tensors that differ on non-concatenated axes."""
-    a = np.arange(6, dtype=np.float32).reshape(2, 3)
-    b = np.arange(8, dtype=np.float32).reshape(2, 4)
-    expr_a = pm.const("concat_err_a", data=a.copy(), dtype=pm.DType.FLOAT32)
-    expr_b = pm.const("concat_err_b", data=b.copy(), dtype=pm.DType.FLOAT32)
-    operator = Concatenate(axis=0)
-    with pytest.raises(ValueError):
-        operator.check_shapes([expr_a, expr_b])
-    # end with
-# end test_concatenate_detects_mismatched_shapes
-
-
-#
-# hstack
-#
-
-
-def test_hstack_concatenates_along_second_axis():
-    """HStack should mirror numpy.hstack for rank >= 2 tensors."""
-    left = np.arange(6, dtype=np.float32).reshape(2, 3)
-    right = np.arange(6, 12, dtype=np.float32).reshape(2, 3)
-    expr_left = pm.const("hstack_left", data=left.copy(), dtype=pm.DType.FLOAT32)
-    expr_right = pm.const("hstack_right", data=right.copy(), dtype=pm.DType.FLOAT32)
-    operator = HStack()
-    operands = [expr_left, expr_right]
-
-    assert operator.check_shapes(operands)
-
-    tensor = operator.eval(operands)
-    expected = np.hstack([left, right])
-    np.testing.assert_allclose(tensor.value, expected)
-    assert operator.infer_shape(operands).dims == tuple(expected.shape)
-    assert operator.infer_dtype(operands) == pm.DType.FLOAT32
-# end test_hstack_concatenates_along_second_axis
-
-
-def test_hstack_requires_second_axis():
-    """HStack should reject operands that cannot expose axis 1."""
-    vec_a = np.arange(3, dtype=np.float32)
-    vec_b = np.arange(3, 6, dtype=np.float32)
-    expr_a = pm.const("hstack_vec_a", data=vec_a.copy(), dtype=pm.DType.FLOAT32)
-    expr_b = pm.const("hstack_vec_b", data=vec_b.copy(), dtype=pm.DType.FLOAT32)
-    operator = HStack()
-
-    with pytest.raises(ValueError):
-        operator.check_shapes([expr_a, expr_b])
-# end test_hstack_requires_second_axis
-
-
-#
-# vstack
-#
-
-
-def test_vstack_concatenates_along_first_axis():
-    """VStack mirrors numpy.vstack on the leading axis."""
-    upper = np.arange(6, dtype=np.float32).reshape(2, 3)
-    lower = np.arange(6, 12, dtype=np.float32).reshape(2, 3)
-    expr_upper = pm.const("vstack_upper", data=upper.copy(), dtype=pm.DType.FLOAT32)
-    expr_lower = pm.const("vstack_lower", data=lower.copy(), dtype=pm.DType.FLOAT32)
-    operator = VStack()
-    operands = [expr_upper, expr_lower]
-
-    assert operator.check_shapes(operands)
-
-    tensor = operator.eval(operands)
-    expected = np.vstack([upper, lower])
-    np.testing.assert_allclose(tensor.value, expected)
-    assert operator.infer_shape(operands).dims == tuple(expected.shape)
-# end test_vstack_concatenates_along_first_axis
-
-
-def test_vstack_detects_shape_mismatch():
-    """VStack should raise when non-leading axes differ."""
-    top = np.arange(6, dtype=np.float32).reshape(2, 3)
-    bottom = np.arange(12, dtype=np.float32).reshape(2, 6)
-    expr_top = pm.const("vstack_top", data=top.copy(), dtype=pm.DType.FLOAT32)
-    expr_bottom = pm.const("vstack_bottom", data=bottom.copy(), dtype=pm.DType.FLOAT32)
-    operator = VStack()
-
-    with pytest.raises(ValueError):
-        operator.check_shapes([expr_top, expr_bottom])
-# end test_vstack_detects_shape_mismatch

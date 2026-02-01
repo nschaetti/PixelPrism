@@ -27,6 +27,13 @@
 #
 
 
+from .activations import (
+    relu,
+    leaky_relu,
+    sigmoid,
+    softplus,
+    gelu
+)
 from .boolean import (
     eq,
     ne,
@@ -41,8 +48,29 @@ from .boolean import (
     logical_or,
     logical_xor,
 )
+
 from .builders import (
-    build_tensor
+    build_tensor,
+    vector,
+    matrix,
+    full,
+    zeros,
+    ones,
+    eye,
+    diag,
+    identity,
+    concatenate,
+    linspace,
+    logspace,
+    map_,
+    hstack,
+    vstack,
+    from_function,
+    sparse_coo
+)
+from .conditional import (
+    where,
+    if_
 )
 from .discretization import (
     sign,
@@ -53,6 +81,7 @@ from .discretization import (
     round,
     clip,
 )
+
 from .elementwise import (
     add,
     sub,
@@ -76,6 +105,19 @@ from .elementwise import (
     abs,
     neg,
 )
+
+from .activations import (
+    relu,
+    leaky_relu,
+    sigmoid,
+    softplus,
+    gelu,
+)
+from .conditional import (
+    where,
+    if_,
+)
+
 from .linear_algebra import (
     matmul,
     dot,
@@ -88,6 +130,7 @@ from .linear_algebra import (
     infty_norm,
     frobenius_norm,
 )
+
 from .reduction import (
     sum,
     mean,
@@ -100,15 +143,15 @@ from .reduction import (
     summation,
     product
 )
+
 from .structure import (
     getitem,
     flatten,
-    concatenate,
-    hstack,
-    vstack,
     squeeze,
-    unsqueeze
+    unsqueeze,
+    reshape
 )
+
 from .trigo import (
     sin,
     cos,
@@ -130,6 +173,12 @@ from .trigo import (
 
 
 __all__ = [
+    # Activation
+    "relu",
+    "leaky_relu",
+    "gelu",
+    "softplus",
+    "sigmoid",
     # Boolean
     "eq",
     "ne",
@@ -145,6 +194,31 @@ __all__ = [
     "logical_xor",
     # Builders
     "build_tensor",
+    "vector",
+    "matrix",
+    "full",
+    "zeros",
+    "ones",
+    "eye",
+    "diag",
+    "identity",
+    "concatenate",
+    "linspace",
+    "logspace",
+    "map_",
+    "hstack",
+    "vstack",
+    "from_function",
+    "sparse_coo",
+    # Activations
+    "relu",
+    "leaky_relu",
+    "sigmoid",
+    "softplus",
+    "gelu",
+    # Conditional
+    "where",
+    "if_",
     # Element wise
     "add",
     "sub",
@@ -167,6 +241,9 @@ __all__ = [
     "absolute",
     "abs",
     "neg",
+    # Conditional
+    "where",
+    "if_",
     # Discretization
     "sign",
     "floor",
@@ -217,9 +294,9 @@ __all__ = [
     # Structure
     "getitem",
     "flatten",
-    "concatenate",
-    "hstack",
-    "vstack",
     "squeeze",
-    "unsqueeze"
+    "unsqueeze",
+    "reshape",
+    # Conditional
+    "where",
 ]

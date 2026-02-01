@@ -838,6 +838,9 @@ class Tensor:
     def norm(self, ord: Union[int, float] = 2) -> 'Tensor':
         """Compute the norm of the tensor."""
         result = np.linalg.norm(self._data, ord=ord)
+        dtype = self._dtype if self._dtype.is_float else DType.FLOAT32
+        numpy_dtype = dtype.to_numpy()
+        return Tensor(data=np.asarray(result, dtype=numpy_dtype), dtype=dtype)
     # end def norm
 
     # endregion MATH LINEAR

@@ -623,12 +623,22 @@ class Norm(LinearAlgebraParametricOperator):
 
     def infer_dtype(self, operands: Operands) -> DType:
         """Infer the dtype of the output."""
+        dtype = operands[0].dtype
+        if dtype.is_float:
+            return dtype
         return DType.FLOAT32
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        a, = operands
-        return a.eval().norm()
+        vector, = operands
+        order_value = self._resolve_parameter(self._order)
+        if order_value is None:
+            order_value = 2
+        result = vector.eval().norm(ord=order_value)
+        dtype = self.infer_dtype(operands)
+        if result.dtype != dtype:
+            result = result.astype(dtype)
+        return result
     # end def
 
     def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:

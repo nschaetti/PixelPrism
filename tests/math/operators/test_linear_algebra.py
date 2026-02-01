@@ -437,6 +437,90 @@ def test_linear_algebra_with_elementwise_composition():
 # end test_linear_algebra_with_elementwise_composition
 
 
+def test_norm_constant_expression_order_vector():
+    """
+    Norm should honor orders expressed purely with constants.
+    """
+    vector, vector_np = _make_const("norm_const_vec", [3.0, -4.0, 6.0], DType.FLOAT32)
+    order = (
+        pm.const("norm_const_a", data=1.0, dtype=DType.FLOAT32)
+        + pm.const("norm_const_b", data=1.0, dtype=DType.FLOAT32)
+    )
+
+    expr = LA.norm(vector, order=order)
+    expected = np.linalg.norm(vector_np.astype(np.float32), ord=2.0)
+
+    _assert_expr_allclose(expr, expected)
+    assert expr.shape.dims == ()
+    assert expr.dtype == DType.FLOAT32
+# end test_norm_constant_expression_order_vector
+
+
+def test_norm_variable_order_vector():
+    """
+    Orders supplied as variables should evaluate through the active context.
+    """
+    vector, vector_np = _make_const(
+        "norm_var_vec",
+        [1.5, -0.5, 2.5, -3.5],
+        DType.FLOAT64,
+    )
+    order_var = pm.var("norm_order_var", dtype=DType.FLOAT32, shape=())
+    expr = LA.norm(vector, order=order_var)
+
+    with pm.new_context():
+        pm.set_value("norm_order_var", 3.0)
+        expected = np.linalg.norm(vector_np, ord=3.0)
+        _assert_expr_allclose(expr, expected)
+    # end with
+    assert expr.shape.dims == ()
+    assert expr.dtype == DType.FLOAT64
+# end test_norm_variable_order_vector
+
+
+def test_norm_mixed_expression_order():
+    """
+    Mixed constant/variable orders should evaluate correctly for integer inputs.
+    """
+    vector, vector_np = _make_const(
+        "norm_mix_vec",
+        [1, -2, 3, -4, 5, -6],
+        DType.INT32,
+    )
+    order_var = pm.var("norm_order_mix", dtype=DType.FLOAT32, shape=())
+    order = (
+        order_var
+        + pm.const("norm_mix_bias", data=1.5, dtype=DType.FLOAT32)
+        - pm.const("norm_mix_shift", data=0.5, dtype=DType.FLOAT32)
+    )
+    expr = LA.norm(vector, order=order)
+
+    with pm.new_context():
+        pm.set_value("norm_order_mix", 1.0)
+        effective_order = 2.0
+        expected = np.linalg.norm(vector_np.astype(np.float32), ord=effective_order)
+        _assert_expr_allclose(expr, expected)
+    # end with
+    assert expr.shape.dims == ()
+    assert expr.dtype == DType.FLOAT32
+# end test_norm_mixed_expression_order
+
+
+def test_norm_rejects_non_vector_inputs():
+    """
+    Passing tensors with rank != 1 should raise a TypeError.
+    """
+    matrix, _ = _make_const(
+        "norm_bad_matrix",
+        [[1.0, -2.0], [3.0, 4.0]],
+        DType.FLOAT32,
+    )
+    with pytest.raises(TypeError):
+        LA.norm(matrix)
+    # end with
+# end test_norm_rejects_non_vector_inputs
+
+
 @pytest.mark.parametrize(
     "values,dtype,expected_dtype",
     [

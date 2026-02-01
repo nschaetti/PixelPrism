@@ -45,7 +45,23 @@ from .boolean import (
     Xor,
 )
 from .builders import (
-    BuildTensor
+    BuildTensor,
+    Vector,
+    Matrix,
+    Full,
+    Concatenate,
+    HStack,
+    VStack,
+    Linspace,
+    Logspace,
+    FromFunction,
+    Diag,
+    SparseCOO,
+    Zeros,
+    Ones,
+    Eye,
+    Identity,
+    Map
 )
 from .elementwise import (
     Add,
@@ -111,11 +127,9 @@ from .reduction import (
 from .structure import (
     Getitem,
     Flatten,
-    Concatenate,
-    HStack,
-    VStack,
     Squeeze,
     Unsqueeze,
+    Reshape
 )
 from .trigo import (
     Acos,
@@ -135,6 +149,16 @@ from .trigo import (
     Tan,
     Tanh,
 )
+from .activations import (
+    ReLU,
+    LeakyReLU,
+    Sigmoid,
+    Softplus,
+    GELU,
+)
+from .conditional import (
+    Where,
+)
 
 __all__ = [
     # Base
@@ -147,6 +171,27 @@ __all__ = [
     "UnaryElementwiseOperator",
     # Builders
     "BuildTensor",
+    "Vector",
+    "Matrix",
+    "Full",
+    "Concatenate",
+    "HStack",
+    "VStack",
+    "Zeros",
+    "Ones",
+    "Eye",
+    "Identity",
+    "Map",
+    "Linspace",
+    "Logspace",
+    "FromFunction",
+    "Diag",
+    "SparseCOO",
+    "ReLU",
+    "LeakyReLU",
+    "Sigmoid",
+    "Softplus",
+    "GELU",
     # Boolean
     "Eq",
     "Ne",
@@ -181,6 +226,7 @@ __all__ = [
     "Rad2deg",
     "Absolute",
     "Abs",
+    "Where",
     # Discrete
     "Sign",
     "Floor",
@@ -218,6 +264,8 @@ __all__ = [
     "Det",
     "Inverse",
     "Norm",
+    "InftyNorm",
+    "FrobeniusNorm",
     # Reduction
     "Sum",
     "Mean",
@@ -232,9 +280,7 @@ __all__ = [
     # Structure
     "Getitem",
     "Flatten",
-    "Concatenate",
-    "HStack",
-    "VStack",
     "Squeeze",
     "Unsqueeze",
+    "Reshape"
 ]

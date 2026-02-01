@@ -34,10 +34,6 @@
 import math
 from typing import Any, Union, Optional
 import numpy as np
-<<<<<<<< HEAD:pixelprism/math_old/points.py
-
-========
->>>>>>>> dev:pixelprism/data/points.py
 from pixelprism.animate import MovableMixin
 from .data import Data
 from .scalar import Scalar, TScalar

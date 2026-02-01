@@ -37,21 +37,13 @@ import numpy as np
 
 from ..dtype import DType
 from ..shape import Shape
-from ..tensor import (
-    Tensor,
-    concatenate as tensor_concatenate,
-    hstack as tensor_hstack,
-    vstack as tensor_vstack,
-)
+from ..tensor import Tensor
 from ..math_expr import SliceExpr, MathNode, MathExpr
 from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
 
 __all__ = [
     "Getitem",
     "Flatten",
-    "Concatenate",
-    "HStack",
-    "VStack",
     "Squeeze",
     "Unsqueeze",
 ]
@@ -107,6 +99,82 @@ class StructureOperator(Operator, ABC):
     # end def _format_parameters
 
 # end class StructureOperator
+
+
+class Reshape(StructureOperator):
+
+    NAME = "reshape"
+    ARITY = 1
+
+    def __init__(self, shape: Sequence[int]):
+        super().__init__(shape=shape)
+    # end def __init__
+
+    def check_parameters(self, **kwargs) -> bool:
+        # Only one -1
+        count_minus = sum([a == -1 for a in self._parameters["shape"]])
+        # No -2, -3, etc
+        if any([a < -1 for a in self._parameters["shape"]]):
+            return False
+        # end if
+        return count_minus <= 1
+    # end def check_parameters
+
+    def check_operands(self, operands: Operands) -> bool:
+        if len(operands) != 1:
+            return False
+        # end if
+        return True
+    # end def check_operands
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        tensor = operands[0].eval()
+        target_shape = self._compute_shape(self._parameters["shape"], tensor.shape)
+        if target_shape == tensor.shape:
+            return tensor
+        # end
+        return tensor.reshape(target_shape)
+    # end def _eval
+
+    def infer_dtype(self, operands: Operands) -> DType:
+        return operands[0].dtype
+    # end def infer_dtype
+
+    def infer_shape(self, operands: Operands) -> Shape:
+        return self._compute_shape(self._parameters["shape"], operands[0].shape)
+    # end def infer_shape
+
+    def check_shapes(self, operands: Operands) -> bool:
+        new_shape = self._compute_shape(self._parameters["shape"], operands[0].shape)
+        return new_shape.size == operands[0].size
+    # end def check_shapes
+
+    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+        raise NotImplementedError("Flatten does not support backward.")
+    # end def _backward
+
+    def _compute_shape(self, new_shape: Sequence[int], shape: Shape) -> Shape:
+        """Compute the new shape."""
+        n_elements = shape.size
+        if any([a == -1 for a in new_shape]):
+            known_elements = [a for a in new_shape if a != -1]
+            size_known_elements = int(np.prod(known_elements))
+            new_dim_size = n_elements // size_known_elements
+            final_size = list()
+            for i, known in enumerate(new_shape):
+                if known == -1:
+                    final_size.append(new_dim_size)
+                else:
+                    final_size.append(known)
+                # end if
+            # end for
+            return Shape(final_size)
+        else:
+            return Shape(new_shape)
+        # end if
+    # end def _compute_shape
+
+# end class Flatten
 
 
 class Getitem(StructureOperator):
@@ -264,66 +332,6 @@ class Getitem(StructureOperator):
 # end class GetItem
 
 
-class SetItem(StructureOperator):
-    """Setitem operator."""
-
-    NAME = "setitem"
-    ARITY = 2
-
-    def __init__(self, tensor: MathExpr, value: MathExpr, indices: Union[SliceExpr, int]) -> None:
-        """Construct a setitem operator."""
-        super().__init__(
-            indices=indices
-        )
-        self._indices = indices
-        self._tensor = tensor
-        self._value = value
-    # end def __init__
-
-    # region PROPERTIES
-
-    @property
-    def tensor(self) -> MathExpr:
-        return self._tensor
-    # end def
-
-    @property
-    def value(self) -> MathExpr:
-        return self._value
-    # end def value
-
-    @property
-    def indices(self):
-        return self._indices
-    # end def indices
-
-    # endregion PROPERTIES
-
-    # region PUBLIC
-
-    def check_operands(self, operands: Operands) -> bool:
-        pass
-
-    def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        pass
-
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
-        pass
-
-    def infer_dtype(self, operands: Operands) -> DType:
-        pass
-
-    def infer_shape(self, operands: Operands) -> Shape:
-        pass
-
-    def check_shapes(self, operands: Operands) -> bool:
-        pass
-
-    # endregion PUBLIC
-
-# end class SetItem
-
-
 class Flatten(StructureOperator):
 
     NAME = "flatten"
@@ -373,166 +381,6 @@ class Flatten(StructureOperator):
     # end def _target_dims
 
 # end class Flatten
-
-
-class Concatenate(StructureOperator):
-    """Concatenate tensors along an axis, mirroring ``np.concatenate``."""
-
-    NAME = "concatenate"
-    ARITY = -1  # variable number of operands
-    IS_VARIADIC = True
-
-    def __init__(self, axis: Optional[int] = 0):
-        super().__init__(axis=axis)
-        self._axis = axis
-    # end def __init__
-
-    @classmethod
-    def check_arity(cls, operands: Operands):
-        """Allow a variable number of operands with at least one entry."""
-        return len(operands) >= 1
-    # end def check_arity
-
-    def eval(self, operands: Operands, **kwargs) -> Tensor:
-        """Override default arity enforcement for variadic operators."""
-        if not operands:
-            raise ValueError("Concatenate expects at least one operand.")
-        # end if
-        return self._eval(operands=operands, **kwargs)
-    # end def eval
-
-    def check_parameters(self, axis: Optional[int] = 0) -> bool:
-        return axis is None or isinstance(axis, int)
-    # end def check_parameters
-
-    def check_operands(self, operands: Operands) -> bool:
-        return len(operands) >= 1
-    # end def check_operands
-
-    def contains(
-            self,
-            expr: "MathNode",
-            by_ref: bool = False,
-            look_for: Optional[str] = None
-    ) -> bool:
-        return False
-    # end def contains
-
-    def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        tensors = [operand.eval() for operand in operands]
-        return tensor_concatenate(tensors, axis=self._axis)
-    # end def _eval
-
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
-        raise NotImplementedError("Concatenate does not support backward.")
-    # end def _backward
-
-    def infer_dtype(self, operands: Operands) -> DType:
-        dtype = operands[0].dtype
-        for operand in operands[1:]:
-            dtype = DType.promote(dtype, operand.dtype)
-        # end for
-        return dtype
-    # end def infer_dtype
-
-    def infer_shape(self, operands: Operands) -> Shape:
-        if not operands:
-            raise ValueError("Cannot infer shape without operands.")
-        # end if
-        if self._axis is None:
-            return Shape((self._flattened_size(operands),))
-        # end if
-        base_shape = operands[0].input_shape
-        axis = self._normalized_axis(base_shape.rank)
-        dims = list(base_shape.dims)
-        dims[axis] = sum(operand.input_shape[axis] for operand in operands)
-        return Shape(tuple(dims))
-    # end def infer_shape
-
-    def check_shapes(self, operands: Operands) -> bool:
-        if not operands:
-            raise ValueError("Concatenate requires at least one operand.")
-        # end if
-        if self._axis is None:
-            return True
-        reference = operands[0].input_shape
-        axis = self._normalized_axis(reference.rank)
-        for operand in operands[1:]:
-            if operand.input_shape.rank != reference.rank:
-                raise ValueError("All operands must share the same rank for concatenation.")
-            # end if
-            for idx, (dim_ref, dim_other) in enumerate(zip(reference.dims, operand.input_shape.dims)):
-                if idx == axis:
-                    continue
-                if dim_ref != dim_other:
-                    raise ValueError("Operand dimensions must match on non-concatenated axes.")
-                # end if
-            # end for
-        # end for
-        return True
-    # end def check_shapes
-
-    def __str__(self) -> str:
-        return f"{self.NAME}(axis={self._axis})"
-    # end def __str__
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(axis={self._axis})"
-    # end def __repr__
-
-    def _normalized_axis(self, rank: int) -> int:
-        if self._axis is None:
-            raise ValueError("Axis is None when normalization was requested.")
-        return Shape._normalize_axis(self._axis, rank)
-    # end def _normalized_axis
-
-    def _flattened_size(self, operands: Operands) -> int:
-        total = 0
-        for operand in operands:
-            size = operand.input_shape.size
-            if size is None:
-                raise ValueError("Cannot concatenate unknown-size tensors along axis=None.")
-            # end if
-            total += size
-        # end for
-        return total
-    # end def _flattened_size
-
-# end class Concatenate
-
-
-class HStack(Concatenate):
-    """Concatenate tensors along axis 1, matching :func:`numpy.hstack` semantics."""
-
-    NAME = "hstack"
-
-    def __init__(self):
-        super().__init__(axis=1)
-    # end def __init__
-
-    def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        tensors = [operand.eval() for operand in operands]
-        return tensor_hstack(tensors)
-    # end def _eval
-
-# end class HStack
-
-
-class VStack(Concatenate):
-    """Concatenate tensors along axis 0, matching :func:`numpy.vstack` semantics."""
-
-    NAME = "vstack"
-
-    def __init__(self):
-        super().__init__(axis=0)
-    # end def __init__
-
-    def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        tensors = [operand.eval() for operand in operands]
-        return tensor_vstack(tensors)
-    # end def _eval
-
-# end class VStack
 
 
 class Squeeze(StructureOperator):
@@ -698,10 +546,8 @@ class Unsqueeze(StructureOperator):
 # end class Unsqueeze
 
 
+operator_registry.register(Reshape)
 operator_registry.register(Getitem)
 operator_registry.register(Flatten)
-operator_registry.register(Concatenate)
-operator_registry.register(HStack)
-operator_registry.register(VStack)
 operator_registry.register(Squeeze)
 operator_registry.register(Unsqueeze)
