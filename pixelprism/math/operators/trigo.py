@@ -32,8 +32,9 @@ Trigonometric operator implementations.
 # Imports
 import numpy as np
 from .base import Operands, operator_registry
-from .elementwise import ElementwiseOperator, UnaryElementwiseOperator
+from .elementwise import ElementwiseOperator, UnaryElementwiseOperator, Sqrt
 from ..tensor import Tensor
+from ..math_expr import Variable, Constant, MathNode, MathExpr
 
 __all__ = [
     "Sin",
@@ -68,15 +69,18 @@ class Sin(UnaryElementwiseOperator):
     """
 
     NAME = "sin"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.sin(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Sin does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        return Cos.create_node(operands=(x,)) * x.diff(wrt)
+    # end def _diff
 
 # end class Sin
 
@@ -93,15 +97,18 @@ class Cos(UnaryElementwiseOperator):
     """
 
     NAME = "cos"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.cos(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Cos does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        return -Sin.create_node(operands=(x,)) * x.diff(wrt)
+    # end def _diff
 
 # end class Cos
 
@@ -118,15 +125,18 @@ class Tan(UnaryElementwiseOperator):
     """
 
     NAME = "tan"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.tan(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Tan does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        sec_x = Sec.create_node(operands=(x,))
+        return sec_x * sec_x * x.diff(wrt)
+    # end def _diff
 
 # end class Tan
 
@@ -143,15 +153,18 @@ class Asin(UnaryElementwiseOperator):
     """
 
     NAME = "asin"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.arcsin(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Asin does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        denom = Sqrt.create_node(operands=(Constant.new(1) - x * x,))
+        return (Constant.new(1) / denom) * x.diff(wrt)
+    # end def _diff
 
 # end class Asin
 
@@ -168,15 +181,18 @@ class Acos(UnaryElementwiseOperator):
     """
 
     NAME = "acos"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.arccos(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Acos does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        denom = Sqrt.create_node(operands=(Constant.new(1) - x * x,))
+        return (-Constant.new(1) / denom) * x.diff(wrt)
+    # end def _diff
 
 # end class Acos
 
@@ -193,15 +209,18 @@ class Atan(UnaryElementwiseOperator):
     """
 
     NAME = "atan"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.arctan(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Atan does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        denom = Constant.new(1) + x * x
+        return (Constant.new(1) / denom) * x.diff(wrt)
+    # end def _diff
 
 # end class Atan
 
@@ -219,15 +238,20 @@ class Atan2(ElementwiseOperator):
 
     NAME = "atan2"
     ARITY = 2
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         y, x = operands
         return Tensor.arctan2(y.eval(), x.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Atan2 does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        y, x = operands
+        denom = x * x + y * y
+        dy_term = (x / denom) * y.diff(wrt)
+        dx_term = (-y / denom) * x.diff(wrt)
+        return dy_term + dx_term
+    # end def _diff
 
 # end class Atan2
 
@@ -244,15 +268,17 @@ class Sec(UnaryElementwiseOperator):
     """
 
     NAME = "sec"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return 1.0 / Tensor.cos(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Sec does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        return Sec.create_node(operands=(x,)) * Tan.create_node(operands=(x,)) * x.diff(wrt)
+    # end def _diff
 
 # end class Sec
 
@@ -269,15 +295,17 @@ class Csc(UnaryElementwiseOperator):
     """
 
     NAME = "csc"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return 1.0 / Tensor.sin(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Csc does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        return -Csc.create_node(operands=(x,)) * Cot.create_node(operands=(x,)) * x.diff(wrt)
+    # end def _diff
 
 # end class Csc
 
@@ -294,15 +322,18 @@ class Cot(UnaryElementwiseOperator):
     """
 
     NAME = "cot"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return 1.0 / Tensor.tan(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Cot does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        csc_x = Csc.create_node(operands=(x,))
+        return -csc_x * csc_x * x.diff(wrt)
+    # end def _diff
 
 # end class Cot
 
@@ -319,15 +350,17 @@ class Sinh(UnaryElementwiseOperator):
     """
 
     NAME = "sinh"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.sinh(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Sinh does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        return Cosh.create_node(operands=(x,)) * x.diff(wrt)
+    # end def _diff
 
 # end class Sinh
 
@@ -344,15 +377,17 @@ class Cosh(UnaryElementwiseOperator):
     """
 
     NAME = "cosh"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.cosh(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Cosh does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        return Sinh.create_node(operands=(x,)) * x.diff(wrt)
+    # end def _diff
 
 # end class Cosh
 
@@ -369,15 +404,18 @@ class Tanh(UnaryElementwiseOperator):
     """
 
     NAME = "tanh"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.tanh(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Tanh does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        cosh_x = Cosh.create_node(operands=(x,))
+        return (Constant.new(1) / (cosh_x * cosh_x)) * x.diff(wrt)
+    # end def _diff
 
 # end class Tanh
 
@@ -394,15 +432,18 @@ class Asinh(UnaryElementwiseOperator):
     """
 
     NAME = "asinh"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.arcsinh(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Asinh does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        denom = Sqrt.create_node(operands=(x * x + Constant.new(1),))
+        return (Constant.new(1) / denom) * x.diff(wrt)
+    # end def _diff
 
 # end class Asinh
 
@@ -419,15 +460,21 @@ class Acosh(UnaryElementwiseOperator):
     """
 
     NAME = "acosh"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.arccosh(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Acosh does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        denom = (
+            Sqrt.create_node(operands=(x - Constant.new(1),))
+            * Sqrt.create_node(operands=(x + Constant.new(1),))
+        )
+        return (Constant.new(1) / denom) * x.diff(wrt)
+    # end def _diff
 
 # end class Acosh
 
@@ -444,15 +491,18 @@ class Atanh(UnaryElementwiseOperator):
     """
 
     NAME = "atanh"
+    IS_DIFF = True
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return Tensor.arctanh(value.eval())
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("Atanh does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (x,) = operands
+        denom = Constant.new(1) - x * x
+        return (Constant.new(1) / denom) * x.diff(wrt)
+    # end def _diff
 
 # end class Atanh
 

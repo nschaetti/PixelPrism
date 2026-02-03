@@ -34,6 +34,7 @@ from .activations import (
     softplus,
     gelu
 )
+
 from .boolean import (
     eq,
     ne,
@@ -68,10 +69,17 @@ from .builders import (
     from_function,
     sparse_coo
 )
+
+from .calculus import (
+    diff,
+    nabla,
+)
+
 from .conditional import (
     where,
     if_
 )
+
 from .discretization import (
     sign,
     floor,
@@ -216,6 +224,9 @@ __all__ = [
     "sigmoid",
     "softplus",
     "gelu",
+    # Calculus
+    "diff",
+    "nabla",
     # Conditional
     "where",
     "if_",

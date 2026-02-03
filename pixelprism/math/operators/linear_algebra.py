@@ -36,10 +36,10 @@ import numpy as np
 
 from ..utils import const, random_const_name
 from ..dtype import DType
-from ..math_expr import MathExpr
+from ..math_expr import MathExpr, MathNode, Variable, Constant
 from ..shape import Shape
 from ..tensor import Tensor, einsum
-from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
+from .base import Operands, operator_registry, Operator, ParametricOperator
 
 __all__ = [
     "LinearAlgebraOperator",
@@ -106,7 +106,7 @@ class LinearAlgebraParametricOperator(LinearAlgebraOperator, ParametricOperator,
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathExpr,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:

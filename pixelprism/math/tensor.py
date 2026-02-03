@@ -366,6 +366,7 @@ class Tensor:
         """Convert operands to numpy arrays for arithmetic."""
         if isinstance(other, Tensor):
             return other.value
+        # end if
         return np.asarray(other)
     # end def _coerce_operand
 
@@ -461,6 +462,84 @@ class Tensor:
         """Elementwise negation."""
         return Tensor(data=np.negative(self._data))
     # end __neg__
+
+    def __eq__(self, other):
+        if isinstance(other, Tensor):
+            return np.all(self._data == other._data)
+        elif isinstance(other, np.ndarray):
+            return np.array_equal(self._data, other)
+        elif isinstance(other, (int, float)):
+            return np.array_equal(self._data, np.asarray(other))
+        elif isinstance(other, list):
+            return np.array_equal(self._data, np.asarray(other))
+        else:
+            return False
+        # end if
+    # end __eq__
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    # end __ne__
+
+    # TODO: check that np.any
+    def __gt__(self, other):
+        if isinstance(other, Tensor):
+            return np.any(self._data > other._data)
+        elif isinstance(other, np.ndarray):
+            return np.any(np.greater(self._data, other))
+        elif isinstance(other, (int, float)):
+            return np.any(np.greater(self._data, np.asarray(other)))
+        elif isinstance(other, list):
+            return np.any(np.greater(self._data, np.asarray(other)))
+        else:
+            return False
+        # end if
+    # end def __gt__
+
+    # TODO: check that np.all
+    def __ge__(self, other):
+        if isinstance(other, Tensor):
+            return np.all(self._data >= other._data)
+        elif isinstance(other, np.ndarray):
+            return np.all(np.greater_equal(self._data, other))
+        elif isinstance(other, (int, float)):
+            return np.all(np.greater_equal(self._data, np.asarray(other)))
+        elif isinstance(other, list):
+            return np.all(np.greater_equal(self._data, np.asarray(other)))
+        else:
+            return False
+        # end if
+    # end def __ge__
+
+    # TODO: check that np.any
+    def __lt__(self, other):
+        if isinstance(other, Tensor):
+            return np.any(self._data < other._data)
+        elif isinstance(other, np.ndarray):
+            return np.any(np.less(self._data, other))
+        elif isinstance(other, (int, float)):
+            return np.any(np.less(self._data, np.asarray(other)))
+        elif isinstance(other, list):
+            return np.any(np.less(self._data, np.asarray(other)))
+        else:
+            return False
+        # end if
+    # end def __lt__
+
+    # TODO: check that np.all
+    def __le__(self, other):
+        if isinstance(other, Tensor):
+            return np.all(self._data <= other._data)
+        elif isinstance(other, np.ndarray):
+            return np.all(np.less_equal(self._data, other))
+        elif isinstance(other, (int, float)):
+            return np.all(np.less_equal(self._data, np.asarray(other)))
+        elif isinstance(other, list):
+            return np.all(np.less_equal(self._data, np.asarray(other)))
+        else:
+            return False
+        # end if
+    # end def __le__
 
     # Override the integer conversion
     def __int__(self):

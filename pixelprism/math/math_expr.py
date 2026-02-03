@@ -131,25 +131,25 @@ class MathExpr(ABC):
     # end def backward
 
     @abstractmethod
-    def variables(self) -> List[MathExpr]:
+    def variables(self) -> List[Variable]:
         """
         Enumerate variable leaves reachable from this node.
 
         Returns
         -------
-        list[MathExpr]
+        list[Variable]
             List of :class:`Variable` instances (duplicates possible).
         """
     # end def variables
 
     @abstractmethod
-    def constants(self) -> List[MathExpr]:
+    def constants(self) -> List[Constant]:
         """
         Enumerate constant leaves reachable from this node.
 
         Returns
         -------
-        list[MathExpr]
+        list[Constant]
             List of :class:`Constant` instances (duplicates possible).
         """
     # end def constants
@@ -2052,6 +2052,15 @@ class Constant(MathLeaf):
             data=data
         )
     # end def create
+
+    @staticmethod
+    def new(data, dtype: DType = DType.FLOAT32):
+        """Create a new constant node with a random name."""
+        return Constant(
+            name=_rand_name("const_"),
+            data=Tensor(data=data, dtype=dtype)
+        )
+    # end def new
 
     # endregion STATIC
 

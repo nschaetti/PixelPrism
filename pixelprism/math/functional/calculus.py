@@ -26,24 +26,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """
-Elementwise operator implementations (functional programming).
+Calculus functional operators
 """
 
 # Imports
-from pixelprism.nodes import (
-    ContourFinding,
-    VectorsToString,
-    SelectChannel,
-    GrayScale,
-    DrawPolygon
-)
+from ..math_expr import MathExpr, Variable
+from .builders import vector
 
-# Node class mappings
-NODE_CLASS_MAPPINGS = {
-    "ContourFinding": ContourFinding,
-    "SelectChannel": SelectChannel,
-    "VectorsToString": VectorsToString,
-    "GrayScale": GrayScale,
-    "DrawPolygon": DrawPolygon
-}
+
+__all__ = [
+    "diff",
+    "nabla",
+]
+
+
+def diff(expr: MathExpr, wrt: Variable) -> MathExpr:
+    return expr.diff(wrt=wrt)
+# end def diff
+
+
+def nabla(expr: MathExpr) -> MathExpr:
+    """Nabla operator."""
+    return vector([expr.diff(v) for v in expr.variables()])
+# end def nabla
 

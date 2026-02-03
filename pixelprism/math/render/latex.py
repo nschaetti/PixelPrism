@@ -658,6 +658,24 @@ class _LatexRenderer:
 # end class _LatexRenderer
 
 
+# region BUILDERS
+
+
+def _format_vector(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+    operands = [
+        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        for child in expr.children
+    ]
+    return r"\begin{bmatrix}" + r" \\ ".join(operands) + r"\end{bmatrix}"
+# end def _format_vstack
+
+
+# endregion BUILDERS
+
+
+# region ELEMENT-WISE
+
+
 def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
     """
     Format addition expressions.
@@ -892,6 +910,9 @@ def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     ]
     return r" \cdot ".join(factors)
 # end def _format_mul
+
+
+# endregion ELEMENT-WISE
 
 
 def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
@@ -1428,8 +1449,10 @@ def _format_vstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
     return r"\begin{bmatrix}" + r" \\ ".join(operands) + r"\end{bmatrix}"
 # end def _format_vstack
 
+# Builders
+_VECTOR_RULE = _OpRule(precedence=30, formatter=_format_vector)
 
-# Base
+# Element-wise
 _ADD_RULE = _OpRule(precedence=10, formatter=_format_add)
 _SUB_RULE = _OpRule(precedence=10, formatter=_format_sub)
 _EQ_RULE = _OpRule(precedence=5, formatter=_format_eq)
@@ -1491,6 +1514,9 @@ _VSTACK_RULE = _OpRule(precedence=50, formatter=_format_vstack)
 
 
 _OP_RULES: Dict[str, _OpRule] = {
+    # Builders
+    "vector": _VECTOR_RULE,
+    # Element-wise
     "add": _ADD_RULE,
     "sub": _SUB_RULE,
     "subtract": _SUB_RULE,

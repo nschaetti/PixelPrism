@@ -25,6 +25,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+
+from typing import Union
 from pixelprism.math.functional.helpers import apply_operator
 from pixelprism.math.math_expr import MathNode
 from pixelprism.math.build import as_expr
@@ -55,18 +57,21 @@ __all__ = [
 ]
 
 
+OperandIn = Union[MathNode, float, int]
+
+
 def add(
-        op1: MathNode,
-        op2: MathNode
+        op1: OperandIn,
+        op2: OperandIn
 ) -> MathNode:
     """
     Element-wise addition of two operands.
 
     Parameters
     ----------
-    op1 : MathNode
+    op1 : OperandIn
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathNode
+    op2 : OperandIn
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -101,17 +106,17 @@ def add(
 
 
 def sub(
-        op1: MathNode,
-        op2: MathNode
+        op1: OperandIn,
+        op2: OperandIn
 ) -> MathNode:
     """
     Element-wise subtraction of two operands.
 
     Parameters
     ----------
-    op1 : MathNode
+    op1 : OperandIn
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathNode
+    op2 : OperandIn
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -146,17 +151,17 @@ def sub(
 
 
 def mul(
-        op1: MathNode,
-        op2: MathNode
+        op1: OperandIn,
+        op2: OperandIn
 ) -> MathNode:
     """
     Element-wise multiplication of two operands.
 
     Parameters
     ----------
-    op1 : MathNode
+    op1 : OperandIn
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathNode
+    op2 : OperandIn
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -191,17 +196,17 @@ def mul(
 
 
 def div(
-        op1: MathNode,
-        op2: MathNode
+        op1: OperandIn,
+        op2: OperandIn
 ) -> MathNode:
     """
     Element-wise division of two operands.
 
     Parameters
     ----------
-    op1 : MathNode
+    op1 : OperandIn
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : MathNode
+    op2 : OperandIn
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -236,17 +241,17 @@ def div(
 
 
 def pow(
-        op1: MathNode,
-        op2: MathNode
+        op1: OperandIn,
+        op2: OperandIn
 ) -> MathNode:
     """
     Element-wise exponentiation of two operands.
 
     Parameters
     ----------
-    op1 : MathNode
+    op1 : OperandIn
         Base operand.
-    op2 : MathNode
+    op2 : OperandIn
         Exponent operand.
 
     Returns
@@ -264,7 +269,7 @@ def pow(
 # end def pow
 
 
-def exp(op: MathNode) -> MathNode:
+def exp(op: OperandIn) -> MathNode:
     """
     Element-wise exponential of an operand.
     """

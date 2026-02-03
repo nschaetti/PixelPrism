@@ -29,10 +29,11 @@
 Discretization-related elementwise operators.
 """
 
-from typing import Sequence, Any, Optional, Union
+from typing import Optional, Union
 
 from ..tensor import Tensor
-from .base import Operands, Operator, ParametricOperator, operator_registry
+from ..math_expr import MathExpr
+from .base import Operands, operator_registry
 from .elementwise import UnaryElementwiseOperator, UnaryElementwiseParametricOperator
 
 __all__ = [
@@ -50,19 +51,14 @@ class Sign(UnaryElementwiseOperator):
     """Element-wise sign operator."""
 
     NAME = "sign"
+    IS_VARIADIC = False
+    IS_DIFF = False
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return value.eval().sign()
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Sign does not support backward.")
-    # end def _backward
 # end class Sign
 
 
@@ -70,19 +66,13 @@ class Floor(UnaryElementwiseOperator):
     """Element-wise floor operator."""
 
     NAME = "floor"
+    IS_VARIADIC = False
+    IS_DIFF = False
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return value.eval().floor()
     # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Floor does not support backward.")
-    # end def _backward
 
 # end class Floor
 
@@ -91,19 +81,12 @@ class Ceil(UnaryElementwiseOperator):
     """Element-wise ceil operator."""
 
     NAME = "ceil"
+    IS_DIFF = False
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return value.eval().ceil()
     # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Ceil does not support backward.")
-    # end def _backward
 
 # end class Ceil
 
@@ -112,19 +95,12 @@ class Trunc(UnaryElementwiseOperator):
     """Element-wise truncation operator."""
 
     NAME = "trunc"
+    IS_DIFF = False
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return value.eval().trunc()
     # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Trunc does not support backward.")
-    # end def _backward
 # end class Trunc
 
 
@@ -132,19 +108,12 @@ class Rint(UnaryElementwiseOperator):
     """Element-wise rounding to nearest integer."""
 
     NAME = "rint"
+    IS_DIFF = False
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         return value.eval().rint()
     # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Rint does not support backward.")
-    # end def _backward
 # end class Rint
 
 
@@ -152,11 +121,12 @@ class Round(UnaryElementwiseParametricOperator):
     """Element-wise rounding with configurable decimals."""
 
     NAME = "round"
+    IS_DIFF = False
 
     def __init__(
             self,
             *,
-            decimals: Optional[Union['MathExpr', int]] = None
+            decimals: Optional[Union[MathExpr, int]] = None
     ):
         super().__init__(decimals=decimals)
         from ..utils import const, random_const_name
@@ -172,14 +142,6 @@ class Round(UnaryElementwiseParametricOperator):
         (value,) = operands
         return value.eval().round(decimals=self._resolve_parameter(self._decimals))
     # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Round does not support backward.")
-    # end def _backward
 
     def __str__(self) -> str:
         decimals = self._resolve_parameter(self._decimals)
@@ -197,12 +159,13 @@ class Clip(UnaryElementwiseParametricOperator):
     """Element-wise clipping operator."""
 
     NAME = "clip"
+    IS_DIFF = False
 
     def __init__(
             self,
             *,
-            min_value: Optional[Union['MathExpr', int]] = None,
-            max_value: Optional[Union['MathExpr', int]] = None
+            min_value: Optional[Union[MathExpr, int]] = None,
+            max_value: Optional[Union[MathExpr, int]] = None
     ):
         super().__init__(min_value=min_value, max_value=max_value)
         from ..utils import const, random_const_name
@@ -224,14 +187,6 @@ class Clip(UnaryElementwiseParametricOperator):
             max_value=self._resolve_parameter(self._max_value)
         )
     # end def _eval
-
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Clip does not support backward.")
-    # end def _backward
 
     def __str__(self) -> str:
         return (

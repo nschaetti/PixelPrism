@@ -6,16 +6,15 @@ LaTeX strings and compiling LaTeX into vector graphics suitable for final
 renders.
 """
 
+# Imports
 from __future__ import annotations
-
 import io
 import os
 import tempfile
-
 import cairosvg
 from PIL import Image
-
 from pixelprism.utils.latex import render_latex_to_svg
+
 from ..math_expr import MathNode
 from .cache import LatexRenderCache
 from .latex import to_latex

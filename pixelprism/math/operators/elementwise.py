@@ -35,7 +35,9 @@ from . import ParametricOperator
 from ..tensor import Tensor
 from ..dtype import DType
 from ..shape import Shape
+from ..math_expr import MathExpr, Variable, Constant
 from .base import Operands, Operator, operator_registry
+
 
 __all__ = [
     "ElementwiseOperator",
@@ -81,7 +83,7 @@ class ElementwiseOperator(Operator, ABC):
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathExpr,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -164,11 +166,13 @@ class Add(ElementwiseOperator):
     """
 
     ARITY = 2
+    IS_VARIADIC = False
+    IS_DIFF = True
     NAME = "add"
 
     # region PRIVATE
 
-    def _eval(self, operands: Operands) -> Tensor:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """
         Evaluate element-wise addition.
         """
@@ -176,7 +180,7 @@ class Add(ElementwiseOperator):
         return a.eval() + b.eval()
     # end def _eval
 
-    def _diff(self, wrt: "Variable", operands: Operands) -> "MathExpr":
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
         a, b = operands
         return a.diff(wrt) + b.diff(wrt)
     # end def _backward
@@ -193,6 +197,8 @@ class Sub(ElementwiseOperator):
 
     ARITY = 2
     NAME = "sub"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     # region PRIVATE
 
@@ -202,7 +208,7 @@ class Sub(ElementwiseOperator):
         return a.eval() - b.eval()
     # end def _eval
 
-    def _diff(self, wrt: "Variable", operands: Operands) -> "MathExpr":
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
         a, b = operands
         return a.diff(wrt) - b.diff(wrt)
     # end def _backward
@@ -218,20 +224,22 @@ class Mul(ElementwiseOperator):
     """
 
     ARITY = 2
+    IS_VARIADIC = False
+    IS_DIFF = True
     NAME = "mul"
 
     # region PRIVATE
 
-    def _eval(self, operands: Operands) -> Tensor:
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate element-wise multiplication."""
         a, b = operands
         return a.eval() * b.eval()
     # end def _eval
 
-    def _diff(self, wrt: "Variable", operands: Operands) -> "MathExpr":
+    def _diff(self, wrt: Variable, operands: Operands) -> "MathExpr":
         a, b = operands
         return a.diff(wrt) * b + b.diff(wrt) * a
-    # end def _backward
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -244,6 +252,8 @@ class Div(ElementwiseOperator):
     """
 
     ARITY = 2
+    IS_VARIADIC = False
+    IS_DIFF = True
     NAME = "div"
 
     # region PRIVATE
@@ -254,13 +264,12 @@ class Div(ElementwiseOperator):
         return a.eval() / b.eval()
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Div does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        a, b = operands
+        num = a.diff(wrt) * b - b.diff(wrt) * a
+        denom = b * b
+        return num / denom
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -273,6 +282,8 @@ class Pow(ElementwiseOperator):
     """
 
     ARITY = 2
+    IS_VARIADIC = False
+    IS_DIFF = True
     NAME = "pow"
 
     # region PRIVATE
@@ -283,13 +294,26 @@ class Pow(ElementwiseOperator):
         return Tensor.pow(base.eval(), exponent.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Pow does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        base, exp = operands
+        if exp.is_constant():
+            c1 = Constant.new(exp.eval(), dtype=exp.dtype)
+            if exp.eval() == 0:
+                return Constant.new(0)
+            elif exp.eval() > 0:
+                c2 = Constant.new(exp.eval() - 1, dtype=exp.dtype)
+                return c1 * Pow.create_node(operands=(base, c2))  * base.diff(wrt)
+            else:
+                c2 = Constant.new(-(exp.eval() - 1), dtype=exp.dtype)
+                return c1 * 1 / Pow.create_node(operands=(base, c2)) * base.diff(wrt)
+            # end if
+        else:
+            pow_ab = Pow.create_node(operands=(base, exp))
+            bd_loga = exp.diff(wrt) * Log.create_node(operands=(base,))
+            b_ad_on_a = exp * (base.diff(wrt) / base)
+            return pow_ab * (bd_loga + b_ad_on_a)
+        # end if
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -374,6 +398,8 @@ class Exp(UnaryElementwiseOperator):
     """
 
     NAME = "exp"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     # region PRIVATE
 
@@ -382,13 +408,11 @@ class Exp(UnaryElementwiseOperator):
         return Tensor.exp(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Exp does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (value,) = operands
+        return Exp.create_node(operands=(value,)) * value.diff(wrt)
+        # end if
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -401,6 +425,8 @@ class Exp2(UnaryElementwiseOperator):
     """
 
     NAME = "exp2"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     # region PRIVATE
 
@@ -409,13 +435,10 @@ class Exp2(UnaryElementwiseOperator):
         return Tensor.exp2(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Exp2 does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (value,) = operands
+        return Pow.create_node(operands=(Constant.new(2), value)) * Log.create_node(operands=(Constant.new(2),))
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -455,6 +478,8 @@ class Log(UnaryElementwiseOperator):
     """
 
     NAME = "log"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     # region PRIVATE
 
@@ -463,13 +488,10 @@ class Log(UnaryElementwiseOperator):
         return Tensor.log(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Log does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (value,) = operands
+        return (Constant.new(1) / value) * value.diff(wrt)
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -509,6 +531,8 @@ class Sqrt(UnaryElementwiseOperator):
     """
 
     NAME = "sqrt"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     # region PRIVATE
 
@@ -517,13 +541,10 @@ class Sqrt(UnaryElementwiseOperator):
         return Tensor.sqrt(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Sqrt does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (value,) = operands
+        return (Constant.new(1) / (Constant.new(2) * Sqrt.create_node(operands=(value,)))) * value.diff(wrt)
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -536,6 +557,8 @@ class Square(UnaryElementwiseOperator):
     """
 
     NAME = "square"
+    IS_VARIADIC = False
+    IS_DIFF = True
 
     # region PRIVATE
 
@@ -544,13 +567,10 @@ class Square(UnaryElementwiseOperator):
         return Tensor.square(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Square does not support backward.")
-    # end def _backward
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        (value,) = operands
+        return Constant.new(2) * value * value.diff(wrt)
+    # end def _diff
 
     # endregion PRIVATE
 
@@ -779,6 +799,8 @@ class Neg(UnaryElementwiseOperator):
     """
 
     ARITY = 1
+    IS_VARIADIC = False
+    IS_DIFF = True
     NAME = "neg"
 
     def __init__(self):
@@ -815,13 +837,11 @@ class Neg(UnaryElementwiseOperator):
         return -value.eval()
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: "MathExpr",
-            node: "MathExpr",
-    ) -> Sequence["MathExpr"]:
-        raise NotImplementedError("Neg does not support backward.")
-    # end def _backward
+    # TODO: That issue with MathExpr -> diff should return MathNode
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+        x = operands[0]
+        return -(x.diff(wrt))
+    # end def _diff
 
     # endregion PRIVATE
 

@@ -30,12 +30,12 @@ Operator base classes and registry.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Sequence, Type, Tuple, Any, Optional
-import numpy as np
+from typing import List, Type, Tuple, Any, Optional
 
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
+from ..math_expr import MathExpr, MathNode
 
 
 __all__ = [
@@ -47,8 +47,8 @@ __all__ = [
 ]
 
 
-Operand = "MathExpr"
-Operands = List["MathExpr"] | Tuple["MathExpr", ...]
+Operand = MathNode
+Operands = List[MathNode] | Tuple[MathNode, ...]
 
 
 class Operator(ABC):
@@ -61,6 +61,9 @@ class Operator(ABC):
 
     # Is an operator with variable number of operands ?
     IS_VARIADIC: bool = False
+
+    # Is the operator differentiable ?
+    IS_DIFF: bool = False
 
     # Operator name
     NAME: str
@@ -111,6 +114,12 @@ class Operator(ABC):
         return self.IS_VARIADIC
     # end def is_variadic
 
+    @property
+    def is_diff(self) -> bool:
+        """Return whether the operator is differentiable."""
+        return self.IS_DIFF
+    # end def is_diff
+
     # endregion PROPERTIES
 
     # region PUBLIC
@@ -156,7 +165,11 @@ class Operator(ABC):
         """
         Local derivative of the operator wrt the given expression.
         """
-        return self._diff(wrt=wrt, operands=operands)
+        if not self.IS_DIFF:
+            raise ValueError(f"Operator '{self.name}' is not differentiable")
+        else:
+            return self._diff(wrt=wrt, operands=operands)
+        # end if
     # end def backward
 
     # endregion PUBLIC
@@ -168,7 +181,6 @@ class Operator(ABC):
         """Evaluate the operator."""
     # end def _eval
 
-    @abstractmethod
     def _diff(
             self,
             wrt: "Variable",
@@ -177,6 +189,7 @@ class Operator(ABC):
         """
         Local backward rule for this operator.
         """
+        raise NotImplementedError(f"{self.NAME} is not differentiable.")
     # end _backward
 
     # endregion PRIVATE
@@ -217,18 +230,6 @@ class Operator(ABC):
         """Return a debug-friendly description for the operator."""
     # end def __repr__
 
-    @classmethod
-    def check_arity(
-            cls,
-            operands: Operands
-    ):
-        """Check that the operands have the correct arity."""
-        if not cls.IS_VARIADIC:
-            return len(operands) == cls.ARITY
-        # end if
-        return True
-    # end def check_arity
-
     @staticmethod
     def _resolve_parameter(v: Any):
         if v is None:
@@ -243,6 +244,63 @@ class Operator(ABC):
         # end if
         return v
     # end def _resolve_parameter
+
+    @classmethod
+    def check_arity(
+            cls,
+            operands: Operands
+    ):
+        """Check that the operands have the correct arity."""
+        if not cls.IS_VARIADIC:
+            return len(operands) == cls.ARITY
+        # end if
+        return True
+    # end def check_arity
+
+    @classmethod
+    def create_node(
+            cls,
+            operands: Operands,
+            **kwargs
+    ) -> MathNode:
+        """
+        Build a MathExpr by applying a registered operator to operands.
+        """
+        # Get operator class
+        op_cls = cls
+
+        # We check that operator arity is respected
+        if not op_cls.check_arity(operands):
+            raise TypeError(
+                f"Operator {op_cls.NAME}({op_cls.ARITY}) expected {op_cls.ARITY} operands, "
+                f"got {len(operands)}"
+            )
+        # end if
+
+        # Instantiate operator
+        op = op_cls(**kwargs)
+
+        # We check that shapes of the operands are compatible
+        if not op.check_shapes(operands):
+            shapes = ", ".join(str(o.shape) for o in operands)
+            raise TypeError(
+                f"Incompatible shapes for operator {op_cls.NAME}: {shapes}"
+            )
+        # end if
+
+        # We check that the operator approves the operand(s)
+        if not op.check_operands(operands):
+            raise ValueError(f"Invalid parameters for operator {op.name}: {kwargs}")
+        # end if
+
+        return MathNode(
+            name=op_cls.NAME,
+            op=op,
+            children=operands,
+            dtype=op.infer_dtype(operands),
+            shape=op.infer_shape(operands),
+        )
+    # end def create_node
 
     # endregion STATIC
 
