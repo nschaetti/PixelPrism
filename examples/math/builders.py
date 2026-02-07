@@ -47,10 +47,10 @@ def _describe(label: str, expr) -> None:
 def main() -> None:
     """Create a few tensors composed of constants, variables, and expressions."""
     with pm.new_context():
-        scalar_alpha = pm.const("builder_scalar_alpha", data=1.5, dtype=pm.DType.FLOAT32)
-        scalar_beta = pm.const("builder_scalar_beta", data=-2.0, dtype=pm.DType.FLOAT64)
-        scalar_gamma = pm.const("builder_scalar_gamma", data=3, dtype=pm.DType.INT32)
-        builder_var = pm.var("builder_gain", dtype=pm.DType.FLOAT32, shape=())
+        scalar_alpha = pm.const("builder_scalar_alpha", data=1.5, dtype=pm.DType.R)
+        scalar_beta = pm.const("builder_scalar_beta", data=-2.0, dtype=pm.DType.R)
+        scalar_gamma = pm.const("builder_scalar_gamma", data=3, dtype=pm.DType.Z)
+        builder_var = pm.var("builder_gain", dtype=pm.DType.R, shape=())
 
         pm.set_value(builder_var.name, 0.5)
         basic_vector = F.build_tensor([scalar_alpha, scalar_beta, 7])

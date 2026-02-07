@@ -39,13 +39,13 @@ def apply_operator(
         **kwargs
 ) -> MathNode:
     """
-    Build a MathExpr by applying a registered operator to operands.
+    Build a MathNode by applying a registered operator to operands.
 
     Parameters
     ----------
     op_name : str
         Name of the operator registered in :class:`OperatorRegistry`.
-    operands : tuple[MathExpr, ...]
+    operands : tuple[MathNode, ...]
         Operands to apply the operator to.
     display_name : str
         Human-readable name assigned to the resulting expression.

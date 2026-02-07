@@ -43,17 +43,17 @@ def test_tensor_wrapper_reuses_numpy_buffer_and_respects_mutability():
     None
     """
     data = np.arange(4, dtype=np.float32).reshape(2, 2)
-    tensor = utils.tensor(data=data, dtype=DType.FLOAT32, mutable=False)
+    tensor = utils.tensor(data=data, dtype=DType.R, mutable=False)
     np.testing.assert_array_equal(data, tensor.value)
     assert tensor.mutable is False
-    assert tensor.dtype == DType.FLOAT32
+    assert tensor.dtype == DType.R
     assert tensor.shape.dims == (2, 2)
 
     data2 = np.arange(4, dtype=np.float64).reshape(2, 2)
-    tensor2 = utils.tensor(data=data2, dtype=DType.FLOAT64, mutable=False)
+    tensor2 = utils.tensor(data=data2, dtype=DType.R, mutable=False)
     np.testing.assert_array_equal(data2, tensor2.value)
     assert tensor2.mutable is False
-    assert tensor2.dtype == DType.FLOAT64
+    assert tensor2.dtype == DType.R
     assert tensor2.shape.dims == (2, 2)
 # end test test_tensor_wrapper_reuses_numpy_buffer_and_respects_mutability
 
@@ -71,13 +71,13 @@ def test_scalar_vector_matrix_rank_and_dtype():
     matrix = utils.matrix([[1, 0], [0, 1]], dtype=np.int32)
 
     assert scalar.rank == 0
-    assert scalar.dtype == DType.FLOAT32
+    assert scalar.dtype == DType.R
     assert vector.rank == 1
     assert vector.shape.dims == (3,)
-    assert vector.dtype == DType.FLOAT64
+    assert vector.dtype == DType.R
     assert matrix.rank == 2
     assert matrix.shape.dims == (2, 2)
-    assert matrix.dtype == DType.INT32
+    assert matrix.dtype == DType.Z
 # end test test_scalar_vector_matrix_rank_and_dtype
 
 
@@ -93,7 +93,7 @@ def test_empty_accepts_shape_objects_and_dtype_override():
     tensor = utils.empty(shape, dtype=np.float64)
 
     assert tensor.shape.dims == (2, 3, 1)
-    assert tensor.dtype == DType.FLOAT64
+    assert tensor.dtype == DType.R
     assert tensor.mutable is True
 # end test test_empty_accepts_shape_objects_and_dtype_override
 
@@ -146,15 +146,15 @@ def test_eye_like_and_dtype_override():
     """
     base = utils.tensor(
         data=np.zeros((4, 4), dtype=np.float32),
-        dtype=DType.FLOAT32
+        dtype=DType.R
     )
     eye = utils.eye_like(base)
     eye64 = utils.eye_like(base, dtype=np.float64)
 
     np.testing.assert_array_equal(eye.value, np.eye(4, dtype=np.float32))
-    assert eye.dtype == DType.FLOAT32
+    assert eye.dtype == DType.R
     np.testing.assert_array_equal(eye64.value, np.eye(4, dtype=np.float64))
-    assert eye64.dtype == DType.FLOAT64
+    assert eye64.dtype == DType.R
 # end test test_eye_like_and_dtype_override
 
 
@@ -168,10 +168,10 @@ def test_zeros_like_and_ones_like_clone_shape_and_dtype():
     """
     base = np.arange(6, dtype=np.int32).reshape(2, 3)
     zeros_like = utils.zeros_like(base, dtype=np.float64)
-    ones_like = utils.ones_like(base, dtype=DType.INT32)
+    ones_like = utils.ones_like(base, dtype=DType.Z)
 
     np.testing.assert_array_equal(zeros_like.value, np.zeros_like(base, dtype=np.float64))
-    assert zeros_like.dtype == DType.FLOAT64
+    assert zeros_like.dtype == DType.R
     np.testing.assert_array_equal(ones_like.value, np.ones_like(base, dtype=np.int32))
-    assert ones_like.dtype == DType.INT32
+    assert ones_like.dtype == DType.Z
 # end test test_zeros_like_and_ones_like_clone_shape_and_dtype

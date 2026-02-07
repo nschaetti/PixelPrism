@@ -28,75 +28,81 @@
 
 
 # Imports
-from typing import List, Dict, Union, Any, Optional, Tuple, Callable, Sequence
+from typing import Iterable, List, Union, Any, Optional, Tuple, Callable, Sequence, Literal
 from typing import TypeAlias
 import numpy as np
 
-from .dtype import DType, AnyDType
-from .shape import Shape
-
+from .dtype import DType, TypeLike, to_numpy, convert_numpy, from_numpy
 
 __all__ = [
+    "TensorShape",
     "Tensor",
-    "DataType",
-    "concatenate",
-    "hstack",
-    "vstack",
-    "pow",
-    "square",
-    "sqrt",
-    "cbrt",
-    "reciprocal",
-    "exp",
-    "exp2",
-    "expm1",
-    "log",
-    "log2",
-    "log10",
-    "log1p",
-    "sin",
-    "cos",
-    "tan",
-    "arcsin",
-    "arccos",
-    "arctan",
-    "atan2",
-    "sinh",
-    "cosh",
-    "tanh",
-    "arcsinh",
-    "arccosh",
-    "arctanh",
-    "deg2rad",
-    "rad2deg",
-    "absolute",
-    "abs",
-    "sign",
-    "floor",
-    "ceil",
-    "trunc",
-    "rint",
-    "round",
-    "clip",
-    "einsum",
-    "equal",
-    "not_equal",
-    "less",
-    "less_equal",
-    "greater",
-    "greater_equal",
-    "logical_not",
-    "logical_and",
-    "logical_or",
-    "logical_xor",
-    "any",
-    "all",
+    "TensorLike",
+    "t_concatenate",
+    "t_hstack",
+    "t_vstack",
+    "t_pow",
+    "t_square",
+    "t_sqrt",
+    "t_cbrt",
+    "t_reciprocal",
+    "t_exp",
+    "t_exp2",
+    "t_expm1",
+    "t_log",
+    "t_log2",
+    "t_log10",
+    "t_log1p",
+    "t_sin",
+    "t_cos",
+    "t_tan",
+    "t_arcsin",
+    "t_arccos",
+    "t_arctan",
+    "t_atan2",
+    "t_sinh",
+    "t_cosh",
+    "t_tanh",
+    "t_arcsinh",
+    "t_arccosh",
+    "t_arctanh",
+    "t_deg2rad",
+    "t_rad2deg",
+    "t_absolute",
+    "t_abs",
+    "t_sign",
+    "t_floor",
+    "t_ceil",
+    "t_trunc",
+    "t_rint",
+    "t_round",
+    "t_clip",
+    "t_einsum",
+    "t_equal",
+    "t_not_equal",
+    "t_less",
+    "t_less_equal",
+    "t_greater",
+    "t_greater_equal",
+    "t_logical_not",
+    "t_logical_and",
+    "t_logical_or",
+    "t_logical_xor",
+    "t_any",
+    "t_all",
 ]
 
 
-NumberType = int | float | np.number | bool | complex
-NumerListType: TypeAlias = list[Union[NumberType, "NumerListType"]]
-DataType: TypeAlias = Union[NumberType, NumerListType, np.ndarray]
+NumberLike = int | float | np.number | bool | complex
+NumberListLike: TypeAlias = list[Union[NumberLike, "NumberListLike"]]
+TensorLike: TypeAlias = Union[NumberLike, NumberListLike, np.ndarray]
+
+TensorDim = int
+TensorDims = Tuple[TensorDim, ...]
+TensorShapeLike = "TensorShape" | TensorDims
+
+
+# region METHODS
 
 
 # Tensor class
@@ -113,23 +119,13 @@ def _numpy_dtype_to_dtype(dtype: np.dtype) -> DType:
     DType
         Converted dtype.
     """
-    if dtype == np.dtype(np.float32):
-        return DType.FLOAT32
-    elif dtype == np.dtype(np.float64):
-        return DType.FLOAT64
-    elif dtype == np.dtype(np.int32):
-        return DType.INT32
-    elif dtype == np.dtype(np.int64):
-        return DType.INT64
-    else:
-        raise ValueError(f"Unsupported numpy dtype: {dtype}")
-    # end if
+    return from_numpy(dtype)
 # end def _numpy_dtype_to_dtype
 
 
 def _convert_data_to_numpy_array(
         data: Union[List[float], np.ndarray],
-        dtype: Optional[AnyDType] = None
+        dtype: Optional[TypeLike] = None
 ) -> np.ndarray:
     """Convert data to numpy array."""
     if dtype:
@@ -147,48 +143,943 @@ def _convert_data_to_numpy_array(
 # end def _convert_data
 
 
-def _convert_dtype_to_numpy(dtype: AnyDType) -> np.dtype:
+def _convert_dtype_to_numpy(dtype: TypeLike) -> np.dtype:
     """Convert dtype to numpy dtype."""
-    if isinstance(dtype, DType):
-        return dtype.to_numpy()
-    elif isinstance(dtype, np.dtype):
-        return dtype
-    elif dtype == float:
-        return np.float32
-    elif dtype == int:
-        return np.int32
-    elif isinstance(dtype, type):
-        return np.dtype(dtype)
-    else:
-        raise ValueError(f"Unsupported dtype: {dtype}")
-    # end if
+    return to_numpy(dtype)
 # end def _convert_dtype_to_numpy
 
 
 def _get_dtype(
-        data: Union[bool, int, float, List[bool | int | float], np.ndarray],
-        dtype: Optional[DType] = None
+        data: TensorLike,
+        dtype: Optional[TypeLike] = None
 ) -> np.dtype:
     """Get dtype from data."""
     if dtype is not None:
-        dtype = dtype.to_numpy()
+        dtype = to_numpy(dtype)
     elif isinstance(data, np.ndarray):
         dtype = data.dtype
     elif isinstance(data, np.generic):
         dtype = data.dtype
     elif isinstance(data, float):
-        dtype = np.float32
+        dtype = to_numpy(DType.R)
     elif isinstance(data, int):
-        dtype = np.int32
+        dtype = to_numpy(DType.Z)
     elif isinstance(data, bool):
         dtype = np.bool_
+    elif isinstance(data, complex):
+        dtype = to_numpy(DType.C)
     elif isinstance(data, list):
-        raise ValueError("Cannot infer dtype from list of values, specify dtype explicitly.")
+        # TODO: check numpy convention
+        dtype = to_numpy(DType.R)
     else:
         raise TypeError(f"Unsupported or unknown data type when creating tensor: {type(data)}")
     # end if
     return dtype
 # end if
+
+
+# endregion METHODS
+
+
+class TensorShape:
+    """
+    Immutable descriptor for symbolic tensor shapes.
+
+    A :class:`TensorShape` records the axis lengths associated with a tensor.
+    Each axis can be a concrete ``int``. Shapes are lightweight, hashable, and
+    safe to share across nodes, ensuring downstream passes can reason about
+    tensor metadata without mutating the original objects.
+
+    Validation and normalization
+    ----------------------------
+    The constructor eagerly validates every dimension through ``_check_dim`` to
+    guarantee negative or otherwise malformed values never propagate past the
+    creation site. Internally, axes are stored as an immutable tuple, giving
+    deterministic hashing and printing behavior and keeping equality semantics
+    simple.
+
+    Convenience properties
+    ----------------------
+    ``dims`` exposes the canonical tuple representation, ``rank``/``n_dims``
+    provide fast access to the tensor arity, and ``size`` returns the product
+    of all known axes (``None`` when at least one axis is symbolic).
+
+    Compatibility helpers
+    ---------------------
+    Many operators need to verify that their operands can participate in
+    elementwise arithmetic. ``is_elementwise_compatible`` performs the check by
+    comparing ranks and allowing either matching integers. ``merge_elementwise``
+    builds on top of that by returning a new :class:`TensorShape` where each
+    axis is the tightened version of both operands, raising :class:`ValueError`
+    when a conflict is detected. Having these utilities on the shape class
+    keeps validation logic centralized and consistent across operators.
+
+    Subclassing
+    -----------
+    ``TensorShape`` is intentionally concrete. Higher-level abstractions should
+    wrap it rather than subclassing to avoid diverging validation paths. Should
+    additional metadata (like layout or batching semantics) be required, they
+    can be attached via separate objects keyed by ``TensorShape`` instances.
+    """
+
+    def __init__(self, dims: Iterable[TensorDim]):
+        """Initialize a TensorShape.
+
+        Parameters
+        ----------
+        dims : Iterable[TensorDim]
+            Iterable of dimension sizes to store in the shape.
+        """
+        dims_tuple = tuple(dims)
+        for dim in dims_tuple:
+            self._check_dim(dim)
+        # end for
+        self._dims: TensorDims = dims_tuple
+    # end def __init__
+
+    # region PROPERTIES
+
+    @property
+    def dims(self) -> TensorDims:
+        """Return the dimensions' tuple.
+
+        Returns
+        -------
+        TensorDims
+            Tuple describing tensor dimensions.
+        """
+        return self._dims
+    # end def dims
+
+    @property
+    def rank(self) -> int:
+        """Return the tensor rank.
+
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
+        """
+        return len(self._dims)
+    # end def rank
+
+    @property
+    def size(self) -> Optional[int]:
+        """Return the total number of elements when known.
+
+        Returns
+        -------
+        Optional[int]
+            Number of elements represented by the shape.
+        """
+        return self._num_elements()
+    # end def size
+
+    @property
+    def n_dims(self) -> int:
+        """Return the number of dimensions.
+
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
+        """
+        return self.rank
+    # end def n_dims
+
+    @property
+    def is_scalar(self) -> bool:
+        """Return whether the shape is scalar (rank-0)."""
+        return self.rank == 0
+    # end def is_scalar
+
+    @property
+    def is_vector(self) -> bool:
+        """Return whether the shape is a vector (rank-1)."""
+        return self.rank == 1
+    # end def is_vector
+
+    @property
+    def is_matrix(self) -> bool:
+        """Return whether the shape is a matrix (rank-2)."""
+        return self.rank == 2
+    # end def is_matrix
+
+    @property
+    def is_higher_order(self) -> bool:
+        """Return whether the shape is higher-order (rank > 2)."""
+        return self.rank > 2
+    # end def is_higher_order
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def transpose(self, axes: Optional[List[int]] = None) -> "TensorShape":
+        """Return the shape with axes permuted.
+
+        Parameters
+        ----------
+        axes : list[int], optional
+            Axis permutation. When ``None``, the axis order is reversed.
+
+        Returns
+        -------
+        TensorShape
+            New shape with permuted axes.
+
+        Raises
+        ------
+        ValueError
+            If ``axes`` does not represent a valid permutation.
+        """
+        if axes is not None:
+            self._check_transpose(axes)
+            new_shape = [self.dims[i] for i in axes]
+        else:
+            new_shape = list(self.dims)
+            new_shape.reverse()
+        # end if
+        return TensorShape(dims=tuple(new_shape))
+    # end def transpose
+
+    def transpose_(self):
+        """
+        Transpose the shape in-place.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.transpose().dims
+    # end def transpose_
+
+    def drop_axis(self, axis: int) -> "TensorShape":
+        """Return a new shape with the specified axis removed.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to drop.
+
+        Returns
+        -------
+        TensorShape
+            New shape with the axis removed.
+
+        Raises
+        ------
+        ValueError
+            If the axis is out of bounds.
+        """
+        if axis < 0 or axis >= self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        if axis == self.rank - 1:
+            return TensorShape(self._dims[:axis])
+        elif axis == 0:
+            return TensorShape(self._dims[1:])
+        else:
+            return TensorShape(self._dims[:axis] + self._dims[axis + 1 :])
+        # end if
+    # end def drop_axis
+
+    def drop_axis_(self, axis: int) -> None:
+        """Remove the specified axis from the shape in-place.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to drop.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.drop_axis(axis)._dims
+    # end def drop_axis
+
+    def insert_axis(self, axis: int, size: TensorDim) -> "TensorShape":
+        """Return a new shape with the specified axis inserted.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to insert.
+        size : TensorDim
+            Size of the inserted axis.
+
+        Returns
+        -------
+        TensorShape
+            New shape with the axis inserted.
+
+        Raises
+        ------
+        ValueError
+            If the axis is out of bounds.
+        """
+        if axis < 0 or axis > self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        return TensorShape(self._dims[:axis] + (size,) + self._dims[axis:])
+    # end def insert_axis
+
+    def insert_axis_(self, axis: int, size: TensorDim) -> None:
+        """Insert the specified axis into the shape in-place.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to insert.
+        size : TensorDim
+            Size of the inserted axis.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.insert_axis(axis, size)._dims
+    # end def insert_axis_
+
+    def as_tuple(self) -> tuple[TensorDim, ...]:
+        """Return the shape as a tuple.
+
+        Returns
+        -------
+        tuple[TensorDim, ...]
+            The shape as a tuple of dimensions.
+        """
+        return tuple([d for d in self._dims])
+    # end def as_tuple
+
+    def is_elementwise_compatible(self, other: "TensorShape") -> bool:
+        """Check whether elementwise operations are allowed.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Shape to compare.
+
+        Returns
+        -------
+        bool
+            ``True`` when ranks are identical and dimensions are compatible for
+            elementwise operations.
+        """
+        if self.rank != other.rank:
+            return False
+        # end if
+        for dim_a, dim_b in zip(self._dims, other._dims):
+            if not self._dims_equal(dim_a, dim_b):
+                return False
+            # end if
+        # end for
+        return True
+    # end def is_elementwise_compatible
+
+    def merge_elementwise(self, other: "TensorShape") -> "TensorShape":
+        """Return the merged shape for elementwise operations.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Shape to merge.
+
+        Returns
+        -------
+        TensorShape
+            Resulting shape compatible with both inputs.
+
+        Raises
+        ------
+        ValueError
+            If shapes are incompatible for elementwise operations.
+        """
+        if self.rank != other.rank:
+            raise ValueError("Elementwise operations require equal ranks.")
+        # end if
+        merged = tuple(self._merge_dims(dim_a, dim_b) for dim_a, dim_b in zip(self._dims, other._dims))
+        return TensorShape(merged)
+    # end def merge_elementwise
+
+    def matmul_result(self, other: "TensorShape") -> "TensorShape":
+        """Return the result shape of a matrix multiplication.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Right-hand operand shape.
+
+        Returns
+        -------
+        TensorShape
+            Resulting shape of the matrix multiplication.
+
+        Raises
+        ------
+        ValueError
+            If ranks are below 2, ranks differ, or inner dimensions are
+            incompatible.
+        """
+        if self.rank < 2 or other.rank < 2:
+            raise ValueError("MatMul requires rank >= 2 for both operands.")
+        # end if
+        if self.rank != other.rank:
+            raise ValueError("MatMul requires operands with the same rank.")
+        # end if
+        batch_rank = self.rank - 2
+        batch_dims: List[TensorDim] = []
+        for idx in range(batch_rank):
+            batch_dims.append(self._merge_dims(self._dims[idx], other._dims[idx]))
+        # end for
+        left_inner = self._dims[-1]
+        right_inner = other._dims[-2]
+        if not self._dims_equal(left_inner, right_inner):
+            raise ValueError("Inner dimensions do not match for MatMul.")
+        # end if
+        result = tuple(batch_dims) + (self._dims[-2], other._dims[-1])
+        return TensorShape(result)
+    # end def matmul_result
+
+    def concat_result(self, other: "TensorShape", axis: int) -> "TensorShape":
+        """Return the result shape of concatenation along an axis.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Shape to concatenate with.
+        axis : int
+            Concatenation axis.
+
+        Returns
+        -------
+        TensorShape
+            Concatenated shape along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            If ranks differ or dimensions other than the concatenation axis are
+            incompatible.
+        """
+        if self.rank != other.rank:
+            raise ValueError("Concat requires operands with equal rank.")
+        # end if
+        axis_norm = self._normalize_axis(axis, self.rank)
+        dims: List[TensorDim] = []
+        for idx, (dim_a, dim_b) in enumerate(zip(self._dims, other._dims)):
+            if idx == axis_norm:
+                dims.append(self._sum_dims(dim_a, dim_b))
+            else:
+                dims.append(self._merge_dims(dim_a, dim_b))
+            # end if
+        # end for
+        return TensorShape(tuple(dims))
+    # end def concat_result
+
+    def can_reshape(self, new_shape: "TensorShape") -> bool:
+        """Check whether reshape is symbolically valid.
+
+        Parameters
+        ----------
+        new_shape : TensorShape
+            Target shape to test against.
+
+        Returns
+        -------
+        bool
+            ``True`` if both shapes represent the same number of elements.
+        """
+        own_size = self.size
+        target_size = new_shape.size
+        return own_size == target_size
+    # end def can_reshape
+
+    def reshape(self, new_shape: "TensorShape") -> "TensorShape":
+        """Return the symbolic shape after reshape.
+
+        Parameters
+        ----------
+        new_shape : TensorShape
+            Target shape.
+
+        Returns
+        -------
+        TensorShape
+            Target shape when the reshape is valid.
+
+        Raises
+        ------
+        ValueError
+            If the reshape would change the number of elements.
+        """
+        if not self.can_reshape(new_shape):
+            raise ValueError("Reshape requires matching number of elements.")
+        # end if
+        return new_shape
+    # end def reshape
+
+    def reshape_(self, new_shape: "TensorShape") -> None:
+        """
+        Reshape the shape in-place.
+
+        Parameters
+        ----------
+        new_shape : TensorShape
+            Target shape.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.reshape(new_shape)._dims
+    # end def reshape_
+
+    def equal_or_broadcastable(self, other: "TensorShape") -> bool:
+        """Check whether the shape is equal or broadcastable to another shape."""
+        # TODO: implement this properly
+        pass
+    # end def equal_or_broadcastable
+
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _num_elements(self) -> int | None:
+        """Compute the product of symbolic dimensions when possible.
+
+        Returns
+        -------
+        int | None
+            Number of elements or ``None`` when any dimension is unknown.
+        """
+        total = 1
+        for dim in self._dims:
+            total *= dim
+        # end for
+        return total
+    # end def _num_elements
+
+    def _check_transpose(self, axes: Sequence[int]) -> None:
+        """Validate a permutation of axes.
+
+        Parameters
+        ----------
+        axes : Sequence[int]
+            Proposed axis permutation.
+
+        Raises
+        ------
+        ValueError
+            If the permutation is invalid for this shape.
+        """
+        if len(axes) != self.n_dims:
+            raise ValueError(
+                f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
+            )
+        # end if
+        if sorted(axes) != list(range(self.n_dims)):
+            raise ValueError(f"Permutation contains invalid axis indices: {axes}")
+        # end if
+    # end def _check_transpose
+
+    # endregion PRIVATE
+
+    # region STATIC
+
+    @staticmethod
+    def create(shape: TensorShapeLike) -> "TensorShape":
+        """Create a shape from a tuple, sequence, or compatible object.
+
+        Parameters
+        ----------
+        shape : TensorShapeLike
+            Shape input (tuple, sequence, scalar dimension, or TensorShape).
+
+        Returns
+        -------
+        TensorShape
+            Normalized TensorShape instance.
+
+        Raises
+        ------
+        TypeError
+            If the input type is unsupported.
+        """
+        if isinstance(shape, tuple):
+            return TensorShape(shape)
+        elif isinstance(shape, Sequence):
+            return TensorShape(shape)
+        elif isinstance(shape, int):
+            return TensorShape((shape,))
+        elif isinstance(shape, TensorShape):
+            return shape.copy()
+        elif hasattr(shape, "dims"):
+            return TensorShape(getattr(shape, "dims"))
+        else:
+            raise TypeError(f"Unsupported shape type: {type(shape)}")
+        # end if
+    # end def create
+
+    @staticmethod
+    def scalar() -> "TensorShape":
+        """Return a scalar (rank-0) shape.
+
+        Returns
+        -------
+        TensorShape
+            Shape with no dimensions.
+        """
+        return TensorShape(())
+    # end def scalar
+
+    @staticmethod
+    def vector(n: TensorDim) -> "TensorShape":
+        """Return a vector shape.
+
+        Parameters
+        ----------
+        n : TensorDim
+            Length of the vector.
+
+        Returns
+        -------
+        TensorShape
+            Shape with a single dimension of size ``n``.
+        """
+        return TensorShape((n,))
+    # end def vector
+
+    @staticmethod
+    def matrix(n: TensorDim, m: TensorDim) -> "TensorShape":
+        """Return a matrix shape.
+
+        Parameters
+        ----------
+        n : TensorDim
+            Row count.
+        m : TensorDim
+            Column count.
+
+        Returns
+        -------
+        TensorShape
+            Shape with two dimensions ``(n, m)``.
+        """
+        return TensorShape((n, m))
+    # end def matrix
+
+    @staticmethod
+    def stack_shape(shapes: Sequence["TensorShape"], axis: int) -> "TensorShape":
+        """Return the result shape of stacking tensors.
+
+        Parameters
+        ----------
+        shapes : Sequence[TensorShape]
+            Shapes of tensors to stack. All shapes must be elementwise
+            compatible.
+        axis : int
+            Axis index for the new dimension.
+
+        Returns
+        -------
+        TensorShape
+            Resulting stacked shape including the new dimension size.
+
+        Raises
+        ------
+        ValueError
+            If no shapes are provided or shapes are incompatible.
+        """
+        if not shapes:
+            raise ValueError("Stack requires at least one shape.")
+        # end if
+        base = shapes[0]
+        axis_norm = TensorShape._normalize_axis(axis, base.rank, allow_new_axis=True)
+        for shape in shapes[1:]:
+            base = base.merge_elementwise(shape)
+        # end for
+        dims = list(base.dims)
+        dims.insert(axis_norm, len(shapes))
+        return TensorShape(tuple(dims))
+    # end def stack_shape
+
+    def copy(self):
+        """Return a copy of the shape.
+
+        Returns
+        -------
+        TensorShape
+            Copy of the current shape.
+        """
+        return TensorShape(self._dims)
+    # end def copy
+
+    @staticmethod
+    def _check_dim(dim: TensorDim) -> None:
+        """Validate a single-dimension value.
+
+        Parameters
+        ----------
+        dim : TensorDim
+            Dimension to validate. Allowed values are non-negative integers.
+
+        Raises
+        ------
+        ValueError
+            If the dimension is negative or not an integer.
+        """
+        if dim is None:
+            raise ValueError("Shape dimensions cannot be None.")
+        # end if
+        if not isinstance(dim, int) or dim < 0:
+            raise ValueError("Shape dimensions must be non-negative integers or None.")
+        # end if
+    # end def _check_dim
+
+    @staticmethod
+    def _dims_equal(dim_a: TensorDim, dim_b: TensorDim) -> bool:
+        """Check whether two dimensions are symbolically compatible.
+
+        Parameters
+        ----------
+        dim_a : TensorDim
+            First dimension.
+        dim_b : TensorDim
+            Second dimension.
+
+        Returns
+        -------
+        bool
+            ``True`` if both dimensions can represent the same size.
+        """
+        return dim_a == dim_b
+    # end def _dims_equal
+
+    @staticmethod
+    def _merge_dims(dim_a: TensorDim, dim_b: TensorDim) -> TensorDim:
+        """Merge two dimensions into the most specific shared size.
+
+        Parameters
+        ----------
+        dim_a : TensorDim
+            First dimension.
+        dim_b : TensorDim
+            Second dimension.
+
+        Returns
+        -------
+        TensorDim
+            Dimension compatible with both inputs.
+
+        Raises
+        ------
+        ValueError
+            If the dimensions are incompatible.
+        """
+        if dim_a != dim_b:
+            raise ValueError(f"Incompatible dimensions: {dim_a} vs {dim_b}.")
+        # end if
+        return dim_a
+    # end def _merge_dims
+
+    @staticmethod
+    def _sum_dims(dim_a: TensorDim, dim_b: TensorDim) -> TensorDim:
+        """Sum two dimensions symbolically.
+
+        Parameters
+        ----------
+        dim_a : TensorDim
+            First dimension.
+        dim_b : TensorDim
+            Second dimension.
+
+        Returns
+        -------
+        TensorDim
+            Sum of both dimensions.
+        """
+        return dim_a + dim_b
+    # end def _sum_dims
+
+    @staticmethod
+    def _normalize_axis(axis: int, rank: int, allow_new_axis: bool = False) -> int:
+        """Normalize axis indices, supporting negatives.
+
+        Parameters
+        ----------
+        axis : int
+            Requested axis index, possibly negative.
+        rank : int
+            Tensor rank.
+        allow_new_axis : bool, optional
+            Whether an axis equal to the current rank is acceptable (used for
+            operations that add a dimension). Defaults to ``False``.
+
+        Returns
+        -------
+        int
+            Normalized non-negative axis index within the allowed bounds.
+
+        Raises
+        ------
+        ValueError
+            If the axis is outside the valid range.
+        """
+        upper = rank + (1 if allow_new_axis else 0)
+        if not -upper <= axis < upper:
+            raise ValueError(f"Axis {axis} out of bounds for rank {rank}.")
+        # end if
+        if axis < 0:
+            axis += upper
+        # end if
+        return axis
+    # end def _normalize_axis
+
+    # endregion STATIC
+
+    # region OVERRIDE
+
+    def __len__(self) -> int:
+        """Return the rank for len().
+
+        Returns
+        -------
+        int
+            Tensor rank.
+        """
+        return self.rank
+    # end def __len__
+
+    def __iter__(self):
+        """Return an iterator over the dimensions.
+
+        Returns
+        -------
+        Iterator[TensorDim]
+            Iterator over the dimensions.
+        """
+        return iter(self._dims)
+    # end def __iter__
+
+    def __contains__(self, dim: TensorDim) -> bool:
+        """Check whether a dimension is present in the shape.
+        """
+        return dim in self._dims
+    # end def __contains__
+
+    def __bool__(self) -> bool:
+        """Return whether the shape is non-empty."""
+        return bool(self._dims)
+    # end def __bool_
+
+    def __getitem__(self, index: int) -> TensorDim:
+        """Return the dimension at the provided index.
+
+        Parameters
+        ----------
+        index : int
+            Axis index to access.
+
+        Returns
+        -------
+        TensorDim
+            Dimension size at the given axis.
+        """
+        return self._dims[index]
+    # end def __getitem__
+
+    def __eq__(self, other: object) -> bool:
+        """Compare shapes for equality.
+
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
+
+        Returns
+        -------
+        bool
+            ``True`` when both shapes share identical dimensions.
+        """
+        if isinstance(other, tuple):
+            return self._dims == other
+        elif isinstance(other, list):
+            return self._dims == tuple(other)
+        # end if
+        if not isinstance(other, TensorShape):
+            return False
+        # end if
+        return self._dims == other._dims
+    # end def __eq__
+
+    def __ne__(self, other: object) -> bool:
+        """Compare shapes for inequality.
+
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
+
+        Returns
+        -------
+        bool
+            ``True`` when both shapes have different dimensions.
+        """
+        return not self.__eq__(other)
+    # end def __ne__
+
+    def __hash__(self) -> int:
+        """Return a hash for the shape.
+
+        Returns
+        -------
+        int
+            Hash value derived from the dimensions.
+        """
+        return hash(self._dims)
+    # end def __hash__
+
+    def __repr__(self) -> str:
+        """Return the repr() form of the shape.
+
+        Returns
+        -------
+        str
+            Developer-friendly representation including raw dimensions.
+        """
+        return f"{self._dims}"
+    # end def __repr__
+
+    def __str__(self) -> str:
+        """Return the str() form of the shape.
+
+        Returns
+        -------
+        str
+            Readable representation.
+        """
+        return self.__repr__()
+    # end def __str__
+
+    # endregion OVERRIDE
+
+    # region NUMPY
+
+    def __array__(self, dtype: Optional[TypeLike] = None) -> np.ndarray:
+        """Convert the shape to a NumPy array.
+        """
+        return np.array(self._dims, dtype=to_numpy(dtype if dtype is not None else np.int32))
+    # end def __array__
+
+    # endregion NUMPY
+
+# end class TensorShape
 
 
 class Tensor:
@@ -201,16 +1092,25 @@ class Tensor:
     def __init__(
             self,
             *,
-            data: DataType,
-            dtype: Optional[DType] = None,
+            data: TensorLike, # TensorLike can be int/float, [int/float, [...]] or np.array
+            dtype: Optional[TypeLike] = None,
             mutable: bool = True
     ):
-        """
+        """Initialize a tensor from array-like data.
+
+        Parameters
+        ----------
+        data : TensorLike
+            Input parameter.
+        dtype : Optional[TypeLike]
+            Input parameter.
+        mutable : bool
+            Input parameter.
         """
         # Super
-        self._dtype = DType.from_numpy(_get_dtype(data, dtype))
+        self._dtype = from_numpy(_get_dtype(data, dtype))
         self._data = _convert_data_to_numpy_array(data=data, dtype=dtype)
-        self._shape = Shape(dims=self._data.shape)
+        self._shape = TensorShape(dims=self._data.shape)
         self._mutable = mutable
     # end __init__
 
@@ -218,61 +1118,122 @@ class Tensor:
 
     @property
     def value(self) -> np.ndarray:
-        """Get the value of the tensor."""
+        """
+        Get the value of the tensor.
+        
+        Returns
+        -------
+        np.ndarray
+            Result of the operation.
+        """
         return self._data
     # end def value
 
     @property
     def dtype(self) -> DType:
-        """Get the dtype of the tensor."""
+        """Get the dtype of the tensor.
+        
+        Returns
+        -------
+        DType
+            Result of the operation.
+        """
         return self._dtype
     # end def dtype
 
     @property
-    def shape(self) -> Shape:
-        """Get the shape of the tensor."""
+    def shape(self) -> TensorShape:
+        """Get the shape of the tensor.
+        
+        Returns
+        -------
+        TensorShape
+            Result of the operation.
+        """
         return self._shape
     # end def shape
 
     @property
     def dims(self) -> Tuple[int, ...]:
-        """Get the dimensions of the tensor."""
+        """Get the dimensions of the tensor.
+        
+        Returns
+        -------
+        Tuple[int, ...]
+            Result of the operation.
+        """
         return self._shape.dims
     # end def dims
 
     @property
     def mutable(self) -> bool:
-        """Get the mutable status of the tensor."""
+        """Get the mutable status of the tensor.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         return self._mutable
     # end def mutable
 
     @property
     def is_mutable(self) -> bool:
-        """Get the mutable status of the tensor."""
+        """Get the mutable status of the tensor.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         return self._mutable
     # end def is_mutable
 
     @property
     def ndim(self) -> int:
-        """Get the dimension of the tensor."""
+        """Get the dimension of the tensor.
+        
+        Returns
+        -------
+        int
+            Result of the operation.
+        """
         return self._shape.rank
     # end def dim
 
     @property
     def rank(self) -> int:
-        """Get the dimension of the tensor."""
+        """Get the dimension of the tensor.
+        
+        Returns
+        -------
+        int
+            Result of the operation.
+        """
         return self._shape.rank
     # end def rank
 
     @property
     def size(self) -> int:
-        """Get the size of the tensor."""
+        """Get the size of the tensor.
+        
+        Returns
+        -------
+        int
+            Result of the operation.
+        """
         return self._shape.size
     # end def size
 
     @property
     def n_elements(self) -> int:
-        """Get the number of elements in the tensor."""
+        """Get the number of elements in the tensor.
+        
+        Returns
+        -------
+        int
+            Result of the operation.
+        """
         return self._shape.size
     # end def n_elements
 
@@ -280,31 +1241,66 @@ class Tensor:
 
     # region PUBLIC
 
-    def set(self, data: Union[List[float], np.ndarray]) -> None:
+    def set(self, data: TensorLike) -> None:
+        """Replace the tensor data in-place.
+        
+        Parameters
+        ----------
+        data : TensorLike
+            Input parameter.
+        
+        Returns
+        -------
+        None
+            Result of the operation.
         """
-        """
+
         if isinstance(data, list):
-            data = _convert_data_to_numpy_array(data, dtype=self.dtype.to_numpy())
+            data = _convert_data_to_numpy_array(data, dtype=to_numpy(self.dtype))
         # end if
-        data = self.dtype.convert_numpy(data)
+        if data.shape != self.shape:
+            raise ValueError(f"Cannot assign data of shape {data.shape} to tensor of shape {self.shape}.")
+        # end if
+        data = convert_numpy(self.dtype, data)
         self._data = data
     # end set
 
     def copy(
             self,
+            order: Literal["C", "F", "A"] = "C",
             mutable: Optional[bool] = None,
             copy_data: bool = True
     ) -> 'Tensor':
-        """
+        """Return a copy of this tensor.
+        
+        Parameters
+        ----------
+        order: Literal["C", "F", "A"]
+            Order of the copy.
+        mutable : Optional[bool]
+            Input parameter.
+        copy_data : bool
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
         """
         return Tensor(
-            data=self._data.copy() if copy_data else self._data,
+            data=self._data.copy(order=order) if copy_data else self._data,
             mutable=mutable if mutable is not None else self._mutable
         )
     # end copy
 
     def item(self) -> Union[int, float]:
-        """Return the first element of the tensor as a scalar."""
+        """Return the first element of the tensor as a scalar.
+        
+        Returns
+        -------
+        Union[int, float]
+            Result of the operation.
+        """
         if self.rank == 0:
             return self._data.item()
         else:
@@ -313,79 +1309,224 @@ class Tensor:
     # end def item
 
     def astype(self, dtype: DType) -> 'Tensor':
-        """Convert the tensor to a different dtype."""
-        return Tensor(data=self._data.astype(dtype.to_numpy()), dtype=dtype)
+        """Convert the tensor to a different dtype.
+        
+        Parameters
+        ----------
+        dtype : DType
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        return Tensor(data=self._data.astype(to_numpy(dtype)), dtype=dtype)
     # end def as_type
 
     def astype_(self, new_type: DType) -> 'Tensor':
-        """Convert the tensor to a different dtype."""
+        """Convert the tensor to a different dtype.
+        
+        Parameters
+        ----------
+        new_type : DType
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         self._dtype = new_type
-        self._data = self._dtype.convert_numpy(self._data)
+        self._data = convert_numpy(self._dtype, self._data)
         return self
     # end def as_type_
 
     def as_bool(self) -> 'Tensor':
-        """Convert the tensor to a boolean tensor."""
+        """Convert the tensor to a boolean tensor.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=self._data.astype(np.bool_))
     # end def as_bool
 
     def as_float(self) -> 'Tensor':
-        """Convert the tensor to a float tensor."""
-        return Tensor(data=self._data.astype(np.float32))
+        """Convert the tensor to a float tensor.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        return Tensor(data=self._data.astype(to_numpy(DType.R)))
     # end def as_float
 
     def as_int(self) -> 'Tensor':
-        """Convert the tensor to an integer tensor."""
-        return Tensor(data=self._data.astype(np.int32))
+        """Convert the tensor to an integer tensor.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        return Tensor(data=self._data.astype(to_numpy(DType.Z)))
     # end def as_int
 
     def as_immutable(self) -> 'Tensor':
-        """Convert the tensor to an immutable tensor."""
+        """Convert the tensor to an immutable tensor.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=self._data.copy(), mutable=False)
     # end def as_immutable
 
     def as_mutable(self) -> 'Tensor':
-        """Convert the tensor to a mutable tensor."""
+        """Convert the tensor to a mutable tensor.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=self._data.copy(), mutable=True)
     # end def as_mutable
 
-    def reshape(self, shape: Shape) -> 'Tensor':
-        """Reshape the tensor."""
+    def reshape(self, shape: TensorShapeLike) -> 'Tensor':
+        """Reshape the tensor.
+        
+        Parameters
+        ----------
+        shape : TensorShapeLike
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        shape = TensorShape.create(shape)
+        if not self.shape.can_reshape(shape):
+            raise ValueError(f"Cannot reshape tensor of shape {self.shape} to {shape}.")
+        # end if
         return Tensor(data=self._data.reshape(shape.dims))
     # end def reshape
 
-    def tolist(self):
+    def ravel(self, order: Literal['C', 'F', 'A', 'K'] = 'C') -> 'Tensor':
+        """
+        Returns a contiguous flattened tensor.
+
+        Returns:
+            y is a contiguous 1-D array of the same subtype as a, with shape `(a.size,)`.
+            Note that matrices are special cased for backward compatibility, if a is a matrix,
+            then y is a 1-D ndarray.
+        """
+        return Tensor(data=self._data.ravel(order=order))
+    # end def ravel
+
+    def tolist(self) -> NumberListLike:
+        """Return the tensor data as nested Python lists.
+        
+        Returns
+        -------
+        NumberListLike
+            Nested list of numbers.
+        """
         return self._data.tolist()
     # end def tolist
+
+    def numpy(self) -> np.ndarray:
+        """Returns a numpy array representation of the tensor.
+
+        Returns
+        -------
+        np.ndarray
+            Numpy array representation of the tensor.
+        """
+        return self._data
+    # end def numpy
 
     # endregion PUBLIC
 
     # region PRIVATE
 
-    def _coerce_operand(self, other: Union["Tensor", DataType, np.ndarray]) -> np.ndarray:
-        """Convert operands to numpy arrays for arithmetic."""
+    def _coerce_operand(self, other: Union["Tensor", TensorLike]) -> np.ndarray:
+        """Convert operands to numpy arrays for arithmetic.
+        
+        Parameters
+        ----------
+        other : Union['Tensor', TensorLike, np.ndarray]
+            Input parameter.
+        
+        Returns
+        -------
+        np.ndarray
+            Result of the operation.
+        """
         if isinstance(other, Tensor):
             return other.value
         # end if
         return np.asarray(other)
     # end def _coerce_operand
 
-    def _binary_op(self, other, op) -> 'Tensor':
-        """Apply a numpy binary operator and wrap in a Tensor."""
+    def _binary_op(self, other: Union["Tensor", TensorLike], op: Callable) -> 'Tensor':
+        """Apply a numpy binary operator and wrap in a Tensor.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        op : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         other_arr = self._coerce_operand(other)
         result = op(self._data, other_arr)
         return Tensor(data=np.asarray(result))
     # end def _binary_op
 
-    def _binary_op_reverse(self, other, op) -> 'Tensor':
-        """Apply a numpy binary operator with operands reversed."""
+    def _binary_op_reverse(self, other: Union["Tensor", TensorLike], op: Callable) -> 'Tensor':
+        """Apply a numpy binary operator with operands reversed.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        op : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         other_arr = self._coerce_operand(other)
         result = op(other_arr, self._data)
         return Tensor(data=np.asarray(result))
     # end def _binary_op_reverse
 
-    def _unary_op(self, op: Callable[[np.ndarray], np.ndarray]) -> 'Tensor':
-        """Apply a numpy unary operator and wrap in a Tensor."""
+    def _unary_op(self, op: Callable) -> 'Tensor':
+        """Apply a numpy unary operator and wrap in a Tensor.
+        
+        Parameters
+        ----------
+        op : Callable[[np.ndarray], np.ndarray]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = op(self._data)
         return Tensor(data=np.asarray(result))
     # end def _unary_op
@@ -394,76 +1535,226 @@ class Tensor:
 
     # region OVERRIDE
 
-    def __add__(self, other) -> 'Tensor':
-        """Elementwise addition."""
+    def __add__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise addition.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.add)
     # end __add__
 
-    def __radd__(self, other) -> 'Tensor':
-        """Elementwise reverse addition."""
+    def __radd__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise reverse addition.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op_reverse(other, np.add)
     # end __radd__
 
-    def __sub__(self, other) -> 'Tensor':
-        """Elementwise subtraction."""
+    def __sub__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise subtraction.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.subtract)
     # end __sub__
 
-    def __rsub__(self, other) -> 'Tensor':
-        """Elementwise reverse subtraction."""
+    def __rsub__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise reverse subtraction.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op_reverse(other, np.subtract)
     # end __rsub__
 
-    def __mul__(self, other) -> 'Tensor':
-        """Elementwise multiplication."""
+    def __mul__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise multiplication.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.multiply)
     # end __mul__
 
-    def __rmul__(self, other) -> 'Tensor':
-        """Elementwise reverse multiplication."""
+    def __rmul__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise reverse multiplication.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op_reverse(other, np.multiply)
     # end __rmul__
 
-    def __truediv__(self, other) -> 'Tensor':
-        """Elementwise division."""
+    def __truediv__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise division.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.divide)
     # end __truediv__
 
-    def __rtruediv__(self, other) -> 'Tensor':
-        """Elementwise reverse division."""
+    def __rtruediv__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise reverse division.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op_reverse(other, np.divide)
     # end __rtruediv__
 
-    def __pow__(self, other) -> 'Tensor':
-        """Elementwise power."""
+    def __pow__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise power.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.power)
     # end __pow__
 
-    def __rpow__(self, other) -> 'Tensor':
-        """Elementwise reverse power."""
+    def __rpow__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise reverse power.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op_reverse(other, np.power)
     # end __rpow__
 
-    def __matmul__(self, other) -> 'Tensor':
-        """Matrix multiplication."""
+    def __matmul__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Matrix multiplication.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         other_arr = self._coerce_operand(other)
         result = np.matmul(self._data, other_arr)
         return Tensor(data=np.asarray(result))
     # end __matmul__
 
-    def __rmatmul__(self, other) -> 'Tensor':
-        """Reverse matrix multiplication."""
+    def __rmatmul__(self, other: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Reverse matrix multiplication.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         other_arr = self._coerce_operand(other)
         result = np.matmul(other_arr, self._data)
         return Tensor(data=np.asarray(result))
     # end __rmatmul__
 
     def __neg__(self) -> 'Tensor':
-        """Elementwise negation."""
+        """Elementwise negation.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=np.negative(self._data))
     # end __neg__
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union["Tensor", TensorLike]):
+        """Compare equality against another object.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         if isinstance(other, Tensor):
             return np.all(self._data == other._data)
         elif isinstance(other, np.ndarray):
@@ -477,12 +1768,36 @@ class Tensor:
         # end if
     # end __eq__
 
-    def __ne__(self, other):
+    def __ne__(self, other: Union["Tensor", TensorLike]):
+        """Compare inequality against another object.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         return not self.__eq__(other)
     # end __ne__
 
     # TODO: check that np.any
     def __gt__(self, other):
+        """Compare greater-than against another object.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         if isinstance(other, Tensor):
             return np.any(self._data > other._data)
         elif isinstance(other, np.ndarray):
@@ -498,6 +1813,18 @@ class Tensor:
 
     # TODO: check that np.all
     def __ge__(self, other):
+        """Compare greater-or-equal against another object.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         if isinstance(other, Tensor):
             return np.all(self._data >= other._data)
         elif isinstance(other, np.ndarray):
@@ -513,6 +1840,18 @@ class Tensor:
 
     # TODO: check that np.any
     def __lt__(self, other):
+        """Compare less-than against another object.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         if isinstance(other, Tensor):
             return np.any(self._data < other._data)
         elif isinstance(other, np.ndarray):
@@ -528,6 +1867,18 @@ class Tensor:
 
     # TODO: check that np.all
     def __le__(self, other):
+        """Compare less-or-equal against another object.
+        
+        Parameters
+        ----------
+        other : object
+            Input parameter.
+        
+        Returns
+        -------
+        bool
+            Result of the operation.
+        """
         if isinstance(other, Tensor):
             return np.all(self._data <= other._data)
         elif isinstance(other, np.ndarray):
@@ -543,7 +1894,12 @@ class Tensor:
 
     # Override the integer conversion
     def __int__(self):
-        """
+        """Convert a scalar tensor to an int.
+        
+        Returns
+        -------
+        int
+            Result of the operation.
         """
         if self.rank == 0:
             return int(self._data.item())
@@ -554,7 +1910,12 @@ class Tensor:
 
     # Override the float conversion
     def __float__(self):
-        """
+        """Convert a scalar tensor to a float.
+        
+        Returns
+        -------
+        float
+            Result of the operation.
         """
         if self.rank == 0:
             return float(self._data.item())
@@ -564,129 +1925,233 @@ class Tensor:
     # end __float__
 
     def __str__(self):
-        """
-        Convert this Scalar to a string.
-
-        This method is called when a string representation of the Tensor is needed,
-        such as when using the str() function or print().
-
-        Returns:
-            str: A string representation of the Tensor value.
+        """Return the string representation.
+        
+        Returns
+        -------
+        str
+            Result of the operation.
         """
         return f"tensor({str(self._data.tolist())}, dtype={self._dtype}, shape={self._shape}, mutable={self._mutable})"
     # end __str__
 
     def __repr__(self):
-        """
-        Return a string representation of this Scalar for debugging.
-
-        This method is called when a developer-friendly representation of the Tensor
-        is needed, such as in the Python interactive shell or debugger.
-
-        Returns:
-            str: A string representation that includes the class name and value.
+        """Return the repr() representation.
+        
+        Returns
+        -------
+        str
+            Result of the operation.
         """
         return self.__str__()
     # end __repr__
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[int, slice, Tuple[Union[int, slice], ...]]):
+        """Return a sliced tensor view.
+        
+        Parameters
+        ----------
+        key : object
+            Input parameter.
+        
+        Returns
+        -------
+        Tensor
+            Result of the operation.
+        """
         return Tensor(data=self._data[key])
     # end def __getitem__
 
     def __setitem__(self, key, value):
+        """Assign values using NumPy-style indexing.
+        
+        Parameters
+        ----------
+        key : object
+            Input parameter.
+        value : object
+            Input parameter.
+        
+        Returns
+        -------
+        None
+            Result of the operation.
+        """
         self._data[key] = value
     # end def __setitem__
 
-    def __eq__(self, other):
-        if isinstance(other, Tensor):
-            return np.array_equal(self.value, other.value)
-        elif isinstance(other, np.ndarray):
-            return np.array_equal(self.value, other)
-        elif isinstance(other, (int, float)):
-            return np.array_equal(self.value, np.asarray(other))
-        elif isinstance(other, list):
-            return np.array_equal(self.value, np.asarray(other))
-        else:
-            return False
-        # end if
-    # end def __eq__
 
     # endregion OVERRIDE
 
     # region MATH BASE
 
-    def pow(self, exponent: Union['Tensor', DataType, np.ndarray]) -> 'Tensor':
-        """Elementwise power equivalent to numpy.power."""
+    def pow(self, exponent: Union["Tensor", TensorLike]) -> 'Tensor':
+        """Elementwise power equivalent to numpy.power.
+        
+        Parameters
+        ----------
+        exponent : Union['Tensor', TensorLike, np.ndarray]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(exponent, np.power)
     # end def pow
 
     def square(self) -> 'Tensor':
-        """Elementwise square."""
+        """Elementwise square.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.square)
     # end def square
 
     def sqrt(self) -> 'Tensor':
-        """Elementwise square root."""
+        """Elementwise square root.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.sqrt)
     # end def sqrt
 
     def cbrt(self) -> 'Tensor':
-        """Elementwise cubic root."""
+        """Elementwise cubic root.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.cbrt)
     # end def cbrt
 
     def reciprocal(self) -> 'Tensor':
-        """Elementwise reciprocal."""
+        """Elementwise reciprocal.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.reciprocal)
     # end def reciprocal
 
     def exp(self) -> 'Tensor':
-        """Elementwise natural exponential."""
+        """Elementwise natural exponential.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.exp)
     # end def exp
 
     def exp2(self) -> 'Tensor':
-        """Elementwise base-2 exponential."""
+        """Elementwise base-2 exponential.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.exp2)
     # end def exp2
 
     def expm1(self) -> 'Tensor':
-        """Elementwise exp(x) - 1 with better precision for small x."""
+        """Elementwise exp(x) - 1 with better precision for small x.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.expm1)
     # end def expm1
 
     def log(self) -> 'Tensor':
-        """Elementwise natural logarithm."""
+        """Elementwise natural logarithm.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.log)
     # end def log
 
     def log2(self) -> 'Tensor':
-        """Elementwise base-2 logarithm."""
+        """Elementwise base-2 logarithm.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.log2)
     # end def log2
 
     def log10(self) -> 'Tensor':
-        """Elementwise base-10 logarithm."""
+        """Elementwise base-10 logarithm.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.log10)
     # end def log10
 
     def log1p(self) -> 'Tensor':
-        """Elementwise log(1 + x) with higher accuracy for small x."""
+        """Elementwise log(1 + x) with higher accuracy for small x.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.log1p)
     # end def log1p
 
     def absolute(self) -> 'Tensor':
-        """Elementwise absolute value."""
+        """Elementwise absolute value.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.absolute)
     # end def absolute
 
     def abs(self) -> 'Tensor':
-        """Alias for absolute to mirror numpy."""
+        """Alias for absolute to mirror numpy.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self.absolute()
     # end def abs
 
     def __abs__(self) -> 'Tensor':
-        """Support Python's built-in abs()."""
+        """Support Python's built-in abs().
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self.absolute()
     # end def __abs__
 
@@ -695,52 +2160,157 @@ class Tensor:
     # region MATH COMPARISON
 
     def equal(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise equality."""
+        """Elementwise equality.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.equal)
     # end def equal
 
     def not_equal(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise inequality."""
+        """Elementwise inequality.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.not_equal)
     # end def not_equal
 
     def greater_equal(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise greater-than-or-equal-to."""
+        """Elementwise greater-than-or-equal-to.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.greater_equal)
     # end def greater_equal
 
     def greater(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise greater-than."""
+        """Elementwise greater-than.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.greater)
     # end def greater
 
     def less_equal(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise less-than-or-equal-to."""
+        """Elementwise less-than-or-equal-to.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.less_equal)
     # end def less_equal
 
     def less(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise less-than."""
+        """Elementwise less-than.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.less)
     # end def less
 
     def logical_not(self) -> 'Tensor':
-        """Elementwise logical inversion."""
+        """Elementwise logical inversion.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.logical_not)
     # end def logical_not
 
     def logical_and(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise logical conjunction."""
+        """Elementwise logical conjunction.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.logical_and)
     # end def logical_and
 
     def logical_or(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise logical disjunction."""
+        """Elementwise logical disjunction.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.logical_or)
     # end def logical_or
 
     def logical_xor(self, other: 'Tensor') -> 'Tensor':
-        """Elementwise logical exclusive-or."""
+        """Elementwise logical exclusive-or.
+        
+        Parameters
+        ----------
+        other : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.logical_xor)
     # end def logical_xor
 
@@ -749,80 +2319,175 @@ class Tensor:
     # region MATH TRIGO
 
     def sin(self) -> 'Tensor':
-        """Elementwise sine."""
+        """Elementwise sine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.sin)
     # end def sin
 
     def cos(self) -> 'Tensor':
-        """Elementwise cosine."""
+        """Elementwise cosine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.cos)
     # end def cos
 
     def tan(self) -> 'Tensor':
-        """Elementwise tangent."""
+        """Elementwise tangent.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.tan)
     # end def tan
 
     def arcsin(self) -> 'Tensor':
-        """Elementwise inverse sine."""
+        """Elementwise inverse sine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.arcsin)
     # end def arcsin
 
     def arccos(self) -> 'Tensor':
-        """Elementwise inverse cosine."""
+        """Elementwise inverse cosine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.arccos)
     # end def arccos
 
     def arctan(self) -> 'Tensor':
-        """Elementwise inverse tangent."""
+        """Elementwise inverse tangent.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.arctan)
     # end def arctan
 
     def arctan2(
             self,
-            other: Union["Tensor", DataType, np.ndarray]
+            other: Union["Tensor", TensorLike, np.ndarray]
     ) -> 'Tensor':
-        """Elementwise two-argument arctangent."""
+        """Elementwise two-argument arctangent.
+        
+        Parameters
+        ----------
+        other : Union['Tensor', TensorLike, np.ndarray]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.arctan2)
     # end def arctan2
 
     def sinh(self) -> 'Tensor':
-        """Elementwise hyperbolic sine."""
+        """Elementwise hyperbolic sine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.sinh)
     # end def sinh
 
     def cosh(self) -> 'Tensor':
-        """Elementwise hyperbolic cosine."""
+        """Elementwise hyperbolic cosine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.cosh)
     # end def cosh
 
     def tanh(self) -> 'Tensor':
-        """Elementwise hyperbolic tangent."""
+        """Elementwise hyperbolic tangent.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.tanh)
     # end def tanh
 
     def arcsinh(self) -> 'Tensor':
-        """Elementwise inverse hyperbolic sine."""
+        """Elementwise inverse hyperbolic sine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.arcsinh)
     # end def arcsinh
 
     def arccosh(self) -> 'Tensor':
-        """Elementwise inverse hyperbolic cosine."""
+        """Elementwise inverse hyperbolic cosine.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.arccosh)
     # end def arccosh
 
     def arctanh(self) -> 'Tensor':
-        """Elementwise inverse hyperbolic tangent."""
+        """Elementwise inverse hyperbolic tangent.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.arctanh)
     # end def arctanh
 
     def deg2rad(self) -> 'Tensor':
-        """Convert angles from degrees to radians."""
+        """Convert angles from degrees to radians.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.deg2rad)
     # end def deg2rad
 
     def rad2deg(self) -> 'Tensor':
-        """Convert angles from radians to degrees."""
+        """Convert angles from radians to degrees.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.rad2deg)
     # end def rad2deg
 
@@ -831,41 +2496,95 @@ class Tensor:
     # region MATH DISCRETE
 
     def sign(self) -> 'Tensor':
-        """Elementwise sign indicator."""
+        """Elementwise sign indicator.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.sign)
     # end def sign
 
     def floor(self) -> 'Tensor':
-        """Elementwise floor."""
+        """Elementwise floor.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.floor)
     # end def floor
 
     def ceil(self) -> 'Tensor':
-        """Elementwise ceiling."""
+        """Elementwise ceiling.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.ceil)
     # end def ceil
 
     def trunc(self) -> 'Tensor':
-        """Elementwise truncate towards zero."""
+        """Elementwise truncate towards zero.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.trunc)
     # end def trunc
 
     def rint(self) -> 'Tensor':
-        """Elementwise rounding to nearest integer."""
+        """Elementwise rounding to nearest integer.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._unary_op(np.rint)
     # end def rint
 
     def round(self, decimals: int = 0) -> 'Tensor':
-        """Elementwise rounding with configurable precision."""
+        """Elementwise rounding with configurable precision.
+        
+        Parameters
+        ----------
+        decimals : int
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=np.array(np.round(self._data, decimals=decimals)))
     # end def round
 
     def clip(
             self,
-            min_value: Optional[Union['Tensor', DataType, np.ndarray]] = None,
-            max_value: Optional[Union['Tensor', DataType, np.ndarray]] = None
+            min_value: Optional[Union['Tensor', TensorLike, np.ndarray]] = None,
+            max_value: Optional[Union['Tensor', TensorLike, np.ndarray]] = None
     ) -> 'Tensor':
-        """Clip tensor values between min_value and max_value."""
+        """Clip tensor values between bounds.
+        
+        Parameters
+        ----------
+        min_value : Optional[Union['Tensor', TensorLike, np.ndarray]]
+            Input parameter.
+        max_value : Optional[Union['Tensor', TensorLike, np.ndarray]]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         if min_value is None and max_value is None:
             raise ValueError("At least one of min_value or max_value must be provided.")
         min_arr = self._coerce_operand(min_value) if min_value is not None else None
@@ -878,47 +2597,120 @@ class Tensor:
 
     # region MATH LINEAR
 
-    def matmul(self, other: Union["Tensor", DataType, np.ndarray]) -> 'Tensor':
-        """Matrix multiplication."""
+    def matmul(self, other: Union["Tensor", TensorLike, np.ndarray]) -> 'Tensor':
+        """Matrix multiplication.
+        
+        Parameters
+        ----------
+        other : Union['Tensor', TensorLike, np.ndarray]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return self._binary_op(other, np.matmul)
     # end def matmul
 
-    def einsum(self, equation: str, *operands: Union['Tensor', DataType, np.ndarray]) -> 'Tensor':
-        """Compute the tensor product of the given operands using the given equation."""
+    def einsum(self, equation: str, *operands: Union['Tensor', TensorLike, np.ndarray]) -> 'Tensor':
+        """Compute the tensor product of the given operands using the given equation.
+        
+        Parameters
+        ----------
+        equation : str
+            Input parameter.
+        *operands : Union['Tensor', TensorLike, np.ndarray]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         operands = [_as_numpy_operand(self)] + [_as_numpy_operand(o) for o in operands]
         result = np.einsum(equation, *operands)
         return Tensor(data=np.asarray(result))
     # end def einsum
 
     def trace(self, offset: int = 0, axis1: int = 0, axis2: int = 1) -> 'Tensor':
-        """Compute the trace of a matrix."""
+        """Compute the trace of a matrix.
+        
+        Parameters
+        ----------
+        offset : int
+            Input parameter.
+        axis1 : int
+            Input parameter.
+        axis2 : int
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.trace(self._data, offset=offset, axis1=axis1, axis2=axis2)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def trace
 
     def transpose(self, axes: Optional[List[int]] = None) -> 'Tensor':
-        """Transpose the tensor."""
+        """Transpose the tensor.
+        
+        Parameters
+        ----------
+        axes : Optional[List[int]]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.transpose(self._data, axes=axes)
         return Tensor(data=np.asarray(result))
     # end def transpose
 
     def inverse(self) -> 'Tensor':
-        """Compute the inverse of a square matrix."""
+        """Compute the inverse of a square matrix.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.linalg.inv(self._data)
         return Tensor(data=np.asarray(result))
     # end def inverse
 
     def det(self) -> 'Tensor':
-        """Compute the determinant of a square matrix."""
+        """Compute the determinant of a square matrix.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.linalg.det(self._data)
         return Tensor(data=np.asarray(result))
     # end def det
 
-    def norm(self, ord: Union[int, float] = 2) -> 'Tensor':
-        """Compute the norm of the tensor."""
-        result = np.linalg.norm(self._data, ord=ord)
-        dtype = self._dtype if self._dtype.is_float else DType.FLOAT32
-        numpy_dtype = dtype.to_numpy()
+    def norm(self, order: Union[int, float] = 2) -> 'Tensor':
+        """Compute the norm of the tensor.
+        
+        Parameters
+        ----------
+        order : Union[int, float]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        result = np.linalg.norm(self._data, ord=order)
+        dtype = self._dtype if self._dtype in {DType.R, DType.C} else DType.R
+        numpy_dtype = to_numpy(dtype)
         return Tensor(data=np.asarray(result, dtype=numpy_dtype), dtype=dtype)
     # end def norm
 
@@ -927,61 +2719,163 @@ class Tensor:
     # region MATH REDUCTION
 
     def sum(self, axis: Optional[int] = None) -> 'Tensor':
-        """Compute the sum of the tensor along the given axis."""
+        """Compute the sum of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.sum(self._data, axis=axis)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def sum
 
     def mean(self, axis:  Optional[int] = None) -> 'Tensor':
-        """Compute the mean of the tensor along the given axis."""
+        """Compute the mean of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.mean(self._data, axis=axis)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def mean
 
     def std(self, axis: Optional[int] = None, ddof: int = 0) -> 'Tensor':
-        """Compute the standard deviation of the tensor along the given axis."""
+        """Compute the standard deviation of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        ddof : int
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.std(self._data, axis=axis, ddof=ddof)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def std
 
     def median(self, axis: Optional[int] = None) -> 'Tensor':
-        """Compute the median of the tensor along the given axis."""
+        """Compute the median of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.median(self._data, axis=axis)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def median
 
     def q1(self, axis: Optional[int] = None) -> 'Tensor':
-        """Compute the first quartile of the tensor along the given axis."""
+        """Compute the first quartile of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.percentile(self._data, 25, axis=axis)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def q1
 
     def q3(self, axis: Optional[int] = None) -> 'Tensor':
-        """Compute the third quartile of the tensor along the given axis."""
+        """Compute the third quartile of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.percentile(self._data, 75, axis=axis)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def q3
 
     def max(self, axis: Optional[int] = None) -> 'Tensor':
-        """Compute the maximum of the tensor along the given axis."""
+        """Compute the maximum of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.max(self._data, axis=axis)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def max
 
     def min(self, axis: Optional[int] = None) -> 'Tensor':
-        """Compute the minimum of the tensor along the given axis."""
+        """Compute the minimum of the tensor along the given axis.
+        
+        Parameters
+        ----------
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.min(self._data, axis=axis)
-        return Tensor(data=np.asarray(result, dtype=self._dtype.to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self._dtype)))
     # end def min
 
     def any(self) -> 'Tensor':
-        """Return True if any element evaluates to True."""
+        """Return True if any element evaluates to True.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.any(self._data)
         return Tensor(data=np.asarray(result, dtype=np.bool_))
     # end def any
 
     def all(self) -> 'Tensor':
-        """Return True if all elements evaluate to True."""
+        """Return True if all elements evaluate to True.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         result = np.all(self._data)
         return Tensor(data=np.asarray(result, dtype=np.bool_))
     # end def all
@@ -991,26 +2885,67 @@ class Tensor:
     # region RESHAPE
 
     def flatten(self) -> 'Tensor':
-        """Flatten the tensor into a 1D array."""
+        """Flatten the tensor into a 1D array.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=np.reshape(self._data, (-1,)))
     # end def flatten
 
     def concatenate(self, *others: "Tensor", axis: Optional[int] = 0) -> 'Tensor':
-        """Concatenate the current tensor with additional tensors."""
+        """Concatenate the current tensor with additional tensors.
+        
+        Parameters
+        ----------
+        *others : 'Tensor'
+            Input parameter.
+        axis : Optional[int]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
-        return concatenate(tensors, axis=axis)
+        return t_concatenate(tensors, axis=axis)
     # end def concatenate
 
     def hstack(self, *others: "Tensor") -> 'Tensor':
-        """Concatenate tensors along axis 1."""
+        """Concatenate tensors along axis 1.
+        
+        Parameters
+        ----------
+        *others : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
-        return hstack(tensors)
+        return t_hstack(tensors)
     # end def hstack
 
     def vstack(self, *others: "Tensor") -> 'Tensor':
-        """Concatenate tensors along axis 0."""
+        """Concatenate tensors along axis 0.
+        
+        Parameters
+        ----------
+        *others : 'Tensor'
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
-        return vstack(tensors)
+        return t_vstack(tensors)
     # end def vstack
 
     # endregion RESHAPE
@@ -1018,14 +2953,41 @@ class Tensor:
     # region STATIC
 
     @staticmethod
-    def from_numpy(data: np.ndarray, dtype: Optional[DType] = None) -> 'Tensor':
-        """Create a tensor from numpy array."""
+    def from_numpy(data: np.ndarray, dtype: Optional[TypeLike] = None) -> 'Tensor':
+        """Create a tensor from numpy array.
+        
+        Parameters
+        ----------
+        data : np.ndarray
+            Input parameter.
+        dtype : Optional[TypeLike]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=data, dtype=dtype)
     # end def from_numpy
 
     @staticmethod
-    def zeros(shape: Shape, dtype: Optional[DType] = None) -> 'Tensor':
-        """Create a tensor of zeros."""
+    def zeros(shape: TensorShapeLike, dtype: Optional[TypeLike] = None) -> 'Tensor':
+        """Create a tensor of zeros.
+        
+        Parameters
+        ----------
+        shape : TensorShapeLike
+            Input parameter.
+        dtype : Optional[TypeLike]
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        shape = TensorShape.create(shape)
         np_dtype = _convert_dtype_to_numpy(dtype) if dtype else None
         data = np.zeros(shape=shape.dims, dtype=np_dtype)
         return Tensor(data=data, dtype=dtype)
@@ -1033,13 +2995,69 @@ class Tensor:
 
     @staticmethod
     def from_list(data: List, dtype: DType) -> 'Tensor':
-        """Create a tensor from list."""
+        """Create a tensor from list.
+        
+        Parameters
+        ----------
+        data : List
+            Input parameter.
+        dtype : DType
+            Input parameter.
+        
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
         return Tensor(data=data, dtype=dtype)
     # end def from_list
 
     # endregion STATIC
 
+    # region NUMPY
+
+    def __array__(self, dtype: Optional[TypeLike] = None) -> np.ndarray:
+        """Convert the shape to a NumPy array.
+        """
+        return np.array(self._data, dtype=to_numpy(dtype if dtype is not None else self._dtype))
+    # end def __array__
+
+    def __array_function__(self, func, types, args, kwargs):
+        """Return the result of applying the function to the inputs."""
+        # As a list of array
+        array = [
+            x._data if isinstance(x, Tensor) else x
+            for x in args
+        ]
+
+        return Tensor(data=func(*array, **kwargs))
+    # end def __array_function__
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        """Return the result of applying the ufunc to the inputs."""
+        if method != "__call__":
+            return NotImplemented
+        # end if
+
+        # As a list of array
+        arrays = [
+            x._data if isinstance(x, Tensor) else x
+            for x in inputs
+        ]
+
+        return Tensor(data=ufunc(*arrays, **kwargs))
+    # end def __array_ufunc__
+
+    # endregion NUMPY
+
 # end Tensor
+
+
+#
+# Helpers
+#
+
+# region _HELPERS
 
 
 def _require_tensor(value: Any) -> Tensor:
@@ -1071,7 +3089,7 @@ def _concatenate_tensors(
 # end def _concatenate_tensors
 
 
-def _as_numpy_operand(value: Union["Tensor", DataType, np.ndarray]) -> np.ndarray:
+def _as_numpy_operand(value: Union[Tensor, TensorLike, np.ndarray]) -> np.ndarray:
     """Convert Tensor or array-like input to a NumPy array."""
     if isinstance(value, Tensor):
         return value.value
@@ -1080,198 +3098,233 @@ def _as_numpy_operand(value: Union["Tensor", DataType, np.ndarray]) -> np.ndarra
 # end def _as_numpy_operand
 
 
-def pow(tensor: Tensor, exponent: Union['Tensor', DataType, np.ndarray]) -> Tensor:
+# endregion _HELPERS
+
+
+#
+# Base
+#
+
+# region BASE
+
+
+def t_pow(tensor: Tensor, exponent: Union['Tensor', TensorLike, np.ndarray]) -> Tensor:
     return _call_tensor_method("pow", tensor, exponent)
 # end def pow
 
 
-def square(tensor: Tensor) -> Tensor:
+def t_square(tensor: Tensor) -> Tensor:
     return _call_tensor_method("square", tensor)
 # end def square
 
 
-def sqrt(tensor: Tensor) -> Tensor:
+def t_sqrt(tensor: Tensor) -> Tensor:
     return _call_tensor_method("sqrt", tensor)
 # end def sqrt
 
 
-def cbrt(tensor: Tensor) -> Tensor:
+def t_cbrt(tensor: Tensor) -> Tensor:
     return _call_tensor_method("cbrt", tensor)
 # end def cbrt
 
 
-def reciprocal(tensor: Tensor) -> Tensor:
+def t_reciprocal(tensor: Tensor) -> Tensor:
     return _call_tensor_method("reciprocal", tensor)
 # end def reciprocal
 
 
-def exp(tensor: Tensor) -> Tensor:
+def t_exp(tensor: Tensor) -> Tensor:
     return _call_tensor_method("exp", tensor)
 # end def exp
 
 
-def exp2(tensor: Tensor) -> Tensor:
+def t_exp2(tensor: Tensor) -> Tensor:
     return _call_tensor_method("exp2", tensor)
 # end def exp2
 
 
-def expm1(tensor: Tensor) -> Tensor:
+def t_expm1(tensor: Tensor) -> Tensor:
     return _call_tensor_method("expm1", tensor)
 # end def expm1
 
 
-def log(tensor: Tensor) -> Tensor:
+def t_log(tensor: Tensor) -> Tensor:
     return _call_tensor_method("log", tensor)
 # end def log
 
 
-def log2(tensor: Tensor) -> Tensor:
+def t_log2(tensor: Tensor) -> Tensor:
     return _call_tensor_method("log2", tensor)
 # end def log2
 
 
-def log10(tensor: Tensor) -> Tensor:
+def t_log10(tensor: Tensor) -> Tensor:
     return _call_tensor_method("log10", tensor)
 # end def log10
 
 
-def log1p(tensor: Tensor) -> Tensor:
+def t_log1p(tensor: Tensor) -> Tensor:
     return _call_tensor_method("log1p", tensor)
 # end def log1p
 
+
+def t_absolute(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("absolute", tensor)
+# end def absolute
+
+
+def t_abs(tensor: Tensor) -> Tensor:
+    return _call_tensor_method("abs", tensor)
+# end def abs
+
+
+# endregion BASE
+
+
+#
+# Trigo
+#
+
 # region TRIGO
 
-def sin(tensor: Tensor) -> Tensor:
+
+def t_sin(tensor: Tensor) -> Tensor:
     return _call_tensor_method("sin", tensor)
 # end def sin
 
 
-def cos(tensor: Tensor) -> Tensor:
+def t_cos(tensor: Tensor) -> Tensor:
     return _call_tensor_method("cos", tensor)
 # end def cos
 
 
-def tan(tensor: Tensor) -> Tensor:
+def t_tan(tensor: Tensor) -> Tensor:
     return _call_tensor_method("tan", tensor)
 # end def tan
 
 
-def arcsin(tensor: Tensor) -> Tensor:
+def t_arcsin(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arcsin", tensor)
 # end def arcsin
 
 
-def arccos(tensor: Tensor) -> Tensor:
+def t_arccos(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arccos", tensor)
 # end def arccos
 
 
-def arctan(tensor: Tensor) -> Tensor:
+def t_arctan(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arctan", tensor)
 # end def arctan
 
 
-def atan2(
+def t_atan2(
         tensor_y: Tensor,
-        tensor_x: Union[Tensor, DataType, np.ndarray]
+        tensor_x: Union[Tensor, TensorLike, np.ndarray]
 ) -> Tensor:
     return tensor_y.arctan2(tensor_x)
 # end def atan2
 
 
-def sinh(tensor: Tensor) -> Tensor:
+def t_sinh(tensor: Tensor) -> Tensor:
     return _call_tensor_method("sinh", tensor)
 # end def sinh
 
 
-def cosh(tensor: Tensor) -> Tensor:
+def t_cosh(tensor: Tensor) -> Tensor:
     return _call_tensor_method("cosh", tensor)
 # end def cosh
 
 
-def tanh(tensor: Tensor) -> Tensor:
+def t_tanh(tensor: Tensor) -> Tensor:
     return _call_tensor_method("tanh", tensor)
 # end def tanh
 
 
-def arcsinh(tensor: Tensor) -> Tensor:
+def t_arcsinh(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arcsinh", tensor)
 # end def arcsinh
 
 
-def arccosh(tensor: Tensor) -> Tensor:
+def t_arccosh(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arccosh", tensor)
 # end def arccosh
 
 
-def arctanh(tensor: Tensor) -> Tensor:
+def t_arctanh(tensor: Tensor) -> Tensor:
     return _call_tensor_method("arctanh", tensor)
 # end def arctanh
 
-def deg2rad(tensor: Tensor) -> Tensor:
+def t_deg2rad(tensor: Tensor) -> Tensor:
     return _call_tensor_method("deg2rad", tensor)
 # end def deg2rad
 
 
-def rad2deg(tensor: Tensor) -> Tensor:
+def t_rad2deg(tensor: Tensor) -> Tensor:
     return _call_tensor_method("rad2deg", tensor)
 # end def rad2deg
 
 # endregion TRIGO
 
-def absolute(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("absolute", tensor)
-# end def absolute
+
+#
+# Discrete
+#
+
+# region DISCRETE
 
 
-def abs(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("abs", tensor)
-# end def abs
-
-
-def sign(tensor: Tensor) -> Tensor:
+def t_sign(tensor: Tensor) -> Tensor:
     return _call_tensor_method("sign", tensor)
 # end def sign
 
 
-def floor(tensor: Tensor) -> Tensor:
+def t_floor(tensor: Tensor) -> Tensor:
     return _call_tensor_method("floor", tensor)
 # end def floor
 
 
-def ceil(tensor: Tensor) -> Tensor:
+def t_ceil(tensor: Tensor) -> Tensor:
     return _call_tensor_method("ceil", tensor)
 # end def ceil
 
 
-def trunc(tensor: Tensor) -> Tensor:
+def t_trunc(tensor: Tensor) -> Tensor:
     return _call_tensor_method("trunc", tensor)
 # end def trunc
 
 
-def rint(tensor: Tensor) -> Tensor:
+def t_rint(tensor: Tensor) -> Tensor:
     return _call_tensor_method("rint", tensor)
 # end def rint
 
 
-def round(tensor: Tensor, decimals: int = 0) -> Tensor:
+def t_round(tensor: Tensor, decimals: int = 0) -> Tensor:
     return _call_tensor_method("round", tensor, decimals=decimals)
 # end def round
 
 
-def clip(
+def t_clip(
         tensor: Tensor,
-        min_value: Optional[Union['Tensor', DataType, np.ndarray]] = None,
-        max_value: Optional[Union['Tensor', DataType, np.ndarray]] = None
+        min_value: Optional[Union['Tensor', TensorLike, np.ndarray]] = None,
+        max_value: Optional[Union['Tensor', TensorLike, np.ndarray]] = None
 ) -> Tensor:
     return _call_tensor_method("clip", tensor, min_value=min_value, max_value=max_value)
 # end def clip
 
+
+# endregion DISCRETE
+
+
+#
+# Linear Algebra
+#
+
 # region LINEAR_ALGEBRA
 
-def einsum(
+def t_einsum(
         subscripts: str,
-        *operands: Union['Tensor', DataType, np.ndarray],
+        *operands: Union['Tensor', TensorLike, np.ndarray],
         out: Optional[Union['Tensor', np.ndarray]] = None,
         **kwargs
 ) -> Tensor:
@@ -1295,34 +3348,41 @@ def einsum(
 # end def einsum
 
 
-def trace(tensor: Tensor, offset: int = 0, axis1: int = 0, axis2: int = 1) -> Tensor:
+def t_trace(tensor: Tensor, offset: int = 0, axis1: int = 0, axis2: int = 1) -> Tensor:
     return _call_tensor_method("trace", tensor, offset=offset, axis1=axis1, axis2=axis2)
 # end def trace
 
 
-def transpose(tensor: Tensor, axes: Optional[List[int]] = None) -> Tensor:
+def t_transpose(tensor: Tensor, axes: Optional[List[int]] = None) -> Tensor:
     return _call_tensor_method("transpose", tensor, axes=axes)
 # end def transpose
 
 
-def det(tensor: Tensor) -> Tensor:
+def t_det(tensor: Tensor) -> Tensor:
     return _call_tensor_method("det", tensor)
 # end def det
 
 
-def inverse(tensor: Tensor) -> Tensor:
+def t_inverse(tensor: Tensor) -> Tensor:
     return _call_tensor_method("inverse", tensor)
 # end def inverse
 
 
-def norm(tensor: Tensor, ord: Union[int, float] = 2) -> Tensor:
-    return _call_tensor_method("norm", tensor, ord=ord)
+def t_norm(tensor: Tensor, order: Union[int, float] = 2) -> Tensor:
+    return _call_tensor_method("norm", tensor, ord=order)
 # end def norm
 
 
 # endregion LINEAR_ALGEBRA
 
-def mean(
+#
+# Reduction
+#
+
+# region REDUCTION
+
+
+def t_mean(
         tensor: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
@@ -1330,7 +3390,7 @@ def mean(
 # end def mean
 
 
-def std(
+def t_std(
         tensor: Tensor,
         axis: Optional[int] = None,
         ddof: int = 0
@@ -1339,7 +3399,7 @@ def std(
 # end def std
 
 
-def median(
+def t_median(
         tensor: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
@@ -1347,7 +3407,7 @@ def median(
 # end def median
 
 
-def q1(
+def t_q1(
         tensor: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
@@ -1355,7 +3415,7 @@ def q1(
 # end def q1
 
 
-def q3(
+def t_q3(
         tensor: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
@@ -1363,7 +3423,7 @@ def q3(
 # end def q3
 
 
-def max(
+def t_max(
         tensor: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
@@ -1371,12 +3431,16 @@ def max(
 # end def max
 
 
-def min(
+def t_min(
         tensor: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
     return _call_tensor_method("min", tensor, axis=axis)
 # end def min
+
+
+# endregion REDUCTION
+
 
 #
 # Reshape
@@ -1384,12 +3448,13 @@ def min(
 
 # region SHAPE
 
-def flatten(tensor: Tensor) -> Tensor:
+
+def t_flatten(tensor: Tensor) -> Tensor:
     return _call_tensor_method("flatten", tensor)
 # end def flatten
 
 
-def concatenate(
+def t_concatenate(
         tensors: Sequence[Tensor],
         axis: Optional[int] = 0
 ) -> Tensor:
@@ -1398,16 +3463,17 @@ def concatenate(
 # end def concatenate
 
 
-def hstack(tensors: Sequence[Tensor]) -> Tensor:
+def t_hstack(tensors: Sequence[Tensor]) -> Tensor:
     """Concatenate tensors along axis 1."""
     return _concatenate_tensors(tensors, axis=1)
 # end def hstack
 
 
-def vstack(tensors: Sequence[Tensor]) -> Tensor:
+def t_vstack(tensors: Sequence[Tensor]) -> Tensor:
     """Concatenate tensors along axis 0."""
     return _concatenate_tensors(tensors, axis=0)
 # end def vstack
+
 
 # endregion SHAPE
 
@@ -1417,63 +3483,64 @@ def vstack(tensors: Sequence[Tensor]) -> Tensor:
 
 # region BOOLEAN
 
-def equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("equal", tensor_a, tensor_b)
 # end def equal
 
 
-def not_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_not_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("not_equal", tensor_a, tensor_b)
 # end def not_equal
 
 
-def greater(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_greater(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("greater", tensor_a, tensor_b)
 # end def greater
 
 
-def greater_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_greater_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("greater_equal", tensor_a, tensor_b)
 # end def greater_equal
 
 
-def less(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_less(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("less", tensor_a, tensor_b)
 # end def less
 
 
-def less_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_less_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("less_equal", tensor_a, tensor_b)
 # end def less_equal
 
 
-def logical_not(tensor: Tensor) -> Tensor:
+def t_logical_not(tensor: Tensor) -> Tensor:
     return _call_tensor_method("logical_not", tensor)
 # end def not
 
 
-def any(tensor: Tensor) -> Tensor:
+def t_any(tensor: Tensor) -> Tensor:
     return _call_tensor_method("any", tensor)
 # end def any
 
 
-def all(tensor: Tensor) -> Tensor:
+def t_all(tensor: Tensor) -> Tensor:
     return _call_tensor_method("all", tensor)
 # end def all
 
 
-def logical_and(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_logical_and(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("logical_and", tensor_a, tensor_b)
 # end def logical_and
 
 
-def logical_or(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_logical_or(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("logical_or", tensor_a, tensor_b)
 # end def logical_or
 
 
-def logical_xor(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def t_logical_xor(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("logical_xor", tensor_a, tensor_b)
 # end def logical_xor
+
 
 # endregion BOOLEAN

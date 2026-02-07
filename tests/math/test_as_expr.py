@@ -43,7 +43,7 @@ def test_as_expr_returns_math_expr_unchanged():
     -------
     None
     """
-    tensor = Constant(name="identity", data=Tensor.from_numpy(np.array([1.0]), dtype=DType.FLOAT32))
+    tensor = Constant(name="identity", data=Tensor.from_numpy(np.array([1.0]), dtype=DType.R))
     result = as_expr(tensor)
     assert isinstance(result, MathExpr)
     assert isinstance(result, MathNode)
@@ -61,9 +61,9 @@ def test_as_expr_converts_python_scalar_with_dtype_and_mutability():
     -------
     None
     """
-    result = as_expr(3.5, dtype=DType.FLOAT32)
+    result = as_expr(3.5, dtype=DType.R)
     assert isinstance(result, Constant)
-    assert result.dtype is DType.FLOAT32
+    assert result.dtype is DType.R
     assert result.shape.dims == ()
     np.testing.assert_array_equal(result.eval().value, np.array(3.5, dtype=np.float32))
 # end test test_as_expr_converts_python_scalar_with_dtype_and_mutability
@@ -77,11 +77,11 @@ def test_as_expr_converts_numpy_scalar_with_dtype_override():
     -------
     None
     """
-    result = as_expr(np.float32(2.25), dtype=DType.FLOAT64)
+    result = as_expr(np.float32(2.25), dtype=DType.R)
     assert isinstance(result, Constant)
-    assert result.dtype is DType.FLOAT64
+    assert result.dtype is DType.R
     assert result.shape.dims == ()
-    np.testing.assert_array_equal(result.eval().value, np.array(2.25, dtype=np.float64))
+    np.testing.assert_array_equal(result.eval().value, np.array(2.25, dtype=np.float32))
 # end test test_as_expr_converts_numpy_scalar_with_dtype_override
 
 
@@ -94,16 +94,16 @@ def test_as_expr_wraps_numpy_array_with_and_without_dtype_override():
     None
     """
     data = np.array([[1, 2], [3, 4]], dtype=np.int64)
-    result = as_expr(data, dtype=DType.FLOAT32)
+    result = as_expr(data, dtype=DType.R)
     assert isinstance(result, Constant)
-    assert result.dtype is DType.FLOAT32
+    assert result.dtype is DType.R
     assert result.shape.dims == (2, 2)
     np.testing.assert_array_equal(result.eval().value, np.array(data, dtype=np.float32))
 
     data = np.array([[1, 2], [3, 4]], dtype=np.int64)
     result = as_expr(data)
     assert isinstance(result, Constant)
-    assert result.dtype is DType.INT64
+    assert result.dtype is DType.Z
     assert result.shape.dims == (2, 2)
     np.testing.assert_array_equal(result.eval().value, np.array(data, dtype=np.int64))
 # end test test_as_expr_wraps_numpy_array_with_and_without_dtype_override
@@ -118,17 +118,17 @@ def test_as_expr_converts_nested_list_with_dtype():
     None
     """
     data = [[1, 2], [3, 4]]
-    result = as_expr(data, dtype=DType.INT32)
+    result = as_expr(data, dtype=DType.Z)
     assert isinstance(result, Constant)
-    assert result.dtype is DType.INT32
+    assert result.dtype is DType.Z
     assert result.shape.dims == (2, 2)
     np.testing.assert_array_equal(result.eval().value, np.array(data, dtype=np.int32))
 # end test test_as_expr_converts_nested_list_with_dtype
 
 
-def test_as_expr_converts_nested_list_default_dtype_float64():
+def test_as_expr_converts_nested_list_default_dtype_float():
     """
-    Nested lists should default to FLOAT64 when dtype is None.
+    Nested lists should default to R when dtype is None.
 
     Returns
     -------
@@ -137,10 +137,10 @@ def test_as_expr_converts_nested_list_default_dtype_float64():
     data = [[1, 2], [3, 4]]
     result = as_expr(data, dtype=None)
     assert isinstance(result, MathExpr)
-    assert result.dtype is DType.FLOAT64
+    assert result.dtype is DType.R
     assert result.shape.dims == (2, 2)
-    np.testing.assert_array_equal(result.eval().value, np.array(data, dtype=np.float64))
-# end test test_as_expr_converts_nested_list_default_dtype_float64
+    np.testing.assert_array_equal(result.eval().value, np.array(data, dtype=np.float32))
+# end test test_as_expr_converts_nested_list_default_dtype_float
 
 
 def test_as_expr_rejects_unsupported_types():

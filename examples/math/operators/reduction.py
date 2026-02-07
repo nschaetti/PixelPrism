@@ -32,17 +32,17 @@ import pixelprism.math.render as render
 
 
 # Variables
-x = pm.var("x", dtype=pm.DType.FLOAT32, shape=(2, 2))
-y = pm.var("y", dtype=pm.DType.FLOAT32, shape=(2, 2))
-n = pm.var("n", dtype=pm.DType.INT32, shape=())
-i = pm.var("i", dtype=pm.DType.INT32, shape=())
+x = pm.var("x", dtype=pm.DType.R, shape=(2, 2))
+y = pm.var("y", dtype=pm.DType.R, shape=(2, 2))
+n = pm.var("n", dtype=pm.DType.Z, shape=())
+i = pm.var("i", dtype=pm.DType.Z, shape=())
 
 # Math equations
 z1 = R.sum(x, axis=0)
 z2 = R.sum(y, axis=1)
 z3 = z1 + z2
 z4 = R.summation(i * n, 1, 10, "i")
-prod_idx = pm.var("prod_idx", dtype=pm.DType.INT32, shape=())
+prod_idx = pm.var("prod_idx", dtype=pm.DType.Z, shape=())
 z5 = R.product(prod_idx + 1, lower=1, upper=4, i="prod_idx")
 
 # Show latex
@@ -65,20 +65,20 @@ with pm.new_context():
     print(f"Equation evaluation z5: {z5.eval()}")
 # end with
 
-outer_idx = pm.var("outer_idx", dtype=pm.DType.INT32, shape=())
-inner_idx = pm.var("inner_idx", dtype=pm.DType.INT32, shape=())
-weight = pm.var("nested_weight", dtype=pm.DType.FLOAT32, shape=())
-bias = pm.const("nested_bias", data=1.0, dtype=pm.DType.FLOAT32)
+outer_idx = pm.var("outer_idx", dtype=pm.DType.Z, shape=())
+inner_idx = pm.var("inner_idx", dtype=pm.DType.Z, shape=())
+weight = pm.var("nested_weight", dtype=pm.DType.R, shape=())
+bias = pm.const("nested_bias", data=1.0, dtype=pm.DType.R)
 
 inner_body = (inner_idx + outer_idx) * weight + bias
 inner_sum = R.summation(
     op1=inner_body,
     lower=outer_idx,
-    upper=outer_idx + pm.const("inner_span", data=3, dtype=pm.DType.INT32),
+    upper=outer_idx + pm.const("inner_span", data=3, dtype=pm.DType.Z),
     i="inner_idx"
 )
 nested_expr = R.summation(
-    op1=inner_sum * (outer_idx + pm.const("outer_offset", data=1, dtype=pm.DType.INT32)),
+    op1=inner_sum * (outer_idx + pm.const("outer_offset", data=1, dtype=pm.DType.Z)),
     lower=1,
     upper=3,
     i="outer_idx"

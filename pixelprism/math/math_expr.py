@@ -1590,7 +1590,7 @@ class Variable(MathLeaf):
         """
         return Variable(
             name=name,
-            dtype=self._dtype.copy(),
+            dtype=self._dtype,
             shape=self._shape.copy(),
         )
     # end def copy
@@ -2054,7 +2054,7 @@ class Constant(MathLeaf):
     # end def create
 
     @staticmethod
-    def new(data, dtype: DType = DType.FLOAT32):
+    def new(data, dtype: DType = DType.R):
         """Create a new constant node with a random name."""
         return Constant(
             name=_rand_name("const_"),
@@ -2412,7 +2412,7 @@ class SliceExpr(MathExpr):
             return None
         # end if
         if isinstance(value, int):
-            tensor = Tensor(data=value, dtype=DType.INT64)
+            tensor = Tensor(data=value, dtype=DType.Z)
             value = Constant(
                 name=f"slice_{name}_{MathNode.next_id()}",
                 data=tensor
@@ -2445,7 +2445,7 @@ class SliceExpr(MathExpr):
         if not expr.is_constant():
             raise MathExprValidationError(f"{name} must be composed of constants.")
         # end if
-        if expr.dtype not in {DType.INT32, DType.INT64}:
+        if expr.dtype not in {DType.Z}:
             raise MathExprValidationError(f"{name} must be an integer expression, got {expr.dtype}")
         # end if
         if expr.shape.dims != ():

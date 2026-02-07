@@ -32,13 +32,14 @@ import pytest
 
 import pixelprism.math as pm
 from pixelprism.math import utils, DType, render
+from pixelprism.math.dtype import to_numpy
 from pixelprism.math.functional import reduction as R
 
 
 def _vector_operand():
     return utils.vector(
         value=[1.0, -2.0, 3.0, 0.5],
-        dtype=DType.FLOAT32
+        dtype=DType.R
     )
 # end def _vector_operand
 
@@ -46,7 +47,7 @@ def _vector_operand():
 def _matrix_operand():
     return utils.matrix(
         value=[[1.0, 2.5, -3.0], [4.0, 0.0, 1.5]],
-        dtype=DType.FLOAT32
+        dtype=DType.R
     )
 # end def _matrix_operand
 
@@ -54,14 +55,14 @@ def _matrix_operand():
 def _tensor_operand():
     return utils.tensor(
         data=[[[1.0, -1.0], [2.0, 3.0]], [[-0.5, 0.5], [4.0, -2.0]]],
-        dtype=DType.FLOAT32
+        dtype=DType.R
     )
 # end def _tensor_operand
 
 
 def _const_expr(name, values, dtype):
     """Create a constant expression and its numpy payload."""
-    arr = np.asarray(values, dtype=dtype.to_numpy())
+    arr = np.asarray(values, dtype=to_numpy(dtype))
     return pm.const(name=name, data=arr, dtype=dtype), arr
 # end def _const_expr
 
@@ -106,10 +107,10 @@ def test_reduction_scalar_result(op_name, op_func, np_func, operand_name, operan
 
 def test_reduction_expr_op_matrix():
     # Variables
-    x = pm.var("x", dtype=pm.DType.FLOAT32, shape=(2, 2))
-    y = pm.var("y", dtype=pm.DType.FLOAT32, shape=(2, 2))
-    n = pm.var("n", dtype=pm.DType.INT32, shape=())
-    i = pm.var("i", dtype=pm.DType.INT32, shape=())
+    x = pm.var("x", dtype=pm.DType.R, shape=(2, 2))
+    y = pm.var("y", dtype=pm.DType.R, shape=(2, 2))
+    n = pm.var("n", dtype=pm.DType.Z, shape=())
+    i = pm.var("i", dtype=pm.DType.Z, shape=())
 
     # Math equations
     z1 = R.sum(x, axis=0)
@@ -144,19 +145,19 @@ AXIS_INPUT_CASES = (
     (
         "float32_matrix_axis0",
         [[-1.0, 2.0, 0.5], [3.5, -4.0, 1.0]],
-        pm.DType.FLOAT32,
+        pm.DType.R,
         0,
     ),
     (
         "float32_matrix_axis1",
         [[1.0, 3.0], [-2.5, 4.5], [0.0, 1.0]],
-        pm.DType.FLOAT32,
+        pm.DType.R,
         1,
     ),
     (
         "float64_tensor_axis2",
         np.arange(24, dtype=np.float64).reshape(2, 3, 4),
-        pm.DType.FLOAT64,
+        pm.DType.R,
         2,
     ),
 )
@@ -193,7 +194,7 @@ def test_percentile_axis_results(op_name, op_func, percentile, case_name, values
 
 
 def test_percentile_scalar_results():
-    expr, values = _const_expr("percentile_scalar", [1.0, 2.0, 4.0, 8.0], pm.DType.FLOAT32)
+    expr, values = _const_expr("percentile_scalar", [1.0, 2.0, 4.0, 8.0], pm.DType.R)
     q1_expr = R.q1(expr)
     q3_expr = R.q3(expr)
     np.testing.assert_allclose(q1_expr.eval().value, np.percentile(values, 25))
@@ -205,7 +206,7 @@ def test_percentile_scalar_results():
 
 @pytest.mark.parametrize("op_func", (R.sum, R.mean, R.std, R.median, R.max, R.min, R.q1, R.q3))
 def test_reduction_invalid_positive_axis(op_func):
-    expr, _ = _const_expr("invalid_axis_tensor", np.arange(8).reshape(2, 2, 2), pm.DType.FLOAT32)
+    expr, _ = _const_expr("invalid_axis_tensor", np.arange(8).reshape(2, 2, 2), pm.DType.R)
     with pytest.raises(ValueError):
         op = op_func(expr, axis=5)
         op.eval()
@@ -214,7 +215,7 @@ def test_reduction_invalid_positive_axis(op_func):
 
 
 def test_reduction_negative_axis_rejected():
-    expr, _ = _const_expr("negative_axis_tensor", [[1.0, -1.0], [2.0, 3.5]], pm.DType.FLOAT32)
+    expr, _ = _const_expr("negative_axis_tensor", [[1.0, -1.0], [2.0, 3.5]], pm.DType.R)
     with pytest.raises(ValueError):
         R.sum(expr, axis=-1)
     # end with
@@ -222,9 +223,9 @@ def test_reduction_negative_axis_rejected():
 
 
 def test_summation_polynomial_expression():
-    idx = pm.var("sum_poly_idx", dtype=pm.DType.INT32, shape=())
-    coeff = pm.var("sum_poly_coeff", dtype=pm.DType.INT32, shape=())
-    bias = pm.const("poly_bias", data=5, dtype=pm.DType.INT32)
+    idx = pm.var("sum_poly_idx", dtype=pm.DType.Z, shape=())
+    coeff = pm.var("sum_poly_coeff", dtype=pm.DType.Z, shape=())
+    bias = pm.const("poly_bias", data=5, dtype=pm.DType.Z)
     poly_body = idx * idx + coeff * idx + bias
     expr = R.summation(poly_body, lower=-2, upper=2, i="sum_poly_idx")
     with pm.new_context():
@@ -236,21 +237,21 @@ def test_summation_polynomial_expression():
 
 
 def test_nested_summations_with_dependent_bounds():
-    outer_idx = pm.var("outer_idx", dtype=pm.DType.INT32, shape=())
-    inner_idx = pm.var("inner_idx", dtype=pm.DType.INT32, shape=())
-    weight = pm.var("nested_weight", dtype=pm.DType.FLOAT32, shape=())
-    bias = pm.const("nested_bias", data=1.0, dtype=pm.DType.FLOAT32)
+    outer_idx = pm.var("outer_idx", dtype=pm.DType.Z, shape=())
+    inner_idx = pm.var("inner_idx", dtype=pm.DType.Z, shape=())
+    weight = pm.var("nested_weight", dtype=pm.DType.R, shape=())
+    bias = pm.const("nested_bias", data=1.0, dtype=pm.DType.R)
 
     inner_body = (inner_idx + outer_idx) * weight + bias
     inner_sum = R.summation(
         inner_body,
         lower=outer_idx,
-        upper=outer_idx + pm.const("inner_span", data=2, dtype=pm.DType.INT32),
+        upper=outer_idx + pm.const("inner_span", data=2, dtype=pm.DType.Z),
         i="inner_idx"
     )
 
     nested_expr = R.summation(
-        inner_sum * (outer_idx + pm.const("outer_offset", data=1, dtype=pm.DType.INT32)),
+        inner_sum * (outer_idx + pm.const("outer_offset", data=1, dtype=pm.DType.Z)),
         lower=1,
         upper=3,
         i="outer_idx"
@@ -272,10 +273,10 @@ def test_nested_summations_with_dependent_bounds():
 
 
 def test_product_linear_body_matches_python():
-    idx = pm.var("prod_idx", dtype=pm.DType.INT32, shape=())
-    scale = pm.var("prod_scale", dtype=pm.DType.FLOAT32, shape=())
-    offset = pm.const("prod_offset", data=1.5, dtype=pm.DType.FLOAT32)
-    shift = pm.const("prod_shift", data=1, dtype=pm.DType.INT32)
+    idx = pm.var("prod_idx", dtype=pm.DType.Z, shape=())
+    scale = pm.var("prod_scale", dtype=pm.DType.R, shape=())
+    offset = pm.const("prod_offset", data=1.5, dtype=pm.DType.R)
+    shift = pm.const("prod_shift", data=1, dtype=pm.DType.Z)
 
     body = (idx + shift) * scale + offset
     expr = R.product(body, lower=1, upper=3, i="prod_idx")
@@ -291,10 +292,10 @@ def test_product_linear_body_matches_python():
 
 
 def test_product_empty_range_returns_identity():
-    idx = pm.var("prod_idx_empty", dtype=pm.DType.INT32, shape=())
-    term = idx + pm.const("prod_term_shift", data=2, dtype=pm.DType.INT32)
-    lower = pm.const("prod_empty_lower", data=3, dtype=pm.DType.INT32)
-    upper = pm.const("prod_empty_upper", data=2, dtype=pm.DType.INT32)
+    idx = pm.var("prod_idx_empty", dtype=pm.DType.Z, shape=())
+    term = idx + pm.const("prod_term_shift", data=2, dtype=pm.DType.Z)
+    lower = pm.const("prod_empty_lower", data=3, dtype=pm.DType.Z)
+    upper = pm.const("prod_empty_upper", data=2, dtype=pm.DType.Z)
 
     expr = R.product(term, lower=lower, upper=upper, i="prod_idx_empty")
     np.testing.assert_allclose(expr.eval().value, np.array(1, dtype=np.int32))

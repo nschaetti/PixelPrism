@@ -31,11 +31,13 @@ from abc import ABC
 from typing import Sequence, List, Any, Optional, Union
 import numpy as np
 
-from ..dtype import DType
+from ..dtype import DType, to_numpy
 from ..shape import Shape
 from ..tensor import Tensor
 from ..context import new_context, set_value
+from ..math_expr import MathNode
 from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
+
 
 __all__ = [
     "ReductionOperator",
@@ -72,7 +74,7 @@ class ReductionOperator(Operator, ParametricOperator, ABC):
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: "MathNode",
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -102,7 +104,7 @@ class AxisReductionOperator(ReductionOperator, ABC):
     Reduction operators.
     """
 
-    def __init__(self, *, axis: Optional[Union["MathExpr", int]] = None, **kwargs: Any):
+    def __init__(self, *, axis: Optional[Union[MathNode, int]] = None, **kwargs: Any):
         super().__init__(**kwargs)
         from ..math_expr import Variable
         if axis and isinstance(axis, int):
@@ -125,7 +127,7 @@ class AxisReductionOperator(ReductionOperator, ABC):
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -278,7 +280,7 @@ class Median(AxisReductionOperator):
 
     Parameters
     ----------
-    axis : MathExpr or int or None, optional
+    axis : MathNode or int or None, optional
         Axis along which the median is computed. When ``None``, the tensor is
         flattened prior to reduction.
 
@@ -295,7 +297,7 @@ class Median(AxisReductionOperator):
 
     Examples
     --------
-    >>> x = pm.const(\"med_a\", data=[[1., 3.], [2., 4.]], dtype=pm.DType.FLOAT32)
+    >>> x = pm.const(\"med_a\", data=[[1., 3.], [2., 4.]], dtype=pm.DType.R)
     >>> R.median(x, axis=0).eval()
     tensor([1.5, 3.5], dtype=float32)
     """
@@ -348,7 +350,7 @@ class Max(AxisReductionOperator):
 
     Parameters
     ----------
-    axis : MathExpr or int or None, optional
+    axis : MathNode or int or None, optional
         Axis along which the maximum is computed. When ``None``, the tensor is
         flattened prior to reduction.
 
@@ -359,7 +361,7 @@ class Max(AxisReductionOperator):
 
     Examples
     --------
-    >>> x = pm.const(\"max_a\", data=[[1, 2], [3, 4]], dtype=pm.DType.FLOAT32)
+    >>> x = pm.const(\"max_a\", data=[[1, 2], [3, 4]], dtype=pm.DType.R)
     >>> R.max(x, axis=0).eval()
     tensor([3., 4.], dtype=float32)
     """
@@ -391,7 +393,7 @@ class Min(AxisReductionOperator):
 
     Parameters
     ----------
-    axis : MathExpr or int or None, optional
+    axis : MathNode or int or None, optional
         Axis along which the minimum is computed.
 
     Returns
@@ -427,7 +429,7 @@ class Q1(Median):
 
     Parameters
     ----------
-    axis : MathExpr or int or None, optional
+    axis : MathNode or int or None, optional
         Axis along which the percentile is computed.
 
     Returns
@@ -449,7 +451,7 @@ class Q3(Q1):
 
     Parameters
     ----------
-    axis : MathExpr or int or None, optional
+    axis : MathNode or int or None, optional
         Axis along which the percentile is computed.
 
     Returns
@@ -474,8 +476,8 @@ class Summation(ReductionOperator):
 
     def __init__(
             self,
-            lower: Union["MathExpr", int],
-            upper: Union["MathExpr", int],
+            lower: Union[MathNode, int],
+            upper: Union[MathNode, int],
             i: str
     ):
         super().__init__(
@@ -529,7 +531,7 @@ class Summation(ReductionOperator):
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -539,16 +541,16 @@ class Summation(ReductionOperator):
     # end def contains
 
     @classmethod
-    def check_parameters(cls, lower: "MathExpr", upper: "MathExpr", i: str) -> bool:
+    def check_parameters(cls, lower: MathNode, upper: MathNode, i: str) -> bool:
         """Check that the operands have compatible shapes."""
-        # Lower must be int32 or int64
-        if lower.dtype not in {DType.INT32, DType.INT64}:
-            raise ValueError(f"Lower bound must be int32 or int64, got {lower.dtype}")
+        # Lower must be int
+        if lower.dtype not in {DType.Z}:
+            raise ValueError(f"Lower bound must be int, got {lower.dtype}")
         # end if
 
-        # Upper must be int32 or int64
-        if upper.dtype not in {DType.INT32, DType.INT64}:
-            raise ValueError(f"Upper bound must be int32 or int64, got {upper.dtype}")
+        # Upper must be int
+        if upper.dtype not in {DType.Z}:
+            raise ValueError(f"Upper bound must be int, got {upper.dtype}")
         # end if
 
         return True
@@ -640,9 +642,9 @@ class Product(ReductionOperator):
 
     Parameters
     ----------
-    lower : MathExpr or int
+    lower : MathNode or int
         Inclusive lower bound for the bounded variable.
-    upper : MathExpr or int
+    upper : MathNode or int
         Inclusive upper bound for the bounded variable.
     i : str
         Name of the bounded variable updated inside the product.
@@ -655,7 +657,7 @@ class Product(ReductionOperator):
 
     Examples
     --------
-    >>> i = pm.var("i", dtype=pm.DType.INT32, shape=())
+    >>> i = pm.var("i", dtype=pm.DType.Z, shape=())
     >>> expr = R.product(i + 1, lower=1, upper=3, bounded_variable="i")
     >>> expr.eval()
     tensor(24., dtype=float32)
@@ -666,8 +668,8 @@ class Product(ReductionOperator):
 
     def __init__(
             self,
-            lower: Union["MathExpr", int],
-            upper: Union["MathExpr", int],
+            lower: Union[MathNode, int],
+            upper: Union[MathNode, int],
             i: str
     ):
         super().__init__(
@@ -719,7 +721,7 @@ class Product(ReductionOperator):
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -729,13 +731,13 @@ class Product(ReductionOperator):
     # end def contains
 
     @classmethod
-    def check_parameters(cls, lower: "MathExpr", upper: "MathExpr", i: str) -> bool:
+    def check_parameters(cls, lower: MathNode, upper: MathNode, i: str) -> bool:
         """Check that the operands have compatible shapes."""
-        if lower.dtype not in {DType.INT32, DType.INT64}:
-            raise ValueError(f"Lower bound must be int32 or int64, got {lower.dtype}")
+        if lower.dtype not in {DType.Z}:
+            raise ValueError(f"Lower bound must be int, got {lower.dtype}")
         # end if
-        if upper.dtype not in {DType.INT32, DType.INT64}:
-            raise ValueError(f"Upper bound must be int32 or int64, got {upper.dtype}")
+        if upper.dtype not in {DType.Z}:
+            raise ValueError(f"Upper bound must be int, got {upper.dtype}")
         # end if
         return True
     # end def check_parameters
@@ -768,7 +770,7 @@ class Product(ReductionOperator):
         upper = self.upper.eval().item()
 
         dtype = body.dtype
-        init = np.ones(shape=body.input_shape.dims, dtype=dtype.to_numpy())
+        init = np.ones(shape=body.input_shape.dims, dtype=to_numpy(dtype))
         ret_value = Tensor(data=init, dtype=dtype)
 
         with new_context():

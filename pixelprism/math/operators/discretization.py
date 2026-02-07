@@ -32,7 +32,7 @@ Discretization-related elementwise operators.
 from typing import Optional, Union
 
 from ..tensor import Tensor
-from ..math_expr import MathExpr
+from ..math_expr import MathNode
 from .base import Operands, operator_registry
 from .elementwise import UnaryElementwiseOperator, UnaryElementwiseParametricOperator
 
@@ -56,7 +56,7 @@ class Sign(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().sign()
+        return value.eval().t_sign()
     # end def _eval
 
 # end class Sign
@@ -71,7 +71,7 @@ class Floor(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().floor()
+        return value.eval().t_floor()
     # end def _eval
 
 # end class Floor
@@ -85,7 +85,7 @@ class Ceil(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().ceil()
+        return value.eval().t_ceil()
     # end def _eval
 
 # end class Ceil
@@ -99,7 +99,7 @@ class Trunc(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().trunc()
+        return value.eval().t_trunc()
     # end def _eval
 # end class Trunc
 
@@ -112,7 +112,7 @@ class Rint(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().rint()
+        return value.eval().t_rint()
     # end def _eval
 # end class Rint
 
@@ -126,7 +126,7 @@ class Round(UnaryElementwiseParametricOperator):
     def __init__(
             self,
             *,
-            decimals: Optional[Union[MathExpr, int]] = None
+            decimals: Optional[Union[MathNode, int]] = None
     ):
         super().__init__(decimals=decimals)
         from ..utils import const, random_const_name
@@ -134,13 +134,13 @@ class Round(UnaryElementwiseParametricOperator):
         if decimals is None:
             decimals = const(random_const_name("round-decimals-"), 0)
         # end if
-        self._decimals: 'MathNode' = decimals if isinstance(decimals, MathNode) \
+        self._decimals: MathNode = decimals if isinstance(decimals, MathNode) \
             else const(name=random_const_name("round-decimals-"), data=decimals)
     # end def __init__
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().round(decimals=self._resolve_parameter(self._decimals))
+        return value.eval().t_round(decimals=self._resolve_parameter(self._decimals))
     # end def _eval
 
     def __str__(self) -> str:
@@ -164,8 +164,8 @@ class Clip(UnaryElementwiseParametricOperator):
     def __init__(
             self,
             *,
-            min_value: Optional[Union[MathExpr, int]] = None,
-            max_value: Optional[Union[MathExpr, int]] = None
+            min_value: Optional[Union[MathNode, int]] = None,
+            max_value: Optional[Union[MathNode, int]] = None
     ):
         super().__init__(min_value=min_value, max_value=max_value)
         from ..utils import const, random_const_name
@@ -182,7 +182,7 @@ class Clip(UnaryElementwiseParametricOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         tensor = value.eval()
-        return tensor.clip(
+        return tensor.t_clip(
             min_value=self._resolve_parameter(self._min_value),
             max_value=self._resolve_parameter(self._max_value)
         )

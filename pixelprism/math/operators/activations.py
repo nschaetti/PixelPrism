@@ -35,7 +35,7 @@ from typing import Sequence
 import numpy as np
 
 from ..tensor import Tensor
-from ..dtype import DType
+from ..dtype import DType, to_numpy
 from .base import Operands, operator_registry
 from .elementwise import UnaryElementwiseOperator
 
@@ -55,7 +55,7 @@ class _UnaryActivation(UnaryElementwiseOperator):
     def _tensor_data(operand):
         tensor = operand.eval()
         dtype = tensor.dtype
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         data = tensor.value.astype(numpy_dtype, copy=False)
         return tensor, data, numpy_dtype
     # end def _tensor_data

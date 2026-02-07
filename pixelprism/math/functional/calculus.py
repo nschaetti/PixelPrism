@@ -30,7 +30,7 @@ Calculus functional operators
 """
 
 # Imports
-from ..math_expr import MathExpr, Variable
+from ..math_expr import MathNode, Variable
 from .builders import vector
 
 
@@ -40,12 +40,12 @@ __all__ = [
 ]
 
 
-def diff(expr: MathExpr, wrt: Variable) -> MathExpr:
+def diff(expr: MathNode, wrt: Variable) -> MathNode:
     return expr.diff(wrt=wrt)
 # end def diff
 
 
-def nabla(expr: MathExpr) -> MathExpr:
+def nabla(expr: MathNode) -> MathNode:
     """Nabla operator."""
     return vector([expr.diff(v) for v in expr.variables()])
 # end def nabla

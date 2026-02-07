@@ -30,11 +30,12 @@ import numpy as np
 import pytest
 
 import pixelprism.math as pm
+from pixelprism.math.dtype import to_numpy
 from pixelprism.math.functional import builders as FB
 
 
 def _make_const(name, values, dtype):
-    arr = np.asarray(values, dtype=dtype.to_numpy())
+    arr = np.asarray(values, dtype=to_numpy(dtype))
     return pm.const(name=name, data=arr, dtype=dtype), arr
 # end def _make_const
 
@@ -42,8 +43,8 @@ def _make_const(name, values, dtype):
 def test_concatenate_matches_numpy():
     left = np.arange(6, dtype=np.float32).reshape(2, 3)
     right = np.arange(6, 12, dtype=np.float32).reshape(2, 3)
-    expr_left = pm.const("concat_left", data=left.copy(), dtype=pm.DType.FLOAT32)
-    expr_right = pm.const("concat_right", data=right.copy(), dtype=pm.DType.FLOAT32)
+    expr_left = pm.const("concat_left", data=left.copy(), dtype=pm.DType.R)
+    expr_right = pm.const("concat_right", data=right.copy(), dtype=pm.DType.R)
     expr = FB.concatenate((expr_left, expr_right), axis=0)
     expected = np.concatenate([left, right], axis=0)
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -54,8 +55,8 @@ def test_concatenate_matches_numpy():
 def test_hstack_concatenates_along_second_axis():
     left = np.arange(6, dtype=np.float32).reshape(2, 3)
     right = np.arange(6, 12, dtype=np.float32).reshape(2, 3)
-    expr_left = pm.const("hstack_left", data=left.copy(), dtype=pm.DType.FLOAT32)
-    expr_right = pm.const("hstack_right", data=right.copy(), dtype=pm.DType.FLOAT32)
+    expr_left = pm.const("hstack_left", data=left.copy(), dtype=pm.DType.R)
+    expr_right = pm.const("hstack_right", data=right.copy(), dtype=pm.DType.R)
     expr = FB.hstack((expr_left, expr_right))
     expected = np.hstack([left, right])
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -66,8 +67,8 @@ def test_hstack_concatenates_along_second_axis():
 def test_vstack_concatenates_along_first_axis():
     upper = np.arange(6, dtype=np.float32).reshape(2, 3)
     lower = np.arange(6, 12, dtype=np.float32).reshape(2, 3)
-    expr_upper = pm.const("vstack_upper", data=upper.copy(), dtype=pm.DType.FLOAT32)
-    expr_lower = pm.const("vstack_lower", data=lower.copy(), dtype=pm.DType.FLOAT32)
+    expr_upper = pm.const("vstack_upper", data=upper.copy(), dtype=pm.DType.R)
+    expr_lower = pm.const("vstack_lower", data=lower.copy(), dtype=pm.DType.R)
     expr = FB.vstack((expr_upper, expr_lower))
     expected = np.vstack([upper, lower])
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -76,8 +77,8 @@ def test_vstack_concatenates_along_first_axis():
 
 
 def test_from_function_vector_default_indices():
-    idx = pm.var("from_fun_i", dtype=pm.DType.INT32, shape=())
-    body = idx + pm.const("from_fun_offset", data=1, dtype=pm.DType.INT32)
+    idx = pm.var("from_fun_i", dtype=pm.DType.Z, shape=())
+    body = idx + pm.const("from_fun_offset", data=1, dtype=pm.DType.Z)
     expr = FB.from_function(shape=(4,), body=body, index_vars=[idx])
     expected = np.arange(4, dtype=np.int32) + 1
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -86,8 +87,8 @@ def test_from_function_vector_default_indices():
 
 
 def test_linspace_basic_values():
-    start = pm.const("lin_start", data=0.0, dtype=pm.DType.FLOAT32)
-    stop = pm.const("lin_stop", data=1.0, dtype=pm.DType.FLOAT32)
+    start = pm.const("lin_start", data=0.0, dtype=pm.DType.R)
+    stop = pm.const("lin_stop", data=1.0, dtype=pm.DType.R)
     expr = FB.linspace(start, stop, 5)
     expected = np.linspace(0.0, 1.0, 5, dtype=np.float32)
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -97,17 +98,17 @@ def test_linspace_basic_values():
 
 
 def test_linspace_requires_scalar_operands():
-    start = pm.const("lin_bad_start", data=[0.0, 1.0], dtype=pm.DType.FLOAT32)
-    stop = pm.const("lin_stop", data=1.0, dtype=pm.DType.FLOAT32)
+    start = pm.const("lin_bad_start", data=[0.0, 1.0], dtype=pm.DType.R)
+    stop = pm.const("lin_stop", data=1.0, dtype=pm.DType.R)
     with pytest.raises(ValueError):
         FB.linspace(start, stop, 3)
 # end test_linspace_requires_scalar_operands
 
 
 def test_linspace_num_must_be_constant_integer():
-    start = pm.const("lin_start_int", data=0.0, dtype=pm.DType.FLOAT32)
-    stop = pm.const("lin_stop_int", data=1.0, dtype=pm.DType.FLOAT32)
-    num_var = pm.var("lin_num_var", dtype=pm.DType.INT32, shape=())
+    start = pm.const("lin_start_int", data=0.0, dtype=pm.DType.R)
+    stop = pm.const("lin_stop_int", data=1.0, dtype=pm.DType.R)
+    num_var = pm.var("lin_num_var", dtype=pm.DType.Z, shape=())
     with pytest.raises(ValueError):
         FB.linspace(start, stop, num_var)
     with pytest.raises(ValueError):
@@ -116,8 +117,8 @@ def test_linspace_num_must_be_constant_integer():
 
 
 def test_logspace_default_base():
-    start = pm.const("log_start", data=0.0, dtype=pm.DType.FLOAT32)
-    stop = pm.const("log_stop", data=1.0, dtype=pm.DType.FLOAT32)
+    start = pm.const("log_start", data=0.0, dtype=pm.DType.R)
+    stop = pm.const("log_stop", data=1.0, dtype=pm.DType.R)
     expr = FB.logspace(start, stop, 4)
     expected = np.logspace(0.0, 1.0, 4, base=10.0, dtype=np.float32)
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -127,8 +128,8 @@ def test_logspace_default_base():
 
 
 def test_logspace_custom_base():
-    start = pm.const("log2_start", data=0.0, dtype=pm.DType.FLOAT32)
-    stop = pm.const("log2_stop", data=3.0, dtype=pm.DType.FLOAT32)
+    start = pm.const("log2_start", data=0.0, dtype=pm.DType.R)
+    stop = pm.const("log2_stop", data=3.0, dtype=pm.DType.R)
     expr = FB.logspace(start, stop, 4, base=2)
     expected = np.logspace(0.0, 3.0, 4, base=2.0, dtype=np.float32)
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -136,17 +137,17 @@ def test_logspace_custom_base():
 
 
 def test_logspace_base_must_be_constant():
-    start = pm.const("log_bad_start", data=0.0, dtype=pm.DType.FLOAT32)
-    stop = pm.const("log_bad_stop", data=1.0, dtype=pm.DType.FLOAT32)
-    base = pm.var("log_base", dtype=pm.DType.INT32, shape=())
+    start = pm.const("log_bad_start", data=0.0, dtype=pm.DType.R)
+    stop = pm.const("log_bad_stop", data=1.0, dtype=pm.DType.R)
+    base = pm.var("log_base", dtype=pm.DType.Z, shape=())
     with pytest.raises(ValueError):
         FB.logspace(start, stop, 3, base=base)
 # end test_logspace_base_must_be_constant
 
 
 def test_map_simple_case():
-    tensor = pm.const("map_tensor", data=[-1.0, 2.0], dtype=pm.DType.FLOAT32)
-    var = pm.var("map_value", dtype=pm.DType.FLOAT32, shape=())
+    tensor = pm.const("map_tensor", data=[-1.0, 2.0], dtype=pm.DType.R)
+    var = pm.var("map_value", dtype=pm.DType.R, shape=())
     body = var * var
     expr = FB.map_(tensor, var.name, body)
     expected = np.square(tensor.eval().value)

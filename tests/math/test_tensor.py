@@ -30,9 +30,9 @@
 import numpy as np
 import pytest
 from pixelprism.math import utils
-from pixelprism.math.dtype import DType
+from pixelprism.math.dtype import DType, from_numpy
 from pixelprism.math.shape import Shape
-from pixelprism.math.tensor import Tensor, _convert_data_to_numpy_array, _numpy_dtype_to_dtype, einsum
+from pixelprism.math.tensor import Tensor, _convert_data_to_numpy_array, _numpy_dtype_to_dtype, t_einsum
 
 
 def test_numpy_dtype_to_dtype_supported_and_invalid_types():
@@ -44,18 +44,15 @@ def test_numpy_dtype_to_dtype_supported_and_invalid_types():
     None
     """
     cases = [
-        (np.dtype(np.float32), DType.FLOAT32),
-        (np.dtype(np.float64), DType.FLOAT64),
-        (np.dtype(np.int32), DType.INT32),
-        (np.dtype(np.int64), DType.INT64),
+        (np.dtype(np.float32), DType.R),
+        (np.dtype(np.float64), DType.R),
+        (np.dtype(np.int32), DType.Z),
+        (np.dtype(np.int64), DType.Z),
+        (np.dtype(np.bool_), DType.B),
     ]
     for dtype, expected in cases:
         assert _numpy_dtype_to_dtype(dtype) is expected
     # end for
-
-    with pytest.raises(ValueError):
-        _numpy_dtype_to_dtype(np.dtype(np.bool_))
-    # end with
 # end test test_numpy_dtype_to_dtype_supported_and_invalid_types
 
 
@@ -92,7 +89,7 @@ def test_tensor_basic_metadata_from_numpy_data():
     tensor = Tensor(data=data)
 
     np.testing.assert_array_equal(tensor.value, data)
-    assert tensor.dtype == DType.FLOAT64
+    assert tensor.dtype == DType.R
     assert tensor.shape.dims == (2, 3)
     assert tensor.dims == (2, 3)
     assert tensor.ndim == 2
@@ -115,16 +112,16 @@ def test_tensor_from_numpy_and_from_list_factories():
     arr = np.arange(4, dtype=np.float32)
     tensor = Tensor.from_numpy(arr)
     assert tensor.value is arr
-    assert tensor.dtype == DType.FLOAT32
+    assert tensor.dtype == DType.R
 
     cast_source = np.arange(3, dtype=np.float64)
-    cast_tensor = Tensor.from_numpy(cast_source, dtype=DType.FLOAT32)
+    cast_tensor = Tensor.from_numpy(cast_source, dtype=DType.R)
     assert cast_tensor.value is not cast_source
-    assert cast_tensor.dtype == DType.FLOAT32
+    assert cast_tensor.dtype == DType.R
     np.testing.assert_array_equal(cast_tensor.value, cast_source.astype(np.float32))
 
-    listed = Tensor.from_list([1, 2, 3], dtype=DType.INT32)
-    assert listed.dtype == DType.INT32
+    listed = Tensor.from_list([1, 2, 3], dtype=DType.Z)
+    assert listed.dtype == DType.Z
     assert listed.shape.dims == (3,)
 # end test test_tensor_from_numpy_and_from_list_factories
 
@@ -152,13 +149,13 @@ def test_tensor_zeros_factory_respects_dtype():
     None
     """
     shape = Shape((2, 2))
-    tensor = Tensor.zeros(shape, dtype=DType.FLOAT32)
+    tensor = Tensor.zeros(shape, dtype=DType.R)
     np.testing.assert_array_equal(tensor.value, np.zeros((2, 2), dtype=np.float32))
-    assert tensor.dtype == DType.FLOAT32
+    assert tensor.dtype == DType.R
     assert tensor.shape.dims == (2, 2)
 
     default_dtype_tensor = Tensor.zeros(shape)
-    assert default_dtype_tensor.dtype == DType.FLOAT64
+    assert default_dtype_tensor.dtype == DType.R
 # end test test_tensor_zeros_factory_respects_dtype
 
 
@@ -170,14 +167,14 @@ def test_tensor_set_converts_inputs_to_dtype():
     -------
     None
     """
-    tensor = Tensor(data=[1, 2, 3], dtype=DType.FLOAT32)
+    tensor = Tensor(data=[1, 2, 3], dtype=DType.R)
     tensor.set(np.array([4, 5, 6], dtype=np.int32))
-    assert tensor.dtype == DType.FLOAT32
+    assert tensor.dtype == DType.R
     assert tensor.value.dtype == np.float32
     np.testing.assert_array_equal(tensor.value, np.array([4, 5, 6], dtype=np.float32))
 
     tensor.set([7, 8, 9])
-    assert tensor.dtype == DType.FLOAT32
+    assert tensor.dtype == DType.R
     assert tensor.value.dtype == np.float32
     np.testing.assert_array_equal(tensor.value, np.array([7, 8, 9], dtype=np.float32))
 # end test test_tensor_set_converts_inputs_to_dtype
@@ -275,12 +272,12 @@ def test_tensor_string_and_repr(monkeypatch):
     None
     """
     monkeypatch.setattr(Shape, "__str__", lambda self: self.__repr__())
-    tensor = Tensor(data=[1, 2], dtype=DType.FLOAT32)
-    frozen = Tensor(data=[3], dtype=DType.FLOAT32, mutable=False)
+    tensor = Tensor(data=[1, 2], dtype=DType.R)
+    frozen = Tensor(data=[3], dtype=DType.R, mutable=False)
 
     text = str(tensor)
     assert "tensor(" in text
-    assert "dtype=DType.FLOAT32" in text
+    assert "dtype=DType.R" in text
     assert "shape=" in text
     assert "mutable=True" in text
 
@@ -299,7 +296,7 @@ def test_tensor_creation_helpers_cover_all_paths():
     None
     """
     base = np.arange(4, dtype=np.float32).reshape(2, 2)
-    tensor = utils.tensor(data=base, dtype=DType.FLOAT32, mutable=False)
+    tensor = utils.tensor(data=base, dtype=DType.R, mutable=False)
     assert isinstance(tensor, Tensor)
     assert tensor.mutable is False
     assert tensor.value is base
@@ -316,7 +313,7 @@ def test_tensor_creation_helpers_cover_all_paths():
 
     empty = utils.empty((1, 3), dtype=np.float64)
     assert empty.shape.dims == (1, 3)
-    assert empty.dtype == DType.FLOAT64
+    assert empty.dtype == DType.R
 
     zeros = utils.zeros((2, 2), dtype=np.float32)
     ones = utils.ones(3, dtype=np.float64)
@@ -334,13 +331,13 @@ def test_tensor_creation_helpers_cover_all_paths():
 
     eye_like = utils.eye_like(tensor)
     zeros_like = utils.zeros_like(base, dtype=np.float64)
-    ones_like = utils.ones_like(base, dtype=DType.FLOAT32)
+    ones_like = utils.ones_like(base, dtype=DType.R)
     np.testing.assert_array_equal(eye_like.value, np.eye(2))
-    assert eye_like.dtype == DType.FLOAT32
+    assert eye_like.dtype == DType.R
     np.testing.assert_array_equal(zeros_like.value, np.zeros_like(base, dtype=np.float64))
-    assert zeros_like.dtype == DType.FLOAT64
+    assert zeros_like.dtype == DType.R
     np.testing.assert_array_equal(ones_like.value, np.ones_like(base, dtype=np.float32))
-    assert ones_like.dtype == DType.FLOAT32
+    assert ones_like.dtype == DType.R
 # end test test_tensor_creation_helpers_cover_all_paths
 
 
@@ -375,7 +372,7 @@ def test_tensor_elementwise_operators_match_numpy():
     for tensor_result, expected in cases:
         np.testing.assert_array_equal(tensor_result.value, expected)
         assert tensor_result.dims == expected.shape
-        assert tensor_result.dtype == DType.from_numpy(expected.dtype)
+        assert tensor_result.dtype == from_numpy(expected.dtype)
 # end test test_tensor_elementwise_operators_match_numpy
 
 
@@ -395,15 +392,15 @@ def test_tensor_getitem_preserves_dtype_and_shape():
     sub_block = tensor[1:, 2:]
 
     np.testing.assert_array_equal(first_row.value, data[0])
-    assert first_row.dtype == DType.INT32
+    assert first_row.dtype == DType.Z
     assert first_row.dims == data[0].shape
 
     np.testing.assert_array_equal(first_col.value, data[:, 0])
-    assert first_col.dtype == DType.INT32
+    assert first_col.dtype == DType.Z
     assert first_col.dims == data[:, 0].shape
 
     np.testing.assert_array_equal(sub_block.value, data[1:, 2:])
-    assert sub_block.dtype == DType.INT32
+    assert sub_block.dtype == DType.Z
     assert sub_block.dims == data[1:, 2:].shape
 # end test test_tensor_getitem_preserves_dtype_and_shape
 
@@ -428,7 +425,7 @@ def test_tensor_math_methods_match_numpy():
         expected = numpy_fn(data)
         np.testing.assert_allclose(result.value, expected)
         assert result.dims == data.shape
-        assert result.dtype == DType.from_numpy(expected.dtype)
+        assert result.dtype == from_numpy(expected.dtype)
     # end def assert_unary
 
     unary_cases = [
@@ -478,7 +475,7 @@ def test_tensor_math_methods_match_numpy():
 
     clipped = tensor_positive.clip(min_value=1.0, max_value=3.0)
     np.testing.assert_allclose(clipped.value, np.clip(positive_data, 1.0, 3.0))
-    assert clipped.dtype == DType.FLOAT64
+    assert clipped.dtype == DType.R
 # end test test_tensor_math_methods_match_numpy
 
 
@@ -495,15 +492,15 @@ def test_tensor_math_functions_exposed_in_module():
     data = np.array([0.5, 1.5, 2.5], dtype=np.float64)
     tensor = Tensor(data=data.copy())
 
-    np.testing.assert_allclose(ppmath.log(tensor).value, np.log(data))
-    np.testing.assert_allclose(ppmath.pow(tensor, 2).value, np.power(data, 2))
+    np.testing.assert_allclose(ppmath.t_log(tensor).value, np.log(data))
+    np.testing.assert_allclose(ppmath.t_pow(tensor, 2).value, np.power(data, 2))
     np.testing.assert_allclose(
-        ppmath.clip(tensor, min_value=1.0).value,
+        ppmath.t_clip(tensor, min_value=1.0).value,
         np.clip(data, 1.0, None)
     )
 
     with pytest.raises(TypeError):
-        ppmath.log(data)
+        ppmath.t_log(data)
     # end with
 # end test test_tensor_math_functions_exposed_in_module
 
@@ -514,17 +511,17 @@ def test_tensor_einsum_matches_numpy_and_out_parameter():
     """
     left = Tensor(data=np.arange(6, dtype=np.float32).reshape(2, 3))
     right = Tensor(data=np.arange(12, dtype=np.float32).reshape(3, 4))
-    result = einsum("ik,kj->ij", left, right)
+    result = t_einsum("ik,kj->ij", left, right)
     expected = np.einsum("ik,kj->ij", left.value, right.value)
     np.testing.assert_allclose(result.value, expected)
-    assert result.dtype == DType.FLOAT32
+    assert result.dtype == DType.R
 
     out = Tensor(data=np.zeros((2, 4), dtype=np.float32))
-    returned = einsum("ik,kj->ij", left, right, out=out)
+    returned = t_einsum("ik,kj->ij", left, right, out=out)
     assert returned is out
     np.testing.assert_allclose(out.value, expected)
 
-    scalar = einsum("ij->", Tensor(data=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)))
+    scalar = t_einsum("ij->", Tensor(data=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)))
     np.testing.assert_allclose(scalar.value, np.einsum("ij->", np.array([[1.0, 2.0], [3.0, 4.0]])))
-    assert scalar.dtype == DType.FLOAT64
+    assert scalar.dtype == DType.R
 # end test test_tensor_einsum_matches_numpy_and_out_parameter

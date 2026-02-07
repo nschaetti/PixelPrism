@@ -45,7 +45,7 @@ from pixelprism.math.functional.structure import reshape as reshape_fn
 def _const_matrix(name="getitem_matrix"):
     """Create a 3x4 float32 constant and its NumPy payload for slicing tests."""
     values = np.arange(12, dtype=np.float32).reshape(3, 4)
-    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.FLOAT32)
+    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.R)
     return expr, values
 # end def _const_matrix
 
@@ -53,7 +53,7 @@ def _const_matrix(name="getitem_matrix"):
 def _const_tensor3d(name="getitem_tensor3d"):
     """Create a 3x4x5 tensor to stress-test chained slice handling."""
     values = np.arange(60, dtype=np.float32).reshape(3, 4, 5)
-    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.FLOAT32)
+    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.R)
     return expr, values
 # end def _const_tensor3d
 
@@ -67,7 +67,7 @@ def _slice(start, stop, step=1):
 def _const_vector(name="getitem_vector"):
     """Create a 1-D tensor for slice coverage tests."""
     values = np.arange(10, dtype=np.float32)
-    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.FLOAT32)
+    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.R)
     return expr, values
 # end def _const_vector
 
@@ -75,7 +75,7 @@ def _const_vector(name="getitem_vector"):
 def _const_scalar(name="flatten_scalar"):
     """Create a scalar constant for flatten tests."""
     value = np.array(3.5, dtype=np.float32)
-    expr = pm.const(name=name, data=value.copy(), dtype=pm.DType.FLOAT32)
+    expr = pm.const(name=name, data=value.copy(), dtype=pm.DType.R)
     return expr, value
 # end def _const_scalar
 
@@ -83,7 +83,7 @@ def _const_scalar(name="flatten_scalar"):
 def _const_tensor_with_unit_dims(name="structure_unit_tensor"):
     """Create a tensor with interleaved unit dimensions."""
     values = np.arange(12, dtype=np.float32).reshape(1, 3, 1, 4)
-    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.FLOAT32)
+    expr = pm.const(name=name, data=values.copy(), dtype=pm.DType.R)
     return expr, values
 # end def _const_tensor_with_unit_dims
 
@@ -325,7 +325,7 @@ def test_squeeze_removes_all_unit_axes_by_default():
 def test_squeeze_with_explicit_axes_only_removes_selected_dims():
     """Squeeze with axes removes only the requested unit dimensions."""
     values = np.arange(6, dtype=np.float32).reshape(2, 1, 3)
-    expr = pm.const(name="squeeze_axes", data=values.copy(), dtype=pm.DType.FLOAT32)
+    expr = pm.const(name="squeeze_axes", data=values.copy(), dtype=pm.DType.R)
     operator = Squeeze(axes=[1])
 
     assert operator.check_operands([expr])

@@ -34,21 +34,21 @@ from abc import ABC
 from typing import Optional, Sequence, Union
 import numpy as np
 
-from ..dtype import DType
-from ..math_expr import MathExpr, Variable
+from ..dtype import DType, to_numpy, promote
+from ..math_expr import MathNode
 from ..shape import Shape
 from ..tensor import (
     Tensor,
-    concatenate as tensor_concatenate,
-    hstack as tensor_hstack,
-    vstack as tensor_vstack,
+    t_concatenate as tensor_concatenate,
+    t_hstack as tensor_hstack,
+    t_vstack as tensor_vstack,
 )
 from ..context import new_context, set_value
 from ..utils import const, random_const_name
 from .base import Operands, Operator, ParametricOperator, operator_registry
 
 
-Element = Union[MathExpr, float, int]
+Element = Union[MathNode, float, int]
 Elements = Sequence[Element]
 
 
@@ -137,7 +137,7 @@ class BuildTensor(ParametricBuilder):
 
     def contains(
             self,
-            expr: MathExpr,
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -157,7 +157,7 @@ class BuildTensor(ParametricBuilder):
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
         for operand in operands[1:]:
-            dtype = DType.promote(dtype, operand.dtype)
+            dtype = promote(dtype, operand.dtype)
         # end for
         return dtype
     # end def infer_dtype
@@ -187,7 +187,7 @@ class BuildTensor(ParametricBuilder):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(operands)
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         values = [np.asarray(operand.eval().value, dtype=numpy_dtype) for operand in operands]
         data = np.stack(values, axis=0)
         if self._input_shape is not None:
@@ -196,7 +196,7 @@ class BuildTensor(ParametricBuilder):
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("BuildTensor does not support backward propagation.")
     # end def _backward
 
@@ -234,7 +234,7 @@ class Vector(Builder):
         return len(operands) > 0
     # end def check_arity
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
@@ -253,20 +253,20 @@ class Vector(Builder):
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
         for operand in operands[1:]:
-            dtype = DType.promote(dtype, operand.dtype)
+            dtype = promote(dtype, operand.dtype)
         # end for
         return dtype
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(operands)
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         values = [np.asarray(op.eval().value, dtype=numpy_dtype) for op in operands]
         data = np.stack(values, axis=0)
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Vector does not support backward propagation.")
     # end def _backward
 
@@ -302,7 +302,7 @@ class Matrix(ParametricBuilder):
         return rows > 0 and cols > 0
     # end def check_parameters
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
@@ -323,20 +323,20 @@ class Matrix(ParametricBuilder):
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
         for operand in operands[1:]:
-            dtype = DType.promote(dtype, operand.dtype)
+            dtype = promote(dtype, operand.dtype)
         # end for
         return dtype
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(operands)
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         values = [np.asarray(op.eval().value, dtype=numpy_dtype) for op in operands]
         data = np.stack(values, axis=0).reshape(self._rows, self._cols)
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Matrix does not support backward propagation.")
     # end def _backward
 
@@ -369,7 +369,7 @@ class Full(ParametricBuilder):
         return shape.n_dims >= 0
     # end def check_parameters
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
@@ -392,13 +392,13 @@ class Full(ParametricBuilder):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         operand, = operands
         dtype = operand.dtype
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         scalar_value = np.asarray(operand.eval().value, dtype=numpy_dtype).item()
         data = np.full(self._shape.dims, scalar_value, dtype=numpy_dtype)
         return Tensor(data=data, dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Full does not support backward propagation.")
     # end def _backward
 
@@ -421,7 +421,7 @@ class Diag(Builder):
     NAME = "diag"
     ARITY = 1
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
@@ -446,13 +446,13 @@ class Diag(Builder):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         vector, = operands
         dtype = vector.dtype
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         values = np.asarray(vector.eval().value, dtype=numpy_dtype)
         result = np.diag(values)
         return Tensor(data=np.asarray(result, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Diag does not support backward propagation.")
     # end def _backward
 
@@ -492,7 +492,7 @@ class Concatenate(Builder):
 
     def contains(
             self,
-            expr: MathExpr,
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -512,14 +512,14 @@ class Concatenate(Builder):
         return tensor_concatenate(tensors, axis=self._axis)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Concatenate does not support backward.")
     # end def _backward
 
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
         for operand in operands[1:]:
-            dtype = DType.promote(dtype, operand.dtype)
+            dtype = promote(dtype, operand.dtype)
         return dtype
     # end def infer_dtype
 
@@ -622,18 +622,18 @@ class Zeros(ParametricBuilder):
     NAME = "zeros"
     ARITY = 0
 
-    def __init__(self, shape: Shape, dtype: DType = DType.FLOAT32):
+    def __init__(self, shape: Shape, dtype: DType = DType.R):
         super().__init__(shape=shape, dtype=dtype)
         self._shape = shape
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
     @classmethod
-    def check_parameters(cls, shape: Shape, dtype: DType = DType.FLOAT32) -> bool:
+    def check_parameters(cls, shape: Shape, dtype: DType = DType.R) -> bool:
         return shape.n_dims >= 0
     # end def check_parameters
 
@@ -654,12 +654,12 @@ class Zeros(ParametricBuilder):
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        numpy_dtype = self._dtype.to_numpy()
+        numpy_dtype = to_numpy(self._dtype)
         data = np.zeros(self._shape.dims, dtype=numpy_dtype)
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=self._dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Zeros does not support backward propagation.")
     # end def _backward
 
@@ -682,18 +682,18 @@ class Ones(ParametricBuilder):
     NAME = "ones"
     ARITY = 0
 
-    def __init__(self, shape: Shape, dtype: DType = DType.FLOAT32):
+    def __init__(self, shape: Shape, dtype: DType = DType.R):
         super().__init__(shape=shape, dtype=dtype)
         self._shape = shape
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
     @classmethod
-    def check_parameters(cls, shape: Shape, dtype: DType = DType.FLOAT32) -> bool:
+    def check_parameters(cls, shape: Shape, dtype: DType = DType.R) -> bool:
         return shape.n_dims >= 0
     # end def check_parameters
 
@@ -714,12 +714,12 @@ class Ones(ParametricBuilder):
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        numpy_dtype = self._dtype.to_numpy()
+        numpy_dtype = to_numpy(self._dtype)
         data = np.ones(self._shape.dims, dtype=numpy_dtype)
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=self._dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Ones does not support backward propagation.")
     # end def _backward
 
@@ -742,7 +742,7 @@ class Eye(ParametricBuilder):
     NAME = "eye"
     ARITY = 0
 
-    def __init__(self, rows: int, cols: Optional[int] = None, dtype: DType = DType.FLOAT32):
+    def __init__(self, rows: int, cols: Optional[int] = None, dtype: DType = DType.R):
         if rows <= 0:
             raise ValueError("Eye requires rows > 0.")
         cols = cols if cols is not None else rows
@@ -755,12 +755,12 @@ class Eye(ParametricBuilder):
         self._shape = Shape.matrix(rows, cols)
     # end def __init__
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
     @classmethod
-    def check_parameters(cls, rows: int, cols: Optional[int] = None, dtype: DType = DType.FLOAT32) -> bool:
+    def check_parameters(cls, rows: int, cols: Optional[int] = None, dtype: DType = DType.R) -> bool:
         cols = cols if cols is not None else rows
         return rows > 0 and cols > 0
     # end def check_parameters
@@ -782,12 +782,12 @@ class Eye(ParametricBuilder):
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        numpy_dtype = self._dtype.to_numpy()
+        numpy_dtype = to_numpy(self._dtype)
         data = np.eye(self._rows, self._cols, dtype=numpy_dtype)
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=self._dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Eye does not support backward propagation.")
     # end def _backward
 
@@ -809,7 +809,7 @@ class Identity(Eye):
 
     NAME = "identity"
 
-    def __init__(self, size: int, dtype: DType = DType.FLOAT32):
+    def __init__(self, size: int, dtype: DType = DType.R):
         super().__init__(rows=size, cols=size, dtype=dtype)
         self._size = size
     # end def __init__
@@ -833,7 +833,7 @@ class Linspace(Builder):
     NAME = "linspace"
     ARITY = 0
 
-    def __init__(self, start: MathExpr, stop: MathExpr, num: MathExpr):
+    def __init__(self, start: MathNode, stop: MathNode, num: MathNode):
         super().__init__(start=start, stop=stop, num=num)
         self._start = start
         self._stop = stop
@@ -841,7 +841,7 @@ class Linspace(Builder):
         self._shape = self._resolve_shape()
     # end def __init__
 
-    def _validate_scalar(self, expr: MathExpr, name: str) -> None:
+    def _validate_scalar(self, expr: MathNode, name: str) -> None:
         if expr.rank != 0:
             raise ValueError(f"{self.NAME} {name} must be scalar.")
     # end def _validate_scalar
@@ -859,7 +859,7 @@ class Linspace(Builder):
         return Shape.vector(self._length)
     # end def _resolve_shape
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
@@ -880,19 +880,19 @@ class Linspace(Builder):
     # end def infer_shape
 
     def infer_dtype(self, operands: Operands) -> DType:
-        return DType.promote(self._start.dtype, self._stop.dtype)
+        return promote(self._start.dtype, self._stop.dtype)
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(())
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         start_val = np.asarray(self._start.eval().value, dtype=numpy_dtype).item()
         stop_val = np.asarray(self._stop.eval().value, dtype=numpy_dtype).item()
         data = np.linspace(start_val, stop_val, self._length, dtype=numpy_dtype)
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Linspace does not support backward propagation.")
     # end def _backward
 
@@ -915,7 +915,7 @@ class Logspace(Builder):
     NAME = "logspace"
     ARITY = 0
 
-    def __init__(self, start: MathExpr, stop: MathExpr, num: MathExpr, base: MathExpr):
+    def __init__(self, start: MathNode, stop: MathNode, num: MathNode, base: MathNode):
         super().__init__(start=start, stop=stop, num=num, base=base)
         self._start = start
         self._stop = stop
@@ -925,7 +925,7 @@ class Logspace(Builder):
         self._base_value = self._resolve_base()
     # end def __init__
 
-    def _validate_scalar(self, expr: MathExpr, name: str) -> None:
+    def _validate_scalar(self, expr: MathNode, name: str) -> None:
         if expr.rank != 0:
             raise ValueError(f"{self.NAME} {name} must be scalar.")
         # end if
@@ -959,7 +959,7 @@ class Logspace(Builder):
         return base_value
     # end def _resolve_base
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
@@ -980,14 +980,14 @@ class Logspace(Builder):
     # end def infer_shape
 
     def infer_dtype(self, operands: Operands) -> DType:
-        dtype = DType.promote(self._start.dtype, self._stop.dtype)
-        dtype = DType.promote(dtype, self._base.dtype)
+        dtype = promote(self._start.dtype, self._stop.dtype)
+        dtype = promote(dtype, self._base.dtype)
         return dtype
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(())
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         start_val = np.asarray(self._start.eval().value, dtype=numpy_dtype).item()
         stop_val = np.asarray(self._stop.eval().value, dtype=numpy_dtype).item()
         data = np.logspace(
@@ -1000,7 +1000,7 @@ class Logspace(Builder):
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Logspace does not support backward propagation.")
     # end def _backward
 
@@ -1023,7 +1023,7 @@ class Map(Builder):
     NAME = "map"
     ARITY = 1
 
-    def __init__(self, var_name: str, body: MathExpr):
+    def __init__(self, var_name: str, body: MathNode):
         if not var_name:
             raise ValueError("Map requires a non-empty variable name.")
         super().__init__(var_name=var_name, body=body)
@@ -1031,7 +1031,7 @@ class Map(Builder):
         self._body = body
     # end def __init__
 
-    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return self._body.contains(expr, by_ref=by_ref, look_for=look_for)
     # end def contains
 
@@ -1060,7 +1060,7 @@ class Map(Builder):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         tensor, = operands
         tensor_value = tensor.eval().value
-        numpy_dtype = self._body.dtype.to_numpy()
+        numpy_dtype = to_numpy(self._body.dtype)
         result = np.empty(tensor_value.shape, dtype=numpy_dtype)
         with new_context():
             it = np.nditer(tensor_value, flags=["multi_index"])
@@ -1073,7 +1073,7 @@ class Map(Builder):
         return Tensor(data=np.asarray(result, dtype=numpy_dtype), dtype=self._body.dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Map does not support backward propagation.")
     # end def _backward
 
@@ -1124,7 +1124,7 @@ class SparseCOO(Builder):
 
     def contains(
             self,
-            expr: MathExpr,
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -1173,14 +1173,14 @@ class SparseCOO(Builder):
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
         for operand in operands[1:]:
-            dtype = DType.promote(dtype, operand.dtype)
+            dtype = promote(dtype, operand.dtype)
         # end for
         return dtype
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(operands)
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         zero_const = const(
             name=random_const_name(f"{self.NAME}-zero-"),
             data=0,
@@ -1194,7 +1194,7 @@ class SparseCOO(Builder):
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("SparseCOO does not support backward propagation.")
     # end def _backward
 
@@ -1255,7 +1255,7 @@ class FromFunction(Builder):
 
     def contains(
             self,
-            expr: MathExpr,
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -1301,7 +1301,7 @@ class FromFunction(Builder):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         body, = operands
         dtype = body.dtype
-        numpy_dtype = dtype.to_numpy()
+        numpy_dtype = to_numpy(dtype)
         result = np.empty(self._shape.dims, dtype=numpy_dtype)
 
         with new_context():
@@ -1317,7 +1317,7 @@ class FromFunction(Builder):
         return Tensor(data=np.asarray(result, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad: MathExpr, node: MathExpr) -> Sequence[MathExpr]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("FromFunction does not support backward propagation.")
     # end def _backward
 

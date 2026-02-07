@@ -25,136 +25,272 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-"""Data types."""
+"""
+NumPy-aligned dtype utilities for PixelPrism's algebra system.
+
+This module defines a minimal symbolic dtype enum (``DType``) and helper
+functions that map those symbols to concrete NumPy dtypes. Conversion helpers
+follow NumPy conventions:
+
+- ``Z`` maps to integral dtypes (default: ``np.int32``).
+- ``R`` maps to real floating dtypes (default: ``np.float32``).
+- ``C`` maps to complex dtypes (default: ``np.complex128``).
+- ``B`` maps to boolean dtypes (``np.bool_``).
+
+Override ``Z_DTYPE`` and ``R_DTYPE`` at the module level to adjust the default
+NumPy dtype returned by ``to_numpy`` when ``DType.Z`` or ``DType.R`` is used.
+"""
 
 # Imports
 from typing import TypeAlias, Union
 from enum import Enum
+import sys
 import numpy as np
 
 
 __all__ = [
     "DType",
-    "NumericType",
-    "AnyDType",
-    "NestedListType",
-    "ScalarType",
+    "NumberLike",
+    "TypeLike",
+    "NumberListLike",
+    "ScalarLike",
+    "Z_DTYPE",
+    "R_DTYPE",
+    "to_numpy",
+    "convert_numpy",
+    "copy",
+    "create",
+    "promote",
+    "from_numpy",
 ]
 
 
 # Type numeric
-NumericType = float | int | bool | complex | np.number
-ScalarType = int | float | np.number | bool | complex
-NestedListType: TypeAlias = list[Union[ScalarType, "NestedListType"]]
-AnyDType = Union["DType", np.dtype, type[float], type[int], type[bool]]
+NumberLike = float | int | bool | complex | np.number
+ScalarLike = int | float | np.number | bool | complex
+NumberListLike: TypeAlias = list[Union[ScalarLike, "NumberListLike"]]
+TypeLike = Union["DType", np.dtype, type[float], type[int], type[bool], type[complex]]
 
 
 class DType(Enum):
     """
-    Scalar/element dtypes supported by PixelPrism's math system.
+    Scalar/element dtypes supported by PixelPrism's algebra system.
 
-    Extend as needed; backends may map these to their native types.
+    Z: integers
+    R: real floats
+    C: complex
+    B: boolean
     """
 
-    FLOAT64 = "float64"
-    FLOAT32 = "float32"
-    INT64 = "int64"
-    INT32 = "int32"
-    BOOL = "bool"
-
-    # region PROPERTIES
-
-    @property
-    def is_float(self) -> bool:
-        return self in {DType.FLOAT32, DType.FLOAT64}
-    # end def is_float
-
-    @property
-    def is_int(self) -> bool:
-        return self in {DType.INT32, DType.INT64}
-    # end def is_int
-
-    @property
-    def is_bool(self) -> bool:
-        return self is DType.BOOL
-    # end def is_bool
-
-    # endregion PROPERTIES
-
-    # region PUBLIC
-
-    def to_numpy(self) -> np.dtype:
-        """Convert to numpy dtype.
-
-        Returns
-        -------
-        nd.dtype
-            Numpy dtype.
-        """
-        return np.dtype(self.value)
-    # end def to_numpy
-
-    def convert_numpy(self, data: np.ndarray) -> np.ndarray:
-        """Convert numpy array to this dtype."""
-        return data.astype(self.to_numpy())
-    # end def convert_numpy
-
-    def copy(self):
-        return DType(self.value)
-    # end def copy
-
-    # endregion PUBLIC
-
-    # region STATIC
-
-    @staticmethod
-    def create(dtype: AnyDType):
-        """Create a new dtype from a numpy dtype or a Python type.
-
-        Parameters
-        ----------
-        dtype : AnyDType
-            Type to convert.
-        """
-        if isinstance(dtype, DType):
-            return dtype.copy()
-        elif isinstance(dtype, np.dtype):
-            return DType.from_numpy(dtype)
-        elif isinstance(dtype, type):
-            return DType.from_numpy(np.dtype(dtype))
-        else:
-            raise ValueError(f"Unsupported dtype: {dtype}")
-        # end if
-    # end def create
-
-    @staticmethod
-    def promote(a: "DType", b: "DType") -> "DType":
-        """
-        Return the promoted dtype for binary ops.
-        """
-        order = list(DType)
-        return a if order.index(a) <= order.index(b) else b
-    # end def promote
-
-    @staticmethod
-    def from_numpy(dtype: np.dtype) -> "DType":
-        """Convert from numpy dtype.
-
-        Returns
-        -------
-        DType
-            Converted dtype.
-        """
-        if isinstance(dtype, np.dtype):
-            return DType(dtype.name)
-        # end if
-        if isinstance(dtype, type) and issubclass(dtype, np.generic):
-            return DType(np.dtype(dtype).name)
-        # end if
-        raise TypeError(f"Unsupported numpy dtype: {dtype}")
-    # end def from_numpy
-
-    # endregion STATIC
+    Z = "Z"
+    R = "R"
+    C = "C"
+    B = "B"
 
 # end class DType
 
+
+Z_DTYPE = np.int32
+R_DTYPE = np.float32
+
+
+def _resolve_numpy_dtype(value) -> np.dtype:
+    return value if isinstance(value, np.dtype) else np.dtype(value)
+# end def _resolve_numpy_dtype
+
+
+def _get_module_override(name: str, fallback):
+    pm = sys.modules.get("pixelprism.math")
+    if pm is not None and hasattr(pm, name):
+        return getattr(pm, name)
+    # end if
+    return fallback
+# end def _get_module_override
+
+
+def to_numpy(dtype: TypeLike) -> np.dtype:
+    """Convert to a NumPy dtype.
+
+    Parameters
+    ----------
+    dtype : TypeLike
+        Symbolic or concrete dtype to convert.
+
+    Returns
+    -------
+    numpy.dtype
+        Resolved NumPy dtype.
+
+    Raises
+    ------
+    ValueError
+        If the dtype cannot be resolved to a NumPy dtype.
+    """
+    if isinstance(dtype, DType):
+        if dtype is DType.Z:
+            return _resolve_numpy_dtype(_get_module_override("Z_DTYPE", Z_DTYPE))
+        # end if
+        if dtype is DType.R:
+            return _resolve_numpy_dtype(_get_module_override("R_DTYPE", R_DTYPE))
+        # end if
+        if dtype is DType.C:
+            return np.dtype(np.complex128)
+        # end if
+        if dtype is DType.B:
+            return np.dtype(np.bool_)
+        # end if
+    # end if
+    if isinstance(dtype, np.dtype):
+        return dtype
+    # end if
+    if dtype is float:
+        return _resolve_numpy_dtype(_get_module_override("R_DTYPE", R_DTYPE))
+    # end if
+    if dtype is int:
+        return _resolve_numpy_dtype(_get_module_override("Z_DTYPE", Z_DTYPE))
+    # end if
+    if dtype is bool:
+        return np.dtype(np.bool_)
+    # end if
+    if dtype is complex:
+        return np.dtype(np.complex128)
+    # end if
+    if isinstance(dtype, type):
+        return np.dtype(dtype)
+    # end if
+    raise ValueError(f"Unsupported dtype: {dtype}")
+# end def to_numpy
+
+
+def convert_numpy(dtype: DType, data: np.ndarray) -> np.ndarray:
+    """Convert a NumPy array to the requested dtype.
+
+    Parameters
+    ----------
+    dtype : DType
+        Target symbolic dtype.
+    data : numpy.ndarray
+        Input array to convert.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array cast to the resolved NumPy dtype.
+    """
+    return data.astype(to_numpy(dtype))
+# end def convert_numpy
+
+
+def copy(dtype: DType) -> DType:
+    """Return a shallow copy of the dtype.
+
+    Parameters
+    ----------
+    dtype : DType
+        DType instance to copy.
+
+    Returns
+    -------
+    DType
+        Copied dtype (identity for enum values).
+    """
+    return dtype
+# end def copy
+
+
+def create(dtype: TypeLike) -> DType:
+    """Create a symbolic dtype from a NumPy or Python type.
+
+    Parameters
+    ----------
+    dtype : TypeLike
+        DType enum, NumPy dtype, or Python scalar type.
+
+    Returns
+    -------
+    DType
+        Symbolic dtype mapping.
+
+    Raises
+    ------
+    ValueError
+        If the input dtype is unsupported.
+    """
+    if isinstance(dtype, DType):
+        return copy(dtype)
+    # end if
+    if isinstance(dtype, np.dtype):
+        return from_numpy(dtype)
+    # end if
+    if isinstance(dtype, type):
+        if dtype is float:
+            return DType.R
+        # end if
+        if dtype is int:
+            return DType.Z
+        # end if
+        if dtype is bool:
+            return DType.B
+        # end if
+        if dtype is complex:
+            return DType.C
+        # end if
+        return from_numpy(np.dtype(dtype))
+    # end if
+    raise ValueError(f"Unsupported dtype: {dtype}")
+# end def create
+
+
+def promote(a: DType, b: DType) -> DType:
+    """Return the promoted dtype for binary ops.
+
+    Parameters
+    ----------
+    a : DType
+        Left operand dtype.
+    b : DType
+        Right operand dtype.
+
+    Returns
+    -------
+    DType
+        Promoted dtype.
+    """
+    order = [DType.C, DType.R, DType.Z, DType.B]
+    return a if order.index(a) <= order.index(b) else b
+# end def promote
+
+
+def from_numpy(dtype: np.dtype) -> DType:
+    """Convert a NumPy dtype to a symbolic dtype.
+
+    Parameters
+    ----------
+    dtype : numpy.dtype
+        NumPy dtype to convert.
+
+    Returns
+    -------
+    DType
+        Symbolic dtype mapping.
+
+    Raises
+    ------
+    TypeError
+        If the NumPy dtype is unsupported.
+    """
+    dtype = np.dtype(dtype)
+    if dtype.kind in {"i", "u"}:
+        return DType.Z
+    # end if
+    if dtype.kind == "f":
+        return DType.R
+    # end if
+    if dtype.kind == "c":
+        return DType.C
+    # end if
+    if dtype.kind == "b":
+        return DType.B
+    # end if
+    raise TypeError(f"Unsupported numpy dtype: {dtype}")
+# end def from_numpy

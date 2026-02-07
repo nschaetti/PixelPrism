@@ -57,13 +57,13 @@ TENSOR_SCALAR_KINDS = (
 
 def make_tensor(value: float, name: str) -> MathNode:
     """Create a scalar constant expression for tests."""
-    return pm.const(name=name, data=value, dtype=pm.DType.FLOAT32)
+    return pm.const(name=name, data=value, dtype=pm.DType.R)
 
 
 def make_tensor_array(values, name: str) -> MathNode:
     """Create an array constant expression for tests."""
     data = np.asarray(values, dtype=np.float32)
-    return pm.const(name=name, data=data, dtype=pm.DType.FLOAT32)
+    return pm.const(name=name, data=data, dtype=pm.DType.R)
 
 
 def eval_expr_value(expr: MathNode) -> np.ndarray:

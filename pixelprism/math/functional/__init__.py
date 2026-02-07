@@ -187,6 +187,7 @@ __all__ = [
     "gelu",
     "softplus",
     "sigmoid",
+
     # Boolean
     "eq",
     "ne",
@@ -200,6 +201,7 @@ __all__ = [
     "logical_and",
     "logical_or",
     "logical_xor",
+
     # Builders
     "build_tensor",
     "vector",
@@ -218,18 +220,22 @@ __all__ = [
     "vstack",
     "from_function",
     "sparse_coo",
+
     # Activations
     "relu",
     "leaky_relu",
     "sigmoid",
     "softplus",
     "gelu",
+
     # Calculus
     "diff",
     "nabla",
+
     # Conditional
     "where",
     "if_",
+
     # Element wise
     "add",
     "sub",
@@ -252,9 +258,11 @@ __all__ = [
     "absolute",
     "abs",
     "neg",
+
     # Conditional
     "where",
     "if_",
+
     # Discretization
     "sign",
     "floor",
@@ -280,6 +288,7 @@ __all__ = [
     "tanh",
     "asinh",
     "atanh",
+
     # Linear Algebra
     "matmul",
     "dot",
@@ -291,6 +300,7 @@ __all__ = [
     "norm",
     "infty_norm",
     "frobenius_norm",
+
     # Reduction
     "sum",
     "mean",
@@ -302,12 +312,14 @@ __all__ = [
     "q3",
     "summation",
     "product",
+
     # Structure
     "getitem",
     "flatten",
     "squeeze",
     "unsqueeze",
     "reshape",
+
     # Conditional
     "where",
 ]

@@ -30,6 +30,7 @@ import numpy as np
 import pytest
 
 import pixelprism.math as pm
+from pixelprism.math.dtype import to_numpy
 from pixelprism.math.functional.activations import (
     relu,
     leaky_relu,
@@ -41,13 +42,13 @@ from pixelprism.math.operators.activations import ReLU
 
 
 def _const(name, values, dtype):
-    arr = np.asarray(values, dtype=dtype.to_numpy())
+    arr = np.asarray(values, dtype=to_numpy(dtype))
     return pm.const(name=name, data=arr.copy(), dtype=dtype), arr
 # end def _const
 
 
 def test_relu_preserves_shape_dtype():
-    tensor, np_values = _const("relu_input", [-1.0, 2.0], pm.DType.FLOAT32)
+    tensor, np_values = _const("relu_input", [-1.0, 2.0], pm.DType.R)
     expr = relu(tensor)
     expected = np.maximum(np_values, 0.0)
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -57,7 +58,7 @@ def test_relu_preserves_shape_dtype():
 
 
 def test_leaky_relu_alpha_options():
-    tensor, np_values = _const("leaky_input", [-2.0, 1.0], pm.DType.FLOAT32)
+    tensor, np_values = _const("leaky_input", [-2.0, 1.0], pm.DType.R)
     expr_default = leaky_relu(tensor)
     expr_custom = leaky_relu(tensor, alpha=0.2)
     np.testing.assert_allclose(expr_default.eval().value, np.where(np_values >= 0, np_values, 0.01 * np_values))
@@ -66,7 +67,7 @@ def test_leaky_relu_alpha_options():
 
 
 def test_sigmoid_matches_numpy():
-    tensor, np_values = _const("sigmoid_input", [-1.0, 0.0, 1.0], pm.DType.FLOAT32)
+    tensor, np_values = _const("sigmoid_input", [-1.0, 0.0, 1.0], pm.DType.R)
     expr = sigmoid(tensor)
     expected = 1.0 / (1.0 + np.exp(-np_values))
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -74,7 +75,7 @@ def test_sigmoid_matches_numpy():
 
 
 def test_softplus_matches_numpy():
-    tensor, np_values = _const("softplus_input", [-1.0, 0.5], pm.DType.FLOAT32)
+    tensor, np_values = _const("softplus_input", [-1.0, 0.5], pm.DType.R)
     expr = softplus(tensor)
     expected = np.log1p(np.exp(np_values))
     np.testing.assert_allclose(expr.eval().value, expected)
@@ -82,7 +83,7 @@ def test_softplus_matches_numpy():
 
 
 def test_gelu_matches_reference():
-    tensor, np_values = _const("gelu_input", [-1.0, 0.0, 1.0], pm.DType.FLOAT32)
+    tensor, np_values = _const("gelu_input", [-1.0, 0.0, 1.0], pm.DType.R)
     expr = gelu(tensor)
     sqrt_2_over_pi = np.sqrt(2.0 / np.pi)
     expected = 0.5 * np_values * (1.0 + np.tanh(sqrt_2_over_pi * (np_values + 0.044715 * np_values ** 3)))

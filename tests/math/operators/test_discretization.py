@@ -40,14 +40,14 @@ _CONST_COUNTER = count()
 def _make_value(values):
     """Create a Constant expression for the provided values."""
     idx = next(_CONST_COUNTER)
-    return pm.const(f"disc_const_{idx}", data=values, dtype=pm.DType.FLOAT64)
+    return pm.const(f"disc_const_{idx}", data=values, dtype=pm.DType.R)
 # end def _make_value
 
 
 def _round_decimals_cases():
     """Build a variety of decimal parameter inputs for the round operator."""
     def _var_case():
-        var = pm.var("round_dec_var", dtype=pm.DType.INT32, shape=())
+        var = pm.var("round_dec_var", dtype=pm.DType.Z, shape=())
 
         def _ctx():
             pm.set_value("round_dec_var", 3)
@@ -59,15 +59,15 @@ def _round_decimals_cases():
     return (
         ("python_int", lambda: (1, None, 1)),
         ("constant", lambda: (
-            pm.const("round_dec_const", data=2, dtype=pm.DType.INT32),
+            pm.const("round_dec_const", data=2, dtype=pm.DType.Z),
             None,
             2
         )),
         ("variable", _var_case),
         ("math_expr", lambda: (
-            pm.const("round_dec_a", data=1, dtype=pm.DType.INT32) +
-            pm.const("round_dec_b", data=2, dtype=pm.DType.INT32) -
-            pm.const("round_dec_c", data=1, dtype=pm.DType.INT32),
+            pm.const("round_dec_a", data=1, dtype=pm.DType.Z) +
+            pm.const("round_dec_b", data=2, dtype=pm.DType.Z) -
+            pm.const("round_dec_c", data=1, dtype=pm.DType.Z),
             None,
             2
         )),
@@ -78,8 +78,8 @@ def _round_decimals_cases():
 def _clip_bound_cases():
     """Build combinations of clip bounds with different parameter types."""
     def _var_bounds():
-        vmin = pm.var("clip_min_var", dtype=pm.DType.FLOAT32, shape=())
-        vmax = pm.var("clip_max_var", dtype=pm.DType.FLOAT32, shape=())
+        vmin = pm.var("clip_min_var", dtype=pm.DType.R, shape=())
+        vmax = pm.var("clip_max_var", dtype=pm.DType.R, shape=())
 
         def _ctx():
             pm.set_value("clip_min_var", -0.25)
@@ -93,17 +93,17 @@ def _clip_bound_cases():
         ("python_min", lambda: (-0.5, None, None, -0.5, None)),
         ("constant_max", lambda: (
             None,
-            pm.const("clip_max_const", data=0.75, dtype=pm.DType.FLOAT32),
+            pm.const("clip_max_const", data=0.75, dtype=pm.DType.R),
             None,
             None,
             0.75
         )),
         ("variable_bounds", _var_bounds),
         ("math_expr_bounds", lambda: (
-            pm.const("clip_min_expr_a", data=-1.0, dtype=pm.DType.FLOAT32) +
-            pm.const("clip_min_expr_b", data=0.1, dtype=pm.DType.FLOAT32),
-            pm.const("clip_max_expr_a", data=1.0, dtype=pm.DType.FLOAT32) -
-            pm.const("clip_max_expr_b", data=0.2, dtype=pm.DType.FLOAT32),
+            pm.const("clip_min_expr_a", data=-1.0, dtype=pm.DType.R) +
+            pm.const("clip_min_expr_b", data=0.1, dtype=pm.DType.R),
+            pm.const("clip_max_expr_a", data=1.0, dtype=pm.DType.R) -
+            pm.const("clip_max_expr_b", data=0.2, dtype=pm.DType.R),
             None,
             -0.9,
             0.8
@@ -188,7 +188,7 @@ _ROUND_INVALID_CASES = (
     ("vector_expr", lambda: pm.const(
         "round_bad_vector",
         data=[1, 2],
-        dtype=pm.DType.INT32
+        dtype=pm.DType.Z
     ), ValueError),
 )
 
@@ -232,15 +232,15 @@ def test_clip_invalid_bounds_raise():
         D.clip(data, min_value="low")
 
     with pytest.raises(ValueError):
-        bad_bound = pm.const("clip_bad_bound", data=[-1.0, 0.0], dtype=pm.DType.FLOAT32)
+        bad_bound = pm.const("clip_bad_bound", data=[-1.0, 0.0], dtype=pm.DType.R)
         D.clip(data, min_value=bad_bound).eval()
 # end test_clip_invalid_bounds_raise
 
 
 def test_math_expr_discretization_ops_scalar():
     # Variables
-    x = pm.var("x", dtype=pm.DType.FLOAT32, shape=())
-    y = pm.var("y", dtype=pm.DType.FLOAT32, shape=())
+    x = pm.var("x", dtype=pm.DType.R, shape=())
+    y = pm.var("y", dtype=pm.DType.R, shape=())
 
     # Math equations
     z1 = D.ceil(x + y)
@@ -267,8 +267,8 @@ def test_math_expr_discretization_ops_scalar():
 
 
 def test_math_expr_discretization_ops_vector_float64():
-    x = pm.var("vx", dtype=pm.DType.FLOAT64, shape=(3,))
-    y = pm.var("vy", dtype=pm.DType.FLOAT64, shape=(3,))
+    x = pm.var("vx", dtype=pm.DType.R, shape=(3,))
+    y = pm.var("vy", dtype=pm.DType.R, shape=(3,))
 
     floored = D.floor(x - y)
     ceiled = D.ceil(x + y)
@@ -294,8 +294,8 @@ def test_math_expr_discretization_ops_vector_float64():
 
 
 def test_math_expr_discretization_ops_matrix_int32():
-    a = pm.var("ma", dtype=pm.DType.INT32, shape=(2, 2))
-    b = pm.var("mb", dtype=pm.DType.INT32, shape=(2, 2))
+    a = pm.var("ma", dtype=pm.DType.Z, shape=(2, 2))
+    b = pm.var("mb", dtype=pm.DType.Z, shape=(2, 2))
 
     sign_expr = D.sign(a - b)
     trunc_expr = D.trunc(a + b)

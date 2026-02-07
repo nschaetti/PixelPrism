@@ -29,9 +29,9 @@
 # Imports
 from typing import Tuple, List, Union, Optional
 import numpy as np
-from .tensor import Tensor, DataType
-from .dtype import DType, NumericType, AnyDType, ScalarType
-from .shape import AnyShape, Shape
+from .tensor import Tensor, TensorLike
+from .dtype import DType, NumberLike, TypeLike, ScalarLike, to_numpy, create
+from .shape import ShapeLike, Shape
 from .math_expr import Variable, Constant
 
 
@@ -58,14 +58,11 @@ __all__ = [
 
 def _resolve_dtype(dtype):
     """Return a numpy dtype for helper constructors."""
-    if isinstance(dtype, DType):
-        return dtype.to_numpy()
-    # end if
-    return np.dtype(dtype)
+    return to_numpy(dtype)
 # end def _resolve_dtype
 
 
-def _normalize_shape(shape: AnyShape) -> Tuple[int, ...]:
+def _normalize_shape(shape: ShapeLike) -> Tuple[int, ...]:
     """Normalize user-provided shape inputs into a tuple of ints."""
     if isinstance(shape, int):
         dims = (shape,)
@@ -91,8 +88,8 @@ def _check_shape(
 
 
 def _data_as_nparray(
-        data: DataType,
-        dtype: AnyDType
+        data: TensorLike,
+        dtype: TypeLike
 ):
     try:
         return np.asarray(data, dtype=_resolve_dtype(dtype))
@@ -107,7 +104,7 @@ def _data_as_nparray(
 #
 
 
-def var(name: str, dtype: AnyDType, shape: AnyShape) -> Variable:
+def var(name: str, dtype: TypeLike, shape: ShapeLike) -> Variable:
     """Create a new variable with the given name and dtype.
 
     Parameters
@@ -119,7 +116,7 @@ def var(name: str, dtype: AnyDType, shape: AnyShape) -> Variable:
     shape: AnyShape
         Shape of the variable.
     """
-    return Variable.create(name=name, dtype=DType.create(dtype), shape=Shape.create(shape))
+    return Variable.create(name=name, dtype=create(dtype), shape=Shape.create(shape))
 # end def var
 
 
@@ -129,7 +126,7 @@ def random_const_name(prefix: str = "const") -> str:
 # end def random_const_name
 
 
-def const(name: str, data: DataType, dtype: Optional[AnyDType] = None) -> Constant:
+def const(name: str, data: TensorLike, dtype: Optional[TypeLike] = None) -> Constant:
     """Create a new constant with the given value and dtype.
 
     Parameters
@@ -154,9 +151,9 @@ def const(name: str, data: DataType, dtype: Optional[AnyDType] = None) -> Consta
 
 
 def _dim_tensor(
-        data: DataType,
+        data: TensorLike,
         ndim: int,
-        dtype: AnyDType = float,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """Allocate a tensor with a single dimension."""
@@ -167,8 +164,8 @@ def _dim_tensor(
 
 
 def tensor(
-        data: DataType,
-        dtype: Optional[AnyDType] = None,
+        data: TensorLike,
+        dtype: Optional[TypeLike] = None,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -204,7 +201,7 @@ def tensor(
 
 def scalar(
         value: int | float | np.number | bool | complex,
-        dtype: AnyDType = float,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -236,8 +233,8 @@ def scalar(
 
 
 def vector(
-        value: DataType,
-        dtype: AnyDType = float,
+        value: TensorLike,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -271,8 +268,8 @@ def vector(
 
 
 def matrix(
-        value: DataType,
-        dtype: AnyDType = float,
+        value: TensorLike,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -307,8 +304,8 @@ def matrix(
 
 
 def empty(
-        shape: AnyShape,
-        dtype: AnyDType = float
+        shape: ShapeLike,
+        dtype: TypeLike = float
 ) -> Tensor:
     """
     Allocate an uninitialized tensor of the requested shape.
@@ -341,8 +338,8 @@ def empty(
 
 
 def zeros(
-        shape: AnyShape,
-        dtype: AnyDType = float,
+        shape: ShapeLike,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -379,8 +376,8 @@ def zeros(
 
 
 def ones(
-        shape: AnyShape,
-        dtype: AnyDType = float,
+        shape: ShapeLike,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -416,9 +413,9 @@ def ones(
 
 
 def full(
-        shape: AnyShape,
+        shape: ShapeLike,
         value,
-        dtype: AnyDType = float,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -455,8 +452,8 @@ def full(
 
 
 def nan(
-        shape: AnyShape,
-        dtype: AnyDType = float,
+        shape: ShapeLike,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -480,7 +477,7 @@ def nan(
     --------
     >>> import pixelprism.math as ppmath
     >>> missing = ppmath.nan((2, 2))
-    >>> np.isnan(missing).all()
+    >>> np.isnan(missing).t_all()
     True
     """
     dims = _normalize_shape(shape)
@@ -491,7 +488,7 @@ def nan(
 
 def I(
         n: int,
-        dtype: AnyDType = float,
+        dtype: TypeLike = float,
         mutable: bool = False
 ) -> Tensor:
     """
@@ -530,7 +527,7 @@ def I(
 
 def diag(
         v,
-        dtype: AnyDType = float,
+        dtype: TypeLike = float,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -568,7 +565,7 @@ def diag(
 
 def eye_like(
         x: Tensor | np.ndarray,
-        dtype: AnyDType = None,
+        dtype: TypeLike = None,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -608,7 +605,7 @@ def eye_like(
 
 def zeros_like(
         x: Tensor | np.ndarray,
-        dtype: AnyDType = None,
+        dtype: TypeLike = None,
         mutable: bool = True
 ) -> Tensor:
     """
@@ -646,7 +643,7 @@ def zeros_like(
 
 def ones_like(
         x: Tensor | np.ndarray,
-        dtype: AnyDType = None,
+        dtype: TypeLike = None,
         mutable: bool = True
 ) -> Tensor:
     """

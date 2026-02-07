@@ -23,7 +23,7 @@ class DemoLeaf(MathLeaf):
     def __init__(self, name: str):
         super().__init__(
             name=name,
-            dtype=DType.FLOAT64,
+            dtype=DType.R,
             shape=Shape(())
         )
         self.set_calls = []

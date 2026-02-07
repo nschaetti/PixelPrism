@@ -37,6 +37,7 @@ from ..shape import Shape
 from ..dtype import DType
 from .helpers import apply_operator
 
+
 __all__ = [
     "build_tensor",
     "vector",
@@ -59,12 +60,14 @@ __all__ = [
 
 
 def _scalar_constant(value: Union[int, float, bool], dtype: DType) -> MathNode:
-    if dtype.is_float:
+    if dtype is DType.R:
         data = float(value)
-    elif dtype.is_int:
+    elif dtype is DType.Z:
         data = int(value)
-    elif dtype.is_bool:
+    elif dtype is DType.B:
         data = bool(value)
+    elif dtype is DType.C:
+        data = complex(value)
     else:
         data = value
     return as_expr(data, dtype=dtype)
@@ -139,7 +142,7 @@ def full(
 
 def zeros(
         shape: Union[Shape, Sequence[int], int],
-        dtype: DType = DType.FLOAT32
+        dtype: DType = DType.R
 ) -> MathNode:
     tensor_shape = Shape.create(shape)
     zero_expr = _scalar_constant(0, dtype)
@@ -154,7 +157,7 @@ def zeros(
 
 def ones(
         shape: Union[Shape, Sequence[int], int],
-        dtype: DType = DType.FLOAT32
+        dtype: DType = DType.R
 ) -> MathNode:
     tensor_shape = Shape.create(shape)
     one_expr = _scalar_constant(1, dtype)
@@ -167,7 +170,7 @@ def ones(
 # end def ones
 
 
-def eye(rows: int, cols: Optional[int] = None, dtype: DType = DType.FLOAT32) -> MathNode:
+def eye(rows: int, cols: Optional[int] = None, dtype: DType = DType.R) -> MathNode:
     if rows <= 0:
         raise ValueError("eye requires rows > 0.")
     if cols is not None and cols <= 0:
@@ -193,7 +196,7 @@ def diag(vector_expr: Union[MathNode, int, float]) -> MathNode:
 # end def diag
 
 
-def identity(size: int, dtype: DType = DType.FLOAT32) -> MathNode:
+def identity(size: int, dtype: DType = DType.R) -> MathNode:
     if size <= 0:
         raise ValueError("identity requires size > 0.")
     return eye(size, size, dtype=dtype)
@@ -248,7 +251,7 @@ def _build_index_vars(rank: int) -> tuple[Variable, ...]:
         vars_list.append(
             Variable.create(
                 name=name,
-                dtype=DType.INT32,
+                dtype=DType.Z,
                 shape=Shape.scalar()
             )
         )

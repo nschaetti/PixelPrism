@@ -25,43 +25,51 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-"""Tests for pixelprism.math.Value."""
+"""Tests for pixelprism.math dtype helpers."""
 
 # Imports
-from pixelprism.math.dtype import DType
+import numpy as np
+
+from pixelprism.math.dtype import DType, to_numpy, promote, from_numpy
 
 
 def test_dtype_enum():
     """Ensure the correct values are assigned."""
-    assert DType.FLOAT64.value == "float64"
-    assert DType.FLOAT32.value == "float32"
-    assert DType.INT32.value == "int32"
-    assert DType.INT64.value == "int64"
-    assert DType.BOOL.value == "bool"
+    assert DType.Z.value == "Z"
+    assert DType.R.value == "R"
+    assert DType.C.value == "C"
+    assert DType.B.value == "B"
 # end def test_dtype_enum
 
 
 def test_dtype_order():
     """Ensure the correct order is assigned."""
     order = list(DType)
-    assert order == [DType.FLOAT64, DType.FLOAT32, DType.INT64, DType.INT32, DType.BOOL]
+    assert order == [DType.Z, DType.R, DType.C, DType.B]
 # end def test_dtype_order
 
 
-def test_dtype_categories():
-    """Ensure the correct categories are assigned."""
-    assert DType.FLOAT64.is_float
-    assert not DType.INT32.is_float
-# end def test_dtype_categories
+def test_dtype_default_numpy_mappings():
+    """Ensure default numpy mappings are assigned."""
+    assert to_numpy(DType.Z) == np.dtype(np.int32)
+    assert to_numpy(DType.R) == np.dtype(np.float32)
+    assert to_numpy(DType.C) == np.dtype(np.complex128)
+    assert to_numpy(DType.B) == np.dtype(np.bool_)
+# end def test_dtype_default_numpy_mappings
 
 
 def test_dtype_promotion():
-    """Ensure the correct promotion rules are applied (bool < int32 < int64 < float32 < float64).
-
-    Returns
-    -------
-    DType :
-        Promoted dtype.
-    """
-    assert DType.promote(DType.INT32, DType.FLOAT32) == DType.FLOAT32
+    """Ensure the correct promotion rules are applied (B < Z < R < C)."""
+    assert promote(DType.Z, DType.R) == DType.R
+    assert promote(DType.B, DType.Z) == DType.Z
+    assert promote(DType.R, DType.C) == DType.C
 # end def test_dtype_promotion
+
+
+def test_dtype_from_numpy():
+    """Ensure numpy dtype mapping is correct."""
+    assert from_numpy(np.dtype(np.float64)) == DType.R
+    assert from_numpy(np.dtype(np.int64)) == DType.Z
+    assert from_numpy(np.dtype(np.complex64)) == DType.C
+    assert from_numpy(np.dtype(np.bool_)) == DType.B
+# end def test_dtype_from_numpy

@@ -39,15 +39,15 @@ def test_sparse_coo_vector_assignment():
         shape=(5,),
         indices=[(0,), (3,), (4,)],
         values=[
-            pm.const("sc_vec_a", data=2, dtype=pm.DType.INT32),
-            pm.const("sc_vec_b", data=-1, dtype=pm.DType.INT32),
-            pm.const("sc_vec_c", data=5, dtype=pm.DType.INT32),
+            pm.const("sc_vec_a", data=2, dtype=pm.DType.Z),
+            pm.const("sc_vec_b", data=-1, dtype=pm.DType.Z),
+            pm.const("sc_vec_c", data=5, dtype=pm.DType.Z),
         ]
     )
     expected = np.array([2, 0, 0, -1, 5], dtype=np.int32)
     np.testing.assert_array_equal(expr.eval().value, expected)
     assert expr.shape.dims == (5,)
-    assert expr.dtype == pm.DType.INT32
+    assert expr.dtype == pm.DType.Z
 # end test_sparse_coo_vector_assignment
 
 
@@ -57,8 +57,8 @@ def test_sparse_coo_matrix_placement():
         shape=(2, 3),
         indices=[(0, 1), (1, 2)],
         values=[
-            pm.const("sc_mat_a", data=3.5, dtype=pm.DType.FLOAT32),
-            pm.const("sc_mat_b", data=-2.0, dtype=pm.DType.FLOAT32),
+            pm.const("sc_mat_a", data=3.5, dtype=pm.DType.R),
+            pm.const("sc_mat_b", data=-2.0, dtype=pm.DType.R),
         ]
     )
     result = expr.eval().value
@@ -67,7 +67,7 @@ def test_sparse_coo_matrix_placement():
     expected[1, 2] = -2.0
     np.testing.assert_allclose(result, expected)
     assert expr.shape.dims == (2, 3)
-    assert expr.dtype == pm.DType.FLOAT32
+    assert expr.dtype == pm.DType.R
 # end test_sparse_coo_matrix_placement
 
 
@@ -77,12 +77,12 @@ def test_sparse_coo_promotes_dtypes():
         shape=(2,),
         indices=[(0,), (1,)],
         values=[
-            pm.const("sc_promote_a", data=1, dtype=pm.DType.INT32),
-            pm.const("sc_promote_b", data=2.5, dtype=pm.DType.FLOAT64),
+            pm.const("sc_promote_a", data=1, dtype=pm.DType.Z),
+            pm.const("sc_promote_b", data=2.5, dtype=pm.DType.R),
         ]
     )
     result = expr.eval()
-    assert expr.dtype == pm.DType.FLOAT64
+    assert expr.dtype == pm.DType.R
     np.testing.assert_allclose(result.value, np.array([1.0, 2.5], dtype=np.float64))
 # end test_sparse_coo_promotes_dtypes
 
@@ -93,7 +93,7 @@ def test_sparse_coo_mismatched_lengths():
         sparse_coo(
             shape=(3,),
             indices=[(0,), (1,)],
-            values=[pm.const("sc_bad_a", data=1, dtype=pm.DType.INT32)]
+            values=[pm.const("sc_bad_a", data=1, dtype=pm.DType.Z)]
         )
 # end test_sparse_coo_mismatched_lengths
 
@@ -104,6 +104,6 @@ def test_sparse_coo_invalid_index_rank():
         sparse_coo(
             shape=(2, 2),
             indices=[(0,)],
-            values=[pm.const("sc_bad_rank", data=1, dtype=pm.DType.INT32)]
+            values=[pm.const("sc_bad_rank", data=1, dtype=pm.DType.Z)]
         )
 # end test_sparse_coo_invalid_index_rank

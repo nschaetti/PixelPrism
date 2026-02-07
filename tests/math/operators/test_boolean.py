@@ -30,12 +30,13 @@ import numpy as np
 import pytest
 
 import pixelprism.math as pm
+from pixelprism.math.dtype import to_numpy
 from pixelprism.math.operators import Eq, Ne, Lt, Le, Gt, Ge, Not, Any, All, And, Or, Xor
 
 
 def _const_from_values(values, dtype: pm.DType):
     """Create a constant tensor along with the numpy payload it wraps."""
-    arr = np.asarray(values, dtype=dtype.to_numpy())
+    arr = np.asarray(values, dtype=to_numpy(dtype))
     expr = pm.const(
         name=pm.random_const_name("cmp_operand"),
         data=arr.copy(),
@@ -58,23 +59,23 @@ COMPARISON_OPERATORS = (
 COMPARISON_OPERAND_CASES = (
     pytest.param(
         np.array(3.5, dtype=np.float32),
-        pm.DType.FLOAT32,
+        pm.DType.R,
         np.array(3.5, dtype=np.float32),
-        pm.DType.FLOAT32,
+        pm.DType.R,
         id="scalar_float32",
     ),
     pytest.param(
         np.arange(4, dtype=np.int32),
-        pm.DType.INT32,
+        pm.DType.Z,
         np.array([0, 2, 1, 3], dtype=np.int32),
-        pm.DType.INT32,
+        pm.DType.Z,
         id="vector_int32",
     ),
     pytest.param(
         np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float64),
-        pm.DType.FLOAT64,
+        pm.DType.R,
         np.array([[1, 0, 3], [4, 7, 6]], dtype=np.int32),
-        pm.DType.INT32,
+        pm.DType.Z,
         id="matrix_mixed_dtypes",
     ),
     pytest.param(
@@ -83,20 +84,20 @@ COMPARISON_OPERAND_CASES = (
              [[False, False, True], [True, True, False]]],
             dtype=bool,
         ),
-        pm.DType.BOOL,
+        pm.DType.B,
         np.array(
             [[[True, True, True], [False, False, False]],
              [[False, True, False], [True, False, False]]],
             dtype=bool,
         ),
-        pm.DType.BOOL,
+        pm.DType.B,
         id="tensor3d_bool",
     ),
     pytest.param(
         np.arange(18, dtype=np.float32).reshape(3, 2, 3),
-        pm.DType.FLOAT32,
+        pm.DType.R,
         (np.arange(18, dtype=np.float32).reshape(3, 2, 3) * 0.5),
-        pm.DType.FLOAT32,
+        pm.DType.R,
         id="tensor3d_float32",
     ),
 )
@@ -168,8 +169,8 @@ def test_comparison_operator_matches_numpy(op_name, op_cls, np_func, lhs_values,
     expected = np_func(lhs_arr, rhs_arr)
 
     np.testing.assert_array_equal(result.value, expected, err_msg=f"{op_name} mismatch")
-    assert result.dtype == pm.DType.BOOL
-    assert operator.infer_dtype([lhs_expr, rhs_expr]) == pm.DType.BOOL
+    assert result.dtype == pm.DType.B
+    assert operator.infer_dtype([lhs_expr, rhs_expr]) == pm.DType.B
 
     expected_shape = np.asarray(expected).shape
     assert result.shape.dims == expected_shape
@@ -180,8 +181,8 @@ def test_comparison_operator_matches_numpy(op_name, op_cls, np_func, lhs_values,
 @pytest.mark.parametrize("op_cls", [Eq, Ne, Lt, Le, Gt, Ge])
 def test_comparison_operator_rejects_mismatched_shapes(op_cls):
     """Every comparison operator must refuse incompatible operand shapes."""
-    lhs_expr, _ = _const_from_values(np.zeros((2, 2), dtype=np.float32), pm.DType.FLOAT32)
-    rhs_expr, _ = _const_from_values(np.zeros(3, dtype=np.float32), pm.DType.FLOAT32)
+    lhs_expr, _ = _const_from_values(np.zeros((2, 2), dtype=np.float32), pm.DType.R)
+    rhs_expr, _ = _const_from_values(np.zeros(3, dtype=np.float32), pm.DType.R)
     operator = op_cls()
 
     assert operator.check_operands([lhs_expr, rhs_expr]) is False
@@ -193,8 +194,8 @@ def test_comparison_operator_rejects_mismatched_shapes(op_cls):
 @pytest.mark.parametrize("lhs_values, rhs_values", BOOLEAN_BINARY_CASES)
 def test_boolean_binary_operator_matches_numpy(op_name, op_cls, np_func, lhs_values, rhs_values):
     """Boolean binary operators follow numpy semantics."""
-    lhs_expr, lhs_arr = _const_from_values(lhs_values, pm.DType.BOOL)
-    rhs_expr, rhs_arr = _const_from_values(rhs_values, pm.DType.BOOL)
+    lhs_expr, lhs_arr = _const_from_values(lhs_values, pm.DType.B)
+    rhs_expr, rhs_arr = _const_from_values(rhs_values, pm.DType.B)
     operator = op_cls()
 
     assert operator.check_operands([lhs_expr, rhs_expr])
@@ -204,18 +205,18 @@ def test_boolean_binary_operator_matches_numpy(op_name, op_cls, np_func, lhs_val
     expected = np_func(lhs_arr, rhs_arr)
 
     np.testing.assert_array_equal(result.value, expected, err_msg=f"{op_name} mismatch")
-    assert result.dtype == pm.DType.BOOL
+    assert result.dtype == pm.DType.B
     assert result.shape.dims == expected.shape
     assert operator.infer_shape([lhs_expr, rhs_expr]).dims == expected.shape
-    assert operator.infer_dtype([lhs_expr, rhs_expr]) == pm.DType.BOOL
+    assert operator.infer_dtype([lhs_expr, rhs_expr]) == pm.DType.B
 # end test_boolean_binary_operator_matches_numpy
 
 
 @pytest.mark.parametrize("op_cls", [And, Or, Xor])
 def test_boolean_binary_operator_rejects_non_bool(op_cls):
     """Boolean binary operators must reject non-boolean operands."""
-    lhs_expr, _ = _const_from_values(np.array([1, 0, 1], dtype=np.int32), pm.DType.INT32)
-    rhs_expr, _ = _const_from_values(np.array([True, False, True], dtype=bool), pm.DType.BOOL)
+    lhs_expr, _ = _const_from_values(np.array([1, 0, 1], dtype=np.int32), pm.DType.Z)
+    rhs_expr, _ = _const_from_values(np.array([True, False, True], dtype=bool), pm.DType.B)
     operator = op_cls()
 
     assert operator.check_operands([lhs_expr, rhs_expr]) is False
@@ -227,7 +228,7 @@ def test_boolean_binary_operator_rejects_non_bool(op_cls):
 @pytest.mark.parametrize("values", NOT_OPERAND_CASES)
 def test_not_operator_matches_numpy(values):
     """Logical not mirrors numpy for boolean tensors."""
-    expr, arr = _const_from_values(values, pm.DType.BOOL)
+    expr, arr = _const_from_values(values, pm.DType.B)
     operator = Not()
 
     assert operator.check_operands([expr])
@@ -235,16 +236,16 @@ def test_not_operator_matches_numpy(values):
 
     expected = np.logical_not(arr)
     np.testing.assert_array_equal(result.value, expected)
-    assert result.dtype == pm.DType.BOOL
+    assert result.dtype == pm.DType.B
     assert result.shape.dims == expected.shape
     assert operator.infer_shape([expr]).dims == expected.shape
-    assert operator.infer_dtype([expr]) == pm.DType.BOOL
+    assert operator.infer_dtype([expr]) == pm.DType.B
 # end test_not_operator_matches_numpy
 
 
 def test_not_operator_rejects_non_bool_operands():
     """Logical not must reject tensors that are not boolean."""
-    expr, _ = _const_from_values(np.array([1, 0], dtype=np.int32), pm.DType.INT32)
+    expr, _ = _const_from_values(np.array([1, 0], dtype=np.int32), pm.DType.Z)
     operator = Not()
 
     assert operator.check_operands([expr]) is False
@@ -256,7 +257,7 @@ def test_not_operator_rejects_non_bool_operands():
 @pytest.mark.parametrize("values, expected_any, expected_all", BOOLEAN_REDUCTION_CASES)
 def test_any_all_operators(values, expected_any, expected_all):
     """Any/All reductions should match numpy semantics."""
-    expr, _ = _const_from_values(values, pm.DType.BOOL)
+    expr, _ = _const_from_values(values, pm.DType.B)
 
     any_op = Any()
     all_op = All()
@@ -267,8 +268,8 @@ def test_any_all_operators(values, expected_any, expected_all):
     any_result = any_op.eval([expr])
     all_result = all_op.eval([expr])
 
-    assert any_result.dtype == pm.DType.BOOL
-    assert all_result.dtype == pm.DType.BOOL
+    assert any_result.dtype == pm.DType.B
+    assert all_result.dtype == pm.DType.B
     assert any_result.shape.dims == ()
     assert all_result.shape.dims == ()
     assert any_op.infer_shape([expr]).dims == ()
@@ -281,7 +282,7 @@ def test_any_all_operators(values, expected_any, expected_all):
 @pytest.mark.parametrize("op_cls", [Any, All])
 def test_boolean_reduction_rejects_non_bool(op_cls):
     """Any/All must reject non-boolean tensors."""
-    expr, _ = _const_from_values(np.ones((2, 2), dtype=np.float32), pm.DType.FLOAT32)
+    expr, _ = _const_from_values(np.ones((2, 2), dtype=np.float32), pm.DType.R)
     operator = op_cls()
 
     assert operator.check_operands([expr]) is False

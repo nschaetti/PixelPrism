@@ -39,15 +39,15 @@ def test_slice_expr_from_ints():
     assert expr.start_value == 1
     assert expr.stop_value == 5
     assert expr.step_value == 2
-    assert expr.start.dtype == pm.DType.INT64
+    assert expr.start.dtype == pm.DType.Z
     assert isinstance(expr.as_slice, slice)
     assert expr.as_slice == slice(1, 5, 2)
 # end test_slice_expr_from_ints
 
 
 def test_slice_expr_from_constants():
-    start = pm.const("slice_start", data=2, dtype=pm.DType.INT32)
-    stop = pm.const("slice_stop", data=10, dtype=pm.DType.INT32)
+    start = pm.const("slice_start", data=2, dtype=pm.DType.Z)
+    stop = pm.const("slice_stop", data=10, dtype=pm.DType.Z)
 
     expr = SliceExpr.create(start=start, stop=stop)
 
@@ -59,7 +59,7 @@ def test_slice_expr_from_constants():
 
 
 def test_slice_expr_rejects_non_integer_constant():
-    bad_const = pm.const("slice_bad", data=3.14, dtype=pm.DType.FLOAT32)
+    bad_const = pm.const("slice_bad", data=3.14, dtype=pm.DType.R)
 
     with pytest.raises(MathExprValidationError):
         SliceExpr.create(start=bad_const)
@@ -67,9 +67,9 @@ def test_slice_expr_rejects_non_integer_constant():
 
 
 def test_slice_expr_accepts_constant_expression():
-    start = pm.const("slice_start_expr", data=1, dtype=pm.DType.INT64)
-    offset = pm.const("slice_offset_expr", data=2, dtype=pm.DType.INT64)
-    stop_base = pm.const("slice_stop_expr", data=4, dtype=pm.DType.INT64)
+    start = pm.const("slice_start_expr", data=1, dtype=pm.DType.Z)
+    offset = pm.const("slice_offset_expr", data=2, dtype=pm.DType.Z)
+    stop_base = pm.const("slice_stop_expr", data=4, dtype=pm.DType.Z)
     expr = SliceExpr.create(start=start + offset, stop=offset + stop_base)
 
     assert expr.start_value == 3
@@ -79,8 +79,8 @@ def test_slice_expr_accepts_constant_expression():
 
 
 def test_slice_expr_rejects_non_constant_expression():
-    var = pm.var("slice_var", dtype=pm.DType.INT32, shape=())
-    const = pm.const("slice_const", data=5, dtype=pm.DType.INT32)
+    var = pm.var("slice_var", dtype=pm.DType.Z, shape=())
+    const = pm.const("slice_const", data=5, dtype=pm.DType.Z)
 
     with pytest.raises(MathExprValidationError):
         SliceExpr.create(start=var + const)

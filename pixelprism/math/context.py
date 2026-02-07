@@ -84,8 +84,8 @@ from __future__ import annotations
 from typing import Any, ClassVar, Dict, Optional, List
 import numpy as np
 
-from .dtype import DType
-from .tensor import Tensor, DataType
+from .dtype import DType, to_numpy
+from .tensor import Tensor, TensorLike
 
 
 __all__ = [
@@ -366,7 +366,7 @@ class Context:
         return value
     # end def get
 
-    def set(self, name: str, value: Optional[DataType]) -> None:
+    def set(self, name: str, value: Optional[TensorLike]) -> None:
         """Bind a tensor identifier to a value within this context.
 
         Parameters
@@ -409,7 +409,7 @@ class Context:
         # end if
     # end def remove_deep
 
-    def _to_tensor(self, data: DataType) -> Tensor:
+    def _to_tensor(self, data: TensorLike) -> Tensor:
         """Convert a value to a Tensor.
 
         Parameters
@@ -761,7 +761,7 @@ def _get_list_of_list_first_element(lst: List[Any]) -> Optional[Any]:
 # end def _get_list_of_list_first_element
 
 
-def set_value(name: str, value: Optional[DataType | Tensor]) -> None:
+def set_value(name: str, value: Optional[TensorLike | Tensor]) -> None:
     """
     Set a value in the current context.
 
@@ -777,20 +777,24 @@ def set_value(name: str, value: Optional[DataType | Tensor]) -> None:
     elif isinstance(value, np.ndarray):
         value = Tensor.from_numpy(value)
     elif isinstance(value, int):
-        value = Tensor.from_numpy(np.array(value, dtype=np.int32))
+        value = Tensor.from_numpy(np.array(value, dtype=to_numpy(DType.Z)))
     elif isinstance(value, float):
-        value = Tensor.from_numpy(np.array(value, dtype=np.float32))
+        value = Tensor.from_numpy(np.array(value, dtype=to_numpy(DType.R)))
+    elif isinstance(value, complex):
+        value = Tensor.from_numpy(np.array(value, dtype=to_numpy(DType.C)))
     elif isinstance(value, bool):
         value = Tensor.from_numpy(np.array(value, dtype=np.bool_))
     elif isinstance(value, list | tuple):
         if len(value) == 0:
-            value = Tensor.from_list([], dtype=DType.FLOAT32)
+            value = Tensor.from_list([], dtype=DType.R)
         else:
             first = _get_list_of_list_first_element(value)
             if isinstance(first, int):
-                value = Tensor.from_list(value, dtype=DType.INT32)
+                value = Tensor.from_list(value, dtype=DType.Z)
             elif isinstance(first, float):
-                value = Tensor.from_list(value, dtype=DType.FLOAT32)
+                value = Tensor.from_list(value, dtype=DType.R)
+            elif isinstance(first, complex):
+                value = Tensor.from_list(value, dtype=DType.C)
             else:
                 raise TypeError(f"Cannot convert list of type {type(first)!r}.")
             # end if

@@ -17,11 +17,11 @@ class DummyLeaf(MathLeaf):
 
     def __init__(self, name: str, value: float = 0.0):
         self._data = float(value)
-        super().__init__(name=name, dtype=DType.FLOAT32, shape=Shape((1,)))
+        super().__init__(name=name, dtype=DType.R, shape=Shape((1,)))
     # end def __init__
 
     def _eval(self) -> Tensor:
-        return Tensor(data=[self._data], dtype=DType.FLOAT32)
+        return Tensor(data=[self._data], dtype=DType.R)
     # end def _eval
 
     def _set(self, data: float) -> None:
@@ -80,7 +80,7 @@ class DummyOp(Operator):
             for child in operands
         ]
         result = self._fn(values)
-        return Tensor(data=[result], dtype=DType.FLOAT32)
+        return Tensor(data=[result], dtype=DType.R)
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -89,7 +89,7 @@ class DummyOp(Operator):
 
     @classmethod
     def infer_dtype(cls, operands):
-        return operands[0].dtype if operands else DType.FLOAT32
+        return operands[0].dtype if operands else DType.R
     # end def infer_dtype
 
     @classmethod
@@ -116,7 +116,7 @@ def _make_node(
         name=name,
         op=DummyOp(name=op_name, arity=len(children), fn=fn),
         children=children,
-        dtype=DType.FLOAT32,
+        dtype=DType.R,
         shape=Shape((len(children), len(children))),
     )
 # end def _make_node
@@ -136,7 +136,7 @@ def test_math_expr_basic_properties_and_leaf_detection():
     assert node.name == "sum_node"
     assert node.op.name == "sum"
     assert node.children == (child1, child2)
-    assert node.dtype == DType.FLOAT32
+    assert node.dtype == DType.R
     assert node.shape.dims == (2, 2)
     assert node.arity == 2
     assert node.is_node()
@@ -146,7 +146,7 @@ def test_math_expr_basic_properties_and_leaf_detection():
         name="leafish",
         op=None,
         children=(),
-        dtype=DType.FLOAT64,
+        dtype=DType.R,
         shape=Shape(()),
     )
 
@@ -191,7 +191,7 @@ def test_math_expr_operator_mismatch_raises():
             name="bad_node",
             op=bad_op,
             children=(child1, child2),
-            dtype=DType.FLOAT32,
+            dtype=DType.R,
             shape=Shape((1,)),
         )
     # end with

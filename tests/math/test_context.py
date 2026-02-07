@@ -15,7 +15,7 @@ from pixelprism.math.context import (
     snapshot_context_stack,
     trace_variable,
 )
-from pixelprism.math.dtype import DType
+from pixelprism.math.dtype import DType, to_numpy
 from pixelprism.math.tensor import Tensor
 
 ctx = importlib.import_module("pixelprism.math.context")
@@ -37,9 +37,9 @@ def reset_context_stack():
 # end def reset_context_stack
 
 
-def make_tensor(value, dtype: Optional[DType] = DType.FLOAT32, mutable=True) -> Tensor:
+def make_tensor(value, dtype: Optional[DType] = DType.R, mutable=True) -> Tensor:
     """Create a tensor helper for tests."""
-    array = np.array(value, dtype=dtype.to_numpy())
+    array = np.array(value, dtype=to_numpy(dtype))
     return Tensor(data=array, dtype=dtype)
 # end def make_tensor
 
@@ -161,9 +161,9 @@ def test_trace_reports_resolution_chain():
     and records chain entries for each ancestor.
     """
     root = Context.root()
-    root.set("tensor:w", make_tensor([0.0], dtype=DType.FLOAT64))
+    root.set("tensor:w", make_tensor([0.0], dtype=DType.R))
     child = Context()
-    child.set("tensor:w", make_tensor([1.0], dtype=DType.FLOAT32))
+    child.set("tensor:w", make_tensor([1.0], dtype=DType.R))
 
     info = child.trace("tensor:w")
     assert info["found"] is True
@@ -217,7 +217,7 @@ def test_dump_context_tree_helper_matches_method():
 def test_serialization_round_trip():
     """Round-trip a context hierarchy through ``to_dict``/``from_dict``."""
     root = Context.root()
-    root.set("root", make_tensor([0.0], dtype=DType.FLOAT64))
+    root.set("root", make_tensor([0.0], dtype=DType.R))
     child = Context()
     child.set("leaf", make_tensor([1.0, 2.0], mutable=False))
 

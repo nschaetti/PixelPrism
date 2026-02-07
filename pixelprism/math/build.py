@@ -30,8 +30,8 @@ from typing import Any, Union, Optional
 import numpy as np
 
 from .math_expr import MathNode, MathLeaf
-from .dtype import ScalarType, DType, AnyDType, NestedListType
-from .tensor import DataType
+from .dtype import ScalarLike, DType, TypeLike, NumberListLike
+from .tensor import TensorLike
 from .utils import tensor, const
 
 
@@ -39,8 +39,8 @@ __all__ = ["as_expr"]
 
 
 def as_expr(
-        obj: Union[MathNode, DataType],
-        dtype: Optional[AnyDType] = None,
+        obj: Union[MathNode, TensorLike],
+        dtype: Optional[TypeLike] = None,
 ) -> MathNode:
     """
     Convert Python and NumPy inputs to a :class:`~pixelprism.math.MathExpr`.
@@ -59,7 +59,7 @@ def as_expr(
     - ``numpy.ndarray``: wrapped as a ``Tensor``; if ``dtype`` is provided,
       it overrides the array's dtype.
     - Nested Python lists: converted to a ``Tensor`` using ``dtype``; when
-      ``dtype`` is ``None``, defaults to ``FLOAT64``.
+      ``dtype`` is ``None``, defaults to ``R``.
 
     Parameters
     ----------
@@ -67,7 +67,7 @@ def as_expr(
         Input object to convert.
     dtype : AnyDType | None, default None
         Target dtype for scalar, list, and array inputs. When ``None``,
-        lists default to ``FLOAT64`` and arrays keep their existing dtype.
+        lists default to ``R`` and arrays keep their existing dtype.
 
     Returns
     -------
@@ -77,20 +77,20 @@ def as_expr(
     Examples
     --------
     >>> from pixelprism.math import as_expr, DType
-    >>> as_expr(3.5, dtype=DType.FLOAT32).dtype
-    <DType.FLOAT32: 'float32'>
+    >>> as_expr(3.5, dtype=DType.R).dtype
+    <DType.R: 'R'>
 
     >>> import numpy as np
     >>> arr = np.array([[1, 2], [3, 4]], dtype=np.int64)
-    >>> as_expr(arr, dtype=DType.FLOAT32).dtype
-    <DType.FLOAT32: 'float32'>
+    >>> as_expr(arr, dtype=DType.R).dtype
+    <DType.R: 'R'>
 
     >>> as_expr([[1, 2], [3, 4]], dtype=None).dtype
-    <DType.FLOAT64: 'float64'>
+    <DType.R: 'R'>
     """
     if isinstance(obj, MathNode):
         return obj
-    if isinstance(obj, ScalarType) or isinstance(obj, np.ndarray):
+    if isinstance(obj, ScalarLike) or isinstance(obj, np.ndarray):
         return const(
             name=f"constant_{MathNode.next_id()}",
             data=obj,
@@ -102,7 +102,7 @@ def as_expr(
         return const(
             name=f"constant_{MathNode.next_id()}",
             data=obj,
-            dtype=dtype or DType.FLOAT64
+            dtype=dtype or DType.R
         )
     raise TypeError(f"Cannot convert {type(obj)} to MathExpr")
     # end if

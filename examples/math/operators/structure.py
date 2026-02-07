@@ -17,7 +17,7 @@ expected = values[slice(start, stop, step)]
 
 # Deterministic vector copied from the original helper `_const_vector`
 base_values = np.arange(10, dtype=np.float32)
-expr = pm.const(name="debug_getitem_vector", data=base_values.copy(), dtype=pm.DType.FLOAT32)
+expr = pm.const(name="debug_getitem_vector", data=base_values.copy(), dtype=pm.DType.R)
 
 print("Source test code:\n")
 print(TEST_SNIPPET)

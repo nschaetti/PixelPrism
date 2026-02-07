@@ -31,13 +31,12 @@ Conditional operators.
 
 from __future__ import annotations
 
-from typing import Sequence
 import numpy as np
 
-from ..dtype import DType
+from ..dtype import DType, to_numpy, promote
 from ..shape import Shape
 from ..tensor import Tensor
-from ..math_expr import MathExpr
+from ..math_expr import MathNode
 from .base import Operands, Operator, operator_registry
 
 __all__ = [
@@ -59,7 +58,7 @@ class Where(Operator):
             raise ValueError(f"{self.NAME} expects exactly 3 operands, got {len(operands)}")
         # end if
         cond, x, y = operands
-        if cond.dtype != DType.BOOL:
+        if cond.dtype != DType.B:
             raise TypeError(f"{self.NAME} condition must have dtype BOOL, got {cond.dtype}")
         # end if
         if cond.shape != x.shape or cond.shape != y.shape:
@@ -80,7 +79,7 @@ class Where(Operator):
 
     def infer_dtype(self, operands: Operands) -> DType:
         _, x, y = operands
-        return DType.promote(x.dtype, y.dtype)
+        return promote(x.dtype, y.dtype)
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -89,7 +88,7 @@ class Where(Operator):
         x_val = x.eval().value
         y_val = y.eval().value
         result = np.where(cond_val, x_val, y_val)
-        return Tensor(data=np.asarray(result, dtype=self.infer_dtype(operands).to_numpy()))
+        return Tensor(data=np.asarray(result, dtype=to_numpy(self.infer_dtype(operands))))
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -98,7 +97,7 @@ class Where(Operator):
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathNode,
             by_ref: bool = False,
             look_for: str | None = None
     ) -> bool:
@@ -127,17 +126,17 @@ class IfOperator(Operator):
     NAME = "if"
     ARITY = 2
 
-    def __init__(self, cond: MathExpr):
+    def __init__(self, cond: MathNode):
         super().__init__(cond=cond)
         self._cond = cond
-        if self._cond.dtype != DType.BOOL or self._cond.rank != 0:
+        if self._cond.dtype != DType.B or self._cond.rank != 0:
             raise ValueError("If condition must be a scalar boolean expression.")
         # end if
     # end def __init__
 
     def contains(
             self,
-            expr: MathExpr,
+            expr: MathNode,
             by_ref: bool = False,
             look_for: str | None = None
     ) -> bool:

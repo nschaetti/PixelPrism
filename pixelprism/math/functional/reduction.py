@@ -25,12 +25,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-from typing import Union
 
 # Imports
+from typing import Union
 from pixelprism.math.math_expr import MathNode
 from pixelprism.math.build import as_expr
 from .helpers import apply_operator
+
 
 __all__ = [
     "sum",

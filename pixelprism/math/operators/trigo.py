@@ -30,11 +30,11 @@ Trigonometric operator implementations.
 """
 
 # Imports
-import numpy as np
 from .base import Operands, operator_registry
 from .elementwise import ElementwiseOperator, UnaryElementwiseOperator, Sqrt
 from ..tensor import Tensor
-from ..math_expr import Variable, Constant, MathNode, MathExpr
+from ..math_expr import Variable, Constant, MathNode
+
 
 __all__ = [
     "Sin",
@@ -77,7 +77,7 @@ class Sin(UnaryElementwiseOperator):
         return Tensor.sin(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         return Cos.create_node(operands=(x,)) * x.diff(wrt)
     # end def _diff
@@ -105,7 +105,7 @@ class Cos(UnaryElementwiseOperator):
         return Tensor.cos(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         return -Sin.create_node(operands=(x,)) * x.diff(wrt)
     # end def _diff
@@ -132,7 +132,7 @@ class Tan(UnaryElementwiseOperator):
         return Tensor.tan(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         sec_x = Sec.create_node(operands=(x,))
         return sec_x * sec_x * x.diff(wrt)
@@ -160,7 +160,7 @@ class Asin(UnaryElementwiseOperator):
         return Tensor.arcsin(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         denom = Sqrt.create_node(operands=(Constant.new(1) - x * x,))
         return (Constant.new(1) / denom) * x.diff(wrt)
@@ -188,7 +188,7 @@ class Acos(UnaryElementwiseOperator):
         return Tensor.arccos(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         denom = Sqrt.create_node(operands=(Constant.new(1) - x * x,))
         return (-Constant.new(1) / denom) * x.diff(wrt)
@@ -216,7 +216,7 @@ class Atan(UnaryElementwiseOperator):
         return Tensor.arctan(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         denom = Constant.new(1) + x * x
         return (Constant.new(1) / denom) * x.diff(wrt)
@@ -245,7 +245,7 @@ class Atan2(ElementwiseOperator):
         return Tensor.arctan2(y.eval(), x.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         y, x = operands
         denom = x * x + y * y
         dy_term = (x / denom) * y.diff(wrt)
@@ -275,7 +275,7 @@ class Sec(UnaryElementwiseOperator):
         return 1.0 / Tensor.cos(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         return Sec.create_node(operands=(x,)) * Tan.create_node(operands=(x,)) * x.diff(wrt)
     # end def _diff
@@ -302,7 +302,7 @@ class Csc(UnaryElementwiseOperator):
         return 1.0 / Tensor.sin(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         return -Csc.create_node(operands=(x,)) * Cot.create_node(operands=(x,)) * x.diff(wrt)
     # end def _diff
@@ -329,7 +329,7 @@ class Cot(UnaryElementwiseOperator):
         return 1.0 / Tensor.tan(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         csc_x = Csc.create_node(operands=(x,))
         return -csc_x * csc_x * x.diff(wrt)
@@ -357,7 +357,7 @@ class Sinh(UnaryElementwiseOperator):
         return Tensor.sinh(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         return Cosh.create_node(operands=(x,)) * x.diff(wrt)
     # end def _diff
@@ -384,7 +384,7 @@ class Cosh(UnaryElementwiseOperator):
         return Tensor.cosh(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         return Sinh.create_node(operands=(x,)) * x.diff(wrt)
     # end def _diff
@@ -411,7 +411,7 @@ class Tanh(UnaryElementwiseOperator):
         return Tensor.tanh(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         cosh_x = Cosh.create_node(operands=(x,))
         return (Constant.new(1) / (cosh_x * cosh_x)) * x.diff(wrt)
@@ -439,7 +439,7 @@ class Asinh(UnaryElementwiseOperator):
         return Tensor.arcsinh(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         denom = Sqrt.create_node(operands=(x * x + Constant.new(1),))
         return (Constant.new(1) / denom) * x.diff(wrt)
@@ -467,7 +467,7 @@ class Acosh(UnaryElementwiseOperator):
         return Tensor.arccosh(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         denom = (
             Sqrt.create_node(operands=(x - Constant.new(1),))
@@ -498,7 +498,7 @@ class Atanh(UnaryElementwiseOperator):
         return Tensor.arctanh(value.eval())
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         (x,) = operands
         denom = Constant.new(1) - x * x
         return (Constant.new(1) / denom) * x.diff(wrt)

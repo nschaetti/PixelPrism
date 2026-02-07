@@ -37,8 +37,8 @@ def main():
     print("Native slice:", seq_slice.as_slice)
 
     # Build a slice expression from constants
-    start = pm.const("slice_start", data=0, dtype=pm.DType.INT32)
-    stop = pm.const("slice_stop", data=4, dtype=pm.DType.INT32)
+    start = pm.const("slice_start", data=0, dtype=pm.DType.Z)
+    stop = pm.const("slice_stop", data=4, dtype=pm.DType.Z)
     const_slice = SliceExpr.create(start=start, stop=stop)
     print("Constant-backed slice:", const_slice)
     print("Slice values:", const_slice.start_value, const_slice.stop_value, const_slice.step_value)

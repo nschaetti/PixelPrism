@@ -8,7 +8,7 @@ from pixelprism.math.functional.helpers import apply_operator
 
 
 data = [1, -2, 3, 0.5]
-tensor_data = pm.Tensor.from_list(data, dtype=pm.DType.FLOAT32)
+tensor_data = pm.Tensor.from_list(data, dtype=pm.DType.R)
 operand_expr = pm.const(
     name=f"median_const",
     data=tensor_data.value.copy(),
@@ -24,7 +24,7 @@ print(f"values: {expr.eval()}, expected: {expected}")
 matrix_expr = pm.const(
     name="transpose_matrix",
     data=[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-    dtype=pm.DType.FLOAT32
+    dtype=pm.DType.R
 )
 transpose_expr = apply_operator("transpose", (matrix_expr,), "transpose(matrix)")
 matrix_np = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float32)
@@ -37,7 +37,7 @@ print(f"transpose: {transpose_expr.eval().value}, expected: {transpose_expected}
 det_matrix_expr = pm.const(
     name="det_matrix",
     data=[[2.0, 3.0], [1.5, -0.5]],
-    dtype=pm.DType.FLOAT64
+    dtype=pm.DType.R
 )
 det_expr = apply_operator("det", (det_matrix_expr,), "det(matrix)")
 det_expected = np.linalg.det(np.asarray([[2.0, 3.0], [1.5, -0.5]], dtype=np.float64))
@@ -49,7 +49,7 @@ print(f"determinant: {det_expr.eval()}, expected: {det_expected}")
 inv_matrix_expr = pm.const(
     name="inv_matrix",
     data=[[1.0, 2.0], [3.0, 4.0]],
-    dtype=pm.DType.FLOAT32
+    dtype=pm.DType.R
 )
 inverse_expr = apply_operator("inverse", (inv_matrix_expr,), "inverse(matrix)")
 inv_expected = np.linalg.inv(np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32))

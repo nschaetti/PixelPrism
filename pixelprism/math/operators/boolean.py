@@ -30,13 +30,13 @@ Boolean comparison elementwise operators.
 """
 
 from abc import ABC
-from typing import Sequence, Any, Optional, Union
+from typing import Sequence, Any, Optional
 
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
-from .base import Operands, Operator, ParametricOperator, operator_registry
-from .elementwise import UnaryElementwiseOperator, UnaryElementwiseParametricOperator
+from ..math_expr import MathNode
+from .base import Operands, Operator, operator_registry
 
 __all__ = [
     "Eq",
@@ -66,7 +66,7 @@ class _BinaryComparisonOperator(ComparisonOperator):
     IS_BINARY = False
     TENSOR_METHOD: str
 
-    def contains(self, expr: "MathExpr", by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
@@ -88,12 +88,12 @@ class _BinaryComparisonOperator(ComparisonOperator):
         return method(right)
     # end def _eval
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError(f"{self.__class__.__name__} does not support backward.")
     # end def _backward
 
     def infer_dtype(self, operands: Operands) -> DType:
-        return DType.BOOL
+        return DType.B
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
@@ -118,14 +118,14 @@ class _BinaryBooleanComparisonOperator(_BinaryComparisonOperator, ABC):
 
     def _ensure_boolean_operands(self, operands: Operands) -> None:
         for operand in operands:
-            if operand.dtype != DType.BOOL:
+            if operand.dtype != DType.B:
                 raise TypeError(f"{self.NAME} expects boolean tensors, got {operand.dtype}.")
             # end if
         # end for
     # end def _ensure_boolean_operands
 
     def check_operands(self, operands: Operands) -> bool:
-        return super().check_operands(operands) and all(op.dtype == DType.BOOL for op in operands)
+        return super().check_operands(operands) and all(op.dtype == DType.B for op in operands)
     # end def check_operands
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -143,15 +143,15 @@ class _UnaryBooleanComparisonOperator(ComparisonOperator, ABC):
 
     def check_operands(self, operands: Operands) -> bool:
         operand, = operands
-        return operand.dtype == DType.BOOL
+        return operand.dtype == DType.B
     # end def check_operands
 
-    def contains(self, expr: "MathExpr", by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
         return False
     # end def contains
 
-    def _ensure_boolean_operand(self, operand: "MathExpr") -> None:
-        if operand.dtype != DType.BOOL:
+    def _ensure_boolean_operand(self, operand: MathNode) -> None:
+        if operand.dtype != DType.B:
             raise TypeError(f"{self.NAME} expects boolean tensors, got {operand.dtype}.")
         # end if
     # end def _ensure_boolean_operand
@@ -164,12 +164,12 @@ class _UnaryBooleanComparisonOperator(ComparisonOperator, ABC):
         return method()
     # end def _eval
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError(f"{self.__class__.__name__} does not support backward.")
     # end def _backward
 
     def infer_dtype(self, operands: Operands) -> DType:
-        return DType.BOOL
+        return DType.B
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
@@ -177,7 +177,7 @@ class _UnaryBooleanComparisonOperator(ComparisonOperator, ABC):
         return self._result_shape(operand)
     # end def infer_shape
 
-    def _result_shape(self, operand: "MathExpr") -> Shape:
+    def _result_shape(self, operand: MathNode) -> Shape:
         return operand.input_shape
     # end def _result_shape
 
@@ -197,7 +197,7 @@ class _UnaryBooleanComparisonOperator(ComparisonOperator, ABC):
 class _ScalarBooleanComparisonOperator(_UnaryBooleanComparisonOperator, ABC):
     """Boolean reductions that always return scalars."""
 
-    def _result_shape(self, operand: "MathExpr") -> Shape:
+    def _result_shape(self, operand: MathNode) -> Shape:
         return Shape(dims=())
     # end def _result_shape
 

@@ -35,7 +35,7 @@ from typing import List, Type, Tuple, Any, Optional
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
-from ..math_expr import MathExpr, MathNode
+from ..math_expr import MathNode, Variable
 
 
 __all__ = [
@@ -127,7 +127,7 @@ class Operator(ABC):
     @abstractmethod
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -159,9 +159,9 @@ class Operator(ABC):
 
     def diff(
             self,
-            wrt: "Variable",
+            wrt: Variable,
             operands: Operands
-    ) -> "MathExpr":
+    ) -> MathNode:
         """
         Local derivative of the operator wrt the given expression.
         """
@@ -183,9 +183,9 @@ class Operator(ABC):
 
     def _diff(
             self,
-            wrt: "Variable",
+            wrt: Variable,
             operands: Operands,
-    ) -> "MathExpr":
+    ) -> MathNode:
         """
         Local backward rule for this operator.
         """
@@ -234,11 +234,7 @@ class Operator(ABC):
     def _resolve_parameter(v: Any):
         if v is None:
             return None
-        try:
-            from ..math_expr import MathNode  # local import to avoid cycles
-        except Exception:  # pragma: no cover - defensive
-            MathExpr = None  # type: ignore
-        # end try
+        # end if
         if MathNode is not None and isinstance(v, MathNode):
             return v.eval().item()
         # end if
@@ -264,7 +260,7 @@ class Operator(ABC):
             **kwargs
     ) -> MathNode:
         """
-        Build a MathExpr by applying a registered operator to operands.
+        Build a MathNode by applying a registered operator to operands.
         """
         # Get operator class
         op_cls = cls

@@ -32,8 +32,8 @@ import pixelprism.math.render as render
 
 
 # Variables
-x = pm.var("x", dtype=pm.DType.FLOAT32, shape=())
-y = pm.var("y", dtype=pm.DType.FLOAT32, shape=())
+x = pm.var("x", dtype=pm.DType.R, shape=())
+y = pm.var("y", dtype=pm.DType.R, shape=())
 
 # Math equations
 equations = dict()

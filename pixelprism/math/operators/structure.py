@@ -38,8 +38,9 @@ import numpy as np
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
-from ..math_expr import SliceExpr, MathNode, MathExpr
-from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
+from ..math_expr import SliceExpr, MathNode
+from .base import Operands, operator_registry, Operator
+
 
 __all__ = [
     "Getitem",
@@ -149,7 +150,7 @@ class Reshape(StructureOperator):
         return new_shape.size == operands[0].size
     # end def check_shapes
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Flatten does not support backward.")
     # end def _backward
 
@@ -300,7 +301,7 @@ class Getitem(StructureOperator):
         return operands[0].eval()[*indices]
     # end def _eval
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("GetItem does not support backward.")
     # end def _backward
 
@@ -357,7 +358,7 @@ class Flatten(StructureOperator):
         return tensor.reshape(Shape(target_dims))
     # end def _eval
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Flatten does not support backward.")
     # end def _backward
 
@@ -465,7 +466,7 @@ class Squeeze(StructureOperator):
         return tuple(dims_list)
     # end def _target_dims
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Squeeze does not support backward.")
     # end def _backward
 
@@ -539,7 +540,7 @@ class Unsqueeze(StructureOperator):
         return tuple(dims_list)
     # end def _target_dims
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Unsqueeze does not support backward.")
     # end def _backward
 

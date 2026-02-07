@@ -32,6 +32,7 @@ import pytest
 from numpy.ma.core import equal
 
 import pixelprism.math as pm
+from pixelprism.math.dtype import to_numpy
 from pixelprism.math.functional.elementwise import (
     add,
     sub,
@@ -69,7 +70,7 @@ operand_factory as _operand_factory,
 
 def _const_expr(name, values, dtype):
     """Create a constant expression paired with its numpy array."""
-    arr = np.asarray(values, dtype=dtype.to_numpy())
+    arr = np.asarray(values, dtype=to_numpy(dtype))
     return pm.const(name=name, data=arr, dtype=dtype), arr
 # end def _const_expr
 
@@ -298,19 +299,19 @@ def test_elementwise_tensor_tensor_mixed_dtype_and_shape():
     left, left_np = _const_expr(
         "left_mixed",
         [[[1.0, 2.0], [3.0, 4.0]], [[-1.0, -2.0], [-3.0, -4.0]]],
-        pm.DType.FLOAT64,
+        pm.DType.R,
     )
     right, right_np = _const_expr(
         "right_mixed",
         [[[0.5, 1.5], [2.5, 3.5]], [[4.5, 5.5], [6.5, 7.5]]],
-        pm.DType.FLOAT32,
+        pm.DType.R,
     )
 
     expr = add(left, right)
     expected = left_np + right_np
 
     _assert_expr_allclose(expr, expected)
-    assert expr.dtype == pm.DType.FLOAT64
+    assert expr.dtype == pm.DType.R
     assert expr.shape.dims == expected.shape
 # end test_elementwise_tensor_tensor_mixed_dtype_and_shape
 
@@ -319,15 +320,15 @@ def test_elementwise_scalar_tensor_dtype_promotion():
     tensor_expr, tensor_np = _const_expr(
         "int_tensor",
         [[1, 2], [3, 4]],
-        pm.DType.INT32,
+        pm.DType.Z,
     )
-    scalar_expr, scalar_np = _const_expr("float_scalar", 2.5, pm.DType.FLOAT64)
+    scalar_expr, scalar_np = _const_expr("float_scalar", 2.5, pm.DType.R)
 
     expr = mul(tensor_expr, scalar_expr)
     expected = tensor_np * scalar_np
 
     _assert_expr_allclose(expr, expected)
-    assert expr.dtype == pm.DType.FLOAT64
+    assert expr.dtype == pm.DType.R
     assert expr.shape.dims == tensor_expr.shape.dims
 # end test_elementwise_scalar_tensor_dtype_promotion
 
@@ -336,22 +337,22 @@ def test_elementwise_combined_expression_chain():
     a_expr, a_np = _const_expr(
         "chain_a",
         [[1.0, 2.0], [3.0, 4.0]],
-        pm.DType.FLOAT32,
+        pm.DType.R,
     )
     b_expr, b_np = _const_expr(
         "chain_b",
         [[0.5, 1.5], [2.5, 3.5]],
-        pm.DType.FLOAT32,
+        pm.DType.R,
     )
     c_expr, c_np = _const_expr(
         "chain_c",
         [[4.0, 5.0], [6.0, 7.0]],
-        pm.DType.FLOAT32,
+        pm.DType.R,
     )
     d_expr, d_np = _const_expr(
         "chain_d",
         [[2.0, 3.0], [4.0, 5.0]],
-        pm.DType.FLOAT32,
+        pm.DType.R,
     )
 
     combined = sqrt_op(add(mul(a_expr, b_expr), div(c_expr, d_expr)))
@@ -364,8 +365,8 @@ def test_elementwise_combined_expression_chain():
 
 def test_element_wise_op_scalar():
     # Variables
-    x = pm.var("x", dtype=pm.DType.FLOAT32, shape=())
-    y = pm.var("y", dtype=pm.DType.FLOAT32, shape=())
+    x = pm.var("x", dtype=pm.DType.R, shape=())
+    y = pm.var("y", dtype=pm.DType.R, shape=())
 
     # Math equations
     z1 = add(x, y)

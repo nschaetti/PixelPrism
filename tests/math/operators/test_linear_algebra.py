@@ -32,6 +32,7 @@ import pytest
 
 import pixelprism.math as pm
 from pixelprism.math import DType
+from pixelprism.math.dtype import to_numpy
 from pixelprism.math.functional import linear_algebra as LA
 from pixelprism.math.functional import elementwise as EL
 from pixelprism.math.functional.helpers import apply_operator as _apply_operator
@@ -40,7 +41,7 @@ from ._helpers import assert_expr_allclose as _assert_expr_allclose
 
 def _make_const(name, values, dtype):
     """Create a constant expression alongside its NumPy array."""
-    array = np.asarray(values, dtype=dtype.to_numpy())
+    array = np.asarray(values, dtype=to_numpy(dtype))
     return pm.const(name=name, data=array, dtype=dtype), array
 # end def _make_const
 
@@ -67,11 +68,11 @@ def test_matmul_vector_matrix():
     """
     Ensure vector @ matrix produces the expected 1-D tensor.
     """
-    vector, vector_np = _make_const("v", [1.0, 2.0, 3.0], DType.FLOAT32)
+    vector, vector_np = _make_const("v", [1.0, 2.0, 3.0], DType.R)
     matrix, matrix_np = _make_const(
         "M",
         [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
-        DType.FLOAT32,
+        DType.R,
     )
 
     expr = LA.matmul(vector, matrix)
@@ -89,9 +90,9 @@ def test_matmul_matrix_vector():
     matrix, matrix_np = _make_const(
         "M",
         [[2.0, 4.0, 6.0], [1.0, 3.0, 5.0]],
-        DType.FLOAT64,
+        DType.R,
     )
-    vector, vector_np = _make_const("v", [1.0, 0.0, 1.0], DType.FLOAT64)
+    vector, vector_np = _make_const("v", [1.0, 0.0, 1.0], DType.R)
 
     expr = LA.matmul(matrix, vector)
     expected = np.matmul(matrix_np, vector_np)
@@ -118,8 +119,8 @@ def test_matmul_matrix_matrix(left, right):
     """
     Validate matrix @ matrix multiplies with standard shape inference.
     """
-    a, a_np = _make_const("A", left, DType.FLOAT32)
-    b, b_np = _make_const("B", right, DType.FLOAT32)
+    a, a_np = _make_const("A", left, DType.R)
+    b, b_np = _make_const("B", right, DType.R)
 
     expr = LA.matmul(a, b)
     expected = np.matmul(a_np, b_np)
@@ -136,8 +137,8 @@ def test_matmul_batched_matrix_matrix():
     lhs_data = np.arange(2 * 2 * 3, dtype=np.float32).reshape(2, 2, 3)
     rhs_data = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4)
 
-    lhs, lhs_np = _make_const("lhs", lhs_data, DType.FLOAT32)
-    rhs, rhs_np = _make_const("rhs", rhs_data, DType.FLOAT32)
+    lhs, lhs_np = _make_const("lhs", lhs_data, DType.R)
+    rhs, rhs_np = _make_const("rhs", rhs_data, DType.R)
 
     expr = LA.matmul(lhs, rhs)
     expected = np.matmul(lhs_np, rhs_np)
@@ -151,8 +152,8 @@ def test_dot_vector_vector():
     """
     Dot product of two simple vectors should match NumPy's implementation.
     """
-    vec_left, left_np = _make_const("a", [1.0, 2.0, 3.0], DType.FLOAT32)
-    vec_right, right_np = _make_const("b", [4.0, 5.0, 6.0], DType.FLOAT32)
+    vec_left, left_np = _make_const("a", [1.0, 2.0, 3.0], DType.R)
+    vec_right, right_np = _make_const("b", [4.0, 5.0, 6.0], DType.R)
 
     expr = LA.dot(vec_left, vec_right)
     expected = np.dot(left_np, right_np)
@@ -168,8 +169,8 @@ def test_dot_batched_vectors():
     """
     lhs_values = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
     rhs_values = [[7.0, 8.0, 9.0], [1.0, 2.0, 3.0]]
-    lhs, lhs_np = _make_const("lhs", lhs_values, DType.FLOAT32)
-    rhs, rhs_np = _make_const("rhs", rhs_values, DType.FLOAT32)
+    lhs, lhs_np = _make_const("lhs", lhs_values, DType.R)
+    rhs, rhs_np = _make_const("rhs", rhs_values, DType.R)
 
     expr = LA.dot(lhs, rhs)
     expected = np.sum(lhs_np * rhs_np, axis=-1)
@@ -183,8 +184,8 @@ def test_outer_vector_vector():
     """
     Standard outer product should expand vectors into a matrix.
     """
-    vec_left, lhs_np = _make_const("u", [1.0, 2.0], DType.FLOAT32)
-    vec_right, rhs_np = _make_const("v", [3.0, 4.0, 5.0], DType.FLOAT32)
+    vec_left, lhs_np = _make_const("u", [1.0, 2.0], DType.R)
+    vec_right, rhs_np = _make_const("v", [3.0, 4.0, 5.0], DType.R)
 
     expr = LA.outer(vec_left, vec_right)
     expected = np.outer(lhs_np, rhs_np)
@@ -201,8 +202,8 @@ def test_outer_batched_vectors():
     lhs_data = [[1.0, 2.0], [3.0, 4.0]]
     rhs_data = [[5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]
 
-    lhs, lhs_np = _make_const("lhs", lhs_data, DType.FLOAT32)
-    rhs, rhs_np = _make_const("rhs", rhs_data, DType.FLOAT32)
+    lhs, lhs_np = _make_const("lhs", lhs_data, DType.R)
+    rhs, rhs_np = _make_const("rhs", rhs_data, DType.R)
 
     expr = LA.outer(lhs, rhs)
     expected = lhs_np[:, :, None] * rhs_np[:, None, :]
@@ -219,7 +220,7 @@ def test_transpose_matrix_matches_numpy():
     matrix, matrix_np = _make_const(
         "transpose_matrix",
         [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-        DType.FLOAT32,
+        DType.R,
     )
     expr = _transpose(matrix)
     expected = np.transpose(matrix_np)
@@ -235,7 +236,7 @@ def test_transpose_batched_tensor_reverses_axes():
     Batched tensors should transpose all axes.
     """
     data = np.arange(2 * 3 * 4, dtype=np.float64).reshape(2, 3, 4)
-    tensor, tensor_np = _make_const("transpose_batched", data, DType.FLOAT64)
+    tensor, tensor_np = _make_const("transpose_batched", data, DType.R)
 
     expr = _transpose(tensor)
     expected = np.transpose(tensor_np)
@@ -253,7 +254,7 @@ def test_transpose_is_involution():
     matrix, matrix_np = _make_const(
         "transpose_involution",
         [[0.0, 1.0], [2.0, 3.0]],
-        DType.FLOAT32,
+        DType.R,
     )
     expr = _transpose(_transpose(matrix))
 
@@ -269,7 +270,7 @@ def test_det_scalar_result_matches_numpy():
     matrix, matrix_np = _make_const(
         "det_square",
         [[2.0, 0.0], [0.0, -4.0]],
-        DType.FLOAT64,
+        DType.R,
     )
     expr = _det(matrix)
     expected = np.linalg.det(matrix_np)
@@ -286,7 +287,7 @@ def test_det_higher_order_matrix():
     matrix, matrix_np = _make_const(
         "det_three",
         [[3.0, 1.0, -1.0], [2.0, 0.0, 1.0], [1.0, 4.0, 2.0]],
-        DType.FLOAT32,
+        DType.R,
     )
     expr = _det(matrix)
     expected = np.linalg.det(matrix_np)
@@ -304,14 +305,14 @@ def test_inverse_matrix_matches_numpy():
     matrix, matrix_np = _make_const(
         "inv_square",
         [[1.0, 2.0], [3.0, 4.0]],
-        DType.FLOAT64,
+        DType.R,
     )
     expr = _inverse(matrix)
     expected = np.linalg.inv(matrix_np)
 
     _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
-    assert expr.dtype == DType.FLOAT32
+    assert expr.dtype == DType.R
 # end test_inverse_matrix_matches_numpy
 
 
@@ -326,13 +327,13 @@ def test_inverse_batched_matrices():
         ],
         dtype=np.float32,
     )
-    matrix, matrix_np = _make_const("inv_batched", data, DType.FLOAT32)
+    matrix, matrix_np = _make_const("inv_batched", data, DType.R)
     expr = _inverse(matrix)
     expected = np.linalg.inv(matrix_np)
 
     _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
-    assert expr.dtype == DType.FLOAT32
+    assert expr.dtype == DType.R
 # end test_inverse_batched_matrices
 
 
@@ -343,7 +344,7 @@ def test_trace_matrix_returns_scalar():
     matrix, matrix_np = _make_const(
         "T",
         [[1.0, 2.0, 3.0], [0.0, -1.0, 4.0], [5.0, 6.0, 0.0]],
-        DType.FLOAT64,
+        DType.R,
     )
 
     expr = LA.trace(matrix)
@@ -360,7 +361,7 @@ def test_trace_batched_matrices():
     Batched traces operate independently across leading dimensions.
     """
     batch_data = np.arange(2 * 3 * 3, dtype=np.float32).reshape(2, 3, 3)
-    matrices, batch_np = _make_const("batched", batch_data, DType.FLOAT32)
+    matrices, batch_np = _make_const("batched", batch_data, DType.R)
 
     expr = LA.trace(matrices)
     expected = np.trace(batch_np, axis1=-2, axis2=-1)
@@ -378,18 +379,18 @@ def test_linear_algebra_batched_mixed_dtype_chain():
     lhs, lhs_np = _make_const(
         "lhs_mixed",
         np.arange(2 * 3 * 2, dtype=np.float64).reshape(2, 3, 2),
-        DType.FLOAT64,
+        DType.R,
     )
     rhs, rhs_np = _make_const(
         "rhs_mixed",
         np.arange(2 * 2 * 4, dtype=np.float32).reshape(2, 2, 4) * 0.5,
-        DType.FLOAT32,
+        DType.R,
     )
     gather_data = np.broadcast_to(
         np.asarray([[1.0], [-0.5], [2.0], [-1.5]], dtype=np.float64),
         (2, 4, 1),
     )
-    gather, gather_np = _make_const("gather_vec", gather_data, DType.FLOAT64)
+    gather, gather_np = _make_const("gather_vec", gather_data, DType.R)
 
     matmul_expr = LA.matmul(lhs, rhs)
     expr = LA.matmul(matmul_expr, gather)
@@ -397,7 +398,7 @@ def test_linear_algebra_batched_mixed_dtype_chain():
     expected = np.matmul(expected_matmul, gather_np)
 
     _assert_expr_allclose(expr, expected)
-    assert expr.dtype == DType.FLOAT64
+    assert expr.dtype == DType.R
     assert expr.shape.dims == expected.shape
 # end test_linear_algebra_batched_mixed_dtype_chain
 
@@ -409,14 +410,14 @@ def test_linear_algebra_with_elementwise_composition():
     mat_a, mat_a_np = _make_const(
         "comp_a",
         [[1.0, 2.0], [3.0, 4.0]],
-        DType.FLOAT32,
+        DType.R,
     )
     mat_b, mat_b_np = _make_const(
         "comp_b",
         [[0.5, -1.0], [1.5, 2.5]],
-        DType.FLOAT32,
+        DType.R,
     )
-    vec_c, vec_c_np = _make_const("comp_c", [2.0, -1.0], DType.FLOAT32)
+    vec_c, vec_c_np = _make_const("comp_c", [2.0, -1.0], DType.R)
 
     combined_expr = EL.sqrt(
         EL.absolute(
@@ -441,10 +442,10 @@ def test_norm_constant_expression_order_vector():
     """
     Norm should honor orders expressed purely with constants.
     """
-    vector, vector_np = _make_const("norm_const_vec", [3.0, -4.0, 6.0], DType.FLOAT32)
+    vector, vector_np = _make_const("norm_const_vec", [3.0, -4.0, 6.0], DType.R)
     order = (
-        pm.const("norm_const_a", data=1.0, dtype=DType.FLOAT32)
-        + pm.const("norm_const_b", data=1.0, dtype=DType.FLOAT32)
+        pm.const("norm_const_a", data=1.0, dtype=DType.R)
+        + pm.const("norm_const_b", data=1.0, dtype=DType.R)
     )
 
     expr = LA.norm(vector, order=order)
@@ -452,7 +453,7 @@ def test_norm_constant_expression_order_vector():
 
     _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == ()
-    assert expr.dtype == DType.FLOAT32
+    assert expr.dtype == DType.R
 # end test_norm_constant_expression_order_vector
 
 
@@ -463,9 +464,9 @@ def test_norm_variable_order_vector():
     vector, vector_np = _make_const(
         "norm_var_vec",
         [1.5, -0.5, 2.5, -3.5],
-        DType.FLOAT64,
+        DType.R,
     )
-    order_var = pm.var("norm_order_var", dtype=DType.FLOAT32, shape=())
+    order_var = pm.var("norm_order_var", dtype=DType.R, shape=())
     expr = LA.norm(vector, order=order_var)
 
     with pm.new_context():
@@ -474,7 +475,7 @@ def test_norm_variable_order_vector():
         _assert_expr_allclose(expr, expected)
     # end with
     assert expr.shape.dims == ()
-    assert expr.dtype == DType.FLOAT64
+    assert expr.dtype == DType.R
 # end test_norm_variable_order_vector
 
 
@@ -485,13 +486,13 @@ def test_norm_mixed_expression_order():
     vector, vector_np = _make_const(
         "norm_mix_vec",
         [1, -2, 3, -4, 5, -6],
-        DType.INT32,
+        DType.Z,
     )
-    order_var = pm.var("norm_order_mix", dtype=DType.FLOAT32, shape=())
+    order_var = pm.var("norm_order_mix", dtype=DType.R, shape=())
     order = (
         order_var
-        + pm.const("norm_mix_bias", data=1.5, dtype=DType.FLOAT32)
-        - pm.const("norm_mix_shift", data=0.5, dtype=DType.FLOAT32)
+        + pm.const("norm_mix_bias", data=1.5, dtype=DType.R)
+        - pm.const("norm_mix_shift", data=0.5, dtype=DType.R)
     )
     expr = LA.norm(vector, order=order)
 
@@ -502,7 +503,7 @@ def test_norm_mixed_expression_order():
         _assert_expr_allclose(expr, expected)
     # end with
     assert expr.shape.dims == ()
-    assert expr.dtype == DType.FLOAT32
+    assert expr.dtype == DType.R
 # end test_norm_mixed_expression_order
 
 
@@ -513,7 +514,7 @@ def test_norm_rejects_non_vector_inputs():
     matrix, _ = _make_const(
         "norm_bad_matrix",
         [[1.0, -2.0], [3.0, 4.0]],
-        DType.FLOAT32,
+        DType.R,
     )
     with pytest.raises(TypeError):
         LA.norm(matrix)
@@ -524,9 +525,9 @@ def test_norm_rejects_non_vector_inputs():
 @pytest.mark.parametrize(
     "values,dtype,expected_dtype",
     [
-        ([1.0, -2.5, 3.0, -4.5], DType.FLOAT32, DType.FLOAT32),
-        ([1.0, -2.5, 3.0, -4.5], DType.FLOAT64, DType.FLOAT64),
-        ([1, -5, 2, 7], DType.INT32, DType.FLOAT32),
+        ([1.0, -2.5, 3.0, -4.5], DType.R, DType.R),
+        ([1.0, -2.5, 3.0, -4.5], DType.R, DType.R),
+        ([1, -5, 2, 7], DType.Z, DType.R),
     ]
 )
 def test_infty_norm_vector_types(values, dtype, expected_dtype):
@@ -535,7 +536,7 @@ def test_infty_norm_vector_types(values, dtype, expected_dtype):
     """
     vector, vector_np = _make_const("inf_vec", values, dtype)
     expr = LA.infty_norm(vector)
-    expected = np.max(np.abs(vector_np.astype(expected_dtype.to_numpy())), axis=-1)
+    expected = np.max(np.abs(vector_np.astype(to_numpy(expected_dtype))), axis=-1)
 
     _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == ()
@@ -555,23 +556,23 @@ def test_infty_norm_batched_vectors():
         ],
         dtype=np.float64
     )
-    vector, vector_np = _make_const("inf_batch", values, DType.FLOAT64)
+    vector, vector_np = _make_const("inf_batch", values, DType.R)
 
     expr = LA.infty_norm(vector)
     expected = np.max(np.abs(vector_np), axis=-1)
 
     _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
-    assert expr.dtype == DType.FLOAT64
+    assert expr.dtype == DType.R
 # end test_infty_norm_batched_vectors
 
 
 @pytest.mark.parametrize(
     "values,dtype,expected_dtype",
     [
-        ([[1.0, -2.0], [3.0, 4.0]], DType.FLOAT32, DType.FLOAT32),
-        ([[1.0, 2.0, 3.0], [4.0, -5.0, 6.0]], DType.FLOAT64, DType.FLOAT64),
-        ([[2, -1], [0, 5]], DType.INT32, DType.FLOAT32),
+        ([[1.0, -2.0], [3.0, 4.0]], DType.R, DType.R),
+        ([[1.0, 2.0, 3.0], [4.0, -5.0, 6.0]], DType.R, DType.R),
+        ([[2, -1], [0, 5]], DType.Z, DType.R),
     ]
 )
 def test_frobenius_norm_single_matrix(values, dtype, expected_dtype):
@@ -581,7 +582,7 @@ def test_frobenius_norm_single_matrix(values, dtype, expected_dtype):
     matrix, matrix_np = _make_const("fro_single", values, dtype)
 
     expr = LA.frobenius_norm(matrix)
-    working = matrix_np.astype(expected_dtype.to_numpy())
+    working = matrix_np.astype(to_numpy(expected_dtype))
     expected = np.sqrt(np.sum(np.square(working), axis=(-2, -1)))
 
     _assert_expr_allclose(expr, expected)
@@ -595,12 +596,12 @@ def test_frobenius_norm_batched_matrices():
     Batched Frobenius norm reduces the last two axes independently.
     """
     data = np.arange(2 * 3 * 3 * 3, dtype=np.float32).reshape(2, 3, 3, 3)
-    matrix, matrix_np = _make_const("fro_batch", data, DType.FLOAT32)
+    matrix, matrix_np = _make_const("fro_batch", data, DType.R)
 
     expr = LA.frobenius_norm(matrix)
     expected = np.sqrt(np.sum(np.square(matrix_np), axis=(-2, -1)))
 
     _assert_expr_allclose(expr, expected)
     assert expr.shape.dims == expected.shape
-    assert expr.dtype == DType.FLOAT32
+    assert expr.dtype == DType.R
 # end test_frobenius_norm_batched_matrices

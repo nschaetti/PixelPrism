@@ -35,10 +35,10 @@ from typing import Optional, Sequence, Union, Any, List
 import numpy as np
 
 from ..utils import const, random_const_name
-from ..dtype import DType
-from ..math_expr import MathExpr, MathNode, Variable, Constant
+from ..dtype import DType, to_numpy, promote
+from ..math_expr import MathNode, Variable, Constant
 from ..shape import Shape
-from ..tensor import Tensor, einsum
+from ..tensor import Tensor, t_einsum
 from .base import Operands, operator_registry, Operator, ParametricOperator
 
 __all__ = [
@@ -69,7 +69,7 @@ class LinearAlgebraOperator(Operator, ABC):
 
     def contains(
             self,
-            expr: "MathExpr",
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -90,7 +90,7 @@ class LinearAlgebraOperator(Operator, ABC):
         Promote operand dtypes.
         """
         a, b = operands
-        return DType.promote(a.dtype, b.dtype)
+        return promote(a.dtype, b.dtype)
     # end def infer_dtype
 
     def check_parameters(self, **kwargs) -> bool:
@@ -106,7 +106,7 @@ class LinearAlgebraParametricOperator(LinearAlgebraOperator, ParametricOperator,
 
     def contains(
             self,
-            expr: MathExpr,
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -292,9 +292,9 @@ class Dot(LinearAlgebraOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, b = operands
         if a.ndim == 1:
-            return einsum("i,i->", a.eval(), b.eval())
+            return t_einsum("i,i->", a.eval(), b.eval())
         else:
-            return einsum("...i,...i->...", a.eval(), b.eval())
+            return t_einsum("...i,...i->...", a.eval(), b.eval())
         # end if
     # end def _eval
 
@@ -349,9 +349,9 @@ class Outer(LinearAlgebraOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, b = operands
         if a.ndim == 1:
-            return einsum("i,j->ij", a.eval(), b.eval())
+            return t_einsum("i,j->ij", a.eval(), b.eval())
         else:
-            return einsum("...i,...j->...ij", a.eval(), b.eval())
+            return t_einsum("...i,...j->...ij", a.eval(), b.eval())
         # end if
     # end def _eval
 
@@ -431,7 +431,7 @@ class Transpose(LinearAlgebraParametricOperator):
     NAME = "transpose"
     ARITY = 1
 
-    def __init__(self, axes: Optional[Union["MathExpr", List[int]]] = None, **kwargs: Any):
+    def __init__(self, axes: Optional[Union[MathNode, List[int]]] = None, **kwargs: Any):
         """
         Transpose
         """
@@ -440,7 +440,7 @@ class Transpose(LinearAlgebraParametricOperator):
         if axes and isinstance(axes, list):
             # from ..utils import random_const_name, const
             self._check_axes(axes)
-            axes = const(random_const_name(f"{self.__class__.__name__.lower()}-axes-"), axes, dtype=DType.INT32)
+            axes = const(random_const_name(f"{self.__class__.__name__.lower()}-axes-"), axes, dtype=DType.Z)
         elif axes and isinstance(axes, Variable):
             # Only constant (otherwise we have dynamic shapes)
             raise ValueError(f"{self.__class__.__name__} does not support dynamic axes.")
@@ -465,10 +465,10 @@ class Transpose(LinearAlgebraParametricOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, = operands
         axes = self._axes.eval().tolist() if self._axes else None
-        return a.eval().transpose(axes=axes)
+        return a.eval().t_transpose(axes=axes)
     # end def _eval
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Transpose does not support backward.")
     # end def backward
 
@@ -481,13 +481,13 @@ class Transpose(LinearAlgebraParametricOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        a: 'MathExpr' = operands[0]
-        if self._axes and isinstance(self._axes, MathExpr):
+        a: 'MathNode' = operands[0]
+        if self._axes and isinstance(self._axes, MathNode):
             axes = self._axes.eval().tolist()
         else:
             axes = self._axes
         # end if
-        return a.shape.transpose(axes=axes)
+        return a.shape.t_transpose(axes=axes)
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -520,7 +520,7 @@ class Det(LinearAlgebraOperator):
         return a.eval().det()
     # end def _eval
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Transpose does not support backward.")
     # end def backward
 
@@ -533,14 +533,14 @@ class Det(LinearAlgebraOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        a: 'MathExpr' = operands[0]
+        a: 'MathNode' = operands[0]
         new_shape = a.shape.copy()
         new_shape = new_shape[:-2]
         return Shape(new_shape)
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
-        a: 'MathExpr' = operands[0]
+        a: 'MathNode' = operands[0]
         return a.rank >= 2 and a.shape[-1] == a.shape[-2]
     # end def check_shapes
 
@@ -556,7 +556,7 @@ class Inverse(LinearAlgebraOperator):
     ARITY = 1
 
     def infer_shape(self, operands: Operands) -> Shape:
-        a: 'MathExpr' = operands[0]
+        a: 'MathNode' = operands[0]
         return a.shape.copy()
     # end def infer_shape
 
@@ -564,11 +564,11 @@ class Inverse(LinearAlgebraOperator):
         """
         Infer the dtype from the input dtype.
         """
-        return DType.FLOAT32
+        return DType.R
     # end def infer_dtype
 
     def check_shapes(self, operands: Operands) -> bool:
-        a: 'MathExpr' = operands[0]
+        a: 'MathNode' = operands[0]
         return a.rank >= 2 and a.shape[-1] == a.shape[-2]
     # end def check_shapes
 
@@ -577,7 +577,7 @@ class Inverse(LinearAlgebraOperator):
         return a.eval().inverse()
     # end def _eval
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Inverse does not support backward.")
     # end def backward
 
@@ -593,20 +593,20 @@ class Norm(LinearAlgebraParametricOperator):
     ARITY = 1
     IS_SCALAR = False
 
-    def __init__(self, order: Union[MathExpr, int, float] = None):
+    def __init__(self, order: Union[MathNode, int, float] = None):
         super(Norm, self).__init__(order=order)
         # from ..utils import random_const_name
         if not order:
             self._order = const(
                 name=random_const_name(f"{self.__class__.__name__.lower()}-order-"),
                 data=2,
-                dtype=DType.INT32
+                dtype=DType.Z
             )
         elif isinstance(order, (int, float)):
             self._order = const(
                 name=random_const_name(f"{self.__class__.__name__.lower()}-order-"),
                 data=order,
-                dtype=DType.FLOAT32
+                dtype=DType.R
             )
         else:
             self._order = order
@@ -624,9 +624,9 @@ class Norm(LinearAlgebraParametricOperator):
     def infer_dtype(self, operands: Operands) -> DType:
         """Infer the dtype of the output."""
         dtype = operands[0].dtype
-        if dtype.is_float:
+        if dtype in {DType.R, DType.C}:
             return dtype
-        return DType.FLOAT32
+        return DType.R
     # end def infer_dtype
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -634,14 +634,14 @@ class Norm(LinearAlgebraParametricOperator):
         order_value = self._resolve_parameter(self._order)
         if order_value is None:
             order_value = 2
-        result = vector.eval().norm(ord=order_value)
+        result = vector.eval().norm(order=order_value)
         dtype = self.infer_dtype(operands)
         if result.dtype != dtype:
             result = result.astype(dtype)
         return result
     # end def
 
-    def _backward(self, out_grad: "MathExpr", node: "MathExpr") -> Sequence["MathExpr"]:
+    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("Norm does not support backward.")
     # end def _backward
 
@@ -671,7 +671,7 @@ class InftyNorm(LinearAlgebraOperator):
     ARITY = 1
 
     @staticmethod
-    def _scalar_or_batch_shape(vector: "MathExpr") -> Shape:
+    def _scalar_or_batch_shape(vector: MathNode) -> Shape:
         if vector.rank <= 1:
             return Shape.scalar()
         return Shape(vector.shape.dims[:-1])
@@ -683,9 +683,9 @@ class InftyNorm(LinearAlgebraOperator):
 
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
-        if dtype.is_float:
+        if dtype in {DType.R, DType.C}:
             return dtype
-        return DType.FLOAT32
+        return DType.R
     # end def infer_dtype
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -698,9 +698,9 @@ class InftyNorm(LinearAlgebraOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         vector, = operands
         dtype = self.infer_dtype(operands)
-        data = vector.eval().value.astype(dtype.to_numpy(), copy=False)
+        data = vector.eval().value.astype(to_numpy(dtype), copy=False)
         result = np.max(np.abs(data), axis=-1)
-        return Tensor(data=np.asarray(result, dtype=dtype.to_numpy()), dtype=dtype)
+        return Tensor(data=np.asarray(result, dtype=to_numpy(dtype)), dtype=dtype)
     # end def _eval
 
     def _backward(self, out_grad, node):
@@ -727,9 +727,9 @@ class FrobeniusNorm(LinearAlgebraOperator):
 
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
-        if dtype.is_float:
+        if dtype in {DType.R, DType.C}:
             return dtype
-        return DType.FLOAT32
+        return DType.R
     # end def infer_dtype
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -742,12 +742,12 @@ class FrobeniusNorm(LinearAlgebraOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         matrix, = operands
         dtype = self.infer_dtype(operands)
-        values = matrix.eval().value.astype(dtype.to_numpy(), copy=False)
+        values = matrix.eval().value.astype(to_numpy(dtype), copy=False)
         squared = np.square(values)
         sum_axes = (-2, -1)
         summed = np.sum(squared, axis=sum_axes)
         result = np.sqrt(summed)
-        return Tensor(data=np.asarray(result, dtype=dtype.to_numpy()), dtype=dtype)
+        return Tensor(data=np.asarray(result, dtype=to_numpy(dtype)), dtype=dtype)
     # end def _eval
 
     def _backward(self, out_grad, node):

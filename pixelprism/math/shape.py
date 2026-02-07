@@ -42,82 +42,24 @@
 
 # Imports
 from __future__ import annotations
-from typing import Iterable, List, Optional, Sequence, Tuple
-from dataclasses import dataclass
+from typing import Iterable, List, Optional, Sequence, Tuple, Dict, Union
+
+from . import MathNode, Tensor
+from .math_expr import MathExpr, Variable, Constant
 
 
-__all__ = ["Shape", "Dim", "Dims", "AnyShape"]
+__all__ = ["Shape", "Dim", "Dims", "ShapeLike"]
 
 
 
 Dim = int
 Dims = Tuple[Dim, ...]
-AnyShape = 'Shape' | Dims
+ShapeLike = 'Shape' | Dims
 
 
-def _num_elements(dims: Sequence[int | None]) -> int | None:
-    """Compute the product of symbolic dimensions when possible.
-
-    Parameters
-    ----------
-    dims : Sequence[int | None]
-        Sequence of tensor dimensions, which may include ``None`` for unknown
-        values.
-
-    Returns
-    -------
-    int | None
-        Number of elements or ``None`` when any dimension is unknown.
-    """
-    total = 1
-    for dim in dims:
-        total *= dim
-    # end for
-    return total
-# end def _num_elements
-
-
-class Shape:
+class Shape(MathExpr):
     """
     Immutable descriptor for symbolic tensor shapes.
-
-    A :class:`Shape` records the axis lengths associated with a math expression.
-    Each axis can be a concrete ``int``.  Shapes are lightweight, hashable, and safe to
-    share across nodes, ensuring downstream passes can reason about tensor
-    metadata without mutating the original objects.
-
-    Validation & normalization
-    --------------------------
-    The constructor eagerly validates every dimension through ``_check_dim`` to
-    guarantee negative or otherwise malformed values never propagate past the
-    creation site.  Internally, axes are stored as an immutable tuple, giving
-    deterministic hashing/printing behaviour and keeping equality semantics
-    simple.
-
-    Convenience properties
-    ----------------------
-    ``dims`` exposes the canonical tuple representation, ``rank``/``n_dims``
-    provide fast access to the tensor arity, and ``size`` returns the product
-    of all known axes (``None`` when at least one axis is symbolic).  These
-    helpers prevent ad‑hoc recomputation scattered around the code base.
-
-    Compatibility helpers
-    ---------------------
-    Many operators need to verify that their operands can participate in
-    elementwise arithmetic.  ``is_elementwise_compatible`` performs the check by
-    comparing ranks and allowing either matching integers or symbolic ``None``
-    values.  ``merge_elementwise`` builds on top of that by returning a new
-    :class:`Shape` where each axis is the tightened version of both operands,
-    raising :class:`ValueError`` when a conflict is detected.  Having these
-    utilities on the shape class keeps validation logic centralized and
-    consistent across operators.
-
-    Subclassing
-    -----------
-    ``Shape`` is intentionally concrete.  Higher-level abstractions should wrap
-    it rather than subclassing to avoid diverging validation paths.  Should
-    additional metadata (like layout or batching semantics) be required, they
-    can be attached via separate objects keyed by ``Shape`` instances.
     """
 
     def __init__(self, dims: Iterable[Dim]):
@@ -128,6 +70,7 @@ class Shape:
         dims : Iterable[Dim]
             Iterable of dimension sizes to store in the shape.
         """
+        super(Shape, self).__init__()
         dims_tuple = tuple(dims)
         for dim in dims_tuple:
             self._check_dim(dim)
@@ -172,7 +115,7 @@ class Shape:
         Optional[int]
             Number of elements represented by the shape.
         """
-        return _num_elements(self._dims)
+        return self._num_elements()
     # end def size
 
     @property
@@ -190,6 +133,51 @@ class Shape:
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    def eval(self) -> Tensor:
+        pass
+
+    def diff(self, wrt: Variable) -> MathExpr:
+        pass
+
+    def variables(self) -> List[Variable]:
+        pass
+
+    def constants(self) -> List[Constant]:
+        pass
+
+    def contains(self, leaf: Union[str, MathNode], by_ref: bool = False, check_operator: bool = True,
+                 look_for: Optional[str] = None) -> bool:
+        pass
+
+    def contains_variable(self, variable: Union[str, MathNode], by_ref: bool = False,
+                          check_operator: bool = True) -> bool:
+        pass
+
+    def contains_constant(self, constant: Union[str, MathNode], by_ref: bool = False,
+                          check_operator: bool = True) -> bool:
+        pass
+
+    def replace(self, old_m: MathNode, new_m: MathNode):
+        pass
+
+    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+        pass
+
+    def _num_elements(self) -> int | None:
+        """Compute the product of symbolic dimensions when possible.
+
+        Returns
+        -------
+        int | None
+            Number of elements or ``None`` when any dimension is unknown.
+        """
+        total = 1
+        for dim in self._dims:
+            total *= dim
+        # end for
+        return total
+    # end def _num_elements
 
     def _check_transpose(self, axes: Sequence[int]) -> None:
         """Validate a permutation of axes."""
@@ -464,7 +452,7 @@ class Shape:
     # region STATIC
 
     @staticmethod
-    def create(shape: AnyShape) -> Shape:
+    def create(shape: ShapeLike) -> Shape:
         """Create a shape from a tuple or sequence."""
         if isinstance(shape, tuple):
             return Shape(shape)
