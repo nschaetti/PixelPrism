@@ -53,6 +53,7 @@ from .tensor import Tensor
 from .context import get_value
 
 __all__ = [
+    "MathExpr",
     "MathNode",
     "MathLeaf",
     "Variable",
@@ -411,6 +412,16 @@ class MathNode(MathExpr):
     # endregion PROPERTIES
 
     # region PUBLIC
+
+    def depth(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Maximum distance from the root to this node.
+        """
+        return max((child.depth() for child in self._children), default=0) + 1
+    # end def depth
 
     def diff(self, wrt: Variable) -> MathExpr:
         """
@@ -1221,6 +1232,16 @@ class MathLeaf(MathNode, ABC):
     # end __init__
 
     # region PUBLIC
+
+    def depth(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Maximum distance from the root to this node.
+        """
+        return 1
+    # end def depth
 
     def eval(self) -> Tensor:
         """

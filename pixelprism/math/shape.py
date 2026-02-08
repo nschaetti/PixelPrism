@@ -44,15 +44,16 @@
 from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Tuple, Dict, Union
 
-from . import MathNode, Tensor
-from .math_expr import MathExpr, Variable, Constant
+from .math_expr import MathExpr, MathNode, Variable, Constant
+from .tensor import Tensor, t_concatenate
+from .build import as_expr
 
 
 __all__ = ["Shape", "Dim", "Dims", "ShapeLike"]
 
 
 
-Dim = int
+Dim = MathNode | int
 Dims = Tuple[Dim, ...]
 ShapeLike = 'Shape' | Dims
 
@@ -68,22 +69,22 @@ class Shape(MathExpr):
         Parameters
         ----------
         dims : Iterable[Dim]
-            Iterable of dimension sizes to store in the shape.
+            Iterable of dimension expression or integers.
         """
         super(Shape, self).__init__()
+        dims = [as_expr(dim) for dim in dims]
         dims_tuple = tuple(dims)
         for dim in dims_tuple:
             self._check_dim(dim)
         # end for
         self._dims: Dims = dims_tuple
-        self._n_dims: int = len(dims_tuple)
     # end def __init__
 
     # region PROPERTIES
 
     @property
     def dims(self) -> Dims:
-        """Return the dimensions tuple.
+        """Return the dimensions' tuple.
 
         Returns
         -------
@@ -107,13 +108,13 @@ class Shape(MathExpr):
     # end def rank
 
     @property
-    def size(self) -> Optional[int]:
+    def size(self) -> Optional[MathNode]:
         """Return the total number of elements when known.
 
         Returns
         -------
-        Optional[int]
-            Number of elements represented by the shape.
+        Optional[MathNode]
+            The math expression representing the total number of elements.
         """
         return self._num_elements()
     # end def size
@@ -135,28 +136,77 @@ class Shape(MathExpr):
     # region PUBLIC
 
     def eval(self) -> Tensor:
-        pass
+        """Evaluate the shape to a tensor.
+
+        Returns
+        -------
+        Tensor
+            The evaluated tensor representation of the shape.
+        """
+        dim_eval = [d.eval() for d in self._dims]
+        return t_concatenate(dim_eval, axis=0)
+    # end def eval
 
     def diff(self, wrt: Variable) -> MathExpr:
-        pass
+        """Return the symbolic gradient of the shape w.r.t. a variable."""
+        raise NotImplementedError("Shape does not support differentiation.")
+    # end def diff
 
     def variables(self) -> List[Variable]:
-        pass
+        """Return a list of all variables used in the shape expression."""
+        vars = [
+            d.variables() for d in self._dims
+        ]
+        return list(set([
+            v
+            for sublist in vars
+            for v in sublist
+        ]))
+    # end def variables
 
     def constants(self) -> List[Constant]:
-        pass
+        """Return a list of all constants used in the shape expression."""
+        consts = [
+            d.constants() for d in self._dims
+        ]
+        return list(set(
+            v
+            for sublist in consts
+            for v in sublist
+        ))
+    # end def constants
 
-    def contains(self, leaf: Union[str, MathNode], by_ref: bool = False, check_operator: bool = True,
-                 look_for: Optional[str] = None) -> bool:
-        pass
+    def contains(
+            self,
+            leaf: Union[str, MathNode],
+            by_ref: bool = False,
+            check_operator: bool = True,
+            look_for: Optional[str] = None
+    ) -> bool:
+        """Return whether the shape contains a given variable or constant."""
+        rets = [
+            d.contains(leaf, by_ref, check_operator, look_for) for d in self._dims
+        ]
+        return any(rets)
+    # end def contains
 
-    def contains_variable(self, variable: Union[str, MathNode], by_ref: bool = False,
-                          check_operator: bool = True) -> bool:
+    def contains_variable(
+            self,
+            variable: Union[str, MathNode],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
         pass
+    # end def contains_variable
 
-    def contains_constant(self, constant: Union[str, MathNode], by_ref: bool = False,
-                          check_operator: bool = True) -> bool:
+    def contains_constant(
+            self,
+            constant: Union[str, MathNode],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
         pass
+    # end def contains_constant
 
     def replace(self, old_m: MathNode, new_m: MathNode):
         pass
@@ -164,16 +214,16 @@ class Shape(MathExpr):
     def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
         pass
 
-    def _num_elements(self) -> int | None:
-        """Compute the product of symbolic dimensions when possible.
+    def _num_elements(self) -> MathNode:
+        """Construct the math expression for the total number of elements..
 
         Returns
         -------
-        int | None
+        MathNode
             Number of elements or ``None`` when any dimension is unknown.
         """
-        total = 1
-        for dim in self._dims:
+        total = self._dims[0]
+        for dim_i, dim in enumerate(self._dims):
             total *= dim
         # end for
         return total
@@ -214,7 +264,7 @@ class Shape(MathExpr):
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
         if axis == self.rank - 1:
-            return Shape(self._dims[:axis])
+            return Shape(self._dims[:-1])
         elif axis == 0:
             return Shape(self._dims[1:])
         else:
@@ -232,11 +282,13 @@ class Shape(MathExpr):
         if axis < 0 or axis > self.rank:
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
-        return Shape(self._dims[:axis] + (size,) + self._dims[axis:])
+        return Shape(self._dims[:axis] + (as_expr(size),) + self._dims[axis:])
     # end def insert_axis
 
     def insert_axis_(self, axis: int, size: Dim) -> None:
-        """Insert the specified axis into the shape in-place."""
+        """
+        Insert the specified axis into the shape in-place.
+        """
         self._dims = self.insert_axis(axis, size)._dims
     # end def insert_axis_
 
@@ -333,8 +385,9 @@ class Shape(MathExpr):
         # end for
         left_inner = self._dims[-1]
         right_inner = other._dims[-2]
-        if not self._dims_equal(left_inner, right_inner):
-            raise ValueError("Inner dimensions do not match for MatMul.")
+        # TODO: Here we must check that the expressions are equivalent, or drop the constraint
+        # if not self._dims_equal(left_inner, right_inner):
+        #     raise ValueError("Inner dimensions do not match for MatMul.")
         # end if
         result = tuple(batch_dims) + (self._dims[-2], other._dims[-1])
         return Shape(result)
@@ -343,7 +396,7 @@ class Shape(MathExpr):
     def concat_result(self, other: "Shape", axis: int) -> "Shape":
         """Return the result shape of concatenation along an axis.
 
-        Parameters
+        Parametersbatch_rank
         ----------
         other : Shape
             Shape to concatenate with.
@@ -499,8 +552,19 @@ class Shape(MathExpr):
         if dim is None:
             raise ValueError("Shape dimensions cannot be None.")
         # end if
-        if not isinstance(dim, int) or dim < 0:
-            raise ValueError("Shape dimensions must be non-negative integers or None.")
+
+        # if int, must be positive
+        if isinstance(dim, int) and dim < 0:
+            raise ValueError(f"Invalid dimension value: {dim}.")
+        # end if
+
+        # Must be MathNode or int
+        if not isinstance(dim, (int, MathNode)):
+            raise ValueError(f"Invalid dimension value: {dim}.")
+        # end if
+
+        if isinstance(dim, MathNode) and dim.depth() > 3:
+            raise ValueError(f"Maximum depth exceeded for symbolic dimension: {dim}.")
         # end if
     # end def _check_dim
 
@@ -520,7 +584,9 @@ class Shape(MathExpr):
         bool
             ``True`` if both dimensions can represent the same size.
         """
-        return dim_a == dim_b
+        # TODO: here we must check that the expressions are equivalent
+        return True
+        # return dim_a == dim_b
     # end def _dims_equal
 
     @staticmethod

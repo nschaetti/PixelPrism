@@ -46,17 +46,27 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("output", help="Path to save the output video file")
 
     # TV effect
-    parser.add_argument("--enable_tv_effect", action="store_true", help="Enable TV effect")
-    parser.add_argument("--pixel_width", type=int, default=10, help="Pixel width for TV effect")
-    parser.add_argument("--pixel_height", type=int, default=10, help="Pixel height for TV effect")
-    parser.add_argument("--border_strength", type=int, default=2, help="Border strength for TV effect")
+    parser.add_argument(
+        "--enable_tv_effect", action="store_true", help="Enable TV effect"
+    )
+    parser.add_argument(
+        "--pixel_width", type=int, default=10, help="Pixel width for TV effect"
+    )
+    parser.add_argument(
+        "--pixel_height", type=int, default=10, help="Pixel height for TV effect"
+    )
+    parser.add_argument(
+        "--border_strength", type=int, default=2, help="Border strength for TV effect"
+    )
     parser.add_argument(
         "--border_color",
         type=str,
         default="0,0,0",
         help="Border color for TV effect in BGR format",
     )
-    parser.add_argument("--corner_radius", type=int, default=2, help="Radius for cutting the corners")
+    parser.add_argument(
+        "--corner_radius", type=int, default=2, help="Radius for cutting the corners"
+    )
     parser.add_argument(
         "--blur_kernel_size",
         type=int,
@@ -101,9 +111,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Enable Chromatic Temporal Persistence effect",
     )
-    parser.add_argument("--persistence_r", type=int, default=5, help="Persistence for red channel")
-    parser.add_argument("--persistence_g", type=int, default=5, help="Persistence for green channel")
-    parser.add_argument("--persistence_b", type=int, default=5, help="Persistence for blue channel")
+    parser.add_argument(
+        "--persistence_r", type=int, default=5, help="Persistence for red channel"
+    )
+    parser.add_argument(
+        "--persistence_g", type=int, default=5, help="Persistence for green channel"
+    )
+    parser.add_argument(
+        "--persistence_b", type=int, default=5, help="Persistence for blue channel"
+    )
 
     # Lenticular distortion
     parser.add_argument(
@@ -120,8 +136,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Glow
     parser.add_argument("--enable_glow", action="store_true", help="Enable Glow effect")
-    parser.add_argument("--glow_blur_strength", type=int, default=5, help="Blur strength for glow effect")
-    parser.add_argument("--glow_intensity", type=float, default=0.5, help="Intensity of the glow effect")
+    parser.add_argument(
+        "--glow_blur_strength",
+        type=int,
+        default=5,
+        help="Blur strength for glow effect",
+    )
+    parser.add_argument(
+        "--glow_intensity", type=float, default=0.5, help="Intensity of the glow effect"
+    )
     parser.add_argument(
         "--glow_blend_mode",
         type=str,
@@ -132,12 +155,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Blur
     parser.add_argument("--enable_blur", action="store_true", help="Enable Blur effect")
-    parser.add_argument("--blur_strength", type=int, default=5, help="Blur strength for blur effect")
+    parser.add_argument(
+        "--blur_strength", type=int, default=5, help="Blur strength for blur effect"
+    )
 
     # SIFT
-    parser.add_argument("--enable_sift", action="store_true", help="Enable SIFT Points effect")
-    parser.add_argument("--sift_num_octaves", type=int, default=4, help="Number of octaves for SIFT")
-    parser.add_argument("--sift_num_scales", type=int, default=3, help="Number of scales per octave for SIFT")
+    parser.add_argument(
+        "--enable_sift", action="store_true", help="Enable SIFT Points effect"
+    )
+    parser.add_argument(
+        "--sift_num_octaves", type=int, default=4, help="Number of octaves for SIFT"
+    )
+    parser.add_argument(
+        "--sift_num_scales",
+        type=int,
+        default=3,
+        help="Number of scales per octave for SIFT",
+    )
 
     # LUT
     parser.add_argument("--enable_lut", action="store_true", help="Enable LUT effect")
@@ -168,7 +202,10 @@ def process_video(
         output_path,
         fourcc,
         fps,
-        (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))),
+        (
+            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        ),
     )
 
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -216,7 +253,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.enable_chromatic_shift:
         print("Enabling Chromatic Spatial Shift effect")
-        effects.append(ChromaticSpatialShiftEffect(args.shift_r, args.shift_g, args.shift_b))
+        effects.append(
+            ChromaticSpatialShiftEffect(args.shift_r, args.shift_g, args.shift_b)
+        )
 
     if args.enable_chromatic_persistence:
         print("Enabling Chromatic Temporal Persistence effect")
@@ -234,7 +273,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.enable_glow:
         print("Enabling Glow effect")
-        effects.append(GlowEffect(args.glow_blur_strength, args.glow_intensity, args.glow_blend_mode))
+        effects.append(
+            GlowEffect(
+                args.glow_blur_strength, args.glow_intensity, args.glow_blend_mode
+            )
+        )
 
     if args.enable_blur:
         print("Enabling Blur effect")
