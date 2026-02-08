@@ -30,7 +30,7 @@
 import pytest
 import pixelprism.math as pm
 
-from pixelprism.math.math_expr import SliceExpr, MathExprValidationError
+from pixelprism.math.math_base import SliceExpr, MathExprValidationError
 
 
 def test_slice_expr_from_ints():

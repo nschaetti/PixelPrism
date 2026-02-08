@@ -32,9 +32,10 @@ Discretization-related elementwise operators.
 from typing import Optional, Union
 
 from ..tensor import Tensor
-from ..math_expr import MathNode
+from ..math_node import MathNode
 from .base import Operands, operator_registry
 from .elementwise import UnaryElementwiseOperator, UnaryElementwiseParametricOperator
+
 
 __all__ = [
     "Sign",
@@ -130,7 +131,7 @@ class Round(UnaryElementwiseParametricOperator):
     ):
         super().__init__(decimals=decimals)
         from ..utils import const, random_const_name
-        from ..math_expr import MathNode
+        from ..math_base import MathNode
         if decimals is None:
             decimals = const(random_const_name("round-decimals-"), 0)
         # end if
@@ -169,7 +170,7 @@ class Clip(UnaryElementwiseParametricOperator):
     ):
         super().__init__(min_value=min_value, max_value=max_value)
         from ..utils import const, random_const_name
-        from ..math_expr import MathNode
+        from ..math_base import MathNode
         if min_value is None and max_value is None:
             raise ValueError("Clip requires at least one of min_value or max_value.")
         # end if

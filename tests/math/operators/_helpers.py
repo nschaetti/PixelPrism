@@ -34,7 +34,7 @@ from __future__ import annotations
 import numpy as np
 
 import pixelprism.math as pm
-from pixelprism.math.math_expr import MathNode
+from pixelprism.math.math_base import MathNode
 from pixelprism.math.tensor import Tensor
 
 SCALAR_KINDS = (

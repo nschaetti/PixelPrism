@@ -36,7 +36,7 @@ import numpy as np
 from ..dtype import DType, to_numpy, promote
 from ..shape import Shape
 from ..tensor import Tensor
-from ..math_expr import MathNode
+from ..math_node import MathNode
 from .base import Operands, Operator, operator_registry
 
 __all__ = [

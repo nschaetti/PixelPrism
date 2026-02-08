@@ -27,17 +27,16 @@
 #
 
 # Imports
-from typing import Tuple, List, Union, Optional
+from typing import Tuple, Optional
 import numpy as np
 from .tensor import Tensor, TensorLike
-from .dtype import DType, NumberLike, TypeLike, ScalarLike, to_numpy, create
+from .dtype import TypeLike, to_numpy, create
 from .shape import ShapeLike, Shape
-from .math_expr import Variable, Constant
+from .math_leaves import Variable, Constant
 
 
 __all__ = [
     "var",
-    "random_const_name",
     "const",
     "tensor",
     "scalar",
@@ -118,12 +117,6 @@ def var(name: str, dtype: TypeLike, shape: ShapeLike) -> Variable:
     """
     return Variable.create(name=name, dtype=create(dtype), shape=Shape.create(shape))
 # end def var
-
-
-def random_const_name(prefix: str = "const") -> str:
-    """Generate a unique constant name based on the given prefix."""
-    return f"{prefix}_{np.random.randint(0, 1000000):06d}"
-# end def random_const_name
 
 
 def const(name: str, data: TensorLike, dtype: Optional[TypeLike] = None) -> Constant:

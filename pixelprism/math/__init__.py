@@ -28,6 +28,7 @@
 """Unified symbolic math package with split class modules."""
 
 from .build import as_expr
+
 from .context import (
     Context,
     root_context,
@@ -45,6 +46,7 @@ from .context import (
     snapshot_context_stack,
     restore_context_stack
 )
+
 from .dtype import (
     DType,
     TypeLike,
@@ -60,6 +62,7 @@ from .dtype import (
     promote,
     from_numpy,
 )
+
 from .helpers import (
     as_sequence,
     build_from_flat,
@@ -75,15 +78,46 @@ from .helpers import (
     transpose_python,
     unravel_index,
 )
-from .math_expr import MathExpr, MathNode, MathLeaf, Variable, Constant
+
+from .math_exceptions import (
+    SymbolicMathError,
+    SymbolicMathOperatorError,
+    SymbolicMathNotImplementedError,
+    SymbolicMathRuntimeError,
+    SymbolicMathValidationError,
+    SymbolicMathLookupError,
+    SymbolicMathTypeError,
+    SymbolicMathShapeError,
+)
+
+from .math_base import MathBase
+
+from .math_node import MathNode
+
+from .math_leaves import MathLeaf, Variable, Constant
+
+from .mixins import EvaluableMixin, DifferentiableMixin, PredicateMixin
+
 from .operators import Operator, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
+
 from .shape import Dim, Dims, Shape, ShapeLike
+
 from .tensor import (
     Tensor,
     TensorLike,
+    # Structure
     t_concatenate,
     t_hstack,
     t_vstack,
+    # Shapes
+    ts_scalar,
+    ts_vector,
+    ts_matrix,
+    # Creators
+    t_zeros,
+    t_ones,
+    t_full,
+    # Elementwise
     t_pow,
     t_square,
     t_sqrt,
@@ -126,9 +160,21 @@ from .tensor import (
     t_greater_equal,
     t_greater,
 )
+
+from .typing import (
+    NumberLike,
+    ScalarLike,
+    NumberListLike,
+    Index,
+    DimExpr,
+    MathExpr,
+    TensorLike,
+    TensorDim,
+    TensorDims
+)
+
 from .utils import (
     var,
-    random_const_name,
     const,
     tensor,
     scalar,
@@ -146,10 +192,14 @@ from .utils import (
     ones_like,
 )
 
+from .random import random_const_name, rand_name
+
+
 Z = DType.Z
 R = DType.R
 C = DType.C
 B = DType.B
+
 
 __all__ = [
     # Build
@@ -189,12 +239,29 @@ __all__ = [
     "promote",
     "from_numpy",
 
+    # Exceptions
+    "SymbolicMathError",
+    "SymbolicMathOperatorError",
+    "SymbolicMathNotImplementedError",
+    "SymbolicMathRuntimeError",
+    "SymbolicMathValidationError",
+    "SymbolicMathLookupError",
+
     # Math Expr
-    "MathExpr",
+    "MathBase",
+
+    # MathNode
     "MathNode",
+
+    # MathLeaf
     "MathLeaf",
     "Variable",
     "Constant",
+
+    # Mixins
+    "EvaluableMixin",
+    "DifferentiableMixin",
+    "PredicateMixin",
 
     # Operators
     "Operator",
@@ -227,6 +294,12 @@ __all__ = [
     # Tensor
     "Tensor",
     "TensorLike",
+    "ts_scalar",
+    "ts_vector",
+    "ts_matrix",
+    "t_full",
+    "t_zeros",
+    "t_ones",
     "t_concatenate",
     "t_hstack",
     "t_vstack",
@@ -266,6 +339,14 @@ __all__ = [
     "t_round",
     "t_clip",
     # "einsum",
+
+    # Typing
+    "NumberLike",
+    "ScalarLike",
+    "NumberListLike",
+    "Index",
+    "DimExpr",
+    "MathExpr",
 
     # Utils
     "var",

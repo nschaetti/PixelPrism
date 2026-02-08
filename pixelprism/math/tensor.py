@@ -29,15 +29,22 @@
 
 # Imports
 from typing import Iterable, List, Union, Any, Optional, Tuple, Callable, Sequence, Literal
-from typing import TypeAlias
 import numpy as np
 
 from .dtype import DType, TypeLike, to_numpy, convert_numpy, from_numpy
+from .typing import TensorLike, TensorDim, TensorDims, NumberLike, NumberListLike
+
 
 __all__ = [
     "TensorShape",
     "Tensor",
     "TensorLike",
+    "ts_scalar",
+    "ts_vector",
+    "ts_matrix",
+    "t_full",
+    "t_zeros",
+    "t_ones",
     "t_concatenate",
     "t_hstack",
     "t_vstack",
@@ -93,13 +100,8 @@ __all__ = [
 ]
 
 
-NumberLike = int | float | np.number | bool | complex
-NumberListLike: TypeAlias = list[Union[NumberLike, "NumberListLike"]]
-TensorLike: TypeAlias = Union[NumberLike, NumberListLike, np.ndarray]
-
-TensorDim = int
-TensorDims = Tuple[TensorDim, ...]
-TensorShapeLike = "TensorShape" | TensorDims
+# Types
+TensorShapeLike = Union["TensorShape", TensorDims, TensorDim]
 
 
 # region METHODS
@@ -1091,8 +1093,8 @@ class Tensor:
 
     def __init__(
             self,
-            *,
             data: TensorLike, # TensorLike can be int/float, [int/float, [...]] or np.array
+            *,
             dtype: Optional[TypeLike] = None,
             mutable: bool = True
     ):
@@ -1756,13 +1758,13 @@ class Tensor:
             Result of the operation.
         """
         if isinstance(other, Tensor):
-            return np.all(self._data == other._data)
+            return bool(np.all(self._data == other._data))
         elif isinstance(other, np.ndarray):
-            return np.array_equal(self._data, other)
+            return bool(np.array_equal(self._data, other))
         elif isinstance(other, (int, float)):
-            return np.array_equal(self._data, np.asarray(other))
+            return bool(np.array_equal(self._data, np.asarray(other)))
         elif isinstance(other, list):
-            return np.array_equal(self._data, np.asarray(other))
+            return bool(np.array_equal(self._data, np.asarray(other)))
         else:
             return False
         # end if
@@ -1799,13 +1801,13 @@ class Tensor:
             Result of the operation.
         """
         if isinstance(other, Tensor):
-            return np.any(self._data > other._data)
+            return bool(np.any(self._data > other._data))
         elif isinstance(other, np.ndarray):
-            return np.any(np.greater(self._data, other))
+            return bool(np.any(np.greater(self._data, other)))
         elif isinstance(other, (int, float)):
-            return np.any(np.greater(self._data, np.asarray(other)))
+            return bool(np.any(np.greater(self._data, np.asarray(other))))
         elif isinstance(other, list):
-            return np.any(np.greater(self._data, np.asarray(other)))
+            return bool(np.any(np.greater(self._data, np.asarray(other))))
         else:
             return False
         # end if
@@ -1826,13 +1828,13 @@ class Tensor:
             Result of the operation.
         """
         if isinstance(other, Tensor):
-            return np.all(self._data >= other._data)
+            return bool(np.all(self._data >= other._data))
         elif isinstance(other, np.ndarray):
-            return np.all(np.greater_equal(self._data, other))
+            return bool(np.all(np.greater_equal(self._data, other)))
         elif isinstance(other, (int, float)):
-            return np.all(np.greater_equal(self._data, np.asarray(other)))
+            return bool(np.all(np.greater_equal(self._data, np.asarray(other))))
         elif isinstance(other, list):
-            return np.all(np.greater_equal(self._data, np.asarray(other)))
+            return bool(np.all(np.greater_equal(self._data, np.asarray(other))))
         else:
             return False
         # end if
@@ -1853,13 +1855,13 @@ class Tensor:
             Result of the operation.
         """
         if isinstance(other, Tensor):
-            return np.any(self._data < other._data)
+            return bool(np.any(self._data < other._data))
         elif isinstance(other, np.ndarray):
-            return np.any(np.less(self._data, other))
+            return bool(np.any(np.less(self._data, other)))
         elif isinstance(other, (int, float)):
-            return np.any(np.less(self._data, np.asarray(other)))
+            return bool(np.any(np.less(self._data, np.asarray(other))))
         elif isinstance(other, list):
-            return np.any(np.less(self._data, np.asarray(other)))
+            return bool(np.any(np.less(self._data, np.asarray(other))))
         else:
             return False
         # end if
@@ -1880,13 +1882,13 @@ class Tensor:
             Result of the operation.
         """
         if isinstance(other, Tensor):
-            return np.all(self._data <= other._data)
+            return bool(np.all(self._data <= other._data))
         elif isinstance(other, np.ndarray):
-            return np.all(np.less_equal(self._data, other))
+            return bool(np.all(np.less_equal(self._data, other)))
         elif isinstance(other, (int, float)):
-            return np.all(np.less_equal(self._data, np.asarray(other)))
+            return bool(np.all(np.less_equal(self._data, np.asarray(other))))
         elif isinstance(other, list):
-            return np.all(np.less_equal(self._data, np.asarray(other)))
+            return bool(np.all(np.less_equal(self._data, np.asarray(other))))
         else:
             return False
         # end if
@@ -2972,6 +2974,29 @@ class Tensor:
     # end def from_numpy
 
     @staticmethod
+    def full(fill_value, shape: TensorShapeLike, dtype: Optional[TypeLike] = None) -> 'Tensor':
+        """Create a tensor of full.
+
+        Parameters
+        ----------
+        fill_value: Any
+            Value to fill the tensor with.
+        shape : TensorShapeLike
+            Input parameter.
+        dtype : Optional[TypeLike]
+            Input parameter.
+
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        shape = TensorShape.create(shape)
+        np_dtype = _convert_dtype_to_numpy(dtype) if dtype else None
+        return Tensor(data=np.full(shape, fill_value, dtype=np_dtype))
+    # end def full
+
+    @staticmethod
     def zeros(shape: TensorShapeLike, dtype: Optional[TypeLike] = None) -> 'Tensor':
         """Create a tensor of zeros.
         
@@ -2987,11 +3012,27 @@ class Tensor:
         'Tensor'
             Result of the operation.
         """
-        shape = TensorShape.create(shape)
-        np_dtype = _convert_dtype_to_numpy(dtype) if dtype else None
-        data = np.zeros(shape=shape.dims, dtype=np_dtype)
-        return Tensor(data=data, dtype=dtype)
+        return Tensor.full(0, shape, dtype=dtype)
     # end def zeros
+
+    @staticmethod
+    def ones(shape: TensorShapeLike, dtype: Optional[TypeLike] = None) -> 'Tensor':
+        """Create a tensor of ones.
+
+        Parameters
+        ----------
+        shape : TensorShapeLike
+            Input parameter.
+        dtype : Optional[TypeLike]
+            Input parameter.
+
+        Returns
+        -------
+        'Tensor'
+            Result of the operation.
+        """
+        return Tensor.full(1, shape, dtype=dtype)
+    # end def ones
 
     @staticmethod
     def from_list(data: List, dtype: DType) -> 'Tensor':
@@ -3099,6 +3140,133 @@ def _as_numpy_operand(value: Union[Tensor, TensorLike, np.ndarray]) -> np.ndarra
 
 
 # endregion _HELPERS
+
+
+#
+# Shapes
+#
+
+
+def ts_scalar() -> TensorShape:
+    """Return the shape of a scalar."""
+    return TensorShape([])
+# end def t_scalar
+
+
+def ts_matrix(rows: int, columns: int) -> TensorShape:
+    """Create a matrix shape."""
+    return TensorShape.matrix(rows, columns)
+# end def t_matrix
+
+
+def ts_vector(size: int) -> TensorShape:
+    """Create a vector shape."""
+    return TensorShape.vector(size)
+# end def t_vector
+
+
+#
+# Build
+#
+
+
+def tensor_from_numpy(data: np.ndarray, dtype: Optional[TypeLike] = None) -> Tensor:
+    """
+    Create a tensor from numpy array.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Input parameter.
+    dtype : Optional[TypeLike]
+        Input parameter.
+
+    Returns
+    -------
+    'Tensor'
+        Result of the operation.
+    """
+    return Tensor.from_numpy(data, dtype=dtype)
+# end def tensor_from_numpy
+
+
+def t_zeros(shape: TensorShapeLike, dtype: Optional[TypeLike] = None) -> Tensor:
+    """
+    Create a tensor of zeros.
+
+    Parameters
+    ----------
+    shape : TensorShapeLike
+        Input parameter.
+    dtype : Optional[TypeLike]
+        Input parameter.
+
+    Returns
+    -------
+    'Tensor'
+        Result of the operation.
+    """
+    return Tensor.zeros(shape, dtype=dtype)
+# end def t_zeros
+
+
+def t_full(fill_value, shape: TensorShapeLike, dtype: Optional[TypeLike] = None) -> Tensor:
+    """Create a tensor of full.
+
+    Parameters
+    ----------
+    fill_value: Any
+        Value to fill the tensor with.
+    shape : TensorShapeLike
+        Input parameter.
+    dtype : Optional[TypeLike]
+        Input parameter.
+
+    Returns
+    -------
+    'Tensor'
+        Result of the operation.
+    """
+    return Tensor.full(fill_value, shape, dtype=dtype)
+# end def t_full
+
+
+def t_ones(shape: TensorShapeLike, dtype: Optional[TypeLike] = None) -> Tensor:
+    """Create a tensor of ones.
+
+    Parameters
+    ----------
+    shape : TensorShapeLike
+        Input parameter.
+    dtype : Optional[TypeLike]
+        Input parameter.
+
+    Returns
+    -------
+    'Tensor'
+        Result of the operation.
+    """
+    return Tensor.ones(shape, dtype=dtype)
+# end def t_ones
+
+
+def t_from_list(data: List, dtype: DType) -> Tensor:
+    """Create a tensor from list.
+
+    Parameters
+    ----------
+    data : List
+        Input parameter.
+    dtype : DType
+        Input parameter.
+
+    Returns
+    -------
+    'Tensor'
+        Result of the operation.
+    """
+    return Tensor.from_list(data, dtype=dtype)
+# end def t_from_list
 
 
 #

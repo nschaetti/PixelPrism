@@ -30,7 +30,7 @@ Calculus functional operators
 """
 
 # Imports
-from ..math_expr import MathNode, Variable
+from ..math_base import MathNode, Variable
 from .builders import vector
 
 

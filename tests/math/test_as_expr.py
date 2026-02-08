@@ -31,7 +31,7 @@ import numpy as np
 import pytest
 
 from pixelprism.math import as_expr, DType, Constant
-from pixelprism.math.math_expr import MathExpr, MathNode, MathLeaf
+from pixelprism.math.math_base import MathBase, MathNode, MathLeaf
 from pixelprism.math.tensor import Tensor
 
 
@@ -45,7 +45,7 @@ def test_as_expr_returns_math_expr_unchanged():
     """
     tensor = Constant(name="identity", data=Tensor.from_numpy(np.array([1.0]), dtype=DType.R))
     result = as_expr(tensor)
-    assert isinstance(result, MathExpr)
+    assert isinstance(result, MathBase)
     assert isinstance(result, MathNode)
     assert isinstance(result, MathLeaf)
     assert result.name == "identity"
@@ -136,7 +136,7 @@ def test_as_expr_converts_nested_list_default_dtype_float():
     """
     data = [[1, 2], [3, 4]]
     result = as_expr(data, dtype=None)
-    assert isinstance(result, MathExpr)
+    assert isinstance(result, MathBase)
     assert result.dtype is DType.R
     assert result.shape.dims == (2, 2)
     np.testing.assert_array_equal(result.eval().value, np.array(data, dtype=np.float32))

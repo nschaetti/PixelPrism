@@ -18,7 +18,7 @@
 # Imports
 from abc import ABC
 from typing import Callable, List, Any, Optional
-from pixelprism.math.math_expr import MathOperator, MathEvent, MathEventData
+from pixelprism.math.math_base import MathOperator, MathEvent, MathEventData
 from pixelprism.math.scalar import Scalar
 
 

@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Import from math_expr.py
+# Import from math_base.py
 from .math_expr import (
     MathEvent,
     MathEventData,

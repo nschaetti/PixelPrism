@@ -35,7 +35,8 @@ from . import ParametricOperator
 from ..tensor import Tensor
 from ..dtype import DType, promote
 from ..shape import Shape
-from ..math_expr import MathNode, Variable, Constant
+from ..math_node import MathNode
+from ..math_leaves import Variable, Constant
 from .base import Operands, Operator, operator_registry
 
 

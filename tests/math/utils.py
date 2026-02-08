@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-from pixelprism.math import MathExpr, Shape
+from pixelprism.math import MathBase, Shape
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ def make_value(data: Any, dims: Sequence[int | None], dtype: str = "float32") ->
 # end def make_value
 
 
-class ValueExpr(MathExpr):
+class ValueExpr(MathBase):
     """Expression that returns a preset Value."""
 
     def __init__(self, value: Value):

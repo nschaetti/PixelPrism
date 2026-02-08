@@ -28,7 +28,7 @@
 
 from typing import Union
 from pixelprism.math.functional.helpers import apply_operator
-from pixelprism.math.math_expr import MathNode
+from pixelprism.math.math_base import MathNode
 from pixelprism.math.build import as_expr
 
 

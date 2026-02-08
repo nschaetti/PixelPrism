@@ -35,7 +35,8 @@ from typing import List, Type, Tuple, Any, Optional
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
-from ..math_expr import MathNode, Variable
+from ..math_node import MathNode
+from ..math_leaves import Variable
 
 
 __all__ = [
@@ -59,10 +60,10 @@ class Operator(ABC):
     # How many operands
     ARITY: int
 
-    # Is an operator with variable number of operands ?
+    # Is an operator with a variable number of operands?
     IS_VARIADIC: bool = False
 
-    # Is the operator differentiable ?
+    # Is the operator differentiable?
     IS_DIFF: bool = False
 
     # Operator name

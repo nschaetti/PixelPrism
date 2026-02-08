@@ -41,7 +41,7 @@ import numbers
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Sequence, Tuple, List, Union, Optional
 import numpy as np
-from ..math_expr import MathNode, Constant, SliceExpr
+from ..math_base import MathNode, Constant, SliceExpr
 from ..operators import Operator
 
 __all__ = ["to_latex"]

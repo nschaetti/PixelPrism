@@ -26,28 +26,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-import pixelprism.math as pm
-from pixelprism.math.math_base import SliceExpr
+import numpy as np
 
 
-def main():
-    # Build a slice expression using integers
-    seq_slice = SliceExpr.create(start=1, stop=7, step=2)
-    print("Slice expression:", seq_slice)
-    print("Native slice:", seq_slice.as_slice)
-
-    # Build a slice expression from constants
-    start = pm.const("slice_start", data=0, dtype=pm.DType.Z)
-    stop = pm.const("slice_stop", data=4, dtype=pm.DType.Z)
-    const_slice = SliceExpr.create(start=start, stop=stop)
-    print("Constant-backed slice:", const_slice)
-    print("Slice values:", const_slice.start_value, const_slice.stop_value, const_slice.step_value)
-
-    # Convert a Python slice to SliceExpr
-    py_slice = slice(None, 5, None)
-    expr_from_slice = SliceExpr.from_slice(py_slice)
-    print("From python slice:", expr_from_slice)
+__all__ = ["rand_name", "random_const_name"]
 
 
-if __name__ == "__main__":
-    main()
+def rand_name(prefix: str) -> str:
+    """Generate a unique constant name based on the given prefix."""
+    return f"{prefix}_{np.random.randint(0, 1000000):06d}"
+# end def random_const_name
+
+
+def random_const_name(prefix: str = "const") -> str:
+    """Generate a unique constant name based on the given prefix."""
+    return rand_name(prefix=prefix)
+# end def random_const_name

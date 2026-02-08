@@ -4,7 +4,7 @@ import pytest
 
 from pixelprism.math import Tensor
 from pixelprism.math.dtype import DType
-from pixelprism.math.math_expr import MathLeaf
+from pixelprism.math.math_base import MathLeaf
 from pixelprism.math.shape import Shape
 
 

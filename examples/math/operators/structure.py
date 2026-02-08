@@ -3,7 +3,7 @@
 import numpy as np
 
 import pixelprism.math as pm
-from pixelprism.math.math_expr import SliceExpr
+from pixelprism.math.math_base import SliceExpr
 from pixelprism.math.operators.structure import Getitem
 
 # Static snippet lifted from tests/math/operators/test_structure.py::test_getitem_slice_combinations

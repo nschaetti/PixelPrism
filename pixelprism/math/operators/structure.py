@@ -38,7 +38,8 @@ import numpy as np
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
-from ..math_expr import SliceExpr, MathNode
+from ..math_slice import SliceExpr
+from ..math_node import MathNode
 from .base import Operands, operator_registry, Operator
 
 
@@ -65,7 +66,7 @@ class StructureOperator(Operator, ABC):
 
     def contains(
             self,
-            expr: "MathNode",
+            expr: MathNode,
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:

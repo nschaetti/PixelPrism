@@ -30,7 +30,7 @@ Trigonometric functional helpers.
 """
 
 from pixelprism.math.build import as_expr
-from pixelprism.math.math_expr import MathNode
+from pixelprism.math.math_base import MathNode
 
 from .helpers import apply_operator
 

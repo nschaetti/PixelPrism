@@ -35,7 +35,7 @@ from typing import Optional, Sequence, Union
 import numpy as np
 
 from ..dtype import DType, to_numpy, promote
-from ..math_expr import MathNode
+from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import (
     Tensor,
@@ -44,7 +44,8 @@ from ..tensor import (
     t_vstack as tensor_vstack,
 )
 from ..context import new_context, set_value
-from ..utils import const, random_const_name
+from ..utils import const
+from ..random import random_const_name
 from .base import Operands, Operator, ParametricOperator, operator_registry
 
 

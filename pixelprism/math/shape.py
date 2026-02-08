@@ -43,21 +43,22 @@
 # Imports
 from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Tuple, Dict, Union
-
-from . import MathNode, Tensor
-from .math_expr import MathExpr, Variable, Constant
+from .tensor import Tensor
+from .mixins import PredicateMixin, EvaluableMixin
+from .typing import DimExpr
+from .dtype import Z_DTYPE
 
 
 __all__ = ["Shape", "Dim", "Dims", "ShapeLike"]
 
 
 
-Dim = int
+Dim = Union[int, DimExpr]
 Dims = Tuple[Dim, ...]
 ShapeLike = 'Shape' | Dims
 
 
-class Shape(MathExpr):
+class Shape(EvaluableMixin, PredicateMixin):
     """
     Immutable descriptor for symbolic tensor shapes.
     """
@@ -132,64 +133,105 @@ class Shape(MathExpr):
 
     # endregion PROPERTIES
 
-    # region PUBLIC
+    # region EVALUABLE_MIXIN
 
     def eval(self) -> Tensor:
-        pass
+        """Evaluate the shape to a concrete tensor shape."""
+        dim_values: List[int] = [
+            d.eval().item() for d in self._dims
+        ]
 
-    def diff(self, wrt: Variable) -> MathExpr:
-        pass
-
-    def variables(self) -> List[Variable]:
-        pass
-
-    def constants(self) -> List[Constant]:
-        pass
-
-    def contains(self, leaf: Union[str, MathNode], by_ref: bool = False, check_operator: bool = True,
-                 look_for: Optional[str] = None) -> bool:
-        pass
-
-    def contains_variable(self, variable: Union[str, MathNode], by_ref: bool = False,
-                          check_operator: bool = True) -> bool:
-        pass
-
-    def contains_constant(self, constant: Union[str, MathNode], by_ref: bool = False,
-                          check_operator: bool = True) -> bool:
-        pass
-
-    def replace(self, old_m: MathNode, new_m: MathNode):
-        pass
-
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
-        pass
-
-    def _num_elements(self) -> int | None:
-        """Compute the product of symbolic dimensions when possible.
-
-        Returns
-        -------
-        int | None
-            Number of elements or ``None`` when any dimension is unknown.
-        """
-        total = 1
-        for dim in self._dims:
-            total *= dim
+        for dim_value in dim_values:
+            if dim_value is None:
+                raise ValueError("Shape dimensions cannot be None.")
+            # end if
+            if not isinstance(dim_value, int) or dim_value < 0:
+                raise ValueError("Shape dimensions must be non-negative integers or None.")
+            # end if
         # end for
-        return total
-    # end def _num_elements
 
-    def _check_transpose(self, axes: Sequence[int]) -> None:
-        """Validate a permutation of axes."""
-        if len(axes) != self.n_dims:
-            raise ValueError(
-                f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
-            )
-        # end if
-        if sorted(axes) != list(range(self.n_dims)):
-            raise ValueError("Permutation contains invalid axis indices.")
-        # end if
-    # end def _check_transpose
+        return Tensor.from_list(dim_values, dtype=Z_DTYPE)
+    # end def eval
+
+    # endregion EVALUABLE_MIXIN
+
+    # region PREDICATE_MIXIN
+
+    def is_constant(self):
+        return not self.is_variable()
+    # end def is_constant
+
+    def is_variable(self):
+        any_var = [d.is_variable() for d in self._dims]
+        return any(any_var)
+    # end def is_variable
+
+    def variables(self) -> List['Variable']:
+        shape_vars = [
+            v for d in self._dims for v in d.variables()
+        ]
+        return shape_vars
+    # end def variables
+
+    def constants(self) -> List['Constant']:
+        shape_consts = [
+            c for d in self._dims for c in d.constants()
+        ]
+        return shape_consts
+    # end def constants
+
+    def contains(
+            self,
+            leaf: Union[str, PredicateMixin],
+            by_ref: bool = False,
+            check_operator: bool = True,
+            look_for: Optional[str] = None
+    ) -> bool:
+        any_contains = [
+            d.contains(leaf, by_ref, check_operator, look_for) for d in self._dims
+        ]
+        return any(any_contains)
+    # end def contains
+
+    def contains_variable(
+            self,
+            variable: Union[str, PredicateMixin],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        return any([d.contains_variable(variable, by_ref, check_operator) for d in self._dims])
+    # end def contains_variable
+
+    def contains_constant(
+            self,
+            constant: Union[str, PredicateMixin],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        return any([d.contains_constant(constant, by_ref, check_operator) for d in self._dims])
+    # end def contains_constant
+
+    def replace(
+            self,
+            old_m: PredicateMixin,
+            new_m: PredicateMixin
+    ):
+        for d in self._dims:
+            d.replace(old_m, new_m)
+        # end for
+    # end def replace
+
+    def rename(
+            self,
+            old_name: str,
+            new_name: str
+    ) -> Dict[str, str]:
+        pass
+    # end def rename
+
+    # endregion PREDICATE_MIXIN
+
+    # region PUBLIC
 
     def transpose(self, axes: Optional[List[int]] = None) -> "Shape":
         """Return the shape with axes permuted."""
@@ -448,6 +490,37 @@ class Shape(MathExpr):
     # end def reshape
 
     # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _num_elements(self) -> int | None:
+        """Compute the product of symbolic dimensions when possible.
+
+        Returns
+        -------
+        int | None
+            Number of elements or ``None`` when any dimension is unknown.
+        """
+        total = 1
+        for dim in self._dims:
+            total *= dim
+        # end for
+        return total
+    # end def _num_elements
+
+    def _check_transpose(self, axes: Sequence[int]) -> None:
+        """Validate a permutation of axes."""
+        if len(axes) != self.n_dims:
+            raise ValueError(
+                f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
+            )
+        # end if
+        if sorted(axes) != list(range(self.n_dims)):
+            raise ValueError("Permutation contains invalid axis indices.")
+        # end if
+    # end def _check_transpose
+
+    # endregion PRIVATE
 
     # region STATIC
 

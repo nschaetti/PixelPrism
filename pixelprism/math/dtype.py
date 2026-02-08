@@ -47,6 +47,8 @@ from enum import Enum
 import sys
 import numpy as np
 
+from .typing import NumberLike, ScalarLike, NumberListLike
+
 
 __all__ = [
     "DType",
@@ -66,9 +68,6 @@ __all__ = [
 
 
 # Type numeric
-NumberLike = float | int | bool | complex | np.number
-ScalarLike = int | float | np.number | bool | complex
-NumberListLike: TypeAlias = list[Union[ScalarLike, "NumberListLike"]]
 TypeLike = Union["DType", np.dtype, type[float], type[int], type[bool], type[complex]]
 
 
@@ -86,6 +85,23 @@ class DType(Enum):
     R = "R"
     C = "C"
     B = "B"
+
+    def __repr__(self) -> str:
+        if self.name == "Z":
+            return "Integers"
+        elif self.name == "R":
+            return "Reals"
+        elif self.name == "C":
+            return "Complex"
+        elif self.name == "B":
+            return "Boolean"
+        # end if
+        return f"Unknown"
+    # end def __repr__
+
+    def __str__(self) -> str:
+        return self.__repr__()
+    # end def __str__
 
 # end class DType
 

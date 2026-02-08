@@ -34,12 +34,14 @@ from abc import ABC
 from typing import Optional, Sequence, Union, Any, List
 import numpy as np
 
-from ..utils import const, random_const_name
+from ..utils import const
+from ..random import random_const_name
 from ..dtype import DType, to_numpy, promote
-from ..math_expr import MathNode, Variable, Constant
+from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor, t_einsum
 from .base import Operands, operator_registry, Operator, ParametricOperator
+
 
 __all__ = [
     "LinearAlgebraOperator",
@@ -436,7 +438,7 @@ class Transpose(LinearAlgebraParametricOperator):
         Transpose
         """
         super(Transpose, self).__init__(axes=axes)
-        from ..math_expr import Variable
+        from ..math_leaves import Variable
         if axes and isinstance(axes, list):
             # from ..utils import random_const_name, const
             self._check_axes(axes)

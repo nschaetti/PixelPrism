@@ -33,7 +33,8 @@ Trigonometric operator implementations.
 from .base import Operands, operator_registry
 from .elementwise import ElementwiseOperator, UnaryElementwiseOperator, Sqrt
 from ..tensor import Tensor
-from ..math_expr import Variable, Constant, MathNode
+from ..math_node import MathNode
+from ..math_leaves import Variable, Constant
 
 
 __all__ = [

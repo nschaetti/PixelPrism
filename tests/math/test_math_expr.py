@@ -1,7 +1,7 @@
 import pytest
 
 from pixelprism.math.dtype import DType
-from pixelprism.math.math_expr import (
+from pixelprism.math.math_base import (
     MathNode,
     MathLeaf,
     MathExprNotImplementedError,

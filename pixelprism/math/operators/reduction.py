@@ -28,15 +28,15 @@
 
 # Imports
 from abc import ABC
-from typing import Sequence, List, Any, Optional, Union
+from typing import Any, Optional, Union
 import numpy as np
 
 from ..dtype import DType, to_numpy
 from ..shape import Shape
 from ..tensor import Tensor
 from ..context import new_context, set_value
-from ..math_expr import MathNode
-from .base import Operands, Operand, operator_registry, Operator, ParametricOperator
+from ..math_node import MathNode
+from .base import Operands, operator_registry, Operator, ParametricOperator
 
 
 __all__ = [
@@ -106,7 +106,7 @@ class AxisReductionOperator(ReductionOperator, ABC):
 
     def __init__(self, *, axis: Optional[Union[MathNode, int]] = None, **kwargs: Any):
         super().__init__(**kwargs)
-        from ..math_expr import Variable
+        from ..math_base import Variable
         if axis and isinstance(axis, int):
             from ..utils import random_const_name, const
             axis = const(random_const_name(f"{self.__class__.__name__.lower()}-axis-"), axis)

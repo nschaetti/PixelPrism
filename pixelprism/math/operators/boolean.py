@@ -35,7 +35,7 @@ from typing import Sequence, Any, Optional
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
-from ..math_expr import MathNode
+from ..math_node import MathNode
 from .base import Operands, Operator, operator_registry
 
 __all__ = [
