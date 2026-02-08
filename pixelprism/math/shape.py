@@ -43,17 +43,16 @@
 # Imports
 from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Tuple, Dict, Union
-from .tensor import Tensor
-from .mixins import PredicateMixin, EvaluableMixin
-from .typing import DimExpr
-from .dtype import Z_DTYPE
+
+from . import MathNode, Tensor
+from .math_expr import MathExpr, Variable, Constant
 
 
 __all__ = ["Shape", "Dim", "Dims", "ShapeLike"]
 
 
 
-Dim = Union[int, DimExpr]
+Dim = int
 Dims = Tuple[Dim, ...]
 ShapeLike = 'Shape' | Dims
 
@@ -69,22 +68,22 @@ class Shape(EvaluableMixin, PredicateMixin):
         Parameters
         ----------
         dims : Iterable[Dim]
-            Iterable of dimension sizes to store in the shape.
+            Iterable of dimension expression or integers.
         """
         super(Shape, self).__init__()
+        dims = [as_expr(dim) for dim in dims]
         dims_tuple = tuple(dims)
         for dim in dims_tuple:
             self._check_dim(dim)
         # end for
         self._dims: Dims = dims_tuple
-        self._n_dims: int = len(dims_tuple)
     # end def __init__
 
     # region PROPERTIES
 
     @property
     def dims(self) -> Dims:
-        """Return the dimensions tuple.
+        """Return the dimensions' tuple.
 
         Returns
         -------
@@ -108,13 +107,13 @@ class Shape(EvaluableMixin, PredicateMixin):
     # end def rank
 
     @property
-    def size(self) -> Optional[int]:
+    def size(self) -> Optional[MathNode]:
         """Return the total number of elements when known.
 
         Returns
         -------
-        Optional[int]
-            Number of elements represented by the shape.
+        Optional[MathNode]
+            The math expression representing the total number of elements.
         """
         return self._num_elements()
     # end def size

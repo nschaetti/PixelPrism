@@ -160,7 +160,36 @@ from .conditional import (
     Where,
 )
 
+
+# Boolean
+BOOLEAN_OPERATORS = (Eq, Ne, Lt, Le, Gt, Ge, Not, Any, All, And, Or, Xor)
+ALGEBRAIC_STRICT_OPERATORS = (Add, Sub, Mul, Div, Pow)
+ALGEBRAIC_OPERATORS = (Add, Sub, Mul, Div, Pow, Absolute, Abs)
+BUILDERS = (Vector, Matrix, Full, Concatenate, HStack, VStack, Zeros, Ones, Eye, Identity, Map, Linspace, Logspace, Diag, SparseCOO)
+DISCRETIZATION_OPERATORS = (Sign, Floor, Ceil, Trunc, Rint, Round, Clip)
+ELEMENTWISE_OPERATORS = (Neg, Exp, Exp2, Expm1, Log, Log1p, Log2, Log10, Square, Cbrt, Reciprocal, Abs, Where)
+TRIGO_OPERATORS = (Acos, Acosh, Asin, Asinh, Atan, Atan2, Atanh, Cos, Cosh, Cot, Csc, Sec, Sin, Sinh, Tan, Tanh)
+LINEAR_ALGEBRA_OPERATORS = (MatMul, Dot, Outer, Trace, Transpose, Det, Inverse, Norm, InftyNorm, FrobeniusNorm)
+REDUCTION_OPERATORS = (Sum, Mean, Std, Median, Max, Min, Q1, Q3, Summation, Product)
+STRUCTURE_OPERATORS = (Getitem, Flatten, Squeeze, Unsqueeze, Reshape)
+ACTIVATIONS_OPERATORS = (ReLU, LeakyReLU, Sigmoid, Softplus, GELU)
+CONDITIONAL_OPERATORS = (Where,)
+
+
 __all__ = [
+    # List
+    "BOOLEAN_OPERATORS",
+    "ALGEBRAIC_STRICT_OPERATORS",
+    "ALGEBRAIC_OPERATORS",
+    "BUILDERS",
+    "DISCRETIZATION_OPERATORS",
+    "ELEMENTWISE_OPERATORS",
+    "TRIGO_OPERATORS",
+    "LINEAR_ALGEBRA_OPERATORS",
+    "REDUCTION_OPERATORS",
+    "STRUCTURE_OPERATORS",
+    "ACTIVATIONS_OPERATORS",
+    "CONDITIONAL_OPERATORS",
     # Base
     "Operands",
     "Operator",

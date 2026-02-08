@@ -58,6 +58,8 @@ class LayerManager:
         self.layers = []
         self.effect_groups = []
 
+    # end def __init__
+
     def add_layer(self, name, image: object = None):
         """
         Add a new layer to the layer manager.
@@ -77,7 +79,7 @@ class LayerManager:
         """
         self.layers = [layer for layer in self.layers if layer.name != name]
 
-    def get_layer(self, name) -> 'ImageLayer':
+    def get_layer(self, name) -> "ImageLayer":
         """
         Get a layer by name.
 
@@ -102,7 +104,7 @@ class LayerManager:
         """
         self.effect_groups.append(EffectGroup(name, effects))
 
-    def get_effect_group(self, name) -> 'EffectGroup':
+    def get_effect_group(self, name) -> "EffectGroup":
         """
         Get an effect group by name.
 
@@ -142,14 +144,16 @@ class LayerManager:
         if group is not None and layer is not None:
             layer.image = group.apply(layer.image)
 
-    def merge_layers(self, layer1_name, layer2_name, mode='addition', output_layer_name='merged'):
+    def merge_layers(
+        self, layer1_name, layer2_name, mode="addition", output_layer_name="merged"
+    ):
         """
         Merge two layers using the specified blend mode.
 
         Args:
             layer1_name (str): Name of the first layer
             layer2_name (str): Name of the second layer
-            mode (str, optional): Blend mode to use. Options are 'addition', 'multiply', 
+            mode (str, optional): Blend mode to use. Options are 'addition', 'multiply',
                                  'screen', or 'overlay'. Defaults to 'addition'.
             output_layer_name (str, optional): Name of the output layer. Defaults to 'merged'.
 
@@ -160,16 +164,22 @@ class LayerManager:
         layer2 = self.get_layer(layer2_name)
 
         if layer1 is not None and layer2 is not None:
-            if mode == 'addition':
+            if mode == "addition":
                 merged_image = cv2.add(layer1.image, layer2.image)
-            elif mode == 'multiply':
-                merged_image = cv2.multiply(layer1.image, layer2.image, scale=1/255.0)
-            elif mode == 'screen':
+            elif mode == "multiply":
+                merged_image = cv2.multiply(layer1.image, layer2.image, scale=1 / 255.0)
+            elif mode == "screen":
                 inverted_image1 = 255 - layer1.image
                 inverted_image2 = 255 - layer2.image
-                merged_image = 255 - cv2.multiply(inverted_image1, inverted_image2, scale=1/255.0)
-            elif mode == 'overlay':
-                merged_image = np.where(layer2.image > 128, 255 - 2 * (255 - layer2.image) * (255 - layer1.image) / 255, 2 * layer1.image * layer2.image / 255)
+                merged_image = 255 - cv2.multiply(
+                    inverted_image1, inverted_image2, scale=1 / 255.0
+                )
+            elif mode == "overlay":
+                merged_image = np.where(
+                    layer2.image > 128,
+                    255 - 2 * (255 - layer2.image) * (255 - layer1.image) / 255,
+                    2 * layer1.image * layer2.image / 255,
+                )
                 merged_image = merged_image.astype(np.uint8)
             else:
                 raise ValueError(f"Unsupported blend mode: {mode}")
