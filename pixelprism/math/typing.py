@@ -40,8 +40,8 @@ __all__ = [
     "DimExpr",
     "MathExpr",
     "TensorLike",
-    "TensorDim",
-    "TensorDims",
+    "Dim",
+    "Dims",
 ]
 
 
@@ -54,8 +54,8 @@ NumberListLike: TypeAlias = list[Union[ScalarLike, "NumberListLike"]]
 TensorLike: TypeAlias = Union[NumberLike, NumberListLike, np.ndarray]
 
 # Tensor dimension
-TensorDim = int
-TensorDims = Union[Tuple[TensorDim, ...], List[TensorDim], Sequence[TensorDim]]
+Dim = int
+Dims = Union[Tuple[Dim, ...], List[Dim], Sequence[Dim]]
 
 
 # Represents a valid index

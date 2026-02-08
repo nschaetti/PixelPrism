@@ -42,36 +42,68 @@
 
 # Imports
 from __future__ import annotations
-from typing import Iterable, List, Optional, Sequence, Tuple, Dict, Union
+from typing import Iterable, List, Optional, Sequence, Union
+import numpy as np
 
-from . import MathNode, Tensor
-from .math_expr import MathExpr, Variable, Constant
-
-
-__all__ = ["Shape", "Dim", "Dims", "ShapeLike"]
+from .dtype import TypeLike, to_numpy
+from .typing import Dim, Dims
 
 
-
-Dim = int
-Dims = Tuple[Dim, ...]
-ShapeLike = 'Shape' | Dims
+__all__ = ["Shape", "ShapeLike"]
 
 
-class Shape(EvaluableMixin, PredicateMixin):
+ShapeLike = Union['Shape', Dims]
+
+
+class Shape:
     """
     Immutable descriptor for symbolic tensor shapes.
+
+    A :class:`TensorShape` records the axis lengths associated with a tensor.
+    Each axis can be a concrete ``int``. Shapes are lightweight, hashable, and
+    safe to share across nodes, ensuring downstream passes can reason about
+    tensor metadata without mutating the original objects.
+
+    Validation and normalization
+    ----------------------------
+    The constructor eagerly validates every dimension through ``_check_dim`` to
+    guarantee negative or otherwise malformed values never propagate past the
+    creation site. Internally, axes are stored as an immutable tuple, giving
+    deterministic hashing and printing behavior and keeping equality semantics
+    simple.
+
+    Convenience properties
+    ----------------------
+    ``dims`` exposes the canonical tuple representation, ``rank``/``n_dims``
+    provide fast access to the tensor arity, and ``size`` returns the product
+    of all known axes (``None`` when at least one axis is symbolic).
+
+    Compatibility helpers
+    ---------------------
+    Many operators need to verify that their operands can participate in
+    elementwise arithmetic. ``is_elementwise_compatible`` performs the check by
+    comparing ranks and allowing either matching integers. ``merge_elementwise``
+    builds on top of that by returning a new :class:`TensorShape` where each
+    axis is the tightened version of both operands, raising :class:`ValueError`
+    when a conflict is detected. Having these utilities on the shape class
+    keeps validation logic centralized and consistent across operators.
+
+    Subclassing
+    -----------
+    ``TensorShape`` is intentionally concrete. Higher-level abstractions should
+    wrap it rather than subclassing to avoid diverging validation paths. Should
+    additional metadata (like layout or batching semantics) be required, they
+    can be attached via separate objects keyed by ``TensorShape`` instances.
     """
 
-    def __init__(self, dims: Iterable[Dim]):
-        """Initialize a Shape.
+    def __init__(self, dims: Dims):
+        """Initialize a TensorShape.
 
         Parameters
         ----------
-        dims : Iterable[Dim]
-            Iterable of dimension expression or integers.
+        dims : Iterable[TensorDim]
+            Iterable of dimension sizes to store in the shape.
         """
-        super(Shape, self).__init__()
-        dims = [as_expr(dim) for dim in dims]
         dims_tuple = tuple(dims)
         for dim in dims_tuple:
             self._check_dim(dim)
@@ -87,9 +119,8 @@ class Shape(EvaluableMixin, PredicateMixin):
 
         Returns
         -------
-        Dims
-            Tuple describing tensor dimensions (each value is an ``int`` or
-            ``None``).
+        TensorDims
+            Tuple describing tensor dimensions.
         """
         return self._dims
     # end def dims
@@ -107,13 +138,13 @@ class Shape(EvaluableMixin, PredicateMixin):
     # end def rank
 
     @property
-    def size(self) -> Optional[MathNode]:
+    def size(self) -> Optional[int]:
         """Return the total number of elements when known.
 
         Returns
         -------
-        Optional[MathNode]
-            The math expression representing the total number of elements.
+        Optional[int]
+            Number of elements represented by the shape.
         """
         return self._num_elements()
     # end def size
@@ -130,110 +161,52 @@ class Shape(EvaluableMixin, PredicateMixin):
         return self.rank
     # end def n_dims
 
+    @property
+    def is_scalar(self) -> bool:
+        """Return whether the shape is scalar (rank-0)."""
+        return self.rank == 0
+    # end def is_scalar
+
+    @property
+    def is_vector(self) -> bool:
+        """Return whether the shape is a vector (rank-1)."""
+        return self.rank == 1
+    # end def is_vector
+
+    @property
+    def is_matrix(self) -> bool:
+        """Return whether the shape is a matrix (rank-2)."""
+        return self.rank == 2
+    # end def is_matrix
+
+    @property
+    def is_higher_order(self) -> bool:
+        """Return whether the shape is higher-order (rank > 2)."""
+        return self.rank > 2
+    # end def is_higher_order
+
     # endregion PROPERTIES
-
-    # region EVALUABLE_MIXIN
-
-    def eval(self) -> Tensor:
-        """Evaluate the shape to a concrete tensor shape."""
-        dim_values: List[int] = [
-            d.eval().item() for d in self._dims
-        ]
-
-        for dim_value in dim_values:
-            if dim_value is None:
-                raise ValueError("Shape dimensions cannot be None.")
-            # end if
-            if not isinstance(dim_value, int) or dim_value < 0:
-                raise ValueError("Shape dimensions must be non-negative integers or None.")
-            # end if
-        # end for
-
-        return Tensor.from_list(dim_values, dtype=Z_DTYPE)
-    # end def eval
-
-    # endregion EVALUABLE_MIXIN
-
-    # region PREDICATE_MIXIN
-
-    def is_constant(self):
-        return not self.is_variable()
-    # end def is_constant
-
-    def is_variable(self):
-        any_var = [d.is_variable() for d in self._dims]
-        return any(any_var)
-    # end def is_variable
-
-    def variables(self) -> List['Variable']:
-        shape_vars = [
-            v for d in self._dims for v in d.variables()
-        ]
-        return shape_vars
-    # end def variables
-
-    def constants(self) -> List['Constant']:
-        shape_consts = [
-            c for d in self._dims for c in d.constants()
-        ]
-        return shape_consts
-    # end def constants
-
-    def contains(
-            self,
-            leaf: Union[str, PredicateMixin],
-            by_ref: bool = False,
-            check_operator: bool = True,
-            look_for: Optional[str] = None
-    ) -> bool:
-        any_contains = [
-            d.contains(leaf, by_ref, check_operator, look_for) for d in self._dims
-        ]
-        return any(any_contains)
-    # end def contains
-
-    def contains_variable(
-            self,
-            variable: Union[str, PredicateMixin],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool:
-        return any([d.contains_variable(variable, by_ref, check_operator) for d in self._dims])
-    # end def contains_variable
-
-    def contains_constant(
-            self,
-            constant: Union[str, PredicateMixin],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool:
-        return any([d.contains_constant(constant, by_ref, check_operator) for d in self._dims])
-    # end def contains_constant
-
-    def replace(
-            self,
-            old_m: PredicateMixin,
-            new_m: PredicateMixin
-    ):
-        for d in self._dims:
-            d.replace(old_m, new_m)
-        # end for
-    # end def replace
-
-    def rename(
-            self,
-            old_name: str,
-            new_name: str
-    ) -> Dict[str, str]:
-        pass
-    # end def rename
-
-    # endregion PREDICATE_MIXIN
 
     # region PUBLIC
 
     def transpose(self, axes: Optional[List[int]] = None) -> "Shape":
-        """Return the shape with axes permuted."""
+        """Return the shape with axes permuted.
+
+        Parameters
+        ----------
+        axes : list[int], optional
+            Axis permutation. When ``None``, the axis order is reversed.
+
+        Returns
+        -------
+        Shape
+            New shape with permuted axes.
+
+        Raises
+        ------
+        ValueError
+            If ``axes`` does not represent a valid permutation.
+        """
         if axes is not None:
             self._check_transpose(axes)
             new_shape = [self.dims[i] for i in axes]
@@ -245,12 +218,35 @@ class Shape(EvaluableMixin, PredicateMixin):
     # end def transpose
 
     def transpose_(self):
-        """Transpose the shape in-place."""
+        """
+        Transpose the shape in-place.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
         self._dims = self.transpose().dims
     # end def transpose_
 
     def drop_axis(self, axis: int) -> "Shape":
-        """Return a new shape with the specified axis removed."""
+        """Return a new shape with the specified axis removed.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to drop.
+
+        Returns
+        -------
+        Shape
+            New shape with the axis removed.
+
+        Raises
+        ------
+        ValueError
+            If the axis is out of bounds.
+        """
         if axis < 0 or axis >= self.rank:
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
@@ -264,12 +260,41 @@ class Shape(EvaluableMixin, PredicateMixin):
     # end def drop_axis
 
     def drop_axis_(self, axis: int) -> None:
-        """Remove the specified axis from the shape in-place."""
+        """Remove the specified axis from the shape in-place.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to drop.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
         self._dims = self.drop_axis(axis)._dims
     # end def drop_axis
 
     def insert_axis(self, axis: int, size: Dim) -> "Shape":
-        """Return a new shape with the specified axis inserted."""
+        """Return a new shape with the specified axis inserted.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to insert.
+        size : Dim
+            Size of the inserted axis.
+
+        Returns
+        -------
+        Shape
+            New shape with the axis inserted.
+
+        Raises
+        ------
+        ValueError
+            If the axis is out of bounds.
+        """
         if axis < 0 or axis > self.rank:
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
@@ -277,7 +302,20 @@ class Shape(EvaluableMixin, PredicateMixin):
     # end def insert_axis
 
     def insert_axis_(self, axis: int, size: Dim) -> None:
-        """Insert the specified axis into the shape in-place."""
+        """Insert the specified axis into the shape in-place.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to insert.
+        size : Dim
+            Size of the inserted axis.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
         self._dims = self.insert_axis(axis, size)._dims
     # end def insert_axis_
 
@@ -417,35 +455,6 @@ class Shape(EvaluableMixin, PredicateMixin):
         return Shape(tuple(dims))
     # end def concat_result
 
-    # def transpose(self, permutation: Sequence[int]) -> "Shape":
-    #     """Return the shape after applying an axis permutation.
-    #
-    #     Parameters
-    #     ----------
-    #     permutation : Sequence[int]
-    #         Axis permutation describing the new order.
-    #
-    #     Returns
-    #     -------
-    #     Shape
-    #         Permuted shape following the given axis order.
-    #
-    #     Raises
-    #     ------
-    #     ValueError
-    #         If the permutation length is incorrect or contains invalid axis
-    #         indices.
-    #     """
-    #     if len(permutation) != self.rank:
-    #         raise ValueError("Permutation must include every axis exactly once.")
-    #     # end if
-    #     if sorted(permutation) != list(range(self.rank)):
-    #         raise ValueError("Permutation contains invalid axis indices.")
-    #     # end if
-    #     dims = tuple(self._dims[idx] for idx in permutation)
-    #     return Shape(dims)
-    # # end def transpose
-
     def can_reshape(self, new_shape: "Shape") -> bool:
         """Check whether reshape is symbolically valid.
 
@@ -488,6 +497,29 @@ class Shape(EvaluableMixin, PredicateMixin):
         return new_shape
     # end def reshape
 
+    def reshape_(self, new_shape: "Shape") -> None:
+        """
+        Reshape the shape in-place.
+
+        Parameters
+        ----------
+        new_shape : Shape
+            Target shape.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.reshape(new_shape)._dims
+    # end def reshape_
+
+    def equal_or_broadcastable(self, other: "Shape") -> bool:
+        """Check whether the shape is equal or broadcastable to another shape."""
+        # TODO: implement this properly
+        pass
+    # end def equal_or_broadcastable
+
     # endregion PUBLIC
 
     # region PRIVATE
@@ -508,14 +540,25 @@ class Shape(EvaluableMixin, PredicateMixin):
     # end def _num_elements
 
     def _check_transpose(self, axes: Sequence[int]) -> None:
-        """Validate a permutation of axes."""
+        """Validate a permutation of axes.
+
+        Parameters
+        ----------
+        axes : Sequence[int]
+            Proposed axis permutation.
+
+        Raises
+        ------
+        ValueError
+            If the permutation is invalid for this shape.
+        """
         if len(axes) != self.n_dims:
             raise ValueError(
                 f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
             )
         # end if
         if sorted(axes) != list(range(self.n_dims)):
-            raise ValueError("Permutation contains invalid axis indices.")
+            raise ValueError(f"Permutation contains invalid axis indices: {axes}")
         # end if
     # end def _check_transpose
 
@@ -524,8 +567,24 @@ class Shape(EvaluableMixin, PredicateMixin):
     # region STATIC
 
     @staticmethod
-    def create(shape: ShapeLike) -> Shape:
-        """Create a shape from a tuple or sequence."""
+    def create(shape: ShapeLike) -> "Shape":
+        """Create a shape from a tuple, sequence, or compatible object.
+
+        Parameters
+        ----------
+        shape : ShapeLike
+            Shape input (tuple, sequence, scalar dimension, or Shape).
+
+        Returns
+        -------
+        Shape
+            Normalized Shape instance.
+
+        Raises
+        ------
+        TypeError
+            If the input type is unsupported.
+        """
         if isinstance(shape, tuple):
             return Shape(shape)
         elif isinstance(shape, Sequence):
@@ -534,6 +593,8 @@ class Shape(EvaluableMixin, PredicateMixin):
             return Shape((shape,))
         elif isinstance(shape, Shape):
             return shape.copy()
+        elif hasattr(shape, "dims"):
+            return Shape(getattr(shape, "dims"))
         else:
             raise TypeError(f"Unsupported shape type: {type(shape)}")
         # end if
@@ -541,22 +602,101 @@ class Shape(EvaluableMixin, PredicateMixin):
 
     @staticmethod
     def scalar() -> "Shape":
+        """Return a scalar (rank-0) shape.
+
+        Returns
+        -------
+        Shape
+            Shape with no dimensions.
+        """
         return Shape(())
     # end def scalar
 
     @staticmethod
     def vector(n: Dim) -> "Shape":
+        """Return a vector shape.
+
+        Parameters
+        ----------
+        n : Dim
+            Length of the vector.
+
+        Returns
+        -------
+        Shape
+            Shape with a single dimension of size ``n``.
+        """
         return Shape((n,))
     # end def vector
 
     @staticmethod
     def matrix(n: Dim, m: Dim) -> "Shape":
+        """Return a matrix shape.
+
+        Parameters
+        ----------
+        n : Dim
+            Row count.
+        m : Dim
+            Column count.
+
+        Returns
+        -------
+        Shape
+            Shape with two dimensions ``(n, m)``.
+        """
         return Shape((n, m))
     # end def matrix
 
     @staticmethod
+    def stack_shape(shapes: Sequence["Shape"], axis: int) -> "Shape":
+        """Return the result shape of stacking tensors.
+
+        Parameters
+        ----------
+        shapes : Sequence[Shape]
+            Shapes of tensors to stack. All shapes must be elementwise
+            compatible.
+        axis : int
+            Axis index for the new dimension.
+
+        Returns
+        -------
+        Shape
+            Resulting stacked shape including the new dimension size.
+
+        Raises
+        ------
+        ValueError
+            If no shapes are provided or shapes are incompatible.
+        """
+        if not shapes:
+            raise ValueError("Stack requires at least one shape.")
+        # end if
+        base = shapes[0]
+        axis_norm = Shape._normalize_axis(axis, base.rank, allow_new_axis=True)
+        for shape in shapes[1:]:
+            base = base.merge_elementwise(shape)
+        # end for
+        dims = list(base.dims)
+        dims.insert(axis_norm, len(shapes))
+        return Shape(tuple(dims))
+    # end def stack_shape
+
+    def copy(self):
+        """Return a copy of the shape.
+
+        Returns
+        -------
+        Shape
+            Copy of the current shape.
+        """
+        return Shape(self._dims)
+    # end def copy
+
+    @staticmethod
     def _check_dim(dim: Dim) -> None:
-        """Validate a single dimension value.
+        """Validate a single-dimension value.
 
         Parameters
         ----------
@@ -566,7 +706,7 @@ class Shape(EvaluableMixin, PredicateMixin):
         Raises
         ------
         ValueError
-            If the dimension is negative or not an integer/``None``.
+            If the dimension is negative or not an integer.
         """
         if dim is None:
             raise ValueError("Shape dimensions cannot be None.")
@@ -636,7 +776,7 @@ class Shape(EvaluableMixin, PredicateMixin):
         Returns
         -------
         Dim
-            Sum of both dimensions when known, otherwise ``None``.
+            Sum of both dimensions.
         """
         return dim_a + dim_b
     # end def _sum_dims
@@ -675,46 +815,6 @@ class Shape(EvaluableMixin, PredicateMixin):
         return axis
     # end def _normalize_axis
 
-    @staticmethod
-    def stack_shape(shapes: Sequence["Shape"], axis: int) -> "Shape":
-        """Return the result shape of stacking tensors.
-
-        Parameters
-        ----------
-        shapes : Sequence[Shape]
-            Shapes of tensors to stack. All shapes must be elementwise
-            compatible.
-        axis : int
-            Axis index for the new dimension.
-
-        Returns
-        -------
-        Shape
-            Resulting stacked shape including the new dimension size.
-
-        Raises
-        ------
-        ValueError
-            If no shapes are provided or shapes are incompatible.
-        """
-        if not shapes:
-            raise ValueError("Stack requires at least one shape.")
-        # end if
-        base = shapes[0]
-        axis_norm = Shape._normalize_axis(axis, base.rank, allow_new_axis=True)
-        for shape in shapes[1:]:
-            base = base.merge_elementwise(shape)
-        # end for
-        dims = list(base.dims)
-        dims.insert(axis_norm, len(shapes))
-        return Shape(tuple(dims))
-    # end def stack_shape
-
-    def copy(self):
-        """Return a copy of the shape."""
-        return Shape(self._dims)
-    # end def copy
-
     # endregion STATIC
 
     # region OVERRIDE
@@ -729,6 +829,28 @@ class Shape(EvaluableMixin, PredicateMixin):
         """
         return self.rank
     # end def __len__
+
+    def __iter__(self):
+        """Return an iterator over the dimensions.
+
+        Returns
+        -------
+        Iterator[Dim]
+            Iterator over the dimensions.
+        """
+        return iter(self._dims)
+    # end def __iter__
+
+    def __contains__(self, dim: Dim) -> bool:
+        """Check whether a dimension is present in the shape.
+        """
+        return dim in self._dims
+    # end def __contains__
+
+    def __bool__(self) -> bool:
+        """Return whether the shape is non-empty."""
+        return bool(self._dims)
+    # end def __bool_
 
     def __getitem__(self, index: int) -> Dim:
         """Return the dimension at the provided index.
@@ -770,6 +892,22 @@ class Shape(EvaluableMixin, PredicateMixin):
         return self._dims == other._dims
     # end def __eq__
 
+    def __ne__(self, other: object) -> bool:
+        """Compare shapes for inequality.
+
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
+
+        Returns
+        -------
+        bool
+            ``True`` when both shapes have different dimensions.
+        """
+        return not self.__eq__(other)
+    # end def __ne__
+
     def __hash__(self) -> int:
         """Return a hash for the shape.
 
@@ -789,7 +927,15 @@ class Shape(EvaluableMixin, PredicateMixin):
         str
             Developer-friendly representation including raw dimensions.
         """
-        return f"{self._dims}"
+        if self.rank == 0:
+            return "scalar_shape()"
+        elif self.rank == 1:
+            return f"vector_shape({self._dims[0]})"
+        elif self.rank == 2:
+            return f"matrix_shape({self._dims[0]}, {self._dims[1]})"
+        else:
+            return f"tensor_shape({self._dims})"
+        # end if
     # end def __repr__
 
     def __str__(self) -> str:
@@ -800,10 +946,20 @@ class Shape(EvaluableMixin, PredicateMixin):
         str
             Readable representation.
         """
-        return self.__repr__()
+        return f"{self._dims}"
     # end def __str__
 
     # endregion OVERRIDE
+
+    # region NUMPY
+
+    def __array__(self, dtype: Optional[TypeLike] = None) -> np.ndarray:
+        """Convert the shape to a NumPy array.
+        """
+        return np.array(self._dims, dtype=to_numpy(dtype if dtype is not None else np.int32))
+    # end def __array__
+
+    # endregion NUMPY
 
 # end class Shape
 

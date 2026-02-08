@@ -114,6 +114,8 @@ from .tensor import (
     ts_vector,
     ts_matrix,
     # Creators
+    t_tensor,
+    t_scalar,
     t_zeros,
     t_ones,
     t_full,
@@ -169,8 +171,8 @@ from .typing import (
     DimExpr,
     MathExpr,
     TensorLike,
-    TensorDim,
-    TensorDims
+    Dim,
+    Dims
 )
 
 from .utils import (

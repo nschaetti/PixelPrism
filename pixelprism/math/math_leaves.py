@@ -41,9 +41,9 @@ from .math_exceptions import (
 )
 # from .math_node import MathNode
 from .mixins import DifferentiableMixin, PredicateMixin, EvaluableMixin
-from .dtype import DType
-from .shape import Shape
-from .tensor import Tensor
+from .dtype import DType, TypeLike, create
+from .shape import Shape, ShapeLike
+from .tensor import Tensor, TensorLike, t_tensor
 from .context import get_value
 from .random import rand_name
 
@@ -53,6 +53,39 @@ __all__ = [
     "Variable",
     "Constant",
 ]
+
+
+def var(name: str, dtype: TypeLike, shape: ShapeLike) -> Variable:
+    """Create a new variable with the given name and dtype.
+
+    Parameters
+    ----------
+    name: str
+        Name of the variable.
+    dtype: AnyDType
+        Data type of the variable.
+    shape: AnyShape
+        Shape of the variable.
+    """
+    return Variable.create(name=name, dtype=create(dtype), shape=Shape.create(shape))
+# end def var
+
+
+def const(name: str, data: TensorLike, dtype: Optional[TypeLike] = None) -> Constant:
+    """Create a new constant with the given value and dtype.
+
+    Parameters
+    ----------
+    name: str
+        Name of the constant.
+    data: NumericType
+        Data value of the constant.
+    dtype: AnyDType, optional
+        Data type of the constant. To the dtype of ``data`` if None.
+    """
+    data = t_tensor(data=data, dtype=dtype, mutable=False)
+    return Constant.create(name=name, data=data)
+# end def const
 
 
 # An expression which does not contain sub-expressions
