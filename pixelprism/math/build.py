@@ -30,19 +30,21 @@ from typing import Any, Union, Optional
 import numpy as np
 
 from .math_node import MathNode
-from .math_leaves import MathLeaf
+from .math_leaves import MathLeaf, const
 from .dtype import ScalarLike, DType, TypeLike
-from .tensor import TensorLike
-from .utils import tensor, const
+from .tensor import TensorLike, Tensor
+from .typing import MathExpr
 
 
-__all__ = ["as_expr"]
+__all__ = [
+    "as_expr"
+]
 
 
 def as_expr(
-        obj: Union[MathNode, TensorLike],
+        obj: Union[MathExpr, TensorLike],
         dtype: Optional[TypeLike] = None,
-) -> MathNode:
+) -> MathExpr:
     """
     Convert Python and NumPy inputs to a :class:`~pixelprism.math.MathExpr`.
 
@@ -89,22 +91,29 @@ def as_expr(
     >>> as_expr([[1, 2], [3, 4]], dtype=None).dtype
     <DType.R: 'R'>
     """
-    if isinstance(obj, MathNode):
+    if isinstance(obj, MathExpr):
         return obj
+    # end if
     if isinstance(obj, ScalarLike) or isinstance(obj, np.ndarray):
         return const(
             name=f"constant_{MathNode.next_id()}",
             data=obj,
             dtype=dtype
         )
-    if isinstance(obj, MathLeaf):
-        return obj
+    # end if
     if isinstance(obj, (list, tuple)):
         return const(
             name=f"constant_{MathNode.next_id()}",
             data=obj,
             dtype=dtype or DType.R
         )
+    # end if
+    if isinstance(obj, Tensor):
+        return const(
+            name=f"constant_{MathNode.next_id()}",
+            data=obj.value,
+        )
+    # end if
     raise TypeError(f"Cannot convert {type(obj)} to MathExpr")
     # end if
 # end def as_expr

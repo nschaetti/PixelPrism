@@ -33,72 +33,76 @@ import numpy as np
 
 from .shape import Shape, ShapeLike
 from .dtype import DType, TypeLike, to_numpy, convert_numpy, from_numpy
-from .typing import TensorLike, NumberLike, NumberListLike
-
+from .typing import TensorLike, NumberLike, NumberListLike, DimsInt, DimInt
 
 __all__ = [
-    "t_tensor",
-    "t_scalar",
+    "tensor",
+    "scalar",
     "Tensor",
     "TensorLike",
-    "ts_scalar",
-    "ts_vector",
-    "ts_matrix",
-    "t_full",
-    "t_zeros",
-    "t_ones",
-    "t_concatenate",
-    "t_hstack",
-    "t_vstack",
-    "t_pow",
-    "t_square",
-    "t_sqrt",
-    "t_cbrt",
-    "t_reciprocal",
-    "t_exp",
-    "t_exp2",
-    "t_expm1",
-    "t_log",
-    "t_log2",
-    "t_log10",
-    "t_log1p",
-    "t_sin",
-    "t_cos",
-    "t_tan",
-    "t_arcsin",
-    "t_arccos",
-    "t_arctan",
-    "t_atan2",
-    "t_sinh",
-    "t_cosh",
-    "t_tanh",
-    "t_arcsinh",
-    "t_arccosh",
-    "t_arctanh",
-    "t_deg2rad",
-    "t_rad2deg",
-    "t_absolute",
-    "t_abs",
-    "t_sign",
-    "t_floor",
-    "t_ceil",
-    "t_trunc",
-    "t_rint",
-    "t_round",
-    "t_clip",
-    "t_einsum",
-    "t_equal",
-    "t_not_equal",
-    "t_less",
-    "t_less_equal",
-    "t_greater",
-    "t_greater_equal",
-    "t_logical_not",
-    "t_logical_and",
-    "t_logical_or",
-    "t_logical_xor",
-    "t_any",
-    "t_all",
+    "scalar_shape",
+    "vector_shape",
+    "matrix_shape",
+    "full",
+    "zeros",
+    "ones",
+    "concatenate",
+    "hstack",
+    "vstack",
+    "pow",
+    "square",
+    "sqrt",
+    "cbrt",
+    "reciprocal",
+    "exp",
+    "exp2",
+    "expm1",
+    "log",
+    "log2",
+    "log10",
+    "log1p",
+    "sin",
+    "cos",
+    "tan",
+    "arcsin",
+    "arccos",
+    "arctan",
+    "atan2",
+    "sinh",
+    "cosh",
+    "tanh",
+    "arcsinh",
+    "arccosh",
+    "arctanh",
+    "deg2rad",
+    "rad2deg",
+    "absolute",
+    "abs",
+    "sign",
+    "floor",
+    "ceil",
+    "trunc",
+    "rint",
+    "round",
+    "clip",
+    "equal",
+    "not_equal",
+    "less",
+    "less_equal",
+    "greater",
+    "greater_equal",
+    "logical_not",
+    "logical_and",
+    "logical_or",
+    "logical_xor",
+    "any",
+    "all",
+    "eye_like",
+    "einsum",
+    "transpose",
+    "inverse",
+    "trace",
+    "matmul",
 ]
 
 
@@ -242,7 +246,7 @@ def _dim_tensor(
 # region PUBLIC METHODS
 
 
-def t_tensor(
+def tensor(
         data: TensorLike,
         dtype: Optional[TypeLike] = None,
         mutable: bool = True
@@ -269,16 +273,16 @@ def t_tensor(
     Examples
     --------
     >>> import numpy as np
-    >>> from pixelprism.math import t_tensor
-    >>> logits = t_tensor([[1, 2], [3, 4]])
+    >>> from pixelprism.math import T
+    >>> logits = T.tensor([[1, 2], [3, 4]])
     >>> logits.shape
     (2, 2)
     """
     return Tensor(data=data, dtype=dtype, mutable=mutable)
-# end def t_tensor
+# end def tensor
 
 
-def t_scalar(
+def scalar(
         value: int | float | np.number | bool | complex,
         dtype: TypeLike = float,
         mutable: bool = True
@@ -302,16 +306,16 @@ def t_scalar(
 
     Examples
     --------
-    >>> import pixelprism.math as pm
-    >>> bias = pm.t_scalar(3.5)
+    >>> from pixelprism.math import T
+    >>> bias = T.scalar(3.5)
     >>> bias
     array(3.5)
     """
     return _dim_tensor(data=value, ndim=0, dtype=dtype, mutable=mutable)
-# end def t_scalar
+# end def scalar
 
 
-def t_vector(
+def vector(
         value: TensorLike,
         dtype: TypeLike = float,
         mutable: bool = True
@@ -337,16 +341,16 @@ def t_vector(
 
     Examples
     --------
-    >>> import pixelprism.math as pm
-    >>> weights = pm.t_vector([0.2, 0.3, 0.5])
+    >>> from pixelprism.math import T
+    >>> weights = T.vector([0.2, 0.3, 0.5])
     >>> weights.input_shape
     (3,)
     """
     return _dim_tensor(data=value, ndim=1, dtype=dtype, mutable=mutable)
-# end def t_vector
+# end def vector
 
 
-def t_matrix(
+def matrix(
         value: TensorLike,
         dtype: TypeLike = float,
         mutable: bool = True
@@ -372,17 +376,17 @@ def t_matrix(
 
     Examples
     --------
-    >>> import pixelprism.math as pm
-    >>> mat = pm.matrix([[1, 0], [0, 1]])
+    >>> from pixelprism.math as T
+    >>> mat = T.matrix([[1, 0], [0, 1]])
     >>> mat
     array([[1., 0.],
            [0., 1.]])
     """
     return _dim_tensor(data=value, ndim=2, dtype=dtype, mutable=mutable)
-# end def t_matrix
+# end def matrix
 
 
-def t_empty(
+def empty(
         shape: ShapeLike,
         dtype: TypeLike = float
 ) -> 'Tensor':
@@ -400,20 +404,20 @@ def t_empty(
 
     Returns
     -------
-    Tensor
+    'Tensor'
         Tensor backed by ``np.empty(shape, dtype)``.
 
     Examples
     --------
-    >>> import pixelprism.math as pm
-    >>> scratch = pm.t_empty((2, 3))
+    >>> from pixelprism.math as T
+    >>> scratch = T.empty((2, 3))
     >>> scratch.input_shape
     (2, 3)
     """
     dims = _normalize_shape(shape)
     data = np.empty(dims, dtype=_resolve_dtype(dtype))
     return Tensor(data=data, mutable=True)
-# end def t_empty
+# end def empty
 
 
 def zeros(
@@ -437,13 +441,13 @@ def zeros(
 
     Returns
     -------
-    Tensor
+    'Tensor'
         Tensor filled with zeros of the given ``shape``.
 
     Examples
     --------
-    >>> import pixelprism.math as ppmath
-    >>> zeros_tensor = ppmath.zeros((2, 2))
+    >>> from pixelprism.math as T
+    >>> zeros_tensor = T.zeros((2, 2))
     >>> zeros_tensor
     array([[0., 0.],
            [0., 0.]])
@@ -480,8 +484,8 @@ def ones(
 
     Examples
     --------
-    >>> import pixelprism.math as ppmath
-    >>> ones_tensor = ppmath.ones(4)
+    >>> from pixelprism.math import T
+    >>> ones_tensor = T.ones(4)
     >>> ones_tensor
     array([1., 1., 1., 1.])
     """
@@ -513,13 +517,13 @@ def full(
 
     Returns
     -------
-    Tensor
+    'Tensor'
         Tensor filled entirely with ``value``.
 
     Examples
     --------
-    >>> import pixelprism.math as ppmath
-    >>> mask = ppmath.full((2, 3), 7)
+    >>> from pixelprism.math import T
+    >>> mask = T.full((2, 3), 7)
     >>> mask
     array([[7., 7., 7.],
            [7., 7., 7.]])
@@ -554,9 +558,9 @@ def nan(
 
     Examples
     --------
-    >>> import pixelprism.math as ppmath
-    >>> missing = ppmath.nan((2, 2))
-    >>> np.isnan(missing).t_all()
+    >>> from pixelprism.math import T
+    >>> missing = T.nan((2, 2))
+    >>> np.isnan(missing).all()
     True
     """
     dims = _normalize_shape(shape)
@@ -591,8 +595,8 @@ def I(
 
     Examples
     --------
-    >>> import pixelprism.math as pm
-    >>> eye = pm.I(3)
+    >>> from pixelprism.math import T
+    >>> eye = T.I(3)
     >>> eye.data
     array([[1., 0., 0.],
            [0., 1., 0.],
@@ -628,8 +632,8 @@ def diag(
 
     Examples
     --------
-    >>> import pixelprism.math as ppmath
-    >>> diag_tensor = ppmath.diag([1, 2, 3])
+    >>> from pixelprism.math import T
+    >>> diag_tensor = T.diag([1, 2, 3])
     >>> diag_tensor
     array([[1., 0., 0.],
            [0., 2., 0.],
@@ -667,9 +671,9 @@ def eye_like(
     Examples
     --------
     >>> import numpy as np
-    >>> import pixelprism.math as pm
+    >>> from pixelprism.math import T
     >>> base = np.zeros((4, 4))
-    >>> eye = pm.eye_like(base)
+    >>> eye = T.eye_like(base)
     >>> np.allclose(eye.value, np.eye(4))
     True
     """
@@ -762,6 +766,915 @@ def ones_like(
 # endregion PUBLIC METHODS
 
 
+class TensorShape:
+    """
+    Immutable descriptor for symbolic tensor shapes.
+
+    A :class:`TensorShape` records the axis lengths associated with a tensor.
+    Each axis can be a concrete ``int``. Shapes are lightweight, hashable, and
+    safe to share across nodes, ensuring downstream passes can reason about
+    tensor metadata without mutating the original objects.
+
+    Validation and normalization
+    ----------------------------
+    The constructor eagerly validates every dimension through ``_check_dim`` to
+    guarantee negative or otherwise malformed values never propagate past the
+    creation site. Internally, axes are stored as an immutable tuple, giving
+    deterministic hashing and printing behavior and keeping equality semantics
+    simple.
+
+    Convenience properties
+    ----------------------
+    ``dims`` exposes the canonical tuple representation, ``rank``/``n_dims``
+    provide fast access to the tensor arity, and ``size`` returns the product
+    of all known axes (``None`` when at least one axis is symbolic).
+
+    Compatibility helpers
+    ---------------------
+    Many operators need to verify that their operands can participate in
+    elementwise arithmetic. ``is_elementwise_compatible`` performs the check by
+    comparing ranks and allowing either matching integers. ``merge_elementwise``
+    builds on top of that by returning a new :class:`TensorShape` where each
+    axis is the tightened version of both operands, raising :class:`ValueError`
+    when a conflict is detected. Having these utilities on the shape class
+    keeps validation logic centralized and consistent across operators.
+
+    Subclassing
+    -----------
+    ``TensorShape`` is intentionally concrete. Higher-level abstractions should
+    wrap it rather than subclassing to avoid diverging validation paths. Should
+    additional metadata (like layout or batching semantics) be required, they
+    can be attached via separate objects keyed by ``TensorShape`` instances.
+    """
+
+    def __init__(self, dims: DimsInt):
+        """Initialize a TensorShape.
+
+        Parameters
+        ----------
+        dims : Iterable[TensorDim]
+            Iterable of dimension sizes to store in the shape.
+        """
+        dims_tuple = tuple(dims)
+        for dim in dims_tuple:
+            self._check_dim(dim)
+        # end for
+        self._dims: DimsInt = dims_tuple
+    # end def __init__
+
+    # region PROPERTIES
+
+    @property
+    def dims(self) -> DimsInt:
+        """Return the dimensions' tuple.
+
+        Returns
+        -------
+        TensorDims
+            Tuple describing tensor dimensions.
+        """
+        return self._dims
+    # end def dims
+
+    @property
+    def rank(self) -> int:
+        """Return the tensor rank.
+
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
+        """
+        return len(self._dims)
+    # end def rank
+
+    @property
+    def size(self) -> Optional[int]:
+        """Return the total number of elements when known.
+
+        Returns
+        -------
+        Optional[int]
+            Number of elements represented by the shape.
+        """
+        return self._num_elements()
+    # end def size
+
+    @property
+    def n_dims(self) -> int:
+        """Return the number of dimensions.
+
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
+        """
+        return self.rank
+    # end def n_dims
+
+    @property
+    def is_scalar(self) -> bool:
+        """Return whether the shape is scalar (rank-0)."""
+        return self.rank == 0
+    # end def is_scalar
+
+    @property
+    def is_vector(self) -> bool:
+        """Return whether the shape is a vector (rank-1)."""
+        return self.rank == 1
+    # end def is_vector
+
+    @property
+    def is_matrix(self) -> bool:
+        """Return whether the shape is a matrix (rank-2)."""
+        return self.rank == 2
+    # end def is_matrix
+
+    @property
+    def is_higher_order(self) -> bool:
+        """Return whether the shape is higher-order (rank > 2)."""
+        return self.rank > 2
+    # end def is_higher_order
+
+    # endregion PROPERTIES
+
+    # region PUBLIC
+
+    def transpose(self, axes: Optional[List[int]] = None) -> "TensorShape":
+        """Return the shape with axes permuted.
+
+        Parameters
+        ----------
+        axes : list[int], optional
+            Axis permutation. When ``None``, the axis order is reversed.
+
+        Returns
+        -------
+        TensorShape
+            New shape with permuted axes.
+
+        Raises
+        ------
+        ValueError
+            If ``axes`` does not represent a valid permutation.
+        """
+        if axes is not None:
+            self._check_transpose(axes)
+            new_shape = [self.dims[i] for i in axes]
+        else:
+            new_shape = list(self.dims)
+            new_shape.reverse()
+        # end if
+        return TensorShape(dims=tuple(new_shape))
+    # end def transpose
+
+    def transpose_(self):
+        """
+        Transpose the shape in-place.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.transpose().dims
+    # end def transpose_
+
+    def drop_axis(self, axis: int) -> "TensorShape":
+        """Return a new shape with the specified axis removed.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to drop.
+
+        Returns
+        -------
+        TensorShape
+            New shape with the axis removed.
+
+        Raises
+        ------
+        ValueError
+            If the axis is out of bounds.
+        """
+        if axis < 0 or axis >= self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        if axis == self.rank - 1:
+            return TensorShape(self._dims[:axis])
+        elif axis == 0:
+            return TensorShape(self._dims[1:])
+        else:
+            return TensorShape(self._dims[:axis] + self._dims[axis + 1 :])
+        # end if
+    # end def drop_axis
+
+    def drop_axis_(self, axis: int) -> None:
+        """Remove the specified axis from the shape in-place.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to drop.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.drop_axis(axis)._dims
+    # end def drop_axis
+
+    def insert_axis(self, axis: int, size: DimInt) -> "TensorShape":
+        """Return a new shape with the specified axis inserted.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to insert.
+        size : Dim
+            Size of the inserted axis.
+
+        Returns
+        -------
+        TensorShape
+            New shape with the axis inserted.
+
+        Raises
+        ------
+        ValueError
+            If the axis is out of bounds.
+        """
+        if axis < 0 or axis > self.rank:
+            raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
+        # end if
+        return TensorShape(self._dims[:axis] + (size,) + self._dims[axis:])
+    # end def insert_axis
+
+    def insert_axis_(self, axis: int, size: DimInt) -> None:
+        """Insert the specified axis into the shape in-place.
+
+        Parameters
+        ----------
+        axis : int
+            Axis index to insert.
+        size : Dim
+            Size of the inserted axis.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.insert_axis(axis, size)._dims
+    # end def insert_axis_
+
+    def as_tuple(self) -> DimsInt:
+        """Return the shape as a tuple.
+
+        Returns
+        -------
+        tuple[Dim, ...]
+            The shape as a tuple of dimensions.
+        """
+        return tuple([d for d in self._dims])
+    # end def as_tuple
+
+    def is_elementwise_compatible(self, other: "TensorShape") -> bool:
+        """Check whether elementwise operations are allowed.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Shape to compare.
+
+        Returns
+        -------
+        bool
+            ``True`` when ranks are identical and dimensions are compatible for
+            elementwise operations.
+        """
+        if self.rank != other.rank:
+            return False
+        # end if
+        for dim_a, dim_b in zip(self._dims, other._dims):
+            if not self._dims_equal(dim_a, dim_b):
+                return False
+            # end if
+        # end for
+        return True
+    # end def is_elementwise_compatible
+
+    def merge_elementwise(self, other: "TensorShape") -> "TensorShape":
+        """Return the merged shape for elementwise operations.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Shape to merge.
+
+        Returns
+        -------
+        TensorShape
+            Resulting shape compatible with both inputs.
+
+        Raises
+        ------
+        ValueError
+            If shapes are incompatible for elementwise operations.
+        """
+        if self.rank != other.rank:
+            raise ValueError("Elementwise operations require equal ranks.")
+        # end if
+        merged = tuple(self._merge_dims(dim_a, dim_b) for dim_a, dim_b in zip(self._dims, other._dims))
+        return TensorShape(merged)
+    # end def merge_elementwise
+
+    def matmul_result(self, other: "TensorShape") -> "TensorShape":
+        """Return the result shape of a matrix multiplication.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Right-hand operand shape.
+
+        Returns
+        -------
+        TensorShape
+            Resulting shape of the matrix multiplication.
+
+        Raises
+        ------
+        ValueError
+            If ranks are below 2, ranks differ, or inner dimensions are
+            incompatible.
+        """
+        if self.rank < 2 or other.rank < 2:
+            raise ValueError("MatMul requires rank >= 2 for both operands.")
+        # end if
+        if self.rank != other.rank:
+            raise ValueError("MatMul requires operands with the same rank.")
+        # end if
+        batch_rank = self.rank - 2
+        batch_dims: List[DimInt] = []
+        for idx in range(batch_rank):
+            batch_dims.append(self._merge_dims(self._dims[idx], other._dims[idx]))
+        # end for
+        left_inner = self._dims[-1]
+        right_inner = other._dims[-2]
+        if not self._dims_equal(left_inner, right_inner):
+            raise ValueError("Inner dimensions do not match for MatMul.")
+        # end if
+        result = tuple(batch_dims) + (self._dims[-2], other._dims[-1])
+        return TensorShape(result)
+    # end def matmul_result
+
+    def concat_result(self, other: "TensorShape", axis: int) -> "TensorShape":
+        """Return the result shape of concatenation along an axis.
+
+        Parameters
+        ----------
+        other : TensorShape
+            Shape to concatenate with.
+        axis : int
+            Concatenation axis.
+
+        Returns
+        -------
+        TensorShape
+            Concatenated shape along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            If ranks differ or dimensions other than the concatenation axis are
+            incompatible.
+        """
+        if self.rank != other.rank:
+            raise ValueError("Concat requires operands with equal rank.")
+        # end if
+        axis_norm = self._normalize_axis(axis, self.rank)
+        dims: List = []
+        for idx, (dim_a, dim_b) in enumerate(zip(self._dims, other._dims)):
+            if idx == axis_norm:
+                dims.append(self._sum_dims(dim_a, dim_b))
+            else:
+                dims.append(self._merge_dims(dim_a, dim_b))
+            # end if
+        # end for
+        return TensorShape(tuple(dims))
+    # end def concat_result
+
+    def can_reshape(self, new_shape: "TensorShape") -> bool:
+        """Check whether reshape is symbolically valid.
+
+        Parameters
+        ----------
+        new_shape : TensorShape
+            Target shape to test against.
+
+        Returns
+        -------
+        bool
+            ``True`` if both shapes represent the same number of elements.
+        """
+        own_size = self.size
+        target_size = new_shape.size
+        return own_size == target_size
+    # end def can_reshape
+
+    def reshape(self, new_shape: "TensorShape") -> "TensorShape":
+        """Return the symbolic shape after reshape.
+
+        Parameters
+        ----------
+        new_shape : TensorShape
+            Target shape.
+
+        Returns
+        -------
+        TensorShape
+            Target shape when the reshape is valid.
+
+        Raises
+        ------
+        ValueError
+            If the reshape would change the number of elements.
+        """
+        if not self.can_reshape(new_shape):
+            raise ValueError("Reshape requires matching number of elements.")
+        # end if
+        return new_shape
+    # end def reshape
+
+    def reshape_(self, new_shape: "TensorShape") -> None:
+        """
+        Reshape the shape in-place.
+
+        Parameters
+        ----------
+        new_shape : TensorShape
+            Target shape.
+
+        Returns
+        -------
+        None
+            This operation updates the instance in-place.
+        """
+        self._dims = self.reshape(new_shape)._dims
+    # end def reshape_
+
+    def equal_or_broadcastable(self, other: "TensorShape") -> bool:
+        """Check whether the shape is equal or broadcastable to another shape."""
+        # TODO: implement this properly
+        pass
+    # end def equal_or_broadcastable
+
+    # endregion PUBLIC
+
+    # region PRIVATE
+
+    def _num_elements(self) -> int | None:
+        """Compute the product of symbolic dimensions when possible.
+
+        Returns
+        -------
+        int | None
+            Number of elements or ``None`` when any dimension is unknown.
+        """
+        total = 1
+        for dim in self._dims:
+            total *= dim
+        # end for
+        return total
+    # end def _num_elements
+
+    def _check_transpose(self, axes: Sequence[int]) -> None:
+        """Validate a permutation of axes.
+
+        Parameters
+        ----------
+        axes : Sequence[int]
+            Proposed axis permutation.
+
+        Raises
+        ------
+        ValueError
+            If the permutation is invalid for this shape.
+        """
+        if len(axes) != self.n_dims:
+            raise ValueError(
+                f"Permutation must include every axis exactly once (got {len(axes)} axes, expected {self.dims})."
+            )
+        # end if
+        if sorted(axes) != list(range(self.n_dims)):
+            raise ValueError(f"Permutation contains invalid axis indices: {axes}")
+        # end if
+    # end def _check_transpose
+
+    # endregion PRIVATE
+
+    # region STATIC
+
+    @staticmethod
+    def create(shape: ShapeLike) -> "TensorShape":
+        """Create a shape from a tuple, sequence, or compatible object.
+
+        Parameters
+        ----------
+        shape : ShapeLike
+            Shape input (tuple, sequence, scalar dimension, or Shape).
+
+        Returns
+        -------
+        TensorShape
+            Normalized TensorShape instance.
+
+        Raises
+        ------
+        TypeError
+            If the input type is unsupported.
+        """
+        if isinstance(shape, tuple):
+            return TensorShape(shape)
+        elif isinstance(shape, Sequence):
+            return TensorShape(shape)
+        elif isinstance(shape, int):
+            return TensorShape((shape,))
+        elif isinstance(shape, TensorShape):
+            return shape.copy()
+        elif hasattr(shape, "dims"):
+            return TensorShape(getattr(shape, "dims"))
+        else:
+            raise TypeError(f"Unsupported shape type: {type(shape)}")
+        # end if
+    # end def create
+
+    @staticmethod
+    def scalar() -> "TensorShape":
+        """Return a scalar (rank-0) shape.
+
+        Returns
+        -------
+        TensorShape
+            Shape with no dimensions.
+        """
+        return TensorShape(())
+    # end def scalar
+
+    @staticmethod
+    def vector(n: DimInt) -> "TensorShape":
+        """Return a vector shape.
+
+        Parameters
+        ----------
+        n : Dim
+            Length of the vector.
+
+        Returns
+        -------
+        TensorShape
+            Shape with a single dimension of size ``n``.
+        """
+        return TensorShape((n,))
+    # end def vector
+
+    @staticmethod
+    def matrix(n: DimInt, m: DimInt) -> "TensorShape":
+        """Return a matrix shape.
+
+        Parameters
+        ----------
+        n : Dim
+            Row count.
+        m : Dim
+            Column count.
+
+        Returns
+        -------
+        TensorShape
+            Shape with two dimensions ``(n, m)``.
+        """
+        return TensorShape((n, m))
+    # end def matrix
+
+    @staticmethod
+    def stack_shape(shapes: Sequence["TensorShape"], axis: int) -> "TensorShape":
+        """Return the result shape of stacking tensors.
+
+        Parameters
+        ----------
+        shapes : Sequence[TensorShape]
+            Shapes of tensors to stack. All shapes must be elementwise
+            compatible.
+        axis : int
+            Axis index for the new dimension.
+
+        Returns
+        -------
+        TensorShape
+            Resulting stacked shape including the new dimension size.
+
+        Raises
+        ------
+        ValueError
+            If no shapes are provided or shapes are incompatible.
+        """
+        if not shapes:
+            raise ValueError("Stack requires at least one shape.")
+        # end if
+        base = shapes[0]
+        axis_norm = TensorShape._normalize_axis(axis, base.rank, allow_new_axis=True)
+        for shape in shapes[1:]:
+            base = base.merge_elementwise(shape)
+        # end for
+        dims = list(base.dims)
+        dims.insert(axis_norm, len(shapes))
+        return TensorShape(tuple(dims))
+    # end def stack_shape
+
+    def copy(self):
+        """Return a copy of the shape.
+
+        Returns
+        -------
+        TensorShape
+            Copy of the current shape.
+        """
+        return TensorShape(self._dims)
+    # end def copy
+
+    @staticmethod
+    def _check_dim(dim: DimInt) -> None:
+        """Validate a single-dimension value.
+
+        Parameters
+        ----------
+        dim : Dim
+            Dimension to validate. Allowed values are non-negative integers.
+
+        Raises
+        ------
+        ValueError
+            If the dimension is negative or not an integer.
+        """
+        if dim is None:
+            raise ValueError("Shape dimensions cannot be None.")
+        # end if
+        if not isinstance(dim, int) or dim < 0:
+            raise ValueError("Shape dimensions must be non-negative integers or None.")
+        # end if
+    # end def _check_dim
+
+    @staticmethod
+    def _dims_equal(dim_a: DimInt, dim_b: DimInt) -> bool:
+        """Check whether two dimensions are symbolically compatible.
+
+        Parameters
+        ----------
+        dim_a : Dim
+            First dimension.
+        dim_b : Dim
+            Second dimension.
+
+        Returns
+        -------
+        bool
+            ``True`` if both dimensions can represent the same size.
+        """
+        return dim_a == dim_b
+    # end def _dims_equal
+
+    @staticmethod
+    def _merge_dims(dim_a: DimInt, dim_b: DimInt) -> DimInt:
+        """Merge two dimensions into the most specific shared size.
+
+        Parameters
+        ----------
+        dim_a : Dim
+            First dimension.
+        dim_b : Dim
+            Second dimension.
+
+        Returns
+        -------
+        Dim
+            Dimension compatible with both inputs.
+
+        Raises
+        ------
+        ValueError
+            If the dimensions are incompatible.
+        """
+        if dim_a != dim_b:
+            raise ValueError(f"Incompatible dimensions: {dim_a} vs {dim_b}.")
+        # end if
+        return dim_a
+    # end def _merge_dims
+
+    @staticmethod
+    def _sum_dims(dim_a: DimInt, dim_b: DimInt) -> DimInt:
+        """Sum two dimensions symbolically.
+
+        Parameters
+        ----------
+        dim_a : Dim
+            First dimension.
+        dim_b : Dim
+            Second dimension.
+
+        Returns
+        -------
+        Dim
+            Sum of both dimensions.
+        """
+        return dim_a + dim_b
+    # end def _sum_dims
+
+    @staticmethod
+    def _normalize_axis(axis: int, rank: int, allow_new_axis: bool = False) -> int:
+        """Normalize axis indices, supporting negatives.
+
+        Parameters
+        ----------
+        axis : int
+            Requested axis index, possibly negative.
+        rank : int
+            Tensor rank.
+        allow_new_axis : bool, optional
+            Whether an axis equal to the current rank is acceptable (used for
+            operations that add a dimension). Defaults to ``False``.
+
+        Returns
+        -------
+        int
+            Normalized non-negative axis index within the allowed bounds.
+
+        Raises
+        ------
+        ValueError
+            If the axis is outside the valid range.
+        """
+        upper = rank + (1 if allow_new_axis else 0)
+        if not -upper <= axis < upper:
+            raise ValueError(f"Axis {axis} out of bounds for rank {rank}.")
+        # end if
+        if axis < 0:
+            axis += upper
+        # end if
+        return axis
+    # end def _normalize_axis
+
+    # endregion STATIC
+
+    # region OVERRIDE
+
+    def __len__(self) -> int:
+        """Return the rank for len().
+
+        Returns
+        -------
+        int
+            Tensor rank.
+        """
+        return self.rank
+    # end def __len__
+
+    def __iter__(self):
+        """Return an iterator over the dimensions.
+
+        Returns
+        -------
+        Iterator[Dim]
+            Iterator over the dimensions.
+        """
+        return iter(self._dims)
+    # end def __iter__
+
+    def __contains__(self, dim: DimInt) -> bool:
+        """Check whether a dimension is present in the shape.
+        """
+        return dim in self._dims
+    # end def __contains__
+
+    def __bool__(self) -> bool:
+        """Return whether the shape is non-empty."""
+        return bool(self._dims)
+    # end def __bool_
+
+    def __getitem__(self, index: int) -> DimInt:
+        """Return the dimension at the provided index.
+
+        Parameters
+        ----------
+        index : int
+            Axis index to access.
+
+        Returns
+        -------
+        Dim
+            Dimension size at the given axis.
+        """
+        return self._dims[index]
+    # end def __getitem__
+
+    def __eq__(self, other: object) -> bool:
+        """Compare shapes for equality.
+
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
+
+        Returns
+        -------
+        bool
+            ``True`` when both shapes share identical dimensions.
+        """
+        if isinstance(other, tuple):
+            return self._dims == other
+        elif isinstance(other, list):
+            return self._dims == tuple(other)
+        # end if
+        if not isinstance(other, TensorShape):
+            return False
+        # end if
+        return self._dims == other._dims
+    # end def __eq__
+
+    def __ne__(self, other: object) -> bool:
+        """Compare shapes for inequality.
+
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
+
+        Returns
+        -------
+        bool
+            ``True`` when both shapes have different dimensions.
+        """
+        return not self.__eq__(other)
+    # end def __ne__
+
+    def __hash__(self) -> int:
+        """Return a hash for the shape.
+
+        Returns
+        -------
+        int
+            Hash value derived from the dimensions.
+        """
+        return hash(self._dims)
+    # end def __hash__
+
+    def __repr__(self) -> str:
+        """Return the repr() form of the shape.
+
+        Returns
+        -------
+        str
+            Developer-friendly representation including raw dimensions.
+        """
+        if self.rank == 0:
+            return "scalar_shape()"
+        elif self.rank == 1:
+            return f"vector_shape({self._dims[0]})"
+        elif self.rank == 2:
+            return f"matrix_shape({self._dims[0]}, {self._dims[1]})"
+        else:
+            return f"tensor_shape({self._dims})"
+        # end if
+    # end def __repr__
+
+    def __str__(self) -> str:
+        """Return the str() form of the shape.
+
+        Returns
+        -------
+        str
+            Readable representation.
+        """
+        return f"{self._dims}"
+    # end def __str__
+
+    # endregion OVERRIDE
+
+    # region NUMPY
+
+    def __array__(self, dtype: Optional[TypeLike] = None) -> np.ndarray:
+        """Convert the shape to a NumPy array.
+        """
+        return np.array(self._dims, dtype=to_numpy(dtype if dtype is not None else np.int32))
+    # end def __array__
+
+    # endregion NUMPY
+
+# end class TensorShape
+
+
 class Tensor:
     """
     Declare a tensor as a class.
@@ -790,7 +1703,7 @@ class Tensor:
         # Super
         self._dtype = from_numpy(_get_dtype(data, dtype))
         self._data = _convert_data_to_numpy_array(data=data, dtype=dtype)
-        self._shape = Shape(dims=self._data.shape)
+        self._shape = TensorShape(dims=self._data.shape)
         self._mutable = mutable
     # end __init__
 
@@ -822,12 +1735,12 @@ class Tensor:
     # end def dtype
 
     @property
-    def shape(self) -> Shape:
+    def shape(self) -> TensorShape:
         """Get the shape of the tensor.
         
         Returns
         -------
-        Shape
+        TensorShape
             Result of the operation.
         """
         return self._shape
@@ -1090,7 +2003,7 @@ class Tensor:
         'Tensor'
             Result of the operation.
         """
-        shape = Shape.create(shape)
+        shape = TensorShape.create(shape)
         if not self.shape.can_reshape(shape):
             raise ValueError(f"Cannot reshape tensor of shape {self.shape} to {shape}.")
         # end if
@@ -2591,7 +3504,7 @@ class Tensor:
             Result of the operation.
         """
         tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
-        return t_concatenate(tensors, axis=axis)
+        return concatenate(tensors, axis=axis)
     # end def concatenate
 
     def hstack(self, *others: "Tensor") -> 'Tensor':
@@ -2608,7 +3521,7 @@ class Tensor:
             Result of the operation.
         """
         tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
-        return t_hstack(tensors)
+        return hstack(tensors)
     # end def hstack
 
     def vstack(self, *others: "Tensor") -> 'Tensor':
@@ -2625,7 +3538,7 @@ class Tensor:
             Result of the operation.
         """
         tensors: Tuple["Tensor", ...] = (self,) + tuple(others)
-        return t_vstack(tensors)
+        return vstack(tensors)
     # end def vstack
 
     # endregion RESHAPE
@@ -2825,21 +3738,21 @@ def _as_numpy_operand(value: Union[Tensor, TensorLike, np.ndarray]) -> np.ndarra
 #
 
 
-def ts_scalar() -> Shape:
+def scalar_shape() -> TensorShape:
     """Return the shape of a scalar."""
-    return Shape([])
+    return TensorShape([])
 # end def t_scalar
 
 
-def ts_matrix(rows: int, columns: int) -> Shape:
+def matrix_shape(rows: int, columns: int) -> TensorShape:
     """Create a matrix shape."""
-    return Shape.matrix(rows, columns)
+    return TensorShape.matrix(rows, columns)
 # end def t_matrix
 
 
-def ts_vector(size: int) -> Shape:
+def vector_shape(size: int) -> TensorShape:
     """Create a vector shape."""
-    return Shape.vector(size)
+    return TensorShape.vector(size)
 # end def t_vector
 
 
@@ -2850,7 +3763,7 @@ def ts_vector(size: int) -> Shape:
 
 def tensor_from_numpy(data: np.ndarray, dtype: Optional[TypeLike] = None) -> Tensor:
     """
-    Create a tensor from numpy array.
+    Create a tensor from a numpy array.
 
     Parameters
     ----------
@@ -2868,68 +3781,8 @@ def tensor_from_numpy(data: np.ndarray, dtype: Optional[TypeLike] = None) -> Ten
 # end def tensor_from_numpy
 
 
-def t_zeros(shape: ShapeLike, dtype: Optional[TypeLike] = None) -> Tensor:
-    """
-    Create a tensor of zeros.
-
-    Parameters
-    ----------
-    shape : ShapeLike
-        Input parameter.
-    dtype : Optional[TypeLike]
-        Input parameter.
-
-    Returns
-    -------
-    'Tensor'
-        Result of the operation.
-    """
-    return Tensor.zeros(shape, dtype=dtype)
-# end def t_zeros
-
-
-def t_full(fill_value, shape: ShapeLike, dtype: Optional[TypeLike] = None) -> Tensor:
-    """Create a tensor of full.
-
-    Parameters
-    ----------
-    fill_value: Any
-        Value to fill the tensor with.
-    shape : ShapeLike
-        Input parameter.
-    dtype : Optional[TypeLike]
-        Input parameter.
-
-    Returns
-    -------
-    'Tensor'
-        Result of the operation.
-    """
-    return Tensor.full(fill_value, shape, dtype=dtype)
-# end def t_full
-
-
-def t_ones(shape: ShapeLike, dtype: Optional[TypeLike] = None) -> Tensor:
-    """Create a tensor of ones.
-
-    Parameters
-    ----------
-    shape : ShapeLike
-        Input parameter.
-    dtype : Optional[TypeLike]
-        Input parameter.
-
-    Returns
-    -------
-    'Tensor'
-        Result of the operation.
-    """
-    return Tensor.ones(shape, dtype=dtype)
-# end def t_ones
-
-
-def t_from_list(data: List, dtype: DType) -> Tensor:
-    """Create a tensor from list.
+def from_list(data: List, dtype: DType) -> Tensor:
+    """Create a tensor from a list.
 
     Parameters
     ----------
@@ -2944,7 +3797,7 @@ def t_from_list(data: List, dtype: DType) -> Tensor:
         Result of the operation.
     """
     return Tensor.from_list(data, dtype=dtype)
-# end def t_from_list
+# end def from_list
 
 
 #
@@ -2954,73 +3807,76 @@ def t_from_list(data: List, dtype: DType) -> Tensor:
 # region BASE
 
 
-def t_pow(tensor: Tensor, exponent: Union['Tensor', TensorLike, np.ndarray]) -> Tensor:
-    return _call_tensor_method("pow", tensor, exponent)
+def pow(
+        t: Tensor,
+        exponent: Union['Tensor', TensorLike, np.ndarray]
+) -> Tensor:
+    return _call_tensor_method("pow", t, exponent)
 # end def pow
 
 
-def t_square(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("square", tensor)
+def square(t: Tensor) -> Tensor:
+    return _call_tensor_method("square", t)
 # end def square
 
 
-def t_sqrt(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("sqrt", tensor)
+def sqrt(t: Tensor) -> Tensor:
+    return _call_tensor_method("sqrt", t)
 # end def sqrt
 
 
-def t_cbrt(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("cbrt", tensor)
+def cbrt(t: Tensor) -> Tensor:
+    return _call_tensor_method("cbrt", t)
 # end def cbrt
 
 
-def t_reciprocal(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("reciprocal", tensor)
+def reciprocal(t: Tensor) -> Tensor:
+    return _call_tensor_method("reciprocal", t)
 # end def reciprocal
 
 
-def t_exp(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("exp", tensor)
+def exp(t: Tensor) -> Tensor:
+    return _call_tensor_method("exp", t)
 # end def exp
 
 
-def t_exp2(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("exp2", tensor)
+def exp2(t: Tensor) -> Tensor:
+    return _call_tensor_method("exp2", t)
 # end def exp2
 
 
-def t_expm1(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("expm1", tensor)
+def expm1(t: Tensor) -> Tensor:
+    return _call_tensor_method("expm1", t)
 # end def expm1
 
 
-def t_log(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("log", tensor)
+def log(t: Tensor) -> Tensor:
+    return _call_tensor_method("log", t)
 # end def log
 
 
-def t_log2(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("log2", tensor)
+def log2(t: Tensor) -> Tensor:
+    return _call_tensor_method("log2", t)
 # end def log2
 
 
-def t_log10(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("log10", tensor)
+def log10(t: Tensor) -> Tensor:
+    return _call_tensor_method("log10", t)
 # end def log10
 
 
-def t_log1p(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("log1p", tensor)
+def log1p(t: Tensor) -> Tensor:
+    return _call_tensor_method("log1p", t)
 # end def log1p
 
 
-def t_absolute(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("absolute", tensor)
+def absolute(t: Tensor) -> Tensor:
+    return _call_tensor_method("absolute", t)
 # end def absolute
 
 
-def t_abs(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("abs", tensor)
+def abs(t: Tensor) -> Tensor:
+    return _call_tensor_method("abs", t)
 # end def abs
 
 
@@ -3034,37 +3890,37 @@ def t_abs(tensor: Tensor) -> Tensor:
 # region TRIGO
 
 
-def t_sin(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("sin", tensor)
+def sin(t: Tensor) -> Tensor:
+    return _call_tensor_method("sin", t)
 # end def sin
 
 
-def t_cos(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("cos", tensor)
+def cos(t: Tensor) -> Tensor:
+    return _call_tensor_method("cos", t)
 # end def cos
 
 
-def t_tan(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("tan", tensor)
+def tan(t: Tensor) -> Tensor:
+    return _call_tensor_method("tan", t)
 # end def tan
 
 
-def t_arcsin(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("arcsin", tensor)
+def arcsin(t: Tensor) -> Tensor:
+    return _call_tensor_method("arcsin", t)
 # end def arcsin
 
 
-def t_arccos(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("arccos", tensor)
+def arccos(t: Tensor) -> Tensor:
+    return _call_tensor_method("arccos", t)
 # end def arccos
 
 
-def t_arctan(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("arctan", tensor)
+def arctan(t: Tensor) -> Tensor:
+    return _call_tensor_method("arctan", t)
 # end def arctan
 
 
-def t_atan2(
+def atan2(
         tensor_y: Tensor,
         tensor_x: Union[Tensor, TensorLike, np.ndarray]
 ) -> Tensor:
@@ -3072,42 +3928,42 @@ def t_atan2(
 # end def atan2
 
 
-def t_sinh(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("sinh", tensor)
+def sinh(t: Tensor) -> Tensor:
+    return _call_tensor_method("sinh", t)
 # end def sinh
 
 
-def t_cosh(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("cosh", tensor)
+def cosh(t: Tensor) -> Tensor:
+    return _call_tensor_method("cosh", t)
 # end def cosh
 
 
-def t_tanh(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("tanh", tensor)
+def tanh(t: Tensor) -> Tensor:
+    return _call_tensor_method("tanh", t)
 # end def tanh
 
 
-def t_arcsinh(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("arcsinh", tensor)
+def arcsinh(t: Tensor) -> Tensor:
+    return _call_tensor_method("arcsinh", t)
 # end def arcsinh
 
 
-def t_arccosh(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("arccosh", tensor)
+def arccosh(t: Tensor) -> Tensor:
+    return _call_tensor_method("arccosh", t)
 # end def arccosh
 
 
-def t_arctanh(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("arctanh", tensor)
+def arctanh(t: Tensor) -> Tensor:
+    return _call_tensor_method("arctanh", t)
 # end def arctanh
 
-def t_deg2rad(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("deg2rad", tensor)
+def deg2rad(t: Tensor) -> Tensor:
+    return _call_tensor_method("deg2rad", t)
 # end def deg2rad
 
 
-def t_rad2deg(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("rad2deg", tensor)
+def rad2deg(t: Tensor) -> Tensor:
+    return _call_tensor_method("rad2deg", t)
 # end def rad2deg
 
 # endregion TRIGO
@@ -3120,42 +3976,42 @@ def t_rad2deg(tensor: Tensor) -> Tensor:
 # region DISCRETE
 
 
-def t_sign(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("sign", tensor)
+def sign(t: Tensor) -> Tensor:
+    return _call_tensor_method("sign", t)
 # end def sign
 
 
-def t_floor(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("floor", tensor)
+def floor(t: Tensor) -> Tensor:
+    return _call_tensor_method("floor", t)
 # end def floor
 
 
-def t_ceil(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("ceil", tensor)
+def ceil(t: Tensor) -> Tensor:
+    return _call_tensor_method("ceil", t)
 # end def ceil
 
 
-def t_trunc(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("trunc", tensor)
+def trunc(t: Tensor) -> Tensor:
+    return _call_tensor_method("trunc", t)
 # end def trunc
 
 
-def t_rint(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("rint", tensor)
+def rint(t: Tensor) -> Tensor:
+    return _call_tensor_method("rint", t)
 # end def rint
 
 
-def t_round(tensor: Tensor, decimals: int = 0) -> Tensor:
-    return _call_tensor_method("round", tensor, decimals=decimals)
+def round(t: Tensor, decimals: int = 0) -> Tensor:
+    return _call_tensor_method("round", t, decimals=decimals)
 # end def round
 
 
-def t_clip(
-        tensor: Tensor,
+def clip(
+        t: Tensor,
         min_value: Optional[Union['Tensor', TensorLike, np.ndarray]] = None,
         max_value: Optional[Union['Tensor', TensorLike, np.ndarray]] = None
 ) -> Tensor:
-    return _call_tensor_method("clip", tensor, min_value=min_value, max_value=max_value)
+    return _call_tensor_method("clip", t, min_value=min_value, max_value=max_value)
 # end def clip
 
 
@@ -3168,7 +4024,7 @@ def t_clip(
 
 # region LINEAR_ALGEBRA
 
-def t_einsum(
+def einsum(
         subscripts: str,
         *operands: Union['Tensor', TensorLike, np.ndarray],
         out: Optional[Union['Tensor', np.ndarray]] = None,
@@ -3194,28 +4050,34 @@ def t_einsum(
 # end def einsum
 
 
-def t_trace(tensor: Tensor, offset: int = 0, axis1: int = 0, axis2: int = 1) -> Tensor:
-    return _call_tensor_method("trace", tensor, offset=offset, axis1=axis1, axis2=axis2)
+def matmul(t: Tensor, other: Union['Tensor', TensorLike, np.ndarray]) -> Tensor:
+    """Matrix multiplication."""
+    return _call_tensor_method("matmul", t, other)
+# end def matmul
+
+
+def trace(t: Tensor, offset: int = 0, axis1: int = 0, axis2: int = 1) -> Tensor:
+    return _call_tensor_method("trace", t, offset=offset, axis1=axis1, axis2=axis2)
 # end def trace
 
 
-def t_transpose(tensor: Tensor, axes: Optional[List[int]] = None) -> Tensor:
-    return _call_tensor_method("transpose", tensor, axes=axes)
+def transpose(t: Tensor, axes: Optional[List[int]] = None) -> Tensor:
+    return _call_tensor_method("transpose", t, axes=axes)
 # end def transpose
 
 
-def t_det(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("det", tensor)
+def det(t: Tensor) -> Tensor:
+    return _call_tensor_method("det", t)
 # end def det
 
 
-def t_inverse(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("inverse", tensor)
+def inverse(t: Tensor) -> Tensor:
+    return _call_tensor_method("inverse", t)
 # end def inverse
 
 
-def t_norm(tensor: Tensor, order: Union[int, float] = 2) -> Tensor:
-    return _call_tensor_method("norm", tensor, ord=order)
+def norm(t: Tensor, order: Union[int, float] = 2) -> Tensor:
+    return _call_tensor_method("norm", t, ord=order)
 # end def norm
 
 
@@ -3228,56 +4090,56 @@ def t_norm(tensor: Tensor, order: Union[int, float] = 2) -> Tensor:
 # region REDUCTION
 
 
-def t_mean(
-        tensor: Tensor,
+def mean(
+        t: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
-    return _call_tensor_method("mean", tensor, axis=axis)
+    return _call_tensor_method("mean", t, axis=axis)
 # end def mean
 
 
-def t_std(
-        tensor: Tensor,
+def std(
+        t: Tensor,
         axis: Optional[int] = None,
         ddof: int = 0
 ) -> Tensor:
-    return _call_tensor_method("std", tensor, axis=axis, ddof=ddof)
+    return _call_tensor_method("std", t, axis=axis, ddof=ddof)
 # end def std
 
 
-def t_median(
-        tensor: Tensor,
+def median(
+        t: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
-    return _call_tensor_method("median", tensor, axis=axis)
+    return _call_tensor_method("median", t, axis=axis)
 # end def median
 
 
-def t_q1(
-        tensor: Tensor,
+def q1(
+        t: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
-    return _call_tensor_method("q1", tensor, axis=axis)
+    return _call_tensor_method("q1", t, axis=axis)
 # end def q1
 
 
-def t_q3(
-        tensor: Tensor,
+def q3(
+        t: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
-    return _call_tensor_method("q3", tensor, axis=axis)
+    return _call_tensor_method("q3", t, axis=axis)
 # end def q3
 
 
-def t_max(
-        tensor: Tensor,
+def max(
+        t: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
-    return _call_tensor_method("max", tensor, axis=axis)
+    return _call_tensor_method("max", t, axis=axis)
 # end def max
 
 
-def t_min(
+def min(
         tensor: Tensor,
         axis: Optional[int] = None
 ) -> Tensor:
@@ -3295,12 +4157,12 @@ def t_min(
 # region SHAPE
 
 
-def t_flatten(tensor: Tensor) -> Tensor:
-    return _call_tensor_method("flatten", tensor)
+def flatten(t: Tensor) -> Tensor:
+    return _call_tensor_method("flatten", t)
 # end def flatten
 
 
-def t_concatenate(
+def concatenate(
         tensors: Sequence[Tensor],
         axis: Optional[int] = 0
 ) -> Tensor:
@@ -3309,13 +4171,13 @@ def t_concatenate(
 # end def concatenate
 
 
-def t_hstack(tensors: Sequence[Tensor]) -> Tensor:
+def hstack(tensors: Sequence[Tensor]) -> Tensor:
     """Concatenate tensors along axis 1."""
     return _concatenate_tensors(tensors, axis=1)
 # end def hstack
 
 
-def t_vstack(tensors: Sequence[Tensor]) -> Tensor:
+def vstack(tensors: Sequence[Tensor]) -> Tensor:
     """Concatenate tensors along axis 0."""
     return _concatenate_tensors(tensors, axis=0)
 # end def vstack
@@ -3329,62 +4191,62 @@ def t_vstack(tensors: Sequence[Tensor]) -> Tensor:
 
 # region BOOLEAN
 
-def t_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("equal", tensor_a, tensor_b)
 # end def equal
 
 
-def t_not_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def not_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("not_equal", tensor_a, tensor_b)
 # end def not_equal
 
 
-def t_greater(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def greater(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("greater", tensor_a, tensor_b)
 # end def greater
 
 
-def t_greater_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def greater_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("greater_equal", tensor_a, tensor_b)
 # end def greater_equal
 
 
-def t_less(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def less(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("less", tensor_a, tensor_b)
 # end def less
 
 
-def t_less_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def less_equal(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("less_equal", tensor_a, tensor_b)
 # end def less_equal
 
 
-def t_logical_not(tensor: Tensor) -> Tensor:
+def logical_not(tensor: Tensor) -> Tensor:
     return _call_tensor_method("logical_not", tensor)
 # end def not
 
 
-def t_any(tensor: Tensor) -> Tensor:
+def any(tensor: Tensor) -> Tensor:
     return _call_tensor_method("any", tensor)
 # end def any
 
 
-def t_all(tensor: Tensor) -> Tensor:
+def all(tensor: Tensor) -> Tensor:
     return _call_tensor_method("all", tensor)
 # end def all
 
 
-def t_logical_and(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def logical_and(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("logical_and", tensor_a, tensor_b)
 # end def logical_and
 
 
-def t_logical_or(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def logical_or(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("logical_or", tensor_a, tensor_b)
 # end def logical_or
 
 
-def t_logical_xor(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
+def logical_xor(tensor_a: Tensor, tensor_b: Tensor) -> Tensor:
     return _call_tensor_method("logical_xor", tensor_a, tensor_b)
 # end def logical_xor
 

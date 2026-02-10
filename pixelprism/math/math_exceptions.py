@@ -40,6 +40,7 @@ __all__ = [
     "SymbolicMathRuntimeError",
     "SymbolicMathTypeError",
     "SymbolicMathShapeError",
+    "SymbolicMathInvalidDimensionError",
 ]
 
 
@@ -83,3 +84,8 @@ class SymbolicMathTypeError(SymbolicMathError):
 class SymbolicMathShapeError(SymbolicMathError):
     """Raised when an operation is applied to operands with mismatched shapes."""
 # end class MathExprShapeError
+
+
+class SymbolicMathInvalidDimensionError(SymbolicMathError):
+    """Raised when an invalid dimension is specified."""
+# end class MathExprInvalidDimensionError

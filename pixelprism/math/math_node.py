@@ -41,7 +41,7 @@ from .mixins import DifferentiableMixin, PredicateMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .typing import Index
+from .typing import Index, MathExpr
 
 
 __all__ = [
@@ -49,7 +49,12 @@ __all__ = [
 ]
 
 
-class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
+class MathNode(
+    MathBase,
+    DifferentiableMixin,
+    PredicateMixin,
+    MathExpr
+):
     """
     Canonical symbolic expression node.
 
@@ -60,8 +65,6 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
     """
 
     __slots__ = (
-        "_id",
-        "_name",
         "_op",
         "_children",
         "_dtype",
@@ -76,7 +79,7 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
             name: Optional[str],
             *,
             op: Optional,
-            children: Tuple["MathNode", ...],
+            children: Tuple[MathExpr, ...],
             dtype: DType,
             shape: Shape
     ) -> None:
@@ -98,8 +101,8 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
         """
         super(MathNode, self).__init__(name=name, dtype=dtype, shape=shape)
         self._op = op
-        self._children: Tuple["MathNode", ...] = children
-        self._parents_weak: "weakref.WeakSet[MathNode]" = weakref.WeakSet()
+        self._children: Tuple[MathExpr, ...] = children
+        self._parents_weak: weakref.WeakSet[MathExpr] = weakref.WeakSet()
         self._check_operator()
         self._register_as_parent_of(*children)
     # end __init__
@@ -120,7 +123,7 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
     # end op
 
     @property
-    def children(self) -> Tuple["MathNode", ...]:
+    def children(self) -> Tuple[MathExpr, ...]:
         """
         Returns
         -------
@@ -142,7 +145,7 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
     # end def rank
 
     @property
-    def parents(self) -> FrozenSet["MathNode"]:
+    def parents(self) -> FrozenSet[MathExpr]:
         """
         Returns
         -------
@@ -169,8 +172,8 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
 
     def diff(
             self,
-             wrt: 'Variable'
-    ) -> MathBase:
+             wrt: MathExpr
+    ) -> MathExpr:
         """
         Compute the derivative of this expression with respect to ``wrt``.
 
@@ -271,7 +274,7 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
         return self._shape.rank > 2
     # end def is_higher_order
 
-    def add_parent(self, parent: "MathNode"):
+    def add_parent(self, parent: MathExpr):
         """
         Register ``parent`` as a consumer of this node.
 
@@ -327,9 +330,14 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
         return self.variables() + self.constants()
     # end def leaves
 
+    def depth(self) -> int:
+        """Return the depth of the node in the tree"""
+        return max([c.depth() for c in self._children]) + 1
+    # end def depth
+
     def contains(
             self,
-            leaf: Union[str, MathNode],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
             look_for: Optional[str] = None
@@ -369,7 +377,7 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
 
     def contains_variable(
             self,
-            variable: Union[str, MathNode],
+            variable: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -379,7 +387,7 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
 
     def contains_constant(
             self,
-            constant: Union[str, MathNode],
+            constant: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -387,7 +395,7 @@ class MathNode(MathBase, DifferentiableMixin, PredicateMixin):
         return self.contains(constant, by_ref=by_ref, check_operator=check_operator, look_for="const")
     # end def contains_constant
 
-    def replace(self, old_m: MathNode, new_m: MathNode):
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters

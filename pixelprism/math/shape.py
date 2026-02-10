@@ -42,61 +42,28 @@
 
 # Imports
 from __future__ import annotations
-from typing import Iterable, List, Optional, Sequence, Union
+from typing import Iterable, List, Optional, Sequence, Union, Dict
 import numpy as np
 
+from .build import as_expr
+from .tensor import Tensor
 from .dtype import TypeLike, to_numpy
-from .typing import Dim, Dims
+from .typing import DimLike, DimsLike, DimExpr, MathExpr
+from .math_exceptions import SymbolicMathInvalidDimensionError
 
 
 __all__ = ["Shape", "ShapeLike"]
 
 
-ShapeLike = Union['Shape', Dims]
+ShapeLike = Union['Shape', DimsLike]
 
 
-class Shape:
+class Shape(MathExpr):
     """
-    Immutable descriptor for symbolic tensor shapes.
-
-    A :class:`TensorShape` records the axis lengths associated with a tensor.
-    Each axis can be a concrete ``int``. Shapes are lightweight, hashable, and
-    safe to share across nodes, ensuring downstream passes can reason about
-    tensor metadata without mutating the original objects.
-
-    Validation and normalization
-    ----------------------------
-    The constructor eagerly validates every dimension through ``_check_dim`` to
-    guarantee negative or otherwise malformed values never propagate past the
-    creation site. Internally, axes are stored as an immutable tuple, giving
-    deterministic hashing and printing behavior and keeping equality semantics
-    simple.
-
-    Convenience properties
-    ----------------------
-    ``dims`` exposes the canonical tuple representation, ``rank``/``n_dims``
-    provide fast access to the tensor arity, and ``size`` returns the product
-    of all known axes (``None`` when at least one axis is symbolic).
-
-    Compatibility helpers
-    ---------------------
-    Many operators need to verify that their operands can participate in
-    elementwise arithmetic. ``is_elementwise_compatible`` performs the check by
-    comparing ranks and allowing either matching integers. ``merge_elementwise``
-    builds on top of that by returning a new :class:`TensorShape` where each
-    axis is the tightened version of both operands, raising :class:`ValueError`
-    when a conflict is detected. Having these utilities on the shape class
-    keeps validation logic centralized and consistent across operators.
-
-    Subclassing
-    -----------
-    ``TensorShape`` is intentionally concrete. Higher-level abstractions should
-    wrap it rather than subclassing to avoid diverging validation paths. Should
-    additional metadata (like layout or batching semantics) be required, they
-    can be attached via separate objects keyed by ``TensorShape`` instances.
+    TODO: documentation
     """
 
-    def __init__(self, dims: Dims):
+    def __init__(self, dims: DimsLike):
         """Initialize a TensorShape.
 
         Parameters
@@ -108,13 +75,14 @@ class Shape:
         for dim in dims_tuple:
             self._check_dim(dim)
         # end for
-        self._dims: Dims = dims_tuple
+        dims_tuple = [dim for dim in dims_tuple]
+        self._dims: DimsLike = dims_tuple
     # end def __init__
 
     # region PROPERTIES
 
     @property
-    def dims(self) -> Dims:
+    def dims(self) -> DimsLike:
         """Return the dimensions' tuple.
 
         Returns
@@ -124,6 +92,12 @@ class Shape:
         """
         return self._dims
     # end def dims
+
+    @property
+    def shape(self) -> List[int]:
+        """Return the dimensions' list."""
+        return [dim.eval().item() if isinstance(dim, DimExpr) else dim for dim in self._dims]
+    # end def shape
 
     @property
     def rank(self) -> int:
@@ -185,7 +159,120 @@ class Shape:
         return self.rank > 2
     # end def is_higher_order
 
+    @property
+    def is_literal(self) -> bool:
+        """Return whether dimensions are known at compile time."""
+        truth_value = [isinstance(d, int) for d in self._dims]
+        return all(truth_value)
+    # end def is_literal
+
     # endregion PROPERTIES
+
+    # region MATH_EXPR
+
+    def eval(self) -> 'Tensor':
+        """Evaluate the symbolic shape as a tensor."""
+        dim_values = [d.eval() if isinstance(d, MathExpr) else d for d in self._dims]
+        return Tensor(dim_values)
+    # end def eval
+
+    def diff(self, wrt: 'MathExpr') -> 'MathExpr':
+        """Differentiate the symbolic shape with respect to a variable."""
+        raise NotImplementedError("Shape does not support differentiation.")
+    # end def diff
+
+    def variables(self) -> List['MathExpr']:
+        """Return a list of variables used in the expression."""
+        return []
+    # end def variables
+
+    def constants(self) -> List['MathExpr']:
+        """Return a list of constants used in the expression."""
+        consts = [
+            d.constants() for d in self._dims if isinstance(d, MathExpr)
+        ]
+        return list(set([c for d in consts for c in d]))
+    # end def constants
+
+    def contains(
+            self,
+            leaf: Union[str, 'MathExpr'],
+            by_ref: bool = False,
+            check_operator: bool = True,
+            look_for: Optional[str] = None
+    ) -> bool:
+        """Check if the expression contains a given leaf node or variable."""
+        truth_values = [
+            d.contains(leaf, by_ref, check_operator, look_for) for d in self._dims if isinstance(d, MathExpr)
+        ]
+        return any(truth_values)
+    # end def contains
+
+    def contains_variable(
+            self,
+            variable: Union[str, 'MathExpr'],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        """Return whether the expression contains a given variable."""
+        return self.contains(variable, by_ref, check_operator, look_for='variable')
+    # end def contains_variable
+
+    def contains_constant(
+            self,
+            constant: Union[str, 'MathExpr'],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        """Return whether the expression contains a given constant."""
+        return self.contains(constant, by_ref, check_operator, look_for='constant')
+    # end def contains_constant
+
+    def replace(self, old_m: 'MathExpr', new_m: 'MathExpr'):
+        """Replace a leaf node or variable in the expression."""
+        for idx, dim in enumerate(self._dims):
+            if isinstance(dim, MathExpr):
+                dim.replace(old_m, new_m)
+            # end if
+        # end for
+    # end def replace
+
+    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+        """Rename a variable in the expression."""
+        renames = dict()
+        for idx, dim in enumerate(self._dims):
+            renames.update(dim.rename(old_name, new_name))
+        # end for
+        return renames
+    # end def rename
+
+    def is_constant(self) -> bool:
+        """Returns ``True`` if the expression is a constant."""
+        return True
+    # end def is_constant
+
+    def is_variable(self) -> bool:
+        """Returns ``True`` if the expression is a variable."""
+        return False
+    # end def is_variable
+
+    def is_node(self) -> bool:
+        """Returns ``True`` if the expression is a node."""
+        return True
+    # end def is_node
+
+    def is_leaf(self) -> bool:
+        """Returns ``True`` if the expression is a leaf."""
+        return False
+    # end def is_leaf
+
+    def depth(self) -> int:
+        """Returns maximum depth of the expression tree."""
+        dims_depth = [d.depth() for d in self._dims]
+        return max(dims_depth) + 1
+     # end def depth
+
+    # endregion MATH_EXPR
 
     # region PUBLIC
 
@@ -275,7 +362,7 @@ class Shape:
         self._dims = self.drop_axis(axis)._dims
     # end def drop_axis
 
-    def insert_axis(self, axis: int, size: Dim) -> "Shape":
+    def insert_axis(self, axis: int, size: DimLike) -> "Shape":
         """Return a new shape with the specified axis inserted.
 
         Parameters
@@ -298,10 +385,11 @@ class Shape:
         if axis < 0 or axis > self.rank:
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
-        return Shape(self._dims[:axis] + (size,) + self._dims[axis:])
+        size = as_expr(size)
+        return Shape(self._dims[:axis] + [size] + self._dims[axis:])
     # end def insert_axis
 
-    def insert_axis_(self, axis: int, size: Dim) -> None:
+    def insert_axis_(self, axis: int, size: DimLike) -> None:
         """Insert the specified axis into the shape in-place.
 
         Parameters
@@ -316,15 +404,16 @@ class Shape:
         None
             This operation updates the instance in-place.
         """
+        size = as_expr(size)
         self._dims = self.insert_axis(axis, size)._dims
     # end def insert_axis_
 
-    def as_tuple(self) -> tuple[Dim, ...]:
+    def as_tuple(self) -> tuple[DimExpr, ...]:
         """Return the shape as a tuple.
 
         Returns
         -------
-        tuple[Dim, ...]
+        tuple[DimExpr, ...]
             The shape as a tuple of dimensions.
         """
         return tuple([d for d in self._dims])
@@ -406,7 +495,7 @@ class Shape:
             raise ValueError("MatMul requires operands with the same rank.")
         # end if
         batch_rank = self.rank - 2
-        batch_dims: List[Dim] = []
+        batch_dims: List[DimLike] = []
         for idx in range(batch_rank):
             batch_dims.append(self._merge_dims(self._dims[idx], other._dims[idx]))
         # end for
@@ -444,7 +533,7 @@ class Shape:
             raise ValueError("Concat requires operands with equal rank.")
         # end if
         axis_norm = self._normalize_axis(axis, self.rank)
-        dims: List[Dim] = []
+        dims: List[DimLike] = []
         for idx, (dim_a, dim_b) in enumerate(zip(self._dims, other._dims)):
             if idx == axis_norm:
                 dims.append(self._sum_dims(dim_a, dim_b))
@@ -533,7 +622,8 @@ class Shape:
             Number of elements or ``None`` when any dimension is unknown.
         """
         total = 1
-        for dim in self._dims:
+        dims: Tensor = self.eval()
+        for dim in dims.tolist():
             total *= dim
         # end for
         return total
@@ -613,7 +703,7 @@ class Shape:
     # end def scalar
 
     @staticmethod
-    def vector(n: Dim) -> "Shape":
+    def vector(n: DimLike) -> "Shape":
         """Return a vector shape.
 
         Parameters
@@ -630,7 +720,7 @@ class Shape:
     # end def vector
 
     @staticmethod
-    def matrix(n: Dim, m: Dim) -> "Shape":
+    def matrix(n: DimLike, m: DimLike) -> "Shape":
         """Return a matrix shape.
 
         Parameters
@@ -683,7 +773,7 @@ class Shape:
         return Shape(tuple(dims))
     # end def stack_shape
 
-    def copy(self):
+    def copy(self, deep: bool = False):
         """Return a copy of the shape.
 
         Returns
@@ -691,11 +781,15 @@ class Shape:
         Shape
             Copy of the current shape.
         """
-        return Shape(self._dims)
+        if not deep:
+            return Shape(self._dims)
+        else:
+            return Shape([d.copy(deep) for d in self._dims])
+        # end if
     # end def copy
 
     @staticmethod
-    def _check_dim(dim: Dim) -> None:
+    def _check_dim(dim: DimLike) -> None:
         """Validate a single-dimension value.
 
         Parameters
@@ -709,15 +803,26 @@ class Shape:
             If the dimension is negative or not an integer.
         """
         if dim is None:
-            raise ValueError("Shape dimensions cannot be None.")
+            raise SymbolicMathInvalidDimensionError("Shape dimensions cannot be None.")
         # end if
-        if not isinstance(dim, int) or dim < 0:
-            raise ValueError("Shape dimensions must be non-negative integers or None.")
+        if isinstance(dim, int) and dim < 0:
+            raise SymbolicMathInvalidDimensionError(
+                f"Shape dimensions must be non-negative if integers ({dim} given)."
+            )
+        # end if
+        if isinstance(dim, DimExpr):
+            # Only expr with constants
+            if not dim.is_constant:
+                raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be constant: {dim}")
+            # end if
+            if dim.eval().item() <= 0:
+                raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be positive: {dim}")
+            # end if
         # end if
     # end def _check_dim
 
     @staticmethod
-    def _dims_equal(dim_a: Dim, dim_b: Dim) -> bool:
+    def _dims_equal(dim_a: DimLike, dim_b: DimLike) -> bool:
         """Check whether two dimensions are symbolically compatible.
 
         Parameters
@@ -732,11 +837,21 @@ class Shape:
         bool
             ``True`` if both dimensions can represent the same size.
         """
-        return dim_a == dim_b
+        if isinstance(dim_a, DimExpr) and isinstance(dim_b, DimExpr):
+            return dim_a.eval().item() == dim_b.eval().item()
+        elif isinstance(dim_a, int) and isinstance(dim_b, int):
+            return dim_a == dim_b
+        elif isinstance(dim_a, DimExpr) and isinstance(dim_b, int):
+            return dim_a.eval().item() == dim_b
+        elif isinstance(dim_a, int) and isinstance(dim_b, DimExpr):
+            return dim_b.eval().item() == dim_a
+        else:
+            return False
+        # end if
     # end def _dims_equal
 
     @staticmethod
-    def _merge_dims(dim_a: Dim, dim_b: Dim) -> Dim:
+    def _merge_dims(dim_a: DimLike, dim_b: DimLike) -> DimLike:
         """Merge two dimensions into the most specific shared size.
 
         Parameters
@@ -756,14 +871,14 @@ class Shape:
         ValueError
             If the dimensions are incompatible.
         """
-        if dim_a != dim_b:
+        if as_expr(dim_a).eval().item() != dim_b:
             raise ValueError(f"Incompatible dimensions: {dim_a} vs {dim_b}.")
         # end if
         return dim_a
     # end def _merge_dims
 
     @staticmethod
-    def _sum_dims(dim_a: Dim, dim_b: Dim) -> Dim:
+    def _sum_dims(dim_a: DimLike, dim_b: DimLike) -> DimLike:
         """Sum two dimensions symbolically.
 
         Parameters
@@ -841,7 +956,7 @@ class Shape:
         return iter(self._dims)
     # end def __iter__
 
-    def __contains__(self, dim: Dim) -> bool:
+    def __contains__(self, dim: DimLike) -> bool:
         """Check whether a dimension is present in the shape.
         """
         return dim in self._dims
@@ -852,7 +967,7 @@ class Shape:
         return bool(self._dims)
     # end def __bool_
 
-    def __getitem__(self, index: int) -> Dim:
+    def __getitem__(self, index: int) -> DimLike:
         """Return the dimension at the provided index.
 
         Parameters

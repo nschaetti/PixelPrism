@@ -39,7 +39,7 @@ from ..random import random_const_name
 from ..dtype import DType, to_numpy, promote
 from ..math_node import MathNode
 from ..shape import Shape
-from ..tensor import Tensor, t_einsum
+from ..tensor import Tensor, einsum
 from .base import Operands, operator_registry, Operator, ParametricOperator
 
 
@@ -294,9 +294,9 @@ class Dot(LinearAlgebraOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, b = operands
         if a.ndim == 1:
-            return t_einsum("i,i->", a.eval(), b.eval())
+            return einsum("i,i->", a.eval(), b.eval())
         else:
-            return t_einsum("...i,...i->...", a.eval(), b.eval())
+            return einsum("...i,...i->...", a.eval(), b.eval())
         # end if
     # end def _eval
 
@@ -351,9 +351,9 @@ class Outer(LinearAlgebraOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, b = operands
         if a.ndim == 1:
-            return t_einsum("i,j->ij", a.eval(), b.eval())
+            return einsum("i,j->ij", a.eval(), b.eval())
         else:
-            return t_einsum("...i,...j->...ij", a.eval(), b.eval())
+            return einsum("...i,...j->...ij", a.eval(), b.eval())
         # end if
     # end def _eval
 
@@ -467,7 +467,7 @@ class Transpose(LinearAlgebraParametricOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, = operands
         axes = self._axes.eval().tolist() if self._axes else None
-        return a.eval().t_transpose(axes=axes)
+        return a.eval().transpose(axes=axes)
     # end def _eval
 
     def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:

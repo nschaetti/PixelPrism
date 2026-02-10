@@ -138,7 +138,7 @@ def sin(op: MathNode) -> MathNode:
     --------
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional import trigo
-    >>> trigo.t_sin(tensor("theta", 0.0)).eval()
+    >>> trigo.sin(tensor("theta", 0.0)).eval()
     array(0.)
     """
     return _unary("sin", op, "sin({op.name})")
@@ -153,7 +153,7 @@ def cos(op: MathNode) -> MathNode:
     --------
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional import trigo
-    >>> trigo.t_cos(tensor("theta", 0.0)).eval()
+    >>> trigo.cos(tensor("theta", 0.0)).eval()
     array(1.)
     """
     return _unary("cos", op, "cos({op.name})")
@@ -178,7 +178,7 @@ def tan(op: MathNode) -> MathNode:
     --------
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional import trigo
-    >>> trigo.t_tan(tensor("theta", 0.0)).eval()
+    >>> trigo.tan(tensor("theta", 0.0)).eval()
     array(0.)
     """
     return _unary("tan", op, "tan({op.name})")
@@ -262,7 +262,7 @@ def atan2(op1: MathNode, op2: MathNode) -> MathNode:
     >>> from pixelprism.math.functional import trigo
     >>> y = tensor("y", 1.0)
     >>> x = tensor("x", 1.0)
-    >>> trigo.t_atan2(y, x).eval()
+    >>> trigo.atan2(y, x).eval()
     array(0.78539816)
     """
     return _binary("atan2", op1, op2, "atan2({lhs.name}, {rhs.name})")
@@ -362,7 +362,7 @@ def sinh(op: MathNode) -> MathNode:
     --------
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional import trigo
-    >>> trigo.t_sinh(tensor("x", 0.0)).eval()
+    >>> trigo.sinh(tensor("x", 0.0)).eval()
     array(0.)
     """
     return _unary("sinh", op, "sinh({op.name})")
@@ -387,7 +387,7 @@ def cosh(op: MathNode) -> MathNode:
     --------
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional import trigo
-    >>> trigo.t_cosh(tensor("x", 0.0)).eval()
+    >>> trigo.cosh(tensor("x", 0.0)).eval()
     array(1.)
     """
     return _unary("cosh", op, "cosh({op.name})")
@@ -412,7 +412,7 @@ def tanh(op: MathNode) -> MathNode:
     --------
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional import trigo
-    >>> trigo.t_tanh(tensor("x", 0.0)).eval()
+    >>> trigo.tanh(tensor("x", 0.0)).eval()
     array(0.)
     """
     return _unary("tanh", op, "tanh({op.name})")

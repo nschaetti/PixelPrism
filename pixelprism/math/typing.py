@@ -27,7 +27,7 @@
 #
 
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 from typing import Tuple, Union, Sequence, List, Optional, Dict, TypeAlias
 import numpy as np
 
@@ -40,8 +40,10 @@ __all__ = [
     "DimExpr",
     "MathExpr",
     "TensorLike",
-    "Dim",
-    "Dims",
+    "DimLike",
+    "DimsLike",
+    "DimInt",
+    "DimsInt",
 ]
 
 
@@ -53,11 +55,6 @@ NumberListLike: TypeAlias = list[Union[ScalarLike, "NumberListLike"]]
 # Tensor data
 TensorLike: TypeAlias = Union[NumberLike, NumberListLike, np.ndarray]
 
-# Tensor dimension
-Dim = int
-Dims = Union[Tuple[Dim, ...], List[Dim], Sequence[Dim]]
-
-
 # Represents a valid index
 Index = Union[
     int,
@@ -67,66 +64,48 @@ Index = Union[
 ]
 
 
-class DimExpr(Protocol):
-    """
-    TODO: Add documentation.
-    """
-    def eval(self) -> 'Tensor': ...
-    def variables(self) -> List['Variable']: ...
-    def constants(self) -> List['Constant']: ...
-    def contains(
-            self,
-            leaf: Union[str, 'PredicateMixin'],
-            by_ref: bool = False,
-            check_operator: bool = True,
-            look_for: Optional[str] = None
-    ) -> bool: ...
-    def contains_variable(
-            self,
-            variable: Union[str, 'Variable'],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool: ...
-    def contains_constant(
-            self,
-            constant: Union[str, 'Constant'],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool: ...
-    def replace(self, old_m: 'PredicateMixin', new_m: 'PredicateMixin'): ...
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]: ...
-    def is_constant(self) -> bool: ...
-    def is_variable(self) -> bool: ...
-# end class DimExpr
-
-
+@runtime_checkable
 class MathExpr(Protocol):
+    def shape(self) -> 'Shape': ...
     def eval(self) -> 'Tensor': ...
-    def diff(self, wrt: 'Variable') -> 'MathExpr': ...
-    def variables(self) -> List['Variable']: ...
-    def constants(self) -> List['Constant']: ...
+    def diff(self, wrt: 'MathExpr') -> 'MathExpr': ...
+    def variables(self) -> List['MathExpr']: ...
+    def constants(self) -> List['MathExpr']: ...
     def contains(
             self,
-            leaf: Union[str, 'PredicateMixin'],
+            leaf: Union[str, 'MathExpr'],
             by_ref: bool = False,
             check_operator: bool = True,
             look_for: Optional[str] = None
     ) -> bool: ...
     def contains_variable(
             self,
-            variable: Union[str, 'Variable'],
+            variable: Union[str, 'MathExpr'],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool: ...
     def contains_constant(
             self,
-            constant: Union[str, 'Constant'],
+            constant: Union[str, 'MathExpr'],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool: ...
-    def replace(self, old_m: 'PredicateMixin', new_m: 'PredicateMixin'): ...
+    def replace(self, old_m: 'MathExpr', new_m: 'MathExpr'): ...
     def rename(self, old_name: str, new_name: str) -> Dict[str, str]: ...
     def is_constant(self) -> bool: ...
     def is_variable(self) -> bool: ...
+    def is_node(self) -> bool: ...
+    def is_leaf(self) -> bool: ...
+    def depth(self) -> int: ...
+    def copy(self, deep: bool = False): ...
+    def __str__(self) -> str: ...
+    def __repr__(self) -> str: ...
 # end class MathExpr
 
+
+# Dimensions
+DimExpr: TypeAlias = 'MathExpr'
+DimInt = int
+DimsInt = Tuple[int, ...]
+DimLike = int | DimExpr
+DimsLike = Union[Tuple[DimLike, ...], List[DimLike], Sequence[DimLike]]

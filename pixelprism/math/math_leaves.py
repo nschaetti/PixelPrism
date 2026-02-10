@@ -30,7 +30,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union, Dict
-import numpy as np
 
 from .math_base import MathBase
 
@@ -43,9 +42,10 @@ from .math_exceptions import (
 from .mixins import DifferentiableMixin, PredicateMixin, EvaluableMixin
 from .dtype import DType, TypeLike, create
 from .shape import Shape, ShapeLike
-from .tensor import Tensor, TensorLike, t_tensor
+from .tensor import Tensor, TensorLike, tensor
 from .context import get_value
 from .random import rand_name
+from .typing import MathExpr
 
 
 __all__ = [
@@ -83,13 +83,20 @@ def const(name: str, data: TensorLike, dtype: Optional[TypeLike] = None) -> Cons
     dtype: AnyDType, optional
         Data type of the constant. To the dtype of ``data`` if None.
     """
-    data = t_tensor(data=data, dtype=dtype, mutable=False)
+    data = tensor(data=data, dtype=dtype, mutable=False)
     return Constant.create(name=name, data=data)
 # end def const
 
 
 # An expression which does not contain sub-expressions
-class MathLeaf(MathBase, DifferentiableMixin, EvaluableMixin, PredicateMixin, ABC):
+class MathLeaf(
+    MathBase,
+    DifferentiableMixin,
+    EvaluableMixin,
+    PredicateMixin,
+    MathExpr,
+    ABC
+):
     """
     Abstract base for terminal expressions.
 
@@ -147,6 +154,11 @@ class MathLeaf(MathBase, DifferentiableMixin, EvaluableMixin, PredicateMixin, AB
         """
     # end def constants
 
+    def depth(self) -> int:
+        """Return the depth of the node in the tree"""
+        return 0
+    # end def depth
+
     def is_constant(self):
         """Does the expression contain only constant values?"""
         raise NotImplementedError("Leaf nodes do not support is_constant.")
@@ -159,7 +171,7 @@ class MathLeaf(MathBase, DifferentiableMixin, EvaluableMixin, PredicateMixin, AB
 
     def contains(
             self,
-            leaf: Union[str, PredicateMixin],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
             look_for: Optional[str] = None
@@ -205,7 +217,7 @@ class MathLeaf(MathBase, DifferentiableMixin, EvaluableMixin, PredicateMixin, AB
         return False
     # en def contains
 
-    def replace(self, old_m: PredicateMixin, new_m: PredicateMixin):
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters
@@ -375,7 +387,7 @@ class Variable(MathLeaf):
 
     def contains_variable(
             self,
-            variable: Union[str, 'Variable'],
+            variable: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -384,7 +396,7 @@ class Variable(MathLeaf):
 
     def contains_constant(
             self,
-            constant: Union[str, 'Constant'],
+            constant: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -423,7 +435,7 @@ class Variable(MathLeaf):
 
     def contains(
             self,
-            leaf: Union[str, PredicateMixin],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
             look_for: Optional[str] = None
@@ -463,7 +475,7 @@ class Variable(MathLeaf):
         return False
     # end def contains
 
-    def replace(self, old_m: PredicateMixin, new_m: PredicateMixin):
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters
@@ -496,7 +508,7 @@ class Variable(MathLeaf):
 
     # region DIFFERENTIABLE_MIXIN
 
-    def diff(self, wrt: Variable) -> MathBase:
+    def diff(self, wrt: MathExpr) -> MathExpr:
         """
         Compute the derivative of this leaf with respect to a variable.
         """
@@ -758,7 +770,7 @@ class Constant(MathLeaf):
 
     def contains_variable(
             self,
-            variable: Union[str, 'Variable'],
+            variable: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -767,7 +779,7 @@ class Constant(MathLeaf):
 
     def contains_constant(
             self,
-            constant: Union[str, 'Constant'],
+            constant: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -783,7 +795,7 @@ class Constant(MathLeaf):
 
     def contains(
             self,
-            leaf: Union[str, PredicateMixin],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
             look_for: Optional[str] = None
@@ -823,7 +835,7 @@ class Constant(MathLeaf):
         return False
     # en def contains
 
-    def replace(self, old_m: PredicateMixin, new_m: PredicateMixin):
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters
@@ -856,7 +868,7 @@ class Constant(MathLeaf):
 
     # region DIFFERENTIABLE_MIXIN
 
-    def diff(self, wrt: Variable) -> MathBase:
+    def diff(self, wrt: MathExpr) -> MathExpr:
         """
         Compute the derivative of this leaf with respect to a variable.
         """

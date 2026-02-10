@@ -61,11 +61,8 @@ class MathBase:
     __slots__ = (
         "_id",
         "_name",
-        "_op",
-        "_children",
         "_dtype",
         "_shape",
-        "_parents_weak",
     )
 
     # Global counter

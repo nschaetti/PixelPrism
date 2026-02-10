@@ -88,6 +88,7 @@ from .math_exceptions import (
     SymbolicMathLookupError,
     SymbolicMathTypeError,
     SymbolicMathShapeError,
+    SymbolicMathInvalidDimensionError
 )
 
 from .math_base import MathBase
@@ -100,67 +101,78 @@ from .mixins import EvaluableMixin, DifferentiableMixin, PredicateMixin
 
 from .operators import Operator, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
 
-from .shape import Dim, Dims, Shape, ShapeLike
+from .shape import DimLike, DimsLike, Shape, ShapeLike
 
 from .tensor import (
     Tensor,
     TensorLike,
     # Structure
-    t_concatenate,
-    t_hstack,
-    t_vstack,
+    concatenate as t_concatenate,
+    hstack as t_hstack,
+    vstack as t_vstack,
     # Shapes
-    ts_scalar,
-    ts_vector,
-    ts_matrix,
+    scalar_shape,
+    vector_shape,
+    matrix_shape,
     # Creators
-    t_tensor,
-    t_scalar,
-    t_zeros,
-    t_ones,
-    t_full,
+    tensor as t_tensor,
+    scalar as t_scalar,
+    zeros as t_zeros,
+    ones as t_ones,
+    full as t_full,
     # Elementwise
-    t_pow,
-    t_square,
-    t_sqrt,
-    t_cbrt,
-    t_reciprocal,
-    t_exp,
-    t_exp2,
-    t_expm1,
-    t_log,
-    t_log2,
-    t_log10,
-    t_log1p,
-    t_sin,
-    t_cos,
-    t_tan,
-    t_arcsin,
-    t_arccos,
-    t_arctan,
-    t_sinh,
-    t_cosh,
-    t_tanh,
-    t_arcsinh,
-    t_arccosh,
-    t_arctanh,
-    t_deg2rad,
-    t_rad2deg,
-    t_absolute,
-    t_abs,
-    t_sign,
-    t_floor,
-    t_ceil,
-    t_trunc,
-    t_rint,
-    t_round,
-    t_clip,
-    t_equal,
-    t_not_equal,
-    t_less_equal,
-    t_less,
-    t_greater_equal,
-    t_greater,
+    pow as t_pow,
+    square as t_square,
+    sqrt as t_sqrt,
+    cbrt as t_cbrt,
+    reciprocal as t_reciprocal,
+    exp as t_exp,
+    exp2 as t_exp2,
+    expm1 as t_expm1,
+    log as t_log,
+    log2 as t_log2,
+    log10 as t_log10,
+    log1p as t_log1p,
+    sin as t_sin,
+    cos as t_cos,
+    tan as t_tan,
+    arcsin as t_arcsin,
+    arccos as t_arccos,
+    arctan as t_arctan,
+    sinh as t_sinh,
+    cosh as t_cosh,
+    tanh as t_tanh,
+    arcsinh as t_arcsinh,
+    arccosh as t_arccosh,
+    arctanh as t_arctanh,
+    deg2rad as t_deg2rad,
+    rad2deg as t_rad2deg,
+    # Discretization
+    absolute as t_absolute,
+    abs as t_abs,
+    sign as t_sign,
+    floor as t_floor,
+    ceil as t_ceil,
+    trunc as t_trunc,
+    rint as t_rint,
+    round as t_round,
+    clip as t_clip,
+    # Comparison
+    equal as t_equal,
+    not_equal as t_not_equal,
+    less_equal as t_less_equal,
+    less as t_less,
+    greater_equal as t_greater_equal,
+    greater as t_greater,
+    any as t_any,
+    all as t_all,
+    # Linear algebra
+    eye_like as t_eye_like,
+    einsum as t_einsum,
+    transpose as t_transpose,
+    inverse as t_inverse,
+    trace as t_trace,
+    matmul as t_matmul,
 )
 
 from .typing import (
@@ -171,28 +183,10 @@ from .typing import (
     DimExpr,
     MathExpr,
     TensorLike,
-    Dim,
-    Dims
+    DimLike,
+    DimsLike
 )
 
-from .utils import (
-    var,
-    const,
-    tensor,
-    scalar,
-    vector,
-    matrix,
-    empty,
-    zeros,
-    ones,
-    full,
-    nan,
-    I,
-    diag,
-    eye_like,
-    zeros_like,
-    ones_like,
-)
 
 from .random import random_const_name, rand_name
 
@@ -203,7 +197,84 @@ C = DType.C
 B = DType.B
 
 
+class T:
+    """Alias for Tensor creation functions."""
+    tensor = staticmethod(t_tensor)
+    scalar = staticmethod(t_scalar)
+    ones = staticmethod(t_ones)
+    zeros = staticmethod(t_zeros)
+    full = staticmethod(t_full)
+
+    pow = staticmethod(t_pow)
+    square = staticmethod(t_square)
+    sqrt = staticmethod(t_sqrt)
+    cbrt = staticmethod(t_cbrt)
+    reciprocal = staticmethod(t_reciprocal)
+    exp = staticmethod(t_exp)
+    exp2 = staticmethod(t_exp2)
+    expm1 = staticmethod(t_expm1)
+    log = staticmethod(t_log)
+    log2 = staticmethod(t_log2)
+    log10 = staticmethod(t_log10)
+
+    sin = staticmethod(t_sin)
+    cos = staticmethod(t_cos)
+    tan = staticmethod(t_tan)
+    arcsin = staticmethod(t_arcsin)
+    arccos = staticmethod(t_arccos)
+    arctan = staticmethod(t_arctan)
+    sinh = staticmethod(t_sinh)
+    cosh = staticmethod(t_cosh)
+    tanh = staticmethod(t_tanh)
+    arcsinh = staticmethod(t_arcsinh)
+    arccosh = staticmethod(t_arccosh)
+    arctanh = staticmethod(t_arctanh)
+    deg2rad = staticmethod(t_deg2rad)
+    rad2deg = staticmethod(t_rad2deg)
+
+    absolute = staticmethod(t_absolute)
+    abs = staticmethod(t_abs)
+    sign = staticmethod(t_sign)
+    floor = staticmethod(t_floor)
+    ceil = staticmethod(t_ceil)
+    trunc = staticmethod(t_trunc)
+    rint = staticmethod(t_rint)
+    round = staticmethod(t_round)
+    clip = staticmethod(t_clip)
+
+    hstack = staticmethod(t_hstack)
+    vstack = staticmethod(t_vstack)
+    concatenate = staticmethod(t_concatenate)
+
+    eye_like = staticmethod(t_eye_like)
+    einsum = staticmethod(t_einsum)
+    transpose = staticmethod(t_transpose)
+    inverse = staticmethod(t_inverse)
+    trace = staticmethod(t_trace)
+    matmul = staticmethod(t_matmul)
+
+    equal = staticmethod(t_equal)
+    not_equal = staticmethod(t_not_equal)
+    less_equal = staticmethod(t_less_equal)
+    less = staticmethod(t_less)
+    greater_equal = staticmethod(t_greater_equal)
+    greater = staticmethod(t_greater)
+# end class T
+
+
+class S:
+    """Alias for TensorShape creation functions."""
+    scalar = staticmethod(scalar_shape)
+    vector = staticmethod(vector_shape)
+    matrix = staticmethod(matrix_shape)
+# end class S
+
+
 __all__ = [
+    # Alias
+    "T",
+    "S",
+
     # Build
     "as_expr",
 
@@ -275,8 +346,8 @@ __all__ = [
 
     # Shape
     "Shape",
-    "Dim",
-    "Dims",
+    "DimLike",
+    "DimsLike",
 
     # Helpers
     "is_sequence_like",
@@ -296,9 +367,9 @@ __all__ = [
     # Tensor
     "Tensor",
     "TensorLike",
-    "ts_scalar",
-    "ts_vector",
-    "ts_matrix",
+    "scalar_shape",
+    "vector_shape",
+    "matrix_shape",
     "t_full",
     "t_zeros",
     "t_ones",
@@ -349,23 +420,4 @@ __all__ = [
     "Index",
     "DimExpr",
     "MathExpr",
-
-    # Utils
-    "var",
-    "random_const_name",
-    "const",
-    "tensor",
-    "scalar",
-    "vector",
-    "matrix",
-    "empty",
-    "zeros",
-    "ones",
-    "full",
-    "nan",
-    "I",
-    "diag",
-    "eye_like",
-    "zeros_like",
-    "ones_like"
 ]

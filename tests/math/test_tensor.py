@@ -32,7 +32,7 @@ import pytest
 from pixelprism.math import utils
 from pixelprism.math.dtype import DType, from_numpy
 from pixelprism.math.shape import Shape
-from pixelprism.math.tensor import Tensor, _convert_data_to_numpy_array, _numpy_dtype_to_dtype, t_einsum
+from pixelprism.math.tensor import Tensor, _convert_data_to_numpy_array, _numpy_dtype_to_dtype, einsum
 
 
 def test_numpy_dtype_to_dtype_supported_and_invalid_types():
@@ -492,15 +492,15 @@ def test_tensor_math_functions_exposed_in_module():
     data = np.array([0.5, 1.5, 2.5], dtype=np.float64)
     tensor = Tensor(data=data.copy())
 
-    np.testing.assert_allclose(ppmath.t_log(tensor).value, np.log(data))
-    np.testing.assert_allclose(ppmath.t_pow(tensor, 2).value, np.power(data, 2))
+    np.testing.assert_allclose(ppmath.log(tensor).value, np.log(data))
+    np.testing.assert_allclose(ppmath.pow(tensor, 2).value, np.power(data, 2))
     np.testing.assert_allclose(
-        ppmath.t_clip(tensor, min_value=1.0).value,
+        ppmath.clip(tensor, min_value=1.0).value,
         np.clip(data, 1.0, None)
     )
 
     with pytest.raises(TypeError):
-        ppmath.t_log(data)
+        ppmath.log(data)
     # end with
 # end test test_tensor_math_functions_exposed_in_module
 
@@ -511,17 +511,17 @@ def test_tensor_einsum_matches_numpy_and_out_parameter():
     """
     left = Tensor(data=np.arange(6, dtype=np.float32).reshape(2, 3))
     right = Tensor(data=np.arange(12, dtype=np.float32).reshape(3, 4))
-    result = t_einsum("ik,kj->ij", left, right)
+    result = einsum("ik,kj->ij", left, right)
     expected = np.einsum("ik,kj->ij", left.value, right.value)
     np.testing.assert_allclose(result.value, expected)
     assert result.dtype == DType.R
 
     out = Tensor(data=np.zeros((2, 4), dtype=np.float32))
-    returned = t_einsum("ik,kj->ij", left, right, out=out)
+    returned = einsum("ik,kj->ij", left, right, out=out)
     assert returned is out
     np.testing.assert_allclose(out.value, expected)
 
-    scalar = t_einsum("ij->", Tensor(data=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)))
+    scalar = einsum("ij->", Tensor(data=np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)))
     np.testing.assert_allclose(scalar.value, np.einsum("ij->", np.array([[1.0, 2.0], [3.0, 4.0]])))
     assert scalar.dtype == DType.R
 # end test test_tensor_einsum_matches_numpy_and_out_parameter

@@ -57,7 +57,7 @@ class Sign(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().t_sign()
+        return value.eval().sign()
     # end def _eval
 
 # end class Sign
@@ -72,7 +72,7 @@ class Floor(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().t_floor()
+        return value.eval().floor()
     # end def _eval
 
 # end class Floor
@@ -86,7 +86,7 @@ class Ceil(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().t_ceil()
+        return value.eval().ceil()
     # end def _eval
 
 # end class Ceil
@@ -100,7 +100,7 @@ class Trunc(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().t_trunc()
+        return value.eval().trunc()
     # end def _eval
 # end class Trunc
 
@@ -113,7 +113,7 @@ class Rint(UnaryElementwiseOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().t_rint()
+        return value.eval().rint()
     # end def _eval
 # end class Rint
 
@@ -141,7 +141,7 @@ class Round(UnaryElementwiseParametricOperator):
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
-        return value.eval().t_round(decimals=self._resolve_parameter(self._decimals))
+        return value.eval().round(decimals=self._resolve_parameter(self._decimals))
     # end def _eval
 
     def __str__(self) -> str:
@@ -183,7 +183,7 @@ class Clip(UnaryElementwiseParametricOperator):
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         (value,) = operands
         tensor = value.eval()
-        return tensor.t_clip(
+        return tensor.clip(
             min_value=self._resolve_parameter(self._min_value),
             max_value=self._resolve_parameter(self._max_value)
         )

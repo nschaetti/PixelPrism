@@ -39,9 +39,9 @@ from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import (
     Tensor,
-    t_concatenate as tensor_concatenate,
-    t_hstack as tensor_hstack,
-    t_vstack as tensor_vstack,
+    concatenate as tensor_concatenate,
+    hstack as tensor_hstack,
+    vstack as tensor_vstack,
 )
 from ..context import new_context, set_value
 from ..utils import const

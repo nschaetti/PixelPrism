@@ -65,12 +65,12 @@ Both arguments can be numbers or `Scalar` instances.
 #### `TScalar.log10(...)`
 
 ```python
-TScalar.t_log10(scalar)
+TScalar.log10(scalar)
 ```
 
 ```python
 a = Scalar(100)
-t = TScalar.t_log10(a)  # returns a TScalar representing log10(100)
+t = TScalar.log10(a)  # returns a TScalar representing log10(100)
 ```
 
 ### Operator rules (`__add__`)
