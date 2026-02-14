@@ -37,37 +37,24 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable
+from ..typing import Operands, Operator, MathExpr
 
 
 __all__ = [
-    "Operands",
-    "Operator",
+    "OperatorBase",
     "ParametricOperator",
     "OperatorRegistry",
     "operator_registry",
 ]
 
 
-Operand = MathNode
-Operands = List[MathNode] | Tuple[MathNode, ...]
-
-
-class Operator(ABC):
+class OperatorBase(
+    Operator,
+    ABC
+):
     """
     Represents an operator that can be applied to a value.
     """
-
-    # How many operands
-    ARITY: int
-
-    # Is an operator with a variable number of operands?
-    IS_VARIADIC: bool = False
-
-    # Is the operator differentiable?
-    IS_DIFF: bool = False
-
-    # Operator name
-    NAME: str
 
     def __init__(self, **kwargs):
         """
@@ -78,12 +65,6 @@ class Operator(ABC):
         operands : Operands
             Operands of the operator.
         """
-        if not hasattr(self, "ARITY"):
-            raise TypeError("Operator subclasses must define ARITY")
-        # end if
-        if not hasattr(self, "NAME"):
-            raise TypeError("Operator subclasses must define NAME")
-        # end if
         self._parameters: dict[str, Any] = kwargs
     # end def __init__
 
@@ -106,7 +87,7 @@ class Operator(ABC):
         if not self.IS_VARIADIC:
             raise ValueError("Cannot set arity of non-variable operator")
         # end if
-        self.ARITY = value
+        self.__class__.ARITY = value
     # end def arity
 
     @property
@@ -128,7 +109,7 @@ class Operator(ABC):
     @abstractmethod
     def contains(
             self,
-            expr: MathNode,
+            expr: "MathExpr",
             by_ref: bool = False,
             look_for: Optional[str] = None
     ) -> bool:
@@ -162,7 +143,7 @@ class Operator(ABC):
             self,
             wrt: Variable,
             operands: Operands
-    ) -> MathNode:
+    ) -> MathExpr:
         """
         Local derivative of the operator wrt the given expression.
         """
@@ -186,7 +167,7 @@ class Operator(ABC):
             self,
             wrt: Variable,
             operands: Operands,
-    ) -> MathNode:
+    ) -> MathExpr:
         """
         Local backward rule for this operator.
         """
@@ -340,10 +321,10 @@ class OperatorRegistry:
     Global registry for Operator instances.
     """
 
-    _by_name: dict[str, Type[Operator]] = {}
+    _by_name: dict[str, Type[OperatorBase]] = {}
 
     @classmethod
-    def register(cls, op_cls: Type[Operator]) -> None:
+    def register(cls, op_cls: Type[OperatorBase]) -> None:
         """
         Register an operator.
 
@@ -353,7 +334,7 @@ class OperatorRegistry:
             If an operator with the same name is already registered.
             The operator class must be a subclass of Operator.
         """
-        if not issubclass(op_cls, Operator):
+        if not issubclass(op_cls, OperatorBase):
             raise TypeError("Only Operator subclasses can be registered")
         # end if
         if op_cls.NAME in cls._by_name:
@@ -363,7 +344,7 @@ class OperatorRegistry:
     # end def register
 
     @classmethod
-    def get(cls, name: str) -> Type[Operator]:
+    def get(cls, name: str) -> Type[OperatorBase]:
         """
         Retrieve a registered operator by name.
 

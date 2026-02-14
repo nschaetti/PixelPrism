@@ -40,7 +40,7 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..math_slice import SliceExpr
 from ..math_node import MathNode
-from .base import Operands, operator_registry, Operator
+from .base import Operands, operator_registry, OperatorBase
 
 
 __all__ = [
@@ -51,7 +51,7 @@ __all__ = [
 ]
 
 
-class StructureOperator(Operator, ABC):
+class StructureOperator(OperatorBase, ABC):
     """
     Linear algebra operator.
     """

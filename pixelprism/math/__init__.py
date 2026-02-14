@@ -95,11 +95,11 @@ from .math_base import MathBase
 
 from .math_node import MathNode
 
-from .math_leaves import MathLeaf, Variable, Constant
+from .math_leaves import MathLeaf, Variable, Constant, var, const
 
 from .mixins import EvaluableMixin, DifferentiableMixin, PredicateMixin
 
-from .operators import Operator, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
+from .operators import OperatorBase, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
 
 from .shape import DimLike, DimsLike, Shape, ShapeLike
 
@@ -195,6 +195,12 @@ Z = DType.Z
 R = DType.R
 C = DType.C
 B = DType.B
+
+tensor = t_tensor
+scalar = t_scalar
+zeros = t_zeros
+ones = t_ones
+full = t_full
 
 
 class T:
@@ -330,6 +336,8 @@ __all__ = [
     "MathLeaf",
     "Variable",
     "Constant",
+    "var",
+    "const",
 
     # Mixins
     "EvaluableMixin",
@@ -337,7 +345,7 @@ __all__ = [
     "PredicateMixin",
 
     # Operators
-    "Operator",
+    "OperatorBase",
     "Add",
     "Sub",
     "Mul",
@@ -367,6 +375,11 @@ __all__ = [
     # Tensor
     "Tensor",
     "TensorLike",
+    "tensor",
+    "scalar",
+    "zeros",
+    "ones",
+    "full",
     "scalar_shape",
     "vector_shape",
     "matrix_shape",
@@ -420,4 +433,6 @@ __all__ = [
     "Index",
     "DimExpr",
     "MathExpr",
+    "random_const_name",
+    "rand_name",
 ]

@@ -130,8 +130,9 @@ class Round(UnaryElementwiseParametricOperator):
             decimals: Optional[Union[MathNode, int]] = None
     ):
         super().__init__(decimals=decimals)
-        from ..utils import const, random_const_name
-        from ..math_base import MathNode
+        from ..math_leaves import const
+        from ..random import random_const_name
+        from ..math_node import MathNode
         if decimals is None:
             decimals = const(random_const_name("round-decimals-"), 0)
         # end if
@@ -169,8 +170,9 @@ class Clip(UnaryElementwiseParametricOperator):
             max_value: Optional[Union[MathNode, int]] = None
     ):
         super().__init__(min_value=min_value, max_value=max_value)
-        from ..utils import const, random_const_name
-        from ..math_base import MathNode
+        from ..math_leaves import const
+        from ..random import random_const_name
+        from ..math_node import MathNode
         if min_value is None and max_value is None:
             raise ValueError("Clip requires at least one of min_value or max_value.")
         # end if

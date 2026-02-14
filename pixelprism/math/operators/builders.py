@@ -44,9 +44,9 @@ from ..tensor import (
     vstack as tensor_vstack,
 )
 from ..context import new_context, set_value
-from ..utils import const
+from ..math_leaves import const
 from ..random import random_const_name
-from .base import Operands, Operator, ParametricOperator, operator_registry
+from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
 
 Element = Union[MathNode, float, int]
@@ -76,7 +76,7 @@ __all__ = [
 ]
 
 
-class Builder(Operator, ABC):
+class Builder(OperatorBase, ABC):
     """Tensor builder operator."""
     pass
 # end class TensorBuilder

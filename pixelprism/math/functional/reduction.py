@@ -28,8 +28,9 @@
 
 # Imports
 from typing import Union
-from pixelprism.math.math_base import MathNode
-from pixelprism.math.build import as_expr
+
+from ..math_node import MathNode
+from ..build import as_expr
 from .helpers import apply_operator
 
 

@@ -37,7 +37,7 @@ from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
-from .base import Operands, Operator, operator_registry
+from .base import Operands, OperatorBase, operator_registry
 
 
 __all__ = [
@@ -68,7 +68,7 @@ __all__ = [
 ]
 
 
-class ElementwiseOperator(Operator, ABC):
+class ElementwiseOperator(OperatorBase, ABC):
     """
     Element-wise operator.
     """
@@ -321,7 +321,7 @@ class Pow(ElementwiseOperator):
 # end class Pow
 
 
-class UnaryElementwiseOperator(Operator, ABC):
+class UnaryElementwiseOperator(OperatorBase, ABC):
     """
     Base class for unary element-wise operators.
     """

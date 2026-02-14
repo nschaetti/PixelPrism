@@ -36,7 +36,7 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..context import new_context, set_value
 from ..math_node import MathNode
-from .base import Operands, operator_registry, Operator, ParametricOperator
+from .base import Operands, operator_registry, OperatorBase, ParametricOperator
 
 
 __all__ = [
@@ -54,7 +54,7 @@ __all__ = [
 ]
 
 
-class ReductionOperator(Operator, ParametricOperator, ABC):
+class ReductionOperator(OperatorBase, ParametricOperator, ABC):
     """
     Reduction operators.
     """
@@ -106,9 +106,10 @@ class AxisReductionOperator(ReductionOperator, ABC):
 
     def __init__(self, *, axis: Optional[Union[MathNode, int]] = None, **kwargs: Any):
         super().__init__(**kwargs)
-        from ..math_base import Variable
+        from ..math_leaves import Variable
         if axis and isinstance(axis, int):
-            from ..utils import random_const_name, const
+            from ..random import random_const_name
+            from ..math_leaves import const
             axis = const(random_const_name(f"{self.__class__.__name__.lower()}-axis-"), axis)
         elif axis and isinstance(axis, Variable):
             # Only constant (otherwise we have dynamic shapes)
@@ -486,11 +487,13 @@ class Summation(ReductionOperator):
             bounded_variable=i
         )
         if isinstance(lower, int):
-            from ..utils import const, random_const_name
+            from ..math_leaves import const
+            from ..random import random_const_name
             lower = const(random_const_name("summation-lower-"), lower)
         # end if
         if isinstance(upper, int):
-            from ..utils import const, random_const_name
+            from ..math_leaves import const
+            from ..random import random_const_name
             upper = const(random_const_name("summation-upper-"), upper)
         # end if
         self._lower = lower
@@ -678,11 +681,13 @@ class Product(ReductionOperator):
             bounded_variable=i
         )
         if isinstance(lower, int):
-            from ..utils import const, random_const_name
+            from ..math_leaves import const
+            from ..random import random_const_name
             lower = const(random_const_name("product-lower-"), lower)
         # end if
         if isinstance(upper, int):
-            from ..utils import const, random_const_name
+            from ..math_leaves import const
+            from ..random import random_const_name
             upper = const(random_const_name("product-upper-"), upper)
         # end if
         self._lower = lower

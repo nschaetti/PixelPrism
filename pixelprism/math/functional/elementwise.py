@@ -27,9 +27,10 @@
 #
 
 from typing import Union
-from pixelprism.math.functional.helpers import apply_operator
-from pixelprism.math.math_base import MathNode
-from pixelprism.math.build import as_expr
+
+from .helpers import apply_operator
+from ..math_node import MathNode
+from ..build import as_expr
 
 
 __all__ = [

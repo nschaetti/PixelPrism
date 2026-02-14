@@ -27,8 +27,9 @@
 #
 
 from typing import Sequence, Union, Optional
-from pixelprism.math.math_base import MathNode
-from pixelprism.math.build import as_expr
+
+from ..math_node import MathNode
+from ..build import as_expr
 from .helpers import apply_operator
 
 __all__ = [

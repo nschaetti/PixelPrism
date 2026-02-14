@@ -37,7 +37,7 @@ from ..dtype import DType, to_numpy, promote
 from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
-from .base import Operands, Operator, operator_registry
+from .base import Operands, OperatorBase, operator_registry
 
 __all__ = [
     "Where",
@@ -45,7 +45,7 @@ __all__ = [
 ]
 
 
-class Where(Operator):
+class Where(OperatorBase):
     """
     Elementwise conditional operator mirroring ``np.where`` semantics.
     """
@@ -118,7 +118,7 @@ class Where(Operator):
 operator_registry.register(Where)
 
 
-class IfOperator(Operator):
+class IfOperator(OperatorBase):
     """
     Scalar conditional operator selecting between two branches.
     """

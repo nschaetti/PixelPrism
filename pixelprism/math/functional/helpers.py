@@ -26,7 +26,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from pixelprism.math import MathNode, operator_registry
+from ..math_node import MathNode
+from ..operators.base import operator_registry
 
 
 Operands = tuple[MathNode, ...]

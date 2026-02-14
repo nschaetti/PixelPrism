@@ -41,8 +41,10 @@ import numbers
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Sequence, Tuple, List, Union, Optional
 import numpy as np
-from ..math_base import MathNode, Constant, SliceExpr
-from ..operators import Operator
+from ..math_node import MathNode
+from ..math_leaves import Constant
+from ..math_slice import SliceExpr
+from ..operators import OperatorBase
 
 __all__ = ["to_latex"]
 
@@ -122,7 +124,7 @@ class _OpRule:
     """
 
     precedence: int
-    formatter: Callable[["_LatexRenderer", MathNode, "_OpRule", Operator], str]
+    formatter: Callable[["_LatexRenderer", MathNode, "_OpRule", OperatorBase], str]
 # end class _OpRule
 
 
@@ -583,7 +585,7 @@ class _LatexRenderer:
             self,
             command: str,
             operands: Sequence[MathNode],
-            operator: Operator
+            operator: OperatorBase
     ) -> str:
         """
         Render a known math function such as ``sin`` or ``sqrt``.
@@ -661,7 +663,7 @@ class _LatexRenderer:
 # region BUILDERS
 
 
-def _format_vector(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_vector(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     operands = [
         renderer._render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
@@ -676,7 +678,7 @@ def _format_vector(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
 # region ELEMENT-WISE
 
 
-def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format addition expressions.
 
@@ -702,7 +704,7 @@ def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_add
 
 
-def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format subtraction expressions.
 
@@ -729,7 +731,7 @@ def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_sub
 
 
-def _format_eq(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_eq(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format equality comparisons with the \\equiv symbol.
     """
@@ -742,7 +744,7 @@ def _format_eq(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_eq
 
 
-def _format_ne(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_ne(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format inequality comparisons."""
     if len(expr.children) != 2:
         raise ValueError("ne expects exactly two operands.")
@@ -753,7 +755,7 @@ def _format_ne(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_ne
 
 
-def _format_lt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_lt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format strict less-than comparisons."""
     if len(expr.children) != 2:
         raise ValueError("lt expects exactly two operands.")
@@ -764,7 +766,7 @@ def _format_lt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_lt
 
 
-def _format_le(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_le(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format less-than-or-equal comparisons."""
     if len(expr.children) != 2:
         raise ValueError("le expects exactly two operands.")
@@ -775,7 +777,7 @@ def _format_le(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_le
 
 
-def _format_and(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_and(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical conjunction."""
     if len(expr.children) != 2:
         raise ValueError("and expects exactly two operands.")
@@ -786,7 +788,7 @@ def _format_and(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_and
 
 
-def _format_or(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_or(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical disjunction."""
     if len(expr.children) != 2:
         raise ValueError("or expects exactly two operands.")
@@ -797,7 +799,7 @@ def _format_or(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_or
 
 
-def _format_xor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_xor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical exclusive-or."""
     if len(expr.children) != 2:
         raise ValueError("xor expects exactly two operands.")
@@ -808,7 +810,7 @@ def _format_xor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_xor
 
 
-def _format_not(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_not(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical negation."""
     if len(expr.children) != 1:
         raise ValueError("not expects exactly one operand.")
@@ -818,7 +820,7 @@ def _format_not(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_not
 
 
-def _format_any(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_any(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format boolean any reduction."""
     if len(expr.children) != 1:
         raise ValueError("any expects exactly one operand.")
@@ -828,7 +830,7 @@ def _format_any(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_any
 
 
-def _format_all(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_all(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format boolean all reduction."""
     if len(expr.children) != 1:
         raise ValueError("all expects exactly one operand.")
@@ -838,7 +840,7 @@ def _format_all(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_all
 
 
-def _format_gt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_gt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format strict greater-than comparisons."""
     if len(expr.children) != 2:
         raise ValueError("gt expects exactly two operands.")
@@ -849,7 +851,7 @@ def _format_gt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_gt
 
 
-def _format_ge(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_ge(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format greater-than-or-equal comparisons."""
     if len(expr.children) != 2:
         raise ValueError("ge expects exactly two operands.")
@@ -860,7 +862,7 @@ def _format_ge(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_ge
 
 
-def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format negation expressions.
 
@@ -886,7 +888,7 @@ def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_neg
 
 
-def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format multiplication expressions.
 
@@ -915,7 +917,7 @@ def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # endregion ELEMENT-WISE
 
 
-def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 2:
@@ -929,7 +931,7 @@ def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: O
 # end def _format_outer
 
 
-def _format_inverse(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_inverse(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format the inverse of a matrix."""
     if len(expr.children) != 1:
         raise ValueError("inverse expects exactly one operand.")
@@ -939,7 +941,7 @@ def _format_inverse(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op:
 # end def _format_inverse
 
 
-def _format_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format the norm of a vector."""
     if len(expr.children) != 1:
         raise ValueError("norm expects exactly one operand.")
@@ -950,7 +952,7 @@ def _format_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
 # end def _format_norm
 
 
-def _format_infty_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_infty_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format the infinity norm."""
     if len(expr.children) != 1:
         raise ValueError("infty_norm expects exactly one operand.")
@@ -960,7 +962,7 @@ def _format_infty_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, 
 # end def _format_infty_norm
 
 
-def _format_frobenius_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_frobenius_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format the Frobenius norm."""
     if len(expr.children) != 1:
         raise ValueError("frobenius_norm expects exactly one operand.")
@@ -970,7 +972,7 @@ def _format_frobenius_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRu
 # end def _format_frobenius_norm
 
 
-def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -984,7 +986,7 @@ def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
 # end def _format_mean
 
 
-def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -997,7 +999,7 @@ def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     return r"\operatorname{sum}(" + str(operands[0]) + r")"
 # end def _format_sum
 
-def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -1014,7 +1016,7 @@ def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, o
 # end def _format_sum
 
 
-def _format_product(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator):
+def _format_product(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase):
      """Format product expressions."""
      if len(expr.children) != 1:
          raise ValueError("product expects exactly two operand.")
@@ -1030,7 +1032,7 @@ def _format_product(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op:
 # end def _format_product
 
 
-def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -1044,7 +1046,7 @@ def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_std
 
 
-def _format_q1(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_q1(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Q1"""
     if len(expr.children) != 1:
         raise ValueError("q1 expects exactly two operands.")
@@ -1054,7 +1056,7 @@ def _format_q1(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_q1
 
 
-def _format_q3(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_q3(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Q3"""
     if len(expr.children) != 1:
         raise ValueError("q3 expects exactly two operands.")
@@ -1064,7 +1066,7 @@ def _format_q3(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Oper
 # end def _format_q3
 
 
-def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format division expressions.
 
@@ -1091,7 +1093,7 @@ def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_div
 
 
-def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format exponentiation expressions.
 
@@ -1118,7 +1120,7 @@ def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_pow
 
 
-def _format_square(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_square(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
@@ -1129,7 +1131,7 @@ def _format_square(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
 # end def _format_pow
 
 
-def _format_exp2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_exp2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format 2-base exponential expressions."""
     if len(expr.children) != 1:
         raise ValueError("exp2 expects exactly one operand.")
@@ -1138,7 +1140,7 @@ def _format_exp2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
     return rf"2^{{{base}}}"
 # end def _format_exp2
 
-def _format_log2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_log2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format 2-base logarithm expressions."""
     if len(expr.children) != 1:
         raise ValueError("log2 expects exactly one operand.")
@@ -1148,7 +1150,7 @@ def _format_log2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
     return rf"\log_{{{base}}}({{{inner}}})"
 # end def _format_log2
 
-def _format_log10(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_log10(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format 10-base logarithm expressions."""
     if len(expr.children) != 1:
         raise ValueError("log10 expects exactly one operand.")
@@ -1159,7 +1161,7 @@ def _format_log10(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: O
 # end def _format_log10
 
 
-def _format_reciprocal(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_reciprocal(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format reciprocal expressions."""
     if len(expr.children) != 1:
         raise ValueError("reciprocal expects exactly one operand.")
@@ -1169,7 +1171,7 @@ def _format_reciprocal(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, 
 # end def _format_reciprocal
 
 
-def _format_abs(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_abs(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format absolute value expressions."""
     if len(expr.children) != 1:
         raise ValueError("abs expects exactly one operand.")
@@ -1183,7 +1185,7 @@ def _format_abs(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # Discretization operators
 #
 
-def _format_sign(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_sign(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format sign expressions."""
     if len(expr.children) != 1:
         raise ValueError("sign expects exactly one operand.")
@@ -1193,7 +1195,7 @@ def _format_sign(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
 # end def _format_sign
 
 
-def _format_floor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_floor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format floor expressions."""
     if len(expr.children) != 1:
         raise ValueError("floor expects exactly one operand.")
@@ -1203,7 +1205,7 @@ def _format_floor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: O
 # end def _format_floor
 
 
-def _format_ceil(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_ceil(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format ceiling expressions."""
     if len(expr.children) != 1:
         raise ValueError("ceil expects exactly one operand.")
@@ -1213,7 +1215,7 @@ def _format_ceil(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
 # end def _format_ceil
 
 
-def _format_round(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_round(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format rounding expressions."""
     if len(expr.children) != 1:
         raise ValueError("round expects exactly 1 operand.")
@@ -1233,7 +1235,7 @@ def _format_round(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: O
 # end def _format_round
 
 
-def _format_clip(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_clip(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format clipping expressions."""
     if len(expr.children) != 1:
         raise ValueError("clip expects exactly 1 operand.")
@@ -1267,7 +1269,7 @@ def _format_clip(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
 #
 
 
-def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format transpose expressions.
 
@@ -1293,7 +1295,7 @@ def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, o
 # end def _format_transpose
 
 
-def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format matrix multiplication expressions.
 
@@ -1322,7 +1324,7 @@ def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
 # end def _format_matmul
 
 
-def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 2:
@@ -1341,7 +1343,7 @@ def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 #
 
 
-def _format_getitem(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_getitem(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     """Format getitem expressions."""
     if len(expr.children) != 1:
         raise ValueError("getitem expects exactly one operand.")
@@ -1360,7 +1362,7 @@ def _format_structure_unary(
         renderer: _LatexRenderer,
         expr: MathNode,
         rule: _OpRule, *,
-        op: Operator,
+        op: OperatorBase,
         name: str,
         num_operands: int = 1,
 ) -> str:
@@ -1411,22 +1413,22 @@ def _format_axes_suffix(axes: Optional[Sequence[int]]) -> str:
 # end def _format_axes_suffix
 
 
-def _format_squeeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_squeeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     return _format_structure_unary(renderer, expr, rule, op=op, name="squeeze")
 # end def _format_squeeze
 
 
-def _format_unsqueeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_unsqueeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     return _format_structure_unary(renderer, expr, rule, op=op, name="unsqueeze")
 # end def _format_unsqueeze
 
 
-def _format_concat(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_concat(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     return _format_structure_unary(renderer, expr, rule, op=op, name="concat", num_operands=-1)
 # end def _format_concat
 
 
-def _format_hstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_hstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     if len(expr.children) <= 1:
         raise ValueError("hstack expects at least two operands.")
     # end if
@@ -1438,7 +1440,7 @@ def _format_hstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
 # end def _format_hstack
 
 
-def _format_vstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Operator) -> str:
+def _format_vstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
     if len(expr.children) <= 1:
         raise ValueError("vstack expects at least two operands.")
     # end if

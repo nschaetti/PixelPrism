@@ -29,7 +29,7 @@
 Operator package exports.
 """
 
-from .base import Operands, Operator, OperatorRegistry, ParametricOperator, operator_registry
+from .base import Operands, OperatorBase, OperatorRegistry, ParametricOperator, operator_registry
 from .boolean import (
     Eq,
     Ne,
@@ -192,7 +192,7 @@ __all__ = [
     "CONDITIONAL_OPERATORS",
     # Base
     "Operands",
-    "Operator",
+    "OperatorBase",
     "ParametricOperator",
     "OperatorRegistry",
     "operator_registry",

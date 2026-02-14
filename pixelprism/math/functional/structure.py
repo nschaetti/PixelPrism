@@ -28,8 +28,10 @@
 
 # Imports
 from typing import Union, List, Sequence, Optional
-from pixelprism.math.math_base import MathNode, SliceExpr
-from pixelprism.math.build import as_expr
+
+from ..math_node import MathNode
+from ..math_slice import SliceExpr
+from ..build import as_expr
 from .helpers import apply_operator
 
 

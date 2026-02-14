@@ -30,7 +30,8 @@ Calculus functional operators
 """
 
 # Imports
-from ..math_base import MathNode, Variable
+from ..math_node import MathNode
+from ..math_leaves import Variable
 from .builders import vector
 
 
@@ -49,4 +50,3 @@ def nabla(expr: MathNode) -> MathNode:
     """Nabla operator."""
     return vector([expr.diff(v) for v in expr.variables()])
 # end def nabla
-

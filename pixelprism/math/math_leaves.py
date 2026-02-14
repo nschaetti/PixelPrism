@@ -106,9 +106,6 @@ class MathLeaf(
     that expose any nested variables/constants they reference.
     """
 
-    # Arity - always 0 for leaf nodes as they don't have child expressions
-    arity = 0
-
     def __init__(
             self,
             *,
@@ -132,7 +129,7 @@ class MathLeaf(
         super(MathLeaf, self).__init__(name=name, dtype=dtype, shape=shape)
     # end __init__
 
-    # region PREDICATE_MIXIN
+    # region MATH_EXPR
 
     @abstractmethod
     def variables(self) -> list:
@@ -217,7 +214,31 @@ class MathLeaf(
         return False
     # en def contains
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr):
+    @abstractmethod
+    def contains_variable(
+            self,
+            variable: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        """
+        TODO: concrete leaf classes must provide variable-specific lookup logic.
+        """
+    # end def contains_variable
+
+    @abstractmethod
+    def contains_constant(
+            self,
+            constant: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        """
+        TODO: concrete leaf classes must provide constant-specific lookup logic.
+        """
+    # end def contains_constant
+
+    def replace(self, old_m: MathExpr, new_m: MathExpr) -> None:
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters
@@ -243,7 +264,43 @@ class MathLeaf(
         raise SymbolicMathNotImplementedError("Leaf nodes do not support rename.")
     # end rename
 
-    # endregion PREDICATE_MIXIN
+    def is_node(self) -> bool:
+        """
+        TODO: keep explicit for MathExpr protocol audits.
+        """
+        return False
+    # end def is_node
+
+    def is_leaf(self) -> bool:
+        """
+        TODO: keep explicit for MathExpr protocol audits.
+        """
+        return True
+    # end def is_leaf
+
+    def copy(self, deep: bool = False) -> "MathLeaf":
+        """
+        TODO: unify leaf copy contract (`deep`) with Variable/Constant copy APIs.
+        """
+        # TODO: return type should likely be covariant and preserve leaf subtype.
+        return self
+    # end def copy
+
+    def __str__(self) -> str:
+        """
+        TODO: subclasses should provide domain-specific string representations.
+        """
+        return self.__repr__()
+    # end def __str__
+
+    def __repr__(self) -> str:
+        """
+        TODO: subclasses should override for richer debug output.
+        """
+        return f"{self.__class__.__name__}({self.name})"
+    # end def __repr__
+
+    # endregion MATH_EXPR
 
 # end MathLeaf
 
@@ -348,6 +405,8 @@ class Variable(MathLeaf):
 
     # endregion PROPERTIES
 
+    # region MATH_EXPR
+
     # region EVALUABLE_MIXIN
 
     def eval(self) -> Tensor:
@@ -356,7 +415,7 @@ class Variable(MathLeaf):
 
         Returns
         -------
-        Tensor
+        'Tensor'
             Tensor retrieved from the active context.
 
         Raises
@@ -391,7 +450,9 @@ class Variable(MathLeaf):
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        pass
+        # TODO: keep dedicated leaf-level specialization if variable lookup
+        # semantics diverge from generic `contains(..., look_for="var")`.
+        return self.contains(variable, by_ref=by_ref, check_operator=check_operator, look_for="var")
     # end def contains_variable
 
     def contains_constant(
@@ -400,7 +461,8 @@ class Variable(MathLeaf):
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        pass
+        # TODO: if variables can capture constants via metadata later, update.
+        return False
     # end def contains_constant
 
     def variables(self) -> list:
@@ -485,7 +547,11 @@ class Variable(MathLeaf):
         new_m: PredicateMixin
             New MathExpr replacing the old one.
         """
-        pass
+        # TODO: decide whether leaf-level replace should mutate in-place
+        # (rename/value swap) or be handled exclusively by parent nodes.
+        raise SymbolicMathNotImplementedError(
+            "TODO: implement Variable.replace(...) semantics for leaf substitution."
+        )
     # end def replace
 
     def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
@@ -527,19 +593,22 @@ class Variable(MathLeaf):
 
     # endregion DIFFERENTIABLE_MIXIN
 
-    # region PUBLIC
+    # region MATH_EXPR_MISC
 
     def copy(
             self,
-            name: str
+            name: Optional[str] = None,
+            deep: bool = False
     ) -> 'Variable':
         """
         Create a shallow copy with a new name.
 
         Parameters
         ----------
-        name : str
-            Name assigned to the clone.
+        name : str, optional
+            Name assigned to the clone. Uses current name when ``None``.
+        deep : bool, optional
+            TODO: deep copy semantics are currently unused for leaves.
 
         Returns
         -------
@@ -547,13 +616,39 @@ class Variable(MathLeaf):
             New variable sharing dtype/shape metadata.
         """
         return Variable(
-            name=name,
+            name=name or self._name,
             dtype=self._dtype,
             shape=self._shape.copy(),
         )
     # end def copy
 
-    # endregion PUBLIC
+    # endregion MATH_EXPR_MISC
+
+    # region MATH_EXPR_MISC
+
+    def __str__(self):
+        """
+        Returns
+        -------
+        str
+            Human-readable description of the variable.
+        """
+        return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
+    # end __str__
+
+    def __repr__(self):
+        """
+        Returns
+        -------
+        str
+            Debug representation identical to :meth:`__str__`.
+        """
+        return self.__str__()
+    # end __repr__
+
+    # endregion MATH_EXPR_MISC
+
+    # endregion MATH_EXPR
 
     # region STATIC
 
@@ -590,30 +685,6 @@ class Variable(MathLeaf):
     # end def create
 
     # endregion STATIC
-
-    # region OVERRIDE
-
-    def __str__(self):
-        """
-        Returns
-        -------
-        str
-            Human-readable description of the variable.
-        """
-        return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
-    # end __str__
-
-    def __repr__(self):
-        """
-        Returns
-        -------
-        str
-            Debug representation identical to :meth:`__str__`.
-        """
-        return self.__str__()
-    # end __repr__
-
-    # endregion OVERRIDE
 
 # end class Variable
 
@@ -721,6 +792,8 @@ class Constant(MathLeaf):
     # end def n_elements
 
     # endregion PROPERTIES
+
+    # region MATH_EXPR
 
     # region EVALUABLE_MIXIN
 
@@ -845,7 +918,11 @@ class Constant(MathLeaf):
         new_m: MathNode
             New MathExpr replacing the old one.
         """
-        pass
+        # TODO: decide whether replacing a constant leaf should mutate this
+        # instance or be performed at parent-level by child substitution.
+        raise SymbolicMathNotImplementedError(
+            "TODO: implement Constant.replace(...) semantics for leaf substitution."
+        )
     # end def replace
 
     def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
@@ -880,6 +957,62 @@ class Constant(MathLeaf):
 
     # endregion DIFFERENTIABLE_MIXIN
 
+    # region MATH_EXPR_MISC
+
+    def copy(
+            self,
+            name: Optional[str] = None,
+            deep: bool = False
+    ) -> 'Constant':
+        """
+        Create a copy of the constant with a new name.
+
+        Parameters
+        ----------
+        name : str, optional
+            Identifier assigned to the clone. Uses current name when ``None``.
+        deep : bool, optional
+            TODO: deep copy semantics are currently unused for leaves.
+
+        Returns
+        -------
+        Constant
+            New constant carrying a copy of the tensor.
+        """
+        return Constant(
+            name=name or self._name,
+            data=self._data.copy()
+        )
+    # end def copy
+
+    # endregion MATH_EXPR_MISC
+
+    # region MATH_EXPR_MISC
+
+    def __str__(self):
+        """
+        Returns
+        -------
+        str
+            Human-readable description of the constant.
+        """
+        return f"constant({self.name}, dtype={self._dtype}, shape={self._shape})"
+    # end __str__
+
+    def __repr__(self):
+        """
+        Returns
+        -------
+        str
+            Debug representation identical to :meth:`__str__`.
+        """
+        return self.__str__()
+    # end __repr__
+
+    # endregion MATH_EXPR_MISC
+
+    # endregion MATH_EXPR
+
     # region PUBLIC
 
     def set(self, data: Tensor) -> None:
@@ -905,29 +1038,6 @@ class Constant(MathLeaf):
         self._data = data
     # end def set
 
-    def copy(
-            self,
-            name: str
-    ) -> 'Constant':
-        """
-        Create a copy of the constant with a new name.
-
-        Parameters
-        ----------
-        name : str
-            Identifier assigned to the clone.
-
-        Returns
-        -------
-        Constant
-            New constant carrying a copy of the tensor.
-        """
-        return Constant(
-            name=name,
-            data=self._data.copy()
-        )
-    # end def copy
-
     # endregion PUBLIC
 
     # region STATIC
@@ -952,29 +1062,4 @@ class Constant(MathLeaf):
 
     # endregion STATIC
 
-    # region OVERRIDE
-
-    def __str__(self):
-        """
-        Returns
-        -------
-        str
-            Human-readable description of the constant.
-        """
-        return f"constant({self.name}, dtype={self._dtype}, shape={self._shape})"
-    # end __str__
-
-    def __repr__(self):
-        """
-        Returns
-        -------
-        str
-            Debug representation identical to :meth:`__str__`.
-        """
-        return self.__str__()
-    # end __repr__
-
-    # endregion OVERRIDE
-
 # end class Constant
-

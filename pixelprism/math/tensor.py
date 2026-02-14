@@ -33,7 +33,7 @@ import numpy as np
 
 from .shape import Shape, ShapeLike
 from .dtype import DType, TypeLike, to_numpy, convert_numpy, from_numpy
-from .typing import TensorLike, NumberLike, NumberListLike, DimsInt, DimInt
+from .typing import TensorLike, NumberListLike, DimsInt, DimInt
 
 __all__ = [
     "tensor",

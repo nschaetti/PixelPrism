@@ -99,7 +99,7 @@ class MathBase:
         """
         Returns
         -------
-        int
+        'int'
             Unique identifier for the node.
         """
         return self._id
@@ -110,7 +110,7 @@ class MathBase:
         """
         Returns
         -------
-        DType
+        'DType'
             Element dtype for this expression.
         """
         return self._dtype
@@ -121,7 +121,7 @@ class MathBase:
         """
         Returns
         -------
-        Shape
+        'Shape'
             Symbolic shape describing the tensor extent.
         """
         return self._shape

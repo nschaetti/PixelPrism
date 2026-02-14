@@ -9,7 +9,7 @@ from pixelprism.math.math_base import (
 )
 from pixelprism.math.shape import Shape
 from pixelprism.math.tensor import Tensor
-from pixelprism.math.operators import Operator
+from pixelprism.math.operators import OperatorBase
 
 
 class DummyLeaf(MathLeaf):
@@ -45,7 +45,7 @@ class TrackableMathNode(MathNode):
 # end class TrackableMathExpr
 
 
-class DummyOp(Operator):
+class DummyOp(OperatorBase):
     """Minimal operator implementation for MathExpr tests."""
 
     def __str__(self) -> str:

@@ -28,9 +28,9 @@
 
 from __future__ import annotations
 
-from pixelprism.math.build import as_expr
-from pixelprism.math.functional.helpers import apply_operator
-from pixelprism.math.math_base import MathNode
+from ..build import as_expr
+from .helpers import apply_operator
+from ..math_node import MathNode
 
 __all__ = [
     "eq",

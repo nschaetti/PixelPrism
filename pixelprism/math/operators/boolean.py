@@ -36,7 +36,7 @@ from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
-from .base import Operands, Operator, operator_registry
+from .base import Operands, OperatorBase, operator_registry
 
 __all__ = [
     "Eq",
@@ -54,7 +54,7 @@ __all__ = [
 ]
 
 
-class ComparisonOperator(Operator, ABC):
+class ComparisonOperator(OperatorBase, ABC):
     pass
 # end class ComparisonOperator
 

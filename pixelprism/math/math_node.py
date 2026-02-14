@@ -29,7 +29,7 @@
 # Imports
 from __future__ import annotations
 import weakref
-from typing import Any, FrozenSet, List, Optional, Tuple, Union, Dict, Sequence
+from typing import Any, FrozenSet, List, Optional, Tuple, Union, Dict, Sequence, TYPE_CHECKING
 
 from .math_base import MathBase
 from .math_exceptions import (
@@ -41,7 +41,12 @@ from .mixins import DifferentiableMixin, PredicateMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .typing import Index, MathExpr
+from .typing import Index, MathExpr, Operands
+
+
+if TYPE_CHECKING:
+    from .math_leaves import Constant, Variable
+# end if
 
 
 __all__ = [
@@ -79,7 +84,7 @@ class MathNode(
             name: Optional[str],
             *,
             op: Optional,
-            children: Tuple[MathExpr, ...],
+            children: Operands,
             dtype: DType,
             shape: Shape
     ) -> None:
@@ -101,7 +106,7 @@ class MathNode(
         """
         super(MathNode, self).__init__(name=name, dtype=dtype, shape=shape)
         self._op = op
-        self._children: Tuple[MathExpr, ...] = children
+        self._children: Operands = children
         self._parents_weak: weakref.WeakSet[MathExpr] = weakref.WeakSet()
         self._check_operator()
         self._register_as_parent_of(*children)
@@ -168,27 +173,11 @@ class MathNode(
 
     # endregion PROPERTIES
 
-    # region PUBLIC
+    # region MATH_EXPR
 
-    def diff(
-            self,
-             wrt: MathExpr
-    ) -> MathExpr:
-        """
-        Compute the derivative of this expression with respect to ``wrt``.
-
-        Parameters
-        ----------
-        wrt : Variable
-            The variable to differentiate with respect to.
-
-        Returns
-        -------
-        MathBase
-            The derivative of ``self`` with respect to ``wrt``.
-        """
-        return self._op.diff(wrt=wrt, operands=self._children)
-    # end def diff
+    def shape(self) -> Shape:
+        return self._shape
+    # end def shape
 
     def eval(self) -> Tensor:
         """
@@ -196,103 +185,39 @@ class MathNode(
 
         Returns
         -------
-        Tensor
+        'Tensor'
             Result of executing ``self.op`` with evaluated children.
         """
         return self._op.eval(operands=self._children)
     # end def eval
 
-    def is_node(self) -> bool:
+    def diff(
+            self,
+             wrt: "Variable"
+    ) -> MathExpr:
         """
-        Returns
-        -------
-        bool
-            ``True`` when the expression has an operator (non-leaf).
-        """
-        return self._op is not None
-    # end def is_node
-
-    def is_leaf(self) -> bool:
-        """
-        Returns
-        -------
-        bool
-            ``True`` when the expression has no children.
-        """
-        return len(self._children) == 0
-    # end is_leaf
-
-    def is_scalar(self) -> bool:
-        """
-        Is the expression a scalar?
-
-        Returns:
-            ``True`` when the expression is a leaf and its shape is (1,)
-        """
-        return self._shape.rank == 0
-    # end def is_scalar
-
-    def is_vector(self) -> bool:
-        """
-        Is the expression a vector?
-
-        Returns:
-            ``True`` when the expression is a leaf and its shape is (n,)
-        """
-        return self._shape.rank == 1
-    # end def is_vector
-
-    def is_matrix(self) -> bool:
-        """
-        Is the expression a matrix?
-
-        Returns:
-            ``True`` when the expression is a leaf and its shape is (m,n)
-        """
-        return self._shape.rank == 2
-    # end is_matrix
-
-    def is_constant(self):
-        """Does the expression contain only constant values?"""
-        rets = [o.is_constant() for o in self._children]
-        return all(rets)
-    # end def is_constant
-
-    def is_variable(self):
-        """Does the expression contain a variable?"""
-        rets = [o.is_variable() for o in self._children]
-        return any(rets)
-    # end def is_variable
-
-    def is_higher_order(self):
-        """
-        Is the expression higher order?
-
-        Returns:
-            ``True`` when the expression is a leaf and its shape is (m,n,...)
-        """
-        return self._shape.rank > 2
-    # end def is_higher_order
-
-    def add_parent(self, parent: MathExpr):
-        """
-        Register ``parent`` as a consumer of this node.
+        Compute the derivative of this expression with respect to ``wrt``.
 
         Parameters
         ----------
-        parent : MathNode
-            Expression that references ``self`` as an input.
-        """
-        self._parents_weak.add(parent)
-    # end def parent
+        wrt : "Variable"
+            The variable to differentiate with respect to.
 
-    def variables(self) -> List:
+        Returns
+        -------
+        'MathExpr'
+            The derivative of ``self`` with respect to ``wrt``.
+        """
+        return self._op.diff(wrt=wrt, operands=self._children)
+    # end def diff
+
+    def variables(self) -> Sequence['Variable']:
         """
         Enumerate variable leaves reachable from this node.
 
         Returns
         -------
-        list[MathNode]
+        Sequence['Variable']
             List of :class:`Variable` instances (duplicates possible).
         """
         _vars: List = list()
@@ -302,13 +227,13 @@ class MathNode(
         return _vars
     # end def variables
 
-    def constants(self) -> List:
+    def constants(self) -> Sequence['Constant']:
         """
         Enumerate constant leaves reachable from this node.
 
         Returns
         -------
-        list[MathNode]
+        Sequence['Constant']
             List of :class:`Constant` instances (duplicates possible).
         """
         constants: List = list()
@@ -317,23 +242,6 @@ class MathNode(
         # end for
         return constants
     # end def constants
-
-    def leaves(self) -> List:
-        """
-        Collect all leaves reachable from the node.
-
-        Returns
-        -------
-        list[MathNode]
-            Combined list of variables and constants.
-        """
-        return self.variables() + self.constants()
-    # end def leaves
-
-    def depth(self) -> int:
-        """Return the depth of the node in the tree"""
-        return max([c.depth() for c in self._children]) + 1
-    # end def depth
 
     def contains(
             self,
@@ -365,7 +273,12 @@ class MathNode(
             ``True`` when ``var`` was located in ``self`` or any child.
         """
         rets = [
-            c.contains(leaf, by_ref=by_ref, check_operator=check_operator, look_for=look_for)
+            c.contains(
+                leaf,
+                by_ref=by_ref,
+                check_operator=check_operator,
+                look_for=look_for
+            )
             for c in self._children
         ]
         return (
@@ -377,7 +290,7 @@ class MathNode(
 
     def contains_variable(
             self,
-            variable: Union[str, MathExpr],
+            variable: Union[str, 'Variable'],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -387,7 +300,7 @@ class MathNode(
 
     def contains_constant(
             self,
-            constant: Union[str, MathExpr],
+            constant: Union[str, 'Constant'],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
@@ -395,29 +308,10 @@ class MathNode(
         return self.contains(constant, by_ref=by_ref, check_operator=check_operator, look_for="const")
     # end def contains_constant
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr):
-        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
-
-        Parameters
-        ----------
-        old_m: MathNode
-            MathExpr to replace.
-        new_m: MathNode
-            New MathExpr replacing the old one.
-        """
-        if self is old_m:
-            raise ValueError("Cannot replace a node with itself.")
-        # end if
-
-        new_children = [
-            new_m if child is old_m else child
-            for child in self._children
-        ]
-        self._children = tuple(new_children)
-    # end def replace
-
     def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
-        """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
+        """
+        Rename all variables/constants named ``old_name`` with ``new_name`` in the tree.
+        The replacement is in-place.
 
         Parameters
         ----------
@@ -433,6 +327,143 @@ class MathNode(
         # end for
         return rename_dict
     # end rename
+
+    def is_constant(self):
+        """Does the expression contain only constant values?"""
+        rets = [o.is_constant() for o in self._children]
+        return all(rets)
+    # end def is_constant
+
+    def is_variable(self):
+        """Does the expression contain a variable?"""
+        rets = [o.is_variable() for o in self._children]
+        return any(rets)
+    # end def is_variable
+
+    def is_node(self) -> bool:
+        """
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression has an operator (non-leaf).
+        """
+        return self._op is not None
+    # end def is_node
+
+    def is_leaf(self) -> bool:
+        """
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression has no children.
+        """
+        return len(self._children) == 0
+    # end is_leaf
+
+    def depth(self) -> int:
+        """Return the depth of the node in the tree"""
+        return max([c.depth() for c in self._children]) + 1
+    # end def depth
+
+    def copy(self, deep: bool = False):
+        """
+        TODO: define a stable copy contract for MathNode.
+
+        Current implementation is intentionally conservative: deep copies of
+        DAG nodes are not yet specified (shared children, parent weakrefs,
+        operator-owned parameters).
+        """
+        raise SymbolicMathNotImplementedError(
+            "TODO: implement MathNode.copy(deep=...) once graph copy semantics are finalized."
+        )
+    # end def copy
+
+    def __str__(self) -> str:
+        """
+        TODO: provide a dedicated human-readable string format.
+        """
+        return self.__repr__()
+    # end def __str__
+
+    def __repr__(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Readable representation containing type, id, dtype, and shape.
+        """
+        op_name = self._op.name if self._op is not None else "Leaf"
+        shape_str = str(self._shape)
+        return f"<{self.__class__.__name__} #{self._id} {op_name} {self._dtype.value} {shape_str} c:{len(self._children)}>"
+    # end __repr__
+
+    # endregion MATH_EXPR
+
+    # region PUBLIC
+
+    def is_scalar(self) -> bool:
+        """
+        Is the expression a scalar?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (1,)
+        """
+        return self._shape.rank == 0
+    # end def is_scalar
+
+    def is_vector(self) -> bool:
+        """
+        Is the expression a vector?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (n,)
+        """
+        return self._shape.rank == 1
+    # end def is_vector
+
+    def is_matrix(self) -> bool:
+        """
+        Is the expression a matrix?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n)
+        """
+        return self._shape.rank == 2
+    # end is_matrix
+
+    def is_higher_order(self):
+        """
+        Is the expression higher order?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n,...)
+        """
+        return self._shape.rank > 2
+    # end def is_higher_order
+
+    def add_parent(self, parent: MathExpr):
+        """
+        Register ``parent`` as a consumer of this node.
+
+        Parameters
+        ----------
+        parent : MathNode
+            Expression that references ``self`` as an input.
+        """
+        self._parents_weak.add(parent)
+    # end def parent
+
+    def leaves(self) -> List:
+        """
+        Collect all leaves reachable from the node.
+
+        Returns
+        -------
+        list[MathNode]
+            Combined list of variables and constants.
+        """
+        return self.variables() + self.constants()
+    # end def leaves
 
     # endregion PUBLIC
 
@@ -740,18 +771,6 @@ class MathNode(
 
     # region OVERRIDE
 
-    def __repr__(self) -> str:
-        """
-        Returns
-        -------
-        str
-            Readable representation containing type, id, dtype, and shape.
-        """
-        op_name = self._op.name if self._op is not None else "Leaf"
-        shape_str = str(self._shape)
-        return f"<{self.__class__.__name__} #{self._id} {op_name} {self._dtype.value} {shape_str} c:{len(self._children)}>"
-    # end __repr__
-
     def __hash__(self) -> int:
         """
         Returns
@@ -940,5 +959,3 @@ class MathNode(
     # endregion OVERRIDE
 
 # end class MathNode
-
-

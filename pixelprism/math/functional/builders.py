@@ -31,7 +31,8 @@ from __future__ import annotations
 from typing import Callable, Sequence, Union, Optional
 import numpy as np
 
-from ..math_base import MathNode, Variable
+from ..math_node import MathNode
+from ..math_leaves import Variable
 from ..build import as_expr
 from ..shape import Shape
 from ..dtype import DType

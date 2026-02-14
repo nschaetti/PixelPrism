@@ -10,7 +10,7 @@ from __future__ import annotations
 import weakref
 from typing import Callable
 
-from ..math_base import MathNode
+from ..math_node import MathNode
 
 __all__ = ["LatexRenderCache"]
 

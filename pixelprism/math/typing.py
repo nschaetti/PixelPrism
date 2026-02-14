@@ -27,9 +27,20 @@
 #
 
 
+from __future__ import annotations
+
 from typing import Protocol, runtime_checkable
-from typing import Tuple, Union, Sequence, List, Optional, Dict, TypeAlias
+from typing import TYPE_CHECKING, Tuple, Union, Sequence, List, Optional, Dict, TypeAlias
+from typing import ClassVar
 import numpy as np
+
+
+if TYPE_CHECKING:
+    from .tensor import Tensor
+    from .math_node import MathNode
+    from .math_leaves import Variable, Constant
+    from .shape import Shape
+# end if
 
 
 __all__ = [
@@ -44,6 +55,9 @@ __all__ = [
     "DimsLike",
     "DimInt",
     "DimsInt",
+    "Operand",
+    "Operands",
+    "Operator"
 ]
 
 
@@ -52,8 +66,10 @@ NumberLike = float | int | bool | complex | np.number
 ScalarLike = int | float | np.number | bool | complex
 NumberListLike: TypeAlias = list[Union[ScalarLike, "NumberListLike"]]
 
+
 # Tensor data
 TensorLike: TypeAlias = Union[NumberLike, NumberListLike, np.ndarray]
+
 
 # Represents a valid index
 Index = Union[
@@ -64,13 +80,14 @@ Index = Union[
 ]
 
 
+# Protocol for mathematical expressions
 @runtime_checkable
 class MathExpr(Protocol):
-    def shape(self) -> 'Shape': ...
-    def eval(self) -> 'Tensor': ...
-    def diff(self, wrt: 'MathExpr') -> 'MathExpr': ...
-    def variables(self) -> List['MathExpr']: ...
-    def constants(self) -> List['MathExpr']: ...
+    def shape(self) -> "Shape": ...
+    def eval(self) -> "Tensor": ...
+    def diff(self, wrt: 'Variable') -> 'MathExpr': ...
+    def variables(self) -> Sequence['Variable']: ...
+    def constants(self) -> Sequence['Constant']: ...
     def contains(
             self,
             leaf: Union[str, 'MathExpr'],
@@ -80,17 +97,16 @@ class MathExpr(Protocol):
     ) -> bool: ...
     def contains_variable(
             self,
-            variable: Union[str, 'MathExpr'],
+            variable: Union[str, 'Variable'],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool: ...
     def contains_constant(
             self,
-            constant: Union[str, 'MathExpr'],
+            constant: Union[str, 'Constant'],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool: ...
-    def replace(self, old_m: 'MathExpr', new_m: 'MathExpr'): ...
     def rename(self, old_name: str, new_name: str) -> Dict[str, str]: ...
     def is_constant(self) -> bool: ...
     def is_variable(self) -> bool: ...
@@ -103,9 +119,38 @@ class MathExpr(Protocol):
 # end class MathExpr
 
 
+Operand: TypeAlias = "MathNode"
+Operands = List[Operand] | Tuple[Operand, ...]
+
+
+# Protocol for mathematical operators
+class Operator(Protocol):
+    ARITY: ClassVar[int]
+    IS_VARIADIC: ClassVar[bool]
+    IS_DIFF: ClassVar[bool]
+    NAME: ClassVar[str]
+
+    @property
+    def name(self) -> str: ...
+    @property
+    def arity(self) -> int: ...
+    @arity.setter
+    def arity(self, value: int) -> None: ...
+    @property
+    def is_variadic(self) -> bool: ...
+    @property
+    def is_diff(self) -> bool: ...
+
+    def contains(self, expr: "MathExpr", by_ref: bool = False, look_for: Optional[str] = None) -> bool: ...
+    def check_operands(self, operands: Operands) -> bool: ...
+    def eval(self, operands: Operands, **kwargs) -> "Tensor": ...
+    def diff(self, wrt: "Variable", operands: Operands) -> "MathExpr": ...
+# end class Operator
+
+
 # Dimensions
-DimExpr: TypeAlias = 'MathExpr'
+DimExpr: TypeAlias = "MathExpr"
 DimInt = int
 DimsInt = Tuple[int, ...]
-DimLike = int | DimExpr
+DimLike: TypeAlias = Union[int, "MathExpr"]
 DimsLike = Union[Tuple[DimLike, ...], List[DimLike], Sequence[DimLike]]

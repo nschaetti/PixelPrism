@@ -45,8 +45,6 @@ from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Union, Dict
 import numpy as np
 
-from .build import as_expr
-from .tensor import Tensor
 from .dtype import TypeLike, to_numpy
 from .typing import DimLike, DimsLike, DimExpr, MathExpr
 from .math_exceptions import SymbolicMathInvalidDimensionError
@@ -96,7 +94,7 @@ class Shape(MathExpr):
     @property
     def shape(self) -> List[int]:
         """Return the dimensions' list."""
-        return [dim.eval().item() if isinstance(dim, DimExpr) else dim for dim in self._dims]
+        return [dim.eval().item() if isinstance(dim, MathExpr) else dim for dim in self._dims]
     # end def shape
 
     @property
@@ -172,6 +170,7 @@ class Shape(MathExpr):
 
     def eval(self) -> 'Tensor':
         """Evaluate the symbolic shape as a tensor."""
+        from .tensor import Tensor
         dim_values = [d.eval() if isinstance(d, MathExpr) else d for d in self._dims]
         return Tensor(dim_values)
     # end def eval
@@ -271,6 +270,51 @@ class Shape(MathExpr):
         dims_depth = [d.depth() for d in self._dims]
         return max(dims_depth) + 1
      # end def depth
+
+    def copy(self, deep: bool = False):
+        """Return a copy of the shape.
+
+        Returns
+        -------
+        Shape
+            Copy of the current shape.
+        """
+        if not deep:
+            return Shape(self._dims)
+        else:
+            return Shape([d.copy(deep) for d in self._dims])
+        # end if
+    # end def copy
+
+    def __repr__(self) -> str:
+        """Return the repr() form of the shape.
+
+        Returns
+        -------
+        str
+            Developer-friendly representation including raw dimensions.
+        """
+        if self.rank == 0:
+            return "scalar_shape()"
+        elif self.rank == 1:
+            return f"vector_shape({self._dims[0]})"
+        elif self.rank == 2:
+            return f"matrix_shape({self._dims[0]}, {self._dims[1]})"
+        else:
+            return f"tensor_shape({self._dims})"
+        # end if
+    # end def __repr__
+
+    def __str__(self) -> str:
+        """Return the str() form of the shape.
+
+        Returns
+        -------
+        str
+            Readable representation.
+        """
+        return f"{self._dims}"
+    # end def __str__
 
     # endregion MATH_EXPR
 
@@ -385,6 +429,7 @@ class Shape(MathExpr):
         if axis < 0 or axis > self.rank:
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
+        from .build import as_expr
         size = as_expr(size)
         return Shape(self._dims[:axis] + [size] + self._dims[axis:])
     # end def insert_axis
@@ -404,6 +449,7 @@ class Shape(MathExpr):
         None
             This operation updates the instance in-place.
         """
+        from .build import as_expr
         size = as_expr(size)
         self._dims = self.insert_axis(axis, size)._dims
     # end def insert_axis_
@@ -622,7 +668,7 @@ class Shape(MathExpr):
             Number of elements or ``None`` when any dimension is unknown.
         """
         total = 1
-        dims: Tensor = self.eval()
+        dims = self.eval()
         for dim in dims.tolist():
             total *= dim
         # end for
@@ -773,21 +819,6 @@ class Shape(MathExpr):
         return Shape(tuple(dims))
     # end def stack_shape
 
-    def copy(self, deep: bool = False):
-        """Return a copy of the shape.
-
-        Returns
-        -------
-        Shape
-            Copy of the current shape.
-        """
-        if not deep:
-            return Shape(self._dims)
-        else:
-            return Shape([d.copy(deep) for d in self._dims])
-        # end if
-    # end def copy
-
     @staticmethod
     def _check_dim(dim: DimLike) -> None:
         """Validate a single-dimension value.
@@ -810,7 +841,7 @@ class Shape(MathExpr):
                 f"Shape dimensions must be non-negative if integers ({dim} given)."
             )
         # end if
-        if isinstance(dim, DimExpr):
+        if isinstance(dim, MathExpr):
             # Only expr with constants
             if not dim.is_constant:
                 raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be constant: {dim}")
@@ -837,13 +868,13 @@ class Shape(MathExpr):
         bool
             ``True`` if both dimensions can represent the same size.
         """
-        if isinstance(dim_a, DimExpr) and isinstance(dim_b, DimExpr):
+        if isinstance(dim_a, MathExpr) and isinstance(dim_b, MathExpr):
             return dim_a.eval().item() == dim_b.eval().item()
         elif isinstance(dim_a, int) and isinstance(dim_b, int):
             return dim_a == dim_b
-        elif isinstance(dim_a, DimExpr) and isinstance(dim_b, int):
+        elif isinstance(dim_a, MathExpr) and isinstance(dim_b, int):
             return dim_a.eval().item() == dim_b
-        elif isinstance(dim_a, int) and isinstance(dim_b, DimExpr):
+        elif isinstance(dim_a, int) and isinstance(dim_b, MathExpr):
             return dim_b.eval().item() == dim_a
         else:
             return False
@@ -871,7 +902,7 @@ class Shape(MathExpr):
         ValueError
             If the dimensions are incompatible.
         """
-        if as_expr(dim_a).eval().item() != dim_b:
+        if not Shape._dims_equal(dim_a, dim_b):
             raise ValueError(f"Incompatible dimensions: {dim_a} vs {dim_b}.")
         # end if
         return dim_a
@@ -1034,36 +1065,6 @@ class Shape(MathExpr):
         return hash(self._dims)
     # end def __hash__
 
-    def __repr__(self) -> str:
-        """Return the repr() form of the shape.
-
-        Returns
-        -------
-        str
-            Developer-friendly representation including raw dimensions.
-        """
-        if self.rank == 0:
-            return "scalar_shape()"
-        elif self.rank == 1:
-            return f"vector_shape({self._dims[0]})"
-        elif self.rank == 2:
-            return f"matrix_shape({self._dims[0]}, {self._dims[1]})"
-        else:
-            return f"tensor_shape({self._dims})"
-        # end if
-    # end def __repr__
-
-    def __str__(self) -> str:
-        """Return the str() form of the shape.
-
-        Returns
-        -------
-        str
-            Readable representation.
-        """
-        return f"{self._dims}"
-    # end def __str__
-
     # endregion OVERRIDE
 
     # region NUMPY
@@ -1077,4 +1078,3 @@ class Shape(MathExpr):
     # endregion NUMPY
 
 # end class Shape
-

@@ -34,13 +34,13 @@ from abc import ABC
 from typing import Optional, Sequence, Union, Any, List
 import numpy as np
 
-from ..utils import const
+from ..math_leaves import const
 from ..random import random_const_name
 from ..dtype import DType, to_numpy, promote
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor, einsum
-from .base import Operands, operator_registry, Operator, ParametricOperator
+from .base import Operands, operator_registry, OperatorBase, ParametricOperator
 
 
 __all__ = [
@@ -59,7 +59,7 @@ __all__ = [
 ]
 
 
-class LinearAlgebraOperator(Operator, ABC):
+class LinearAlgebraOperator(OperatorBase, ABC):
     """
     Linear algebra operator.
     """
