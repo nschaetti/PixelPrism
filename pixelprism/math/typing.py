@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from types import EllipsisType
 from typing import Protocol, runtime_checkable, Literal, NamedTuple, FrozenSet
-from typing import TYPE_CHECKING, Tuple, Union, Sequence, List, Optional, Dict, TypeAlias
+from typing import TYPE_CHECKING, Tuple, Union, Sequence, TypeAlias
 from typing import ClassVar, Mapping
 import numpy as np
 

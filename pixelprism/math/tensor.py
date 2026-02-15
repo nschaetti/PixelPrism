@@ -28,12 +28,13 @@
 
 
 # Imports
+import builtins
 from typing import Iterable, List, Union, Any, Optional, Tuple, Callable, Sequence, Literal
 import numpy as np
 
-from .shape import Shape, ShapeLike
+from .shape import Shape, ShapeLike, DimInt
 from .dtype import DType, TypeLike, to_numpy, convert_numpy, from_numpy
-from .typing import TensorLike, ScalarListLike, DimsInt, DimInt
+from .typing import TensorLike, ScalarListLike
 
 __all__ = [
     "tensor",
@@ -44,6 +45,11 @@ __all__ = [
     "vector_shape",
     "matrix_shape",
     "full",
+    "normal",
+    "uniform",
+    "randint",
+    "poisson",
+    "bernoulli",
     "zeros",
     "ones",
     "concatenate",
@@ -128,7 +134,7 @@ def _normalize_shape(shape: ShapeLike) -> Tuple[int, ...]:
     elif isinstance(shape, Shape):
         return shape.dims
     # end if
-    assert all(isinstance(dim, int) and dim >= 0 for dim in dims), "shape must be non-negative integers"
+    assert builtins.all(isinstance(dim, int) and dim >= 0 for dim in dims), "shape must be non-negative integers"
     return dims
 # end def _normalize_shape
 
@@ -534,6 +540,216 @@ def full(
 # end def full
 
 
+def normal(
+        shape: ShapeLike,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        dtype: Optional[TypeLike] = None,
+        mutable: bool = True
+) -> 'Tensor':
+    """Sample a tensor from a normal (Gaussian) distribution.
+
+    Parameters
+    ----------
+    shape : ShapeLike
+        Output tensor shape.
+    loc : float, default 0.0
+        Mean of the normal distribution.
+    scale : float, default 1.0
+        Standard deviation of the normal distribution. Must be non-negative.
+    dtype : TypeLike, optional
+        Optional target dtype used to cast the sampled values.
+    mutable : bool, default True
+        Whether the resulting tensor is mutable.
+
+    Returns
+    -------
+    Tensor
+        Tensor populated with normal-distributed samples.
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is negative.
+
+    Examples
+    --------
+    >>> from pixelprism.math import normal
+    >>> t = normal((2, 3), loc=1.0, scale=0.5)
+    >>> t.shape.dims
+    (2, 3)
+    """
+    if scale < 0:
+        raise ValueError("scale must be non-negative.")
+    # end if
+    dims = _normalize_shape(shape)
+    data = np.random.normal(loc=loc, scale=scale, size=dims)
+    if dtype is not None:
+        data = data.astype(_resolve_dtype(dtype))
+    # end if
+    return Tensor(data=data, mutable=mutable)
+# end def normal
+
+
+def uniform(
+        shape: ShapeLike,
+        low: float = 0.0,
+        high: float = 1.0,
+        dtype: Optional[TypeLike] = None,
+        mutable: bool = True
+) -> 'Tensor':
+    """Sample a tensor from a uniform distribution on ``[low, high)``.
+
+    Parameters
+    ----------
+    shape : ShapeLike
+        Output tensor shape.
+    low : float, default 0.0
+        Lower bound of the sampling interval.
+    high : float, default 1.0
+        Upper bound of the sampling interval.
+    dtype : TypeLike, optional
+        Optional target dtype used to cast sampled values.
+    mutable : bool, default True
+        Whether the resulting tensor is mutable.
+
+    Returns
+    -------
+    Tensor
+        Tensor populated with uniformly distributed samples.
+
+    Raises
+    ------
+    ValueError
+        If ``high`` is not greater than ``low``.
+    """
+    if high <= low:
+        raise ValueError("high must be strictly greater than low.")
+    # end if
+    dims = _normalize_shape(shape)
+    data = np.random.uniform(low=low, high=high, size=dims)
+    if dtype is not None:
+        data = data.astype(_resolve_dtype(dtype))
+    # end if
+    return Tensor(data=data, mutable=mutable)
+# end def uniform
+
+
+def randint(
+        shape: ShapeLike,
+        low: int,
+        high: Optional[int] = None,
+        dtype: Optional[TypeLike] = None,
+        mutable: bool = True
+) -> 'Tensor':
+    """Sample integer tensor values from ``[low, high)``.
+
+    Parameters
+    ----------
+    shape : ShapeLike
+        Output tensor shape.
+    low : int
+        If ``high`` is provided, lower bound (inclusive). Otherwise upper bound.
+    high : int, optional
+        Upper bound (exclusive). When ``None``, bounds are ``[0, low)``.
+    dtype : TypeLike, optional
+        Optional integer dtype cast.
+    mutable : bool, default True
+        Whether the resulting tensor is mutable.
+
+    Returns
+    -------
+    Tensor
+        Tensor populated with uniformly sampled integers.
+    """
+    dims = _normalize_shape(shape)
+    data = np.random.randint(low=low, high=high, size=dims)
+    if dtype is not None:
+        data = data.astype(_resolve_dtype(dtype))
+    # end if
+    return Tensor(data=data, mutable=mutable)
+# end def randint
+
+
+def poisson(
+        shape: ShapeLike,
+        lam: float = 1.0,
+        dtype: Optional[TypeLike] = None,
+        mutable: bool = True
+) -> 'Tensor':
+    """Sample a tensor from a Poisson distribution.
+
+    Parameters
+    ----------
+    shape : ShapeLike
+        Output tensor shape.
+    lam : float, default 1.0
+        Expected number of events (lambda). Must be non-negative.
+    dtype : TypeLike, optional
+        Optional target dtype cast.
+    mutable : bool, default True
+        Whether the resulting tensor is mutable.
+
+    Returns
+    -------
+    Tensor
+        Tensor populated with Poisson-distributed counts.
+
+    Raises
+    ------
+    ValueError
+        If ``lam`` is negative.
+    """
+    if lam < 0:
+        raise ValueError("lam must be non-negative.")
+    # end if
+    dims = _normalize_shape(shape)
+    data = np.random.poisson(lam=lam, size=dims)
+    if dtype is not None:
+        data = data.astype(_resolve_dtype(dtype))
+    # end if
+    return Tensor(data=data, mutable=mutable)
+# end def poisson
+
+
+def bernoulli(
+        shape: ShapeLike,
+        p: float = 0.5,
+        dtype: TypeLike = DType.Z,
+        mutable: bool = True
+) -> 'Tensor':
+    """Sample Bernoulli trials as a tensor of 0/1 values.
+
+    Parameters
+    ----------
+    shape : ShapeLike
+        Output tensor shape.
+    p : float, default 0.5
+        Success probability for each independent trial. Must be in ``[0, 1]``.
+    dtype : TypeLike, default DType.Z
+        Output dtype. Defaults to integer.
+    mutable : bool, default True
+        Whether the resulting tensor is mutable.
+
+    Returns
+    -------
+    Tensor
+        Tensor filled with 0/1 samples.
+
+    Raises
+    ------
+    ValueError
+        If ``p`` is outside ``[0, 1]``.
+    """
+    if p < 0.0 or p > 1.0:
+        raise ValueError("p must be between 0 and 1 inclusive.")
+    # end if
+    dims = _normalize_shape(shape)
+    data = np.random.binomial(n=1, p=p, size=dims).astype(_resolve_dtype(dtype))
+    return Tensor(data=data, mutable=mutable)
+# end def bernoulli
+
+
 def nan(
         shape: ShapeLike,
         dtype: TypeLike = float,
@@ -807,7 +1023,7 @@ class TensorShape:
     can be attached via separate objects keyed by ``TensorShape`` instances.
     """
 
-    def __init__(self, dims: DimsInt):
+    def __init__(self, dims: Sequence[DimInt]):
         """Initialize a TensorShape.
 
         Parameters
@@ -819,13 +1035,13 @@ class TensorShape:
         for dim in dims_tuple:
             self._check_dim(dim)
         # end for
-        self._dims: DimsInt = dims_tuple
+        self._dims: Sequence[DimInt] = dims_tuple
     # end def __init__
 
     # region PROPERTIES
 
     @property
-    def dims(self) -> DimsInt:
+    def dims(self) -> Sequence[DimInt]:
         """Return the dimensions' tuple.
 
         Returns
@@ -1030,7 +1246,7 @@ class TensorShape:
         self._dims = self.insert_axis(axis, size)._dims
     # end def insert_axis_
 
-    def as_tuple(self) -> DimsInt:
+    def as_tuple(self) -> Sequence[DimInt]:
         """Return the shape as a tuple.
 
         Returns
@@ -3624,6 +3840,155 @@ class Tensor:
         """
         return Tensor.full(1, shape, dtype=dtype)
     # end def ones
+
+    @staticmethod
+    def normal(
+            shape: ShapeLike,
+            loc: float = 0.0,
+            scale: float = 1.0,
+            dtype: Optional[TypeLike] = None,
+            mutable: bool = True
+    ) -> 'Tensor':
+        """Sample a tensor from a normal (Gaussian) distribution.
+
+        Parameters
+        ----------
+        shape : ShapeLike
+            Output tensor shape.
+        loc : float, default 0.0
+            Mean of the distribution.
+        scale : float, default 1.0
+            Standard deviation of the distribution.
+        dtype : Optional[TypeLike], optional
+            Optional output dtype cast.
+        mutable : bool, default True
+            Whether the resulting tensor is mutable.
+
+        Returns
+        -------
+        Tensor
+            Sampled tensor.
+        """
+        return normal(shape=shape, loc=loc, scale=scale, dtype=dtype, mutable=mutable)
+    # end def normal
+
+    @staticmethod
+    def uniform(
+            shape: ShapeLike,
+            low: float = 0.0,
+            high: float = 1.0,
+            dtype: Optional[TypeLike] = None,
+            mutable: bool = True
+    ) -> 'Tensor':
+        """Sample a tensor from a uniform distribution on ``[low, high)``.
+
+        Parameters
+        ----------
+        shape : ShapeLike
+            Output tensor shape.
+        low : float, default 0.0
+            Lower bound of the interval.
+        high : float, default 1.0
+            Upper bound of the interval.
+        dtype : Optional[TypeLike], optional
+            Optional output dtype cast.
+        mutable : bool, default True
+            Whether the resulting tensor is mutable.
+
+        Returns
+        -------
+        Tensor
+            Sampled tensor.
+        """
+        return uniform(shape=shape, low=low, high=high, dtype=dtype, mutable=mutable)
+    # end def uniform
+
+    @staticmethod
+    def randint(
+            shape: ShapeLike,
+            low: int,
+            high: Optional[int] = None,
+            dtype: Optional[TypeLike] = None,
+            mutable: bool = True
+    ) -> 'Tensor':
+        """Sample integer tensor values from ``[low, high)``.
+
+        Parameters
+        ----------
+        shape : ShapeLike
+            Output tensor shape.
+        low : int
+            Lower bound (inclusive), or upper bound when ``high`` is ``None``.
+        high : Optional[int], optional
+            Upper bound (exclusive).
+        dtype : Optional[TypeLike], optional
+            Optional output dtype cast.
+        mutable : bool, default True
+            Whether the resulting tensor is mutable.
+
+        Returns
+        -------
+        Tensor
+            Sampled tensor.
+        """
+        return randint(shape=shape, low=low, high=high, dtype=dtype, mutable=mutable)
+    # end def randint
+
+    @staticmethod
+    def poisson(
+            shape: ShapeLike,
+            lam: float = 1.0,
+            dtype: Optional[TypeLike] = None,
+            mutable: bool = True
+    ) -> 'Tensor':
+        """Sample a tensor from a Poisson distribution.
+
+        Parameters
+        ----------
+        shape : ShapeLike
+            Output tensor shape.
+        lam : float, default 1.0
+            Expected number of events.
+        dtype : Optional[TypeLike], optional
+            Optional output dtype cast.
+        mutable : bool, default True
+            Whether the resulting tensor is mutable.
+
+        Returns
+        -------
+        Tensor
+            Sampled tensor.
+        """
+        return poisson(shape=shape, lam=lam, dtype=dtype, mutable=mutable)
+    # end def poisson
+
+    @staticmethod
+    def bernoulli(
+            shape: ShapeLike,
+            p: float = 0.5,
+            dtype: TypeLike = DType.Z,
+            mutable: bool = True
+    ) -> 'Tensor':
+        """Sample Bernoulli trials as a tensor of 0/1 values.
+
+        Parameters
+        ----------
+        shape : ShapeLike
+            Output tensor shape.
+        p : float, default 0.5
+            Success probability in ``[0, 1]``.
+        dtype : TypeLike, default DType.Z
+            Output dtype (integer by default).
+        mutable : bool, default True
+            Whether the resulting tensor is mutable.
+
+        Returns
+        -------
+        Tensor
+            Sampled tensor.
+        """
+        return bernoulli(shape=shape, p=p, dtype=dtype, mutable=mutable)
+    # end def bernoulli
 
     @staticmethod
     def from_list(data: List, dtype: DType) -> 'Tensor':

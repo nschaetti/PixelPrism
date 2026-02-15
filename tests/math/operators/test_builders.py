@@ -155,3 +155,63 @@ def test_map_simple_case():
     assert expr.shape.dims == tensor.shape.dims
     assert expr.children == (tensor,)
 # end test_map_simple_case
+
+
+def test_random_builders_shape_dtype_and_ranges():
+    normal_expr = FB.normal(shape=(4, 3), loc=0.0, scale=1.0, dtype=pm.DType.R)
+    uniform_expr = FB.uniform(shape=(4, 3), low=-2.0, high=5.0, dtype=pm.DType.R)
+    randint_expr = FB.randint(shape=(4, 3), low=2, high=7, dtype=pm.DType.Z)
+    poisson_expr = FB.poisson(shape=(4, 3), lam=3.0, dtype=pm.DType.Z)
+    bernoulli_expr = FB.bernoulli(shape=(4, 3), p=0.25)
+
+    normal_val = normal_expr.eval().value
+    uniform_val = uniform_expr.eval().value
+    randint_val = randint_expr.eval().value
+    poisson_val = poisson_expr.eval().value
+    bernoulli_val = bernoulli_expr.eval().value
+
+    assert tuple(normal_expr.shape.dims) == (4, 3)
+    assert tuple(uniform_expr.shape.dims) == (4, 3)
+    assert tuple(randint_expr.shape.dims) == (4, 3)
+    assert tuple(poisson_expr.shape.dims) == (4, 3)
+    assert tuple(bernoulli_expr.shape.dims) == (4, 3)
+
+    assert normal_expr.dtype == pm.DType.R
+    assert uniform_expr.dtype == pm.DType.R
+    assert randint_expr.dtype == pm.DType.Z
+    assert poisson_expr.dtype == pm.DType.Z
+    assert bernoulli_expr.dtype == pm.DType.Z
+
+    assert np.all(uniform_val >= -2.0)
+    assert np.all(uniform_val < 5.0)
+    assert np.all(randint_val >= 2)
+    assert np.all(randint_val < 7)
+    assert np.all(np.isin(bernoulli_val, [0, 1]))
+# end test_random_builders_shape_dtype_and_ranges
+
+
+def test_random_builders_validation_errors():
+    with pytest.raises(ValueError):
+        FB.normal(shape=(2, 2), scale=-1.0)
+    # end with
+
+    with pytest.raises(ValueError):
+        FB.uniform(shape=(2, 2), low=1.0, high=1.0)
+    # end with
+
+    with pytest.raises(ValueError):
+        FB.poisson(shape=(2, 2), lam=-0.1)
+    # end with
+
+    with pytest.raises(ValueError):
+        FB.bernoulli(shape=(2, 2), p=1.1)
+    # end with
+
+    with pytest.raises(ValueError):
+        FB.randint(shape=(2, 2), low=0)
+    # end with
+
+    with pytest.raises(ValueError):
+        FB.randint(shape=(2, 2), low=5, high=5)
+    # end with
+# end test_random_builders_validation_errors

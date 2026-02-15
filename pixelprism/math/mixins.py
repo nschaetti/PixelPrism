@@ -32,7 +32,16 @@ TODO: Add documentation.
 # Imports
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict, List
+from typing import Optional, Union, Dict, List, TYPE_CHECKING, Mapping, cast
+
+from .typing import LeafKind, MathExpr
+
+
+if TYPE_CHECKING:
+    from .tensor import Tensor
+    from .math_base import MathBase
+    from .math_leaves import Variable, Constant
+# end if
 
 
 __all__ = [
@@ -95,7 +104,7 @@ class PredicateMixin(ABC):
     @abstractmethod
     def variables(self) -> List['Variable']:
         """
-        Enumerate variable leaves reachable from this node.
+        List variable leaves reachable from this node.
 
         Returns
         -------
@@ -104,9 +113,10 @@ class PredicateMixin(ABC):
         """
     # end def variables
 
+    @abstractmethod
     def constants(self) -> List['Constant']:
         """
-        Enumerate constant leaves reachable from this node.
+        List constant leaves reachable from this node.
 
         Returns
         -------
@@ -118,10 +128,10 @@ class PredicateMixin(ABC):
     @abstractmethod
     def contains(
             self,
-            leaf: Union[str, 'PredicateMixin'],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """
         Test whether ``var`` appears in the expression tree.
@@ -137,15 +147,14 @@ class PredicateMixin(ABC):
         check_operator : bool, default True
             When ``True`` the search also queries the operator to determine if
             it captures ``var`` internally.
-        look_for : Optional[str], default None
-            Can be None, "var", or "const"
+        look_for : LeafKind, default LeafKind.ANY
+            Restrict lookup to variables/constants, or keep full lookup.
 
         Returns
         -------
         bool
             ``True`` when ``var`` was located in ``self`` or any child.
         """
-
     # end def contains
 
     @abstractmethod
@@ -155,7 +164,9 @@ class PredicateMixin(ABC):
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        """Return True if the expression contains a variable `variable`"""
+        """
+        Return True if the expression contains a variable `variable`
+        """
 
     # end def contains_variable
 
@@ -170,22 +181,38 @@ class PredicateMixin(ABC):
 
     # end def contains_constant
 
-    @abstractmethod
-    def replace(self, old_m: 'PredicateMixin', new_m: 'PredicateMixin'):
-        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+    def substitute(
+            self,
+            mapping: Mapping[MathExpr, MathExpr],
+            *,
+            by_ref: bool = True
+    ) -> MathExpr:
+        """Return an expression with substitutions applied.
 
         Parameters
         ----------
-        old_m: MathNode
-            MathExpr to replace.
-        new_m: MathNode
-            New MathExpr replacing the old one.
+        mapping : Mapping[MathExpr, MathExpr]
+            Mapping from old subexpressions to replacement expressions.
+        by_ref : bool, default True
+            ``True`` for identity matching, ``False`` for symbolic matching.
         """
-    # end def replace
+        if type(self).replace is not PredicateMixin.replace:
+            if not by_ref:
+                raise NotImplementedError(
+                    "Legacy replace(...) bridge supports only by_ref=True."
+                )
+            # end if
+            for old_m, new_m in mapping.items():
+                self.replace(old_m, new_m)
+            # end for
+            return cast(MathExpr, cast(object, self))
+        # end if
 
-    @abstractmethod
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
-        """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
+        raise NotImplementedError("substitute(...) must be implemented by subclasses.")
+    # end def substitute
+
+    def renamed(self, old_name: str, new_name: str) -> MathExpr:
+        """Return an expression where ``old_name`` is replaced by ``new_name``.
 
         Parameters
         ----------
@@ -194,7 +221,24 @@ class PredicateMixin(ABC):
         new_name: str
             New name for the variable/constant.
         """
-    # end rename
+        if type(self).rename is not PredicateMixin.rename:
+            self.rename(old_name, new_name)
+            return cast(MathExpr, cast(object, self))
+        # end if
+
+        raise NotImplementedError("renamed(...) must be implemented by subclasses.")
+    # end def renamed
+
+    def replace(self, old_m: MathExpr, new_m: MathExpr):
+        """Compatibility shim for mutable replacement APIs."""
+        return self.substitute({old_m: new_m}, by_ref=True)
+    # end def replace
+
+    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+        """Compatibility shim for mutable rename APIs."""
+        self.renamed(old_name, new_name)
+        return {old_name: new_name}
+    # end def rename
 
     @abstractmethod
     def is_constant(self) -> bool:
@@ -207,4 +251,3 @@ class PredicateMixin(ABC):
     # end def is_variable
 
 # end class PredicateMixin
-

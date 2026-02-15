@@ -525,3 +525,62 @@ def test_tensor_einsum_matches_numpy_and_out_parameter():
     np.testing.assert_allclose(scalar.value, np.einsum("ij->", np.array([[1.0, 2.0], [3.0, 4.0]])))
     assert scalar.dtype == DType.R
 # end test test_tensor_einsum_matches_numpy_and_out_parameter
+
+
+def test_tensor_random_sampling_factories_cover_classic_distributions():
+    """Validate Tensor random factories for shape, dtype, and value constraints.
+
+    Returns
+    -------
+    None
+    """
+    normal = Tensor.normal((4, 3), loc=0.0, scale=1.0)
+    uniform = Tensor.uniform((4, 3), low=-2.0, high=5.0)
+    integers = Tensor.randint((4, 3), low=2, high=7)
+    poisson = Tensor.poisson((4, 3), lam=3.0)
+    bernoulli = Tensor.bernoulli((4, 3), p=0.25)
+
+    assert normal.shape.dims == (4, 3)
+    assert uniform.shape.dims == (4, 3)
+    assert integers.shape.dims == (4, 3)
+    assert poisson.shape.dims == (4, 3)
+    assert bernoulli.shape.dims == (4, 3)
+
+    assert normal.dtype == DType.R
+    assert uniform.dtype == DType.R
+    assert integers.dtype == DType.Z
+    assert poisson.dtype == DType.Z
+    assert bernoulli.dtype == DType.Z
+
+    assert np.all(uniform.value >= -2.0)
+    assert np.all(uniform.value < 5.0)
+    assert np.all(integers.value >= 2)
+    assert np.all(integers.value < 7)
+    assert np.all(np.isin(bernoulli.value, [0, 1]))
+# end test test_tensor_random_sampling_factories_cover_classic_distributions
+
+
+def test_tensor_random_sampling_module_exports_and_validation():
+    """Ensure math-level random factories are exported and validated.
+
+    Returns
+    -------
+    None
+    """
+    import pixelprism.math as ppmath
+
+    sampled = ppmath.bernoulli((2, 2), p=0.6)
+    assert isinstance(sampled, Tensor)
+    assert sampled.dtype == DType.Z
+    assert sampled.shape.dims == (2, 2)
+
+    with pytest.raises(ValueError):
+        Tensor.bernoulli((2, 2), p=-0.1)
+    # end with
+    with pytest.raises(ValueError):
+        Tensor.uniform((2, 2), low=1.0, high=1.0)
+    # end with
+    with pytest.raises(ValueError):
+        Tensor.poisson((2, 2), lam=-1.0)
+    # end with
+# end test test_tensor_random_sampling_module_exports_and_validation

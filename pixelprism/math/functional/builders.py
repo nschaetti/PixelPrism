@@ -46,6 +46,11 @@ __all__ = [
     "full",
     "zeros",
     "ones",
+    "normal",
+    "uniform",
+    "randint",
+    "poisson",
+    "bernoulli",
     "eye",
     "diag",
     "identity",
@@ -169,6 +174,97 @@ def ones(
         shape=tensor_shape
     )
 # end def ones
+
+
+def normal(
+        shape: Union[Shape, Sequence[int], int],
+        loc: float = 0.0,
+        scale: float = 1.0,
+        dtype: DType = DType.R
+) -> MathNode:
+    tensor_shape = Shape.create(shape)
+    return apply_operator(
+        op_name="normal",
+        operands=(),
+        display_name=f"normal(shape={tensor_shape.dims}, loc={loc}, scale={scale})",
+        shape=tensor_shape,
+        loc=loc,
+        scale=scale,
+        dtype=dtype
+    )
+# end def normal
+
+
+def uniform(
+        shape: Union[Shape, Sequence[int], int],
+        low: float = 0.0,
+        high: float = 1.0,
+        dtype: DType = DType.R
+) -> MathNode:
+    tensor_shape = Shape.create(shape)
+    return apply_operator(
+        op_name="uniform",
+        operands=(),
+        display_name=f"uniform(shape={tensor_shape.dims}, low={low}, high={high})",
+        shape=tensor_shape,
+        low=low,
+        high=high,
+        dtype=dtype
+    )
+# end def uniform
+
+
+def randint(
+        shape: Union[Shape, Sequence[int], int],
+        low: int,
+        high: Optional[int] = None,
+        dtype: DType = DType.Z
+) -> MathNode:
+    tensor_shape = Shape.create(shape)
+    return apply_operator(
+        op_name="randint",
+        operands=(),
+        display_name=f"randint(shape={tensor_shape.dims}, low={low}, high={high})",
+        shape=tensor_shape,
+        low=low,
+        high=high,
+        dtype=dtype
+    )
+# end def randint
+
+
+def poisson(
+        shape: Union[Shape, Sequence[int], int],
+        lam: float = 1.0,
+        dtype: DType = DType.Z
+) -> MathNode:
+    tensor_shape = Shape.create(shape)
+    return apply_operator(
+        op_name="poisson",
+        operands=(),
+        display_name=f"poisson(shape={tensor_shape.dims}, lam={lam})",
+        shape=tensor_shape,
+        lam=lam,
+        dtype=dtype
+    )
+# end def poisson
+
+
+def bernoulli(
+        shape: Union[Shape, Sequence[int], int],
+        p: float = 0.5,
+        dtype: DType = DType.Z
+) -> MathNode:
+    tensor_shape = Shape.create(shape)
+    return apply_operator(
+        op_name="bernoulli",
+        operands=(),
+        display_name=f"bernoulli(shape={tensor_shape.dims}, p={p})",
+        shape=tensor_shape,
+        p=p,
+        dtype=dtype
+    )
+# end def bernoulli
 
 
 def eye(rows: int, cols: Optional[int] = None, dtype: DType = DType.R) -> MathNode:

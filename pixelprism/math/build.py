@@ -31,9 +31,9 @@ import numpy as np
 
 from .math_node import MathNode
 from .math_leaves import MathLeaf, const
-from .dtype import ScalarLike, DType, TypeLike
+from .dtype import DType, TypeLike
 from .tensor import TensorLike, Tensor
-from .typing import MathExpr
+from .typing import MathExpr, ScalarLike
 
 
 __all__ = [

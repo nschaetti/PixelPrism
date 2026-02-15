@@ -94,6 +94,8 @@ from .math_node import MathNode
 
 from .math_leaves import MathLeaf, Variable, Constant, var, const
 
+from .function import Function
+
 from .mixins import EvaluableMixin, DifferentiableMixin, PredicateMixin
 
 from .operators import OperatorBase, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
@@ -123,6 +125,11 @@ from .tensor import (
     zeros as t_zeros,
     ones as t_ones,
     full as t_full,
+    normal as t_normal,
+    uniform as t_uniform,
+    randint as t_randint,
+    poisson as t_poisson,
+    bernoulli as t_bernoulli,
     # Elementwise
     pow as t_pow,
     square as t_square,
@@ -184,6 +191,22 @@ from .typing import (
     Index,
     MathExpr,
     TensorLike,
+    LeafKind,
+    SimplifyOptions,
+    SimplifyRule,
+    OpSimplifyResult,
+)
+
+from .geometry import (
+    Point1,
+    Point2,
+    Point3,
+    Line2,
+    Line3,
+    Affine2,
+    Affine3,
+    Circle2,
+    Ellipse2,
 )
 
 
@@ -195,11 +218,25 @@ R = DType.R
 C = DType.C
 B = DType.B
 
+CONSTANT = LeafKind.CONSTANT
+VARIABLE = LeafKind.VARIABLE
+
 tensor = t_tensor
 scalar = t_scalar
 zeros = t_zeros
 ones = t_ones
 full = t_full
+normal = t_normal
+uniform = t_uniform
+randint = t_randint
+poisson = t_poisson
+bernoulli = t_bernoulli
+eye_like = t_eye_like
+einsum = t_einsum
+transpose = t_transpose
+inverse = t_inverse
+trace = t_trace
+matmul = t_matmul
 
 
 class T:
@@ -209,6 +246,11 @@ class T:
     ones = staticmethod(t_ones)
     zeros = staticmethod(t_zeros)
     full = staticmethod(t_full)
+    normal = staticmethod(t_normal)
+    uniform = staticmethod(t_uniform)
+    randint = staticmethod(t_randint)
+    poisson = staticmethod(t_poisson)
+    bernoulli = staticmethod(t_bernoulli)
 
     pow = staticmethod(t_pow)
     square = staticmethod(t_square)
@@ -279,6 +321,8 @@ __all__ = [
     # Alias
     "T",
     "S",
+    "VARIABLE",
+    "CONSTANT",
 
     # Build
     "as_expr",
@@ -337,6 +381,9 @@ __all__ = [
     "var",
     "const",
 
+    # Function
+    "Function",
+
     # Mixins
     "EvaluableMixin",
     "DifferentiableMixin",
@@ -356,6 +403,17 @@ __all__ = [
     "DimExpr",
     "DimInt",
     "DimLike",
+
+    # Geometry
+    "Point1",
+    "Point2",
+    "Point3",
+    "Line2",
+    "Line3",
+    "Affine2",
+    "Affine3",
+    "Circle2",
+    "Ellipse2",
 
     # Helpers
     "is_sequence_like",
@@ -380,6 +438,11 @@ __all__ = [
     "zeros",
     "ones",
     "full",
+    "normal",
+    "uniform",
+    "randint",
+    "poisson",
+    "bernoulli",
     "scalar_shape",
     "vector_shape",
     "matrix_shape",
@@ -434,4 +497,8 @@ __all__ = [
     "MathExpr",
     "random_const_name",
     "rand_name",
+    "LeafKind",
+    "SimplifyOptions",
+    "SimplifyRule",
+    "OpSimplifyResult",
 ]

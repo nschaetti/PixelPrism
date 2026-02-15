@@ -186,10 +186,31 @@ class MathNode(
         """
         Evaluate this node in the active math context.
 
+        The node delegates evaluation to its operator after child expressions
+        have been resolved to concrete tensors. Semantics follow NumPy-style
+        operator conventions (broadcasting, dtype promotion, shape rules), so
+        the result matches what the equivalent NumPy operation would produce.
+
         Returns
         -------
         'Tensor'
             Result of executing ``self.op`` with evaluated children.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> x = pm.Variable(name="x", dtype=pm.R, shape=pm.S.scalar)
+        >>> y = pm.Variable(name="y", dtype=pm.R, shape=pm.S.scalar)
+        >>> expr = x + y
+        >>> with pm.new_context() as scope:
+        ...     scope.set("x", 2.0)
+        ...     scope.set("y", 5.0)
+        ...     out = expr.eval()
+        >>> out.value.item()
+        7.0
+        >>> np.add(2.0, 5.0)
+        7.0
         """
         return self._op.eval(operands=self._children)
     # end def eval
@@ -201,6 +222,12 @@ class MathNode(
         """
         Compute the derivative of this expression with respect to ``wrt``.
 
+        The derivative is returned as a symbolic expression tree (not a numeric
+        tensor). The resulting expression can be evaluated later in a context
+        where all required variables are bound. Operator-level differentiation
+        follows standard calculus rules while preserving NumPy-style tensor
+        semantics for shapes and dtypes.
+
         Parameters
         ----------
         wrt : "Variable"
@@ -210,6 +237,23 @@ class MathNode(
         -------
         'MathExpr'
             The derivative of ``self`` with respect to ``wrt``.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> x = pm.Variable(name="x", dtype=pm.R, shape=pm.S.scalar)
+        >>> y = pm.Variable(name="y", dtype=pm.R, shape=pm.S.scalar)
+        >>> expr = x * y
+        >>> dexpr_dx = expr.diff(x)
+        >>> with pm.new_context() as scope:
+        ...     scope.set("x", 2.0)
+        ...     scope.set("y", 5.0)
+        ...     out = dexpr_dx.eval()
+        >>> out.value.item()
+        5.0
+        >>> np.multiply(1.0, 5.0)
+        5.0
         """
         return self._op.diff(wrt=wrt, operands=self._children)
     # end def diff
@@ -220,34 +264,79 @@ class MathNode(
 
     def variables(self) -> Sequence['Variable']:
         """
-        Enumerate variable leaves reachable from this node.
+        List variable leaves reachable from this node.
+
+        Traversal follows the expression children order and concatenates each
+        child's contribution. Returned items are symbolic variable leaves, not
+        concrete arrays. The method is useful to inspect dependencies before
+        evaluating an expression against NumPy-like runtime values.
 
         Returns
         -------
         Sequence['Variable']
             List of :class:`Variable` instances (duplicates possible).
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> x = pm.Variable(name="x", dtype=pm.R, shape=pm.S.scalar)
+        >>> y = pm.Variable(name="y", dtype=pm.R, shape=pm.S.scalar)
+        >>> expr = x + y
+        >>> [v.name for v in expr.variables()]
+        ['x', 'y']
+        >>> with pm.new_context() as scope:
+        ...     scope.set("x", np.array([1.0, 2.0]))
+        ...     scope.set("y", np.array([3.0, 4.0]))
+        ...     out = expr.eval()
+        >>> out.value.tolist()
+        [4.0, 6.0]
+        >>> np.add(np.array([1.0, 2.0]), np.array([3.0, 4.0])).tolist()
+        [4.0, 6.0]
         """
         _vars: List = list()
         for c in self._children:
             _vars.extend(c.variables())
         # end for
-        return _vars
+        return list(set(_vars))
     # end def variables
 
     def constants(self) -> Sequence['Constant']:
         """
-        Enumerate constant leaves reachable from this node.
+        List constant leaves reachable from this node.
+
+        Traversal follows the expression children order and concatenates each
+        child's contribution. Returned items are symbolic constant leaves, not
+        raw NumPy values. This method is useful to inspect literal dependencies
+        embedded in an expression before evaluation.
 
         Returns
         -------
         Sequence['Constant']
             List of :class:`Constant` instances (duplicates possible).
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> x = pm.Variable(name="x", dtype=pm.R, shape=pm.S.scalar)
+        >>> c = pm.Constant.create(name="c", data=pm.tensor([10.0, 20.0]))
+        >>> expr = x + c
+        >>> [k.name for k in expr.constants()]
+        ['c']
+        >>> with pm.new_context() as scope:
+        ...     scope.set("x", np.array([1.0, 2.0]))
+        ...     out = expr.eval()
+        >>> out.value.tolist()
+        [11.0, 22.0]
+        >>> np.add(np.array([1.0, 2.0]), np.array([10.0, 20.0])).tolist()
+        [11.0, 22.0]
         """
         constants: List = list()
         for c in self._children:
             constants.extend(c.constants())
         # end for
-        return constants
+        return list(set(constants))
     # end def constants
 
     def contains(
@@ -260,6 +349,12 @@ class MathNode(
         """
         Test whether ``var`` appears in the expression tree.
 
+        Search traverses all child expressions and can optionally inspect
+        operator-owned symbolic parameters when ``check_operator=True``. The
+        lookup target may be provided either by name (string) or by expression
+        instance. With ``by_ref=True``, matching is identity-based; otherwise it
+        uses symbolic naming rules implemented by leaf/node types.
+
         Parameters
         ----------
         leaf : str or MathNode
@@ -271,13 +366,37 @@ class MathNode(
         check_operator : bool, default True
             When ``True`` the search also queries the operator to determine if
             it captures ``var`` internally.
-        look_for : Optional[str], default None
-            Can be None, "var", or "const"
+        look_for : LeafKind, default LeafKind.ANY
+            Restrict lookup scope to variables, constants, or both.
 
         Returns
         -------
         bool
             ``True`` when ``var`` was located in ``self`` or any child.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> from pixelprism.math import DType, Shape, LeafKind
+        >>> x = pm.Variable(name="x", dtype=DType.R, shape=Shape((2,)))
+        >>> y = pm.Variable(name="y", dtype=DType.R, shape=Shape((2,)))
+        >>> c = pm.Constant.create(name="c", data=pm.tensor([1.0, 1.0]))
+        >>> expr = x + (y + c)
+        >>> expr.contains("x")
+        True
+        >>> expr.contains("c", look_for=pm.CONSTANT)
+        True
+        >>> expr.contains("c", look_for=pm.VARIABLE)
+        False
+        >>> with pm.new_context() as scope:
+        ...     scope.set("x", np.array([2.0, 3.0]))
+        ...     scope.set("y", np.array([4.0, 5.0]))
+        ...     out = expr.eval()
+        >>> out.value.tolist()
+        [7.0, 9.0]
+        >>> np.add(np.array([2.0, 3.0]), np.add(np.array([4.0, 5.0]), np.array([1.0, 1.0]))).tolist()
+        [7.0, 9.0]
         """
         rets = [
             c.contains(
@@ -301,8 +420,53 @@ class MathNode(
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        """Return True if the expression contains a variable `variable`"""
-        return self.contains(variable, by_ref=by_ref, check_operator=check_operator, look_for=LeafKind.VARIABLE)
+        """Return ``True`` if the expression contains variable ``variable``.
+
+        This is a convenience wrapper over :meth:`contains` with
+        ``look_for=LeafKind.VARIABLE``.
+
+        Parameters
+        ----------
+        variable : str or Variable
+            Variable name or variable expression to locate.
+        by_ref : bool, default False
+            When ``True``, require object identity match.
+        check_operator : bool, default True
+            When ``True``, include operator-owned symbolic parameters.
+
+        Returns
+        -------
+        bool
+            ``True`` if ``variable`` is present in this expression.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> from pixelprism.math import DType, Shape
+        >>> x = pm.Variable(name="x", dtype=DType.R, shape=pm.S.vector(2))
+        >>> y = pm.Variable(name="y", dtype=DType.R, shape=pm.S.vector(2))
+        >>> c = pm.Constant.create(name="c", data=pm.tensor([1.0, 1.0]))
+        >>> expr = x + (y + c)
+        >>> expr.contains_variable("x")
+        True
+        >>> expr.contains_variable("c")
+        False
+        >>> with pm.new_context() as scope:
+        ...     scope.set("x", np.array([2.0, 3.0]))
+        ...     scope.set("y", np.array([4.0, 5.0]))
+        ...     out = expr.eval()
+        >>> out.value.tolist()
+        [7.0, 9.0]
+        >>> np.add(np.array([2.0, 3.0]), np.add(np.array([4.0, 5.0]), np.array([1.0, 1.0]))).tolist()
+        [7.0, 9.0]
+        """
+        return self.contains(
+            leaf=variable,
+            by_ref=by_ref,
+            check_operator=check_operator,
+            look_for=LeafKind.VARIABLE
+        )
     # end def contains_variable
 
     def contains_constant(
@@ -311,8 +475,51 @@ class MathNode(
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        """Return True if the expression contains a constant `constant`"""
-        return self.contains(constant, by_ref=by_ref, check_operator=check_operator, look_for=LeafKind.CONSTANT)
+        """Return ``True`` if the expression contains constant ``constant``.
+
+        This is a convenience wrapper over :meth:`contains` with
+        ``look_for=LeafKind.CONSTANT``.
+
+        Parameters
+        ----------
+        constant : str or Constant
+            Constant name or constant expression to locate.
+        by_ref : bool, default False
+            When ``True``, require object identity match.
+        check_operator : bool, default True
+            When ``True``, include operator-owned symbolic parameters.
+
+        Returns
+        -------
+        bool
+            ``True`` if ``constant`` is present in this expression.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> from pixelprism.math import DType, Shape
+        >>> x = pm.Variable(name="x", dtype=DType.R, shape=pm.S.vector(2))
+        >>> c = pm.Constant.create(name="c", data=pm.tensor([10.0, 20.0]))
+        >>> expr = x + c
+        >>> expr.contains_constant("c")
+        True
+        >>> expr.contains_constant("x")
+        False
+        >>> with pm.new_context() as scope:
+        ...     scope.set("x", np.array([1.0, 2.0]))
+        ...     out = expr.eval()
+        >>> out.value.tolist()
+        [11.0, 22.0]
+        >>> np.add(np.array([1.0, 2.0]), np.array([10.0, 20.0])).tolist()
+        [11.0, 22.0]
+        """
+        return self.contains(
+            leaf=constant,
+            by_ref=by_ref,
+            check_operator=check_operator,
+            look_for=LeafKind.CONSTANT
+        )
     # end def contains_constant
 
     #
@@ -324,15 +531,62 @@ class MathNode(
         Apply symbolic rewrite rules and return a simplified expression.
         This operation is pure: it never mutates the current tree.
 
+        Intended behavior (implementation contract):
+        1) Recursively simplify children first.
+        2) Delegate operator-local rewrites to ``self.op.simplify(...)``.
+        3) If the operator returns a full-node ``replacement``, return it.
+        4) Otherwise rebuild a node with simplified operands when needed.
+        5) Preserve semantic equivalence with NumPy-style evaluation.
+
+        Simplification should honor :class:`SimplifyOptions`:
+        - ``enabled=None`` means all rules are enabled by default.
+        - ``disabled`` rules always take precedence.
+        - No in-place mutation of existing nodes/subtrees.
+
         Parameters
         ----------
         options : SimplifyOptions or None, default None
-            Simplification options.
+            Rule selection for this simplify pass.
 
         Returns
         -------
         MathExpr
-            Simplified expression.
+            A semantically equivalent, potentially reduced expression.
+
+        Notes
+        -----
+        Typical target rewrites include:
+        - ``x + 0 -> x``
+        - ``x - 0 -> x``
+        - ``x * 1 -> x``
+        - ``x * 0 -> 0``
+        - constant folding for constant-only subtrees
+
+        The rewritten tree should evaluate to the same tensor as the original
+        expression for any valid context bindings, following NumPy broadcasting
+        and dtype semantics.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pixelprism.math as pm
+        >>> from pixelprism.math import DType, Shape, Tensor, SimplifyOptions, SimplifyRule
+        >>> x = pm.Variable(name="x", dtype=DType.R, shape=pm.S.vector(2))
+        >>> z = pm.Constant(name="z", data=pm.tensor([0.0, 0.0], dtype=DType.R))
+        >>> expr = x + z
+        >>> simplified = expr.simplify()  # doctest: +SKIP
+        >>> str(simplified)  # doctest: +SKIP
+        'x'
+
+        >>> with pm.new_context() as scope:  # doctest: +SKIP
+        ...     scope.set("x", np.array([3.0, 4.0]))
+        ...     expr.eval().value.tolist() == np.add(np.array([3.0, 4.0]), np.array([0.0, 0.0])).tolist()
+        True
+
+        >>> opts = SimplifyOptions(disabled=frozenset({SimplifyRule.ADD_ZERO}))
+        >>> kept = expr.simplify(options=opts)  # doctest: +SKIP
+        >>> str(kept)  # doctest: +SKIP
+        '(x + z)'
         """
         # TODO: to implement
         pass

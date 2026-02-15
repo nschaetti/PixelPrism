@@ -59,6 +59,11 @@ from .builders import (
     SparseCOO,
     Zeros,
     Ones,
+    Normal,
+    Uniform,
+    RandInt,
+    Poisson,
+    Bernoulli,
     Eye,
     Identity,
     Map
@@ -165,7 +170,28 @@ from .conditional import (
 BOOLEAN_OPERATORS = (Eq, Ne, Lt, Le, Gt, Ge, Not, Any, All, And, Or, Xor)
 ALGEBRAIC_STRICT_OPERATORS = (Add, Sub, Mul, Div, Pow)
 ALGEBRAIC_OPERATORS = (Add, Sub, Mul, Div, Pow, Absolute, Abs)
-BUILDERS = (Vector, Matrix, Full, Concatenate, HStack, VStack, Zeros, Ones, Eye, Identity, Map, Linspace, Logspace, Diag, SparseCOO)
+BUILDERS = (
+    Vector,
+    Matrix,
+    Full,
+    Concatenate,
+    HStack,
+    VStack,
+    Zeros,
+    Ones,
+    Normal,
+    Uniform,
+    RandInt,
+    Poisson,
+    Bernoulli,
+    Eye,
+    Identity,
+    Map,
+    Linspace,
+    Logspace,
+    Diag,
+    SparseCOO,
+)
 DISCRETIZATION_OPERATORS = (Sign, Floor, Ceil, Trunc, Rint, Round, Clip)
 ELEMENTWISE_OPERATORS = (Neg, Exp, Exp2, Expm1, Log, Log1p, Log2, Log10, Square, Cbrt, Reciprocal, Abs, Where)
 TRIGO_OPERATORS = (Acos, Acosh, Asin, Asinh, Atan, Atan2, Atanh, Cos, Cosh, Cot, Csc, Sec, Sin, Sinh, Tan, Tanh)
@@ -208,6 +234,11 @@ __all__ = [
     "VStack",
     "Zeros",
     "Ones",
+    "Normal",
+    "Uniform",
+    "RandInt",
+    "Poisson",
+    "Bernoulli",
     "Eye",
     "Identity",
     "Map",
