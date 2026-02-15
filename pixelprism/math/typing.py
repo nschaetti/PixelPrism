@@ -229,6 +229,7 @@ class MathExpr(Protocol):
     #
     # Immutable transforms
     #
+
     # Apply symbolic rewrite rules and return a simplified expression.
     # This operation is pure: it never mutates the current tree.
     # `options` controls which rules are enabled/disabled for this pass.
@@ -239,7 +240,7 @@ class MathExpr(Protocol):
     def canonicalize(self) -> "MathExpr": ...
 
     # Fold constant-only subexpressions into constant leaves.
-    # This is a focused transform and may be used independently of full simplify.
+    # This is a focused transform and may be used independently of full simplifying.
     def fold_constants(self) -> "MathExpr": ...
 
     # Replace matching subexpressions using `mapping` and return a new tree.
@@ -273,6 +274,7 @@ class MathExpr(Protocol):
     #
     # Boolean checks
     #
+
     # True if the expression contains no variable dependency
     # (i.e., it evaluates from constants only).
     def is_constant(self) -> bool: ...

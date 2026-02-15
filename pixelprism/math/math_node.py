@@ -29,7 +29,7 @@
 # Imports
 from __future__ import annotations
 import weakref
-from typing import Any, FrozenSet, List, Optional, Tuple, Union, Dict, Sequence, TYPE_CHECKING
+from typing import Any, FrozenSet, List, Optional, Tuple, Union, Dict, Sequence, TYPE_CHECKING, Mapping
 
 from .math_base import MathBase
 from .math_exceptions import (
@@ -41,8 +41,7 @@ from .mixins import DifferentiableMixin, PredicateMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .typing import Index, MathExpr, Operands
-
+from .typing import Index, MathExpr, Operands, Operator, LeafKind, SimplifyOptions
 
 if TYPE_CHECKING:
     from .math_leaves import Constant, Variable
@@ -83,7 +82,7 @@ class MathNode(
             self,
             name: Optional[str],
             *,
-            op: Optional,
+            op: Optional[Operator],
             children: Operands,
             dtype: DType,
             shape: Shape
@@ -128,33 +127,22 @@ class MathNode(
     # end op
 
     @property
-    def children(self) -> Tuple[MathExpr, ...]:
+    def children(self) -> Sequence[MathExpr]:
         """
         Returns
         -------
-        tuple[MathExpr, ...]
+        Sequence['MathExpr']
             Child nodes (empty tuple for leaves).
         """
         return self._children
     # end def children
 
     @property
-    def rank(self) -> int:
-        """
-        Returns
-        -------
-        int
-            Rank of the advertised tensor.
-        """
-        return self._shape.rank
-    # end def rank
-
-    @property
     def parents(self) -> FrozenSet[MathExpr]:
         """
         Returns
         -------
-        frozenset[MathNode]
+        frozenset['MathNode']
             Best-effort view of nodes that consume this expression.
         """
         return frozenset(self._parents_weak)
@@ -165,26 +153,34 @@ class MathNode(
         """
         Returns
         -------
-        int
+        'int'
             Number of children supplied to the node.
         """
         return len(self._children)
     # end def arity
 
-    @property
-    def shape(self) -> Shape:
-        """
-        Returns
-        -------
-        'Shape'
-            Shape of the advertised tensor.
-        """
-        return self._shape
-    # end def shape
-
     # endregion PROPERTIES
 
     # region MATH_EXPR
+
+    #
+    # Properties
+    #
+
+    @property
+    def rank(self) -> int:
+        """
+        Returns
+        -------
+        'int'
+            Rank of the advertised tensor.
+        """
+        return self._shape.rank
+    # end def rank
+
+    #
+    # Evaluate and differentiate
+    #
 
     def eval(self) -> Tensor:
         """
@@ -200,7 +196,7 @@ class MathNode(
 
     def diff(
             self,
-             wrt: "Variable"
+             wrt: 'Variable'
     ) -> MathExpr:
         """
         Compute the derivative of this expression with respect to ``wrt``.
@@ -217,6 +213,10 @@ class MathNode(
         """
         return self._op.diff(wrt=wrt, operands=self._children)
     # end def diff
+
+    #
+    # Structure
+    #
 
     def variables(self) -> Sequence['Variable']:
         """
@@ -255,7 +255,7 @@ class MathNode(
             leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """
         Test whether ``var`` appears in the expression tree.
@@ -302,7 +302,7 @@ class MathNode(
             check_operator: bool = True
     ) -> bool:
         """Return True if the expression contains a variable `variable`"""
-        return self.contains(variable, by_ref=by_ref, check_operator=check_operator, look_for="var")
+        return self.contains(variable, by_ref=by_ref, check_operator=check_operator, look_for=LeafKind.VARIABLE)
     # end def contains_variable
 
     def contains_constant(
@@ -312,10 +312,85 @@ class MathNode(
             check_operator: bool = True
     ) -> bool:
         """Return True if the expression contains a constant `constant`"""
-        return self.contains(constant, by_ref=by_ref, check_operator=check_operator, look_for="const")
+        return self.contains(constant, by_ref=by_ref, check_operator=check_operator, look_for=LeafKind.CONSTANT)
     # end def contains_constant
 
-    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
+    #
+    # Immutable transforms
+    #
+
+    def simplify(self, options: SimplifyOptions | None = None) -> MathExpr:
+        """
+        Apply symbolic rewrite rules and return a simplified expression.
+        This operation is pure: it never mutates the current tree.
+
+        Parameters
+        ----------
+        options : SimplifyOptions or None, default None
+            Simplification options.
+
+        Returns
+        -------
+        MathExpr
+            Simplified expression.
+        """
+        # TODO: to implement
+        pass
+    # end def simplify
+
+    def canonicalize(self) -> "MathExpr":
+        """
+        Normalize an expression form without changing semantics.
+        Typical effects: associative flattening, deterministic operand ordering, etc.
+
+        Returns
+        -------
+        'MathExpr'
+            Normalized expression.
+        """
+        pass
+    # end def canonicalize
+
+    def fold_constants(self) -> "MathExpr":
+        """
+        Fold constant-only subexpressions into constant leaves.
+        This is a focused transform and may be used independently of full simplifying.
+
+        Returns
+        -------
+        'MathExpr'
+            Expression with constant folding applied.
+        """
+        # TODO: to implement
+        pass
+    # end def fold_constants
+
+    # Replace matching subexpressions using `mapping` and return a new tree.
+    # - `by_ref=True`: match by object identity.
+    # - `by_ref=False`: match by symbolic/tree equality policy.
+    def substitute(
+            self,
+            mapping: Mapping[MathExpr, MathExpr],
+            *,
+            by_ref: bool = True
+    ) -> MathExpr:
+        """
+        Replace matching subexpressions using `mapping` and return a new tree.
+        - `by_ref=True`: match by object identity.
+        - `by_ref=False`: match by symbolic/tree equality policy.
+
+        Args:
+            mapping:
+            by_ref:
+
+        Returns:
+
+        """
+        # TODO: to implement
+        pass
+    # end def substitute
+
+    def renamed(self, old_name: str, new_name: str) -> MathExpr:
         """
         Rename all variables/constants named ``old_name`` with ``new_name`` in the tree.
         The replacement is in-place.
@@ -326,22 +401,33 @@ class MathNode(
             Name of the variable/constant to rename.
         new_name: str
             New name for the variable/constant.
+
+        Returns
+        -------
+        MathExpr
+            Expression with renamed variables/constants.
         """
-        rename_dict = {}
-        for child in self._children:
-            rn_out = child.renamed(old_name, new_name)
-            rename_dict.update(rn_out)
-        # end for
-        return rename_dict
+        # rename_dict = {}
+        # for child in self._children:
+        #     rn_out = child.renamed(old_name, new_name)
+        #     rename_dict.update(rn_out)
+        # # end for
+        # return rename_dict
+        # TODO: to implement
+        pass
     # end rename
 
-    def is_constant(self):
+    #
+    # Boolean predicates
+    #
+
+    def is_constant(self) -> bool:
         """Does the expression contain only constant values?"""
         rets = [o.is_constant() for o in self._children]
         return all(rets)
     # end def is_constant
 
-    def is_variable(self):
+    def is_variable(self) -> bool:
         """Does the expression contain a variable?"""
         rets = [o.is_variable() for o in self._children]
         return any(rets)
@@ -367,12 +453,24 @@ class MathNode(
         return len(self._children) == 0
     # end is_leaf
 
+    #
+    # Structure
+    #
+
     def depth(self) -> int:
-        """Return the depth of the node in the tree"""
+        """
+        Return the maximum depth of the subtree rooted at this node.
+        Convention: leaves have depth 1.
+
+        Returns
+        -------
+        'int'
+            Maximum depth of the subtree rooted at this node.
+        """
         return max([c.depth() for c in self._children]) + 1
     # end def depth
 
-    def copy(self, deep: bool = False):
+    def copy(self, deep: bool = False) -> MathExpr:
         """
         TODO: define a stable copy contract for MathNode.
 
@@ -385,8 +483,13 @@ class MathNode(
         )
     # end def copy
 
+    #
+    # Representation
+    #
+
     def __str__(self) -> str:
         """
+        Human-readable representation intended for users/logs.
         TODO: provide a dedicated human-readable string format.
         """
         return self.__repr__()
@@ -394,9 +497,12 @@ class MathNode(
 
     def __repr__(self) -> str:
         """
+        Developer-oriented representation intended for debugging.
+        Should be unambiguous and include key structural identifiers.
+
         Returns
         -------
-        str
+        'str'
             Readable representation containing type, id, dtype, and shape.
         """
         op_name = self._op.name if self._op is not None else "Leaf"
@@ -466,7 +572,7 @@ class MathNode(
 
         Returns
         -------
-        list[MathNode]
+        list['MathNode']
             Combined list of variables and constants.
         """
         return self.variables() + self.constants()

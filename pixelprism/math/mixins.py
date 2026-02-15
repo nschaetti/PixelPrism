@@ -99,7 +99,7 @@ class PredicateMixin(ABC):
 
         Returns
         -------
-        list[MathNode]
+        list['MathNode']
             List of :class:`Variable` instances (duplicates possible).
         """
     # end def variables
@@ -110,7 +110,7 @@ class PredicateMixin(ABC):
 
         Returns
         -------
-        list[MathNode]
+        list['MathNode']
             List of :class:`Constant` instances (duplicates possible).
         """
     # end def constants
