@@ -42,17 +42,27 @@
 
 # Imports
 from __future__ import annotations
-from typing import Iterable, List, Optional, Sequence, Union, Dict
+from typing import Iterable, List, Optional, Sequence, Union, Dict, TypeAlias, Tuple
 import numpy as np
 
 from .dtype import TypeLike, to_numpy, DType
-from .typing import DimLike, DimExpr, MathExpr
+from .typing import MathExpr
 from .math_exceptions import SymbolicMathInvalidDimensionError
 
 
-__all__ = ["Shape", "ShapeLike"]
+__all__ = [
+    "DimExpr",
+    "DimInt",
+    "DimLike",
+    "Shape",
+    "ShapeLike"
+]
 
 
+# Dimensions
+DimExpr: TypeAlias = "MathExpr"
+DimInt = int
+DimLike: TypeAlias = Union[int, "MathExpr"]
 ShapeLike = Union['Shape', Sequence[DimLike]]
 
 
@@ -242,11 +252,11 @@ class Shape(MathExpr):
         # end for
     # end def replace
 
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
         """Rename a variable in the expression."""
         renames = dict()
         for idx, dim in enumerate(self._dims):
-            renames.update(dim.rename(old_name, new_name))
+            renames.update(dim.renamed(old_name, new_name))
         # end for
         return renames
     # end def rename

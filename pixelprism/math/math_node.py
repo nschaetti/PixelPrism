@@ -315,7 +315,7 @@ class MathNode(
         return self.contains(constant, by_ref=by_ref, check_operator=check_operator, look_for="const")
     # end def contains_constant
 
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
         """
         Rename all variables/constants named ``old_name`` with ``new_name`` in the tree.
         The replacement is in-place.
@@ -329,7 +329,7 @@ class MathNode(
         """
         rename_dict = {}
         for child in self._children:
-            rn_out = child.rename(old_name, new_name)
+            rn_out = child.renamed(old_name, new_name)
             rename_dict.update(rn_out)
         # end for
         return rename_dict

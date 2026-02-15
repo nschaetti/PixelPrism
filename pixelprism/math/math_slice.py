@@ -273,9 +273,9 @@ class SliceExpr(PredicateMixin):
     # end def replace
 
     def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
-        if self._start is not None: self._start.rename(old_name, new_name)
-        if self._stop is not None: self._stop.rename(old_name, new_name)
-        if self._step is not None: self._step.rename(old_name, new_name)
+        if self._start is not None: self._start.renamed(old_name, new_name)
+        if self._stop is not None: self._stop.renamed(old_name, new_name)
+        if self._step is not None: self._step.renamed(old_name, new_name)
         return {old_name: new_name}
     # end def rename
 

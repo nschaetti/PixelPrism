@@ -28,9 +28,13 @@
 
 
 from __future__ import annotations
-from typing import Protocol, runtime_checkable
+
+from dataclasses import dataclass
+from enum import Enum, auto
+from types import EllipsisType
+from typing import Protocol, runtime_checkable, Literal, NamedTuple, FrozenSet
 from typing import TYPE_CHECKING, Tuple, Union, Sequence, List, Optional, Dict, TypeAlias
-from typing import ClassVar
+from typing import ClassVar, Mapping
 import numpy as np
 
 
@@ -47,82 +51,265 @@ __all__ = [
     "ScalarLike",
     "ScalarListLike",
     "Index",
-    "DimExpr",
     "MathExpr",
     "TensorLike",
-    "DimLike",
-    "DimInt",
-    "DimsInt",
     "Operand",
     "Operands",
-    "Operator"
+    "Operator",
+    "SimplifyRule",
+    "SimplifyOptions",
+    "LeafKind",
+    "OpSimplifyResult"
 ]
 
 
 # Type numeric
+# Scalar Python/NumPy accepted as atomic numeric values in symbolic expressions.
+# Includes bool and complex to match Tensor/domain operator coverage.
 ScalarLike = float | int | np.number | bool | complex
+
+# Recursive Python list representation of scalar tensor-like data.
+# Example: [1, 2, [3, 4.5]]
 ScalarListLike: TypeAlias = list[Union[ScalarLike, "ScalarListLike"]]
 
-
 # Tensor data
+# Any accepted tensor payload: scalar, nested Python lists, or NumPy array.
 TensorLike: TypeAlias = Union[ScalarLike, ScalarListLike, np.ndarray]
 
 
-# Represents a valid index
-Index = Union[
+# Single indexing atom accepted in one axis position.
+# - int: pick one element on an axis
+# - slice: ranged selection
+# - None: insert a new axis (numpy.newaxis)
+# - Ellipsis: expand to remaining axes
+# - Sequence[int]: integer fancy indexing on one axis
+# - Sequence[bool]: boolean mask indexing on one axis
+IndexAtom: TypeAlias = Union[
     int,
     slice,
+    None,
+    EllipsisType,
     Sequence[int],
-    Tuple[Union[int, slice], ...],
+    Sequence[bool],
 ]
+
+# Full tensor index:
+# - a single atom (e.g. x[3], x[1:5], x[..., 0])
+# - or a tuple of atoms for multi-axis indexing (e.g. x[:, 1, ..., None])
+Index: TypeAlias = Union[
+    IndexAtom,
+    Tuple[IndexAtom, ...],
+]
+
+
+# Symbolic rewrite rules available to `simplify`.
+# - Algebraic identities reduce expression size (e.g. x + 0 -> x).
+# - Canonicalization rules normalize a tree form for stable comparisons.
+class SimplifyRule(Enum):
+    # Algebraic identities
+    ADD_ZERO = auto()          # x + 0 -> x ; 0 + x -> x
+    SUB_ZERO = auto()          # x - 0 -> x
+    MUL_ONE = auto()           # x * 1 -> x ; 1 * x -> x
+    MUL_ZERO = auto()          # x * 0 -> 0 ; 0 * x -> 0
+    DIV_ONE = auto()           # x / 1 -> x
+
+    # Constant folding
+    CONST_FOLD = auto()        # combine constant-only subexpressions
+
+    # Canonicalization (normal form)
+    FLATTEN_ASSOC = auto()     # (a+b)+c -> a+b+c ; (a*b)*c -> a*b*c
+    SORT_COMMUTATIVE = auto()  # stable operand ordering for + and *
+# end class SimplifyRule
+
+
+# Rule selection for one simplify pass.
+# - enabled=None means "all rules enabled by default".
+# - disabled always takes precedence over enabled.
+@dataclass(frozen=True)
+class SimplifyOptions:
+    enabled: FrozenSet[SimplifyRule] | None = None
+    disabled: FrozenSet[SimplifyRule] = frozenset()
+# end class SimplifyOptions
+
+
+#
+# Leaf filtering for structural queries (`contains*`).
+#
+class LeafKind(Enum):
+    # No filtering: variables and constants are both considered.
+    ANY = auto()
+    # Restrict search to variable leaves only.
+    VARIABLE = auto()
+    # Restrict search to constant leaves only.
+    CONSTANT = auto()
+# end class LeafKind
 
 
 # Protocol for mathematical expressions
 @runtime_checkable
 class MathExpr(Protocol):
-    # Output shape
+
+    #
+    # Properties
+    #
+
+    # Symbolic output shape of the expression.
+    # Must stay consistent with operator/operand shape inference.
     @property
     def shape(self) -> "Shape": ...
+
+    # Element dtype produced by the expression evaluation.
+    # This is the advertised/static dtype contract.
     @property
     def dtype(self) -> "DType": ...
+
+    # Stable expression identifier.
+    # Required for tracing, debugging, and deterministic rewrites.
     @property
     def name(self) -> str: ...
 
-    # Evaluate and differentiate
-    def eval(self) -> "Tensor": ...
-    def diff(self, wrt: 'Variable') -> 'MathExpr': ...
+    # Tensor rank derived from `shape`.
+    # Convenience property used by operators and validators.
+    @property
+    def rank(self) -> int: ...
 
+    #
+    # Evaluate and differentiate
+    #
+
+    # Evaluate the expression in the active runtime context and return a tensor.
+    # The returned value must match the expression contract (`dtype`, `shape`).
+    def eval(self) -> "Tensor": ...
+
+    # Symbolic derivative of the expression with respect to one variable.
+    # Returns a new expression tree (not a numeric value), suitable for further rewrites.
+    def diff(self, wrt: "Variable") -> "MathExpr": ...
+
+    #
     # Structure
-    def variables(self) -> Sequence['Variable']: ...
-    def constants(self) -> Sequence['Constant']: ...
+    #
+
+    # Return all variable leaves reachable from this expression.
+    # Order may follow traversal order; duplicates are not allowed.
+    def variables(self) -> Sequence["Variable"]: ...
+
+    # Return all constant leaves reachable from this expression.
+    # Order may follow traversal order; duplicates not are allowed.
+    def constants(self) -> Sequence["Constant"]: ...
+
+    # Generic membership query in the expression tree.
+    # - `leaf` can be a name or an expression instance.
+    # - `by_ref=True` enforces identity-based matching.
+    # - `check_operator=True` also inspects operator-owned symbolic parameters.
+    # - `look_for` narrows the search domain (e.g. "var", "const"); None means no filter.
     def contains(
             self,
-            leaf: Union[str, 'MathExpr'],
+            leaf: Union[str, "MathExpr"],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool: ...
+
+    # Convenience wrapper around `contains(..., look_for=LeafKind.VARIABLE)`.
     def contains_variable(
             self,
-            variable: Union[str, 'Variable'],
+            variable: Union[str, "Variable"],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool: ...
+
+    # Convenience wrapper around `contains(..., look_for=LeafKind.CONSTANT)`.
     def contains_constant(
             self,
-            constant: Union[str, 'Constant'],
+            constant: Union[str, "Constant"],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool: ...
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]: ...
+
+    #
+    # Immutable transforms
+    #
+    # Apply symbolic rewrite rules and return a simplified expression.
+    # This operation is pure: it never mutates the current tree.
+    # `options` controls which rules are enabled/disabled for this pass.
+    def simplify(self, options: SimplifyOptions | None = None) -> "MathExpr": ...
+
+    # Normalize expression form without changing semantics.
+    # Typical effects: associative flattening, deterministic operand ordering, etc.
+    def canonicalize(self) -> "MathExpr": ...
+
+    # Fold constant-only subexpressions into constant leaves.
+    # This is a focused transform and may be used independently of full simplify.
+    def fold_constants(self) -> "MathExpr": ...
+
+    # Replace matching subexpressions using `mapping` and return a new tree.
+    # - `by_ref=True`: match by object identity.
+    # - `by_ref=False`: match by symbolic/tree equality policy.
+    def substitute(
+            self,
+            mapping: Mapping["MathExpr", "MathExpr"],
+            *,
+            by_ref: bool = True
+    ) -> "MathExpr": ...
+
+    # Return a new expression where occurrences of `old_name` are renamed to `new_name`.
+    # This transform is immutable and does not alter the current instance.
+    def renamed(self, old_name: str, new_name: str) -> "MathExpr": ...
+
+    #
+    # Comparison
+    #
+    # Strict symbolic tree equality.
+    # Returns True only if both expressions have the same structure
+    # (same node kinds/operators, same operand order, same leaf content).
+    def eq_tree(self, other: "MathExpr") -> bool: ...
+
+    # Mathematical symbolic equivalence.
+    # Returns True when both expressions represent the same symbolic meaning,
+    # even if their trees differ (e.g., after canonicalization/simplification).
+    # This check is symbolic only (no numeric/probabilistic fallback).
+    def equivalent(self, other: "MathExpr") -> bool: ...
+
+    #
+    # Boolean checks
+    #
+    # True if the expression contains no variable dependency
+    # (i.e., it evaluates from constants only).
     def is_constant(self) -> bool: ...
+
+    # True if the expression contains at least one variable dependency.
     def is_variable(self) -> bool: ...
+
+    # True for operator-based internal tree nodes.
     def is_node(self) -> bool: ...
+
+    # True for terminal tree elements (variables/constants) with no children.
     def is_leaf(self) -> bool: ...
+
+    #
+    # Structure
+    #
+
+    # Return the maximum depth of the expression tree.
+    # Convention: leaves have depth 1.
     def depth(self) -> int: ...
-    def copy(self, deep: bool = False) -> 'MathExpr': ...
+
+    # Return a copy of the expression.
+    # - deep=False: may reuse existing children/subtrees when safe.
+    # - deep=True: recursively duplicates the full expression tree.
+    def copy(self, deep: bool = False) -> "MathExpr": ...
+
+    #
+    # Representation
+    #
+
+    # Human-readable representation intended for users/logs.
     def __str__(self) -> str: ...
+
+    # Developer-oriented representation intended for debugging.
+    # Should be unambiguous and include key structural identifiers.
     def __repr__(self) -> str: ...
+
 # end class MathExpr
 
 
@@ -133,57 +320,165 @@ Operand: TypeAlias = "MathExpr"
 Operands = Sequence[Operand]
 
 
+class OpSimplifyResult(NamedTuple):
+    operands: Operands                      # Normalized/simplified operands
+    replacement: MathExpr | None = None     # If not None, the operator was replaced by this expression
+# end def OpSimplifyResult
+
+
 # Protocol for mathematical operators
 @runtime_checkable
 class Operator(Protocol):
+
+    #
     # Class variables
+    #
+
+    # Declared operator arity.
+    # For fixed-arity operators, this is the exact number of required operands.
     ARITY: ClassVar[int]
+
+    # True when the operator accepts a variable number of operands.
+    # When True, arity validation is handled dynamically.
     IS_VARIADIC: ClassVar[bool]
+
+    # True when the operator is intended for differentiation-time semantics
+    # (e.g., special derivative helper operators).
     IS_DIFF: ClassVar[bool]
+
+    # Stable registry/operator identifier (e.g., "add", "mul", "log").
     NAME: ClassVar[str]
 
+    # True if operand order does not change semantic result.
+    # Example: add(a, b) == add(b, a)
+    COMMUTATIVE: ClassVar[bool]
+
+    # True if regrouping does not change semantic result.
+    # Example: add(add(a, b), c) == add(a, add(b, c))
+    ASSOCIATIVE: ClassVar[bool]
+
+    #
     # Properties
+    #
+
+    # Runtime operator name.
+    # Must match the class-level stable identifier (`NAME`).
     @property
     def name(self) -> str: ...
+
+    # Effective arity for this operator instance.
+    # For fixed-arity operators, this typically equals `ARITY`.
+    # For variadic operators, this may reflect runtime operand count.
     @property
     def arity(self) -> int: ...
+
+    # Set effective arity for this operator instance.
+    # Intended mainly for variadic operators after operand validation.
     @arity.setter
     def arity(self, value: int) -> None: ...
-    @property
-    def is_variadic(self) -> bool: ...
-    @property
-    def is_diff(self) -> bool: ...
 
+    #
     # Evaluate and differentiate
+    #
+
+    # Evaluate operator output for already-built symbolic operands.
+    # Executes numeric computation in the active runtime context.
+    # `kwargs` carries operator-specific runtime parameters when needed.
     def eval(self, operands: Operands, **kwargs) -> "Tensor": ...
+
+    # Return a symbolic derivative of this operator application with respect to `wrt`.
+    # The result is an expression tree (not a numeric tensor).
+    # `operands` are the original operator inputs used to apply differentiation rules.
     def diff(self, wrt: "Variable", operands: Operands) -> "MathExpr": ...
 
-    # Structure
-    def contains(self, expr: "MathExpr", by_ref: bool = False, look_for: Optional[str] = None) -> bool: ...
+    #
+    # Simplification
+    #
 
+    # Apply operator-local simplification rules to already simplified operands.
+    # Returns:
+    # - `operands`: possibly rewritten operands for the same operator node.
+    # - `replacement`: optional full-node replacement (e.g., add(x, 0) -> x).
+    # If `replacement` is not None, the caller should replace the whole node.
+    def simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult: ...
+
+    # Return canonicalized operands for this operator without changing semantics.
+    # Intended for a deterministic tree form (e.g., flatten associative, sort commutative).
+    # This does not directly replace the node; the caller rebuilds with returned operands.
+    def canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]: ...
+
+    #
+    # Structure
+    #
+
+    # Return True if `expr` is referenced by operator-owned symbolic parameters.
+    # - `by_ref=True`: identity-based match.
+    # - `by_ref=False`: symbolic/name-based match depending on expression policy.
+    # - `look_for` restricts lookup scope (any / variables / constants).
+    def contains(
+            self,
+            expr: MathExpr,
+            by_ref: bool = False,
+            look_for: LeafKind = LeafKind.ANY
+    ) -> bool: ...
+
+    #
     # Infer shapes and dtypes
+    #
+
+    # Infer the result dtype from operand dtypes and operator semantics.
+    # Must be deterministic and consistent with `eval`.
     def infer_dtype(self, operands: Operands) -> "DType": ...
+
+    # Infer the result shape from operand shapes and operator semantics.
+    # Must be deterministic and consistent with `eval`.
     def infer_shape(self, operands: Operands) -> "Shape": ...
 
+    #
     # Checks
+    #
+
+    # Validate operand-level semantic constraints specific to the operator.
+    # Example: required operand kinds, valid axis expression type, etc.
     def check_operands(self, operands: Operands) -> bool: ...
+
+    # Validate operator initialization/runtime parameters.
+    # Example: axis range, non-zero step, valid mode flags, etc.
     def check_parameters(self, **kwargs) -> bool: ...
+
+    # Validate shape compatibility constraints for this operator.
+    # Example: elementwise compatibility, matmul inner dims, concat axis agreement.
     def check_shapes(self, operands: Operands) -> bool: ...
 
-    @classmethod
-    def check_arity(cls, operands: Operands): ...
+    #
+    # Factory methods
+    #
 
     @classmethod
-    def create_node( cls, operands: Operands, **kwargs) -> "MathNode": ...
+    # Validate operand count against operator arity contract.
+    # For fixed-arity operators, this checks the exact length.
+    # For variadic operators, this validates the minimal / allowed count policy.
+    def check_arity(cls, operands: Operands) -> bool: ...
 
+    @classmethod
+    # Construct a MathNode bound to this operator from validated operands.
+    # Implementations should infer dtype/shape and attach operator parameters from `kwargs`.
+    # Returns a symbolic node ready for graph use.
+    def create_node(cls, operands: Operands, **kwargs) -> "MathNode": ...
+
+    #
     # Representation
+    #
+
+    # Human-readable operator representation for logs and user-facing displays.
     def __str__(self) -> str: ...
+
+    # Developer/debug representation including key operator metadata.
+    # Should be unambiguous and useful when inspecting expression trees.
     def __repr__(self) -> str: ...
+
 # end class Operator
-
-
-# Dimensions
-DimExpr: TypeAlias = "MathExpr"
-DimInt = int
-DimsInt = Tuple[int, ...]
-DimLike: TypeAlias = Union[int, "MathExpr"]

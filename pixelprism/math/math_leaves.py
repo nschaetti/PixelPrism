@@ -251,7 +251,7 @@ class MathLeaf(
         raise SymbolicMathNotImplementedError("Leaf nodes do not support replace.")
     # end def replace
 
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -554,7 +554,7 @@ class Variable(MathLeaf):
         )
     # end def replace
 
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -925,7 +925,7 @@ class Constant(MathLeaf):
         )
     # end def replace
 
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters

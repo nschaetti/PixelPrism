@@ -50,9 +50,6 @@ from .context import (
 from .dtype import (
     DType,
     TypeLike,
-    NumberLike,
-    ScalarListLike,
-    ScalarLike,
     Z_DTYPE,
     R_DTYPE,
     to_numpy,
@@ -101,7 +98,13 @@ from .mixins import EvaluableMixin, DifferentiableMixin, PredicateMixin
 
 from .operators import OperatorBase, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
 
-from .shape import DimLike, DimsLike, Shape, ShapeLike
+from .shape import (
+    DimExpr,
+    DimInt,
+    DimLike,
+    Shape,
+    ShapeLike,
+)
 
 from .tensor import (
     Tensor,
@@ -176,15 +179,11 @@ from .tensor import (
 )
 
 from .typing import (
-    NumberLike,
     ScalarLike,
     ScalarListLike,
     Index,
-    DimExpr,
     MathExpr,
     TensorLike,
-    DimLike,
-    DimsLike
 )
 
 
@@ -306,7 +305,6 @@ __all__ = [
     "C",
     "B",
     "TypeLike",
-    "NumberLike",
     "ScalarLike",
     "ScalarListLike",
     "Z_DTYPE",
@@ -354,8 +352,10 @@ __all__ = [
 
     # Shape
     "Shape",
+    "ShapeLike",
+    "DimExpr",
+    "DimInt",
     "DimLike",
-    "DimsLike",
 
     # Helpers
     "is_sequence_like",
@@ -427,7 +427,6 @@ __all__ = [
     # "einsum",
 
     # Typing
-    "NumberLike",
     "ScalarLike",
     "ScalarListLike",
     "Index",
