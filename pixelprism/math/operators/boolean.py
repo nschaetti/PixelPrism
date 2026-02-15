@@ -73,7 +73,7 @@ class _BinaryComparisonOperator(ComparisonOperator):
     def check_operands(self, operands: Operands) -> bool:
         ref_operand = operands[0]
         for op in operands:
-            if ref_operand.input_shape != op.input_shape:
+            if ref_operand.shape != op.shape:
                 return False
             # end if
         # end for
@@ -97,11 +97,11 @@ class _BinaryComparisonOperator(ComparisonOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        return operands[0].input_shape.copy()
+        return operands[0].shape.copy()
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
-        return operands[0].input_shape == operands[1].input_shape
+        return operands[0].shape == operands[1].shape
     # end def check_shapes
 
     def __str__(self) -> str:
@@ -178,7 +178,7 @@ class _UnaryBooleanComparisonOperator(ComparisonOperator, ABC):
     # end def infer_shape
 
     def _result_shape(self, operand: MathNode) -> Shape:
-        return operand.input_shape
+        return operand.shape
     # end def _result_shape
 
     def check_shapes(self, operands: Operands) -> bool:

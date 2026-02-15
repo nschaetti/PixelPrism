@@ -87,7 +87,7 @@ def build_tensor(
         op_name="build_tensor",
         operands=operands,
         display_name=f"tensor([{element_names}]){display_shape}",
-        input_shape=tensor_shape
+        shape=tensor_shape
     )
 # end def build_tensor
 

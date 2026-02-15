@@ -215,9 +215,9 @@ class SliceExpr(PredicateMixin):
     def is_variable(self):
         """Contains any variables?"""
         has_variable = False
-        if self._start is not None and not self._start.is_variable(): has_variable = True
-        if self._stop is not None and not self._stop.is_variable(): has_variable = True
-        if self._step is not None and not self._step.is_variable(): has_variable = True
+        if self._start is not None and self._start.is_variable(): has_variable = True
+        if self._stop is not None and self._stop.is_variable(): has_variable = True
+        if self._step is not None and self._step.is_variable(): has_variable = True
         return has_variable
     # end def is_variable
 

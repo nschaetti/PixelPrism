@@ -171,13 +171,20 @@ class MathNode(
         return len(self._children)
     # end def arity
 
+    @property
+    def shape(self) -> Shape:
+        """
+        Returns
+        -------
+        'Shape'
+            Shape of the advertised tensor.
+        """
+        return self._shape
+    # end def shape
+
     # endregion PROPERTIES
 
     # region MATH_EXPR
-
-    def shape(self) -> Shape:
-        return self._shape
-    # end def shape
 
     def eval(self) -> Tensor:
         """

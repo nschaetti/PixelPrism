@@ -103,28 +103,28 @@ class BuildTensor(ParametricBuilder):
 
     def __init__(
             self,
-            input_shape: Optional[Shape] = None
+            shape: Optional[Shape] = None
     ):
         super(BuildTensor, self).__init__(
-            shape=input_shape
+            shape=shape
         )
-        self._input_shape = input_shape
+        self._shape = shape
     # end def __init__
 
     # region PROPERTY
 
     @property
-    def input_shape(self) -> Optional[Shape]:
-        return self._input_shape
+    def shape(self) -> Optional[Shape]:
+        return self._shape
     # end def shape
 
     @property
     def n_elements(self) -> Optional[int]:
         """Get the number of elements in the tensor."""
-        if self._input_shape is None:
+        if self._shape is None:
             return None
         # end if
-        return self._input_shape.size
+        return self._shape.size
     # end def n_elements
 
     # endregion PROPERTY
@@ -132,8 +132,8 @@ class BuildTensor(ParametricBuilder):
     # region PUBLIC
 
     @classmethod
-    def check_parameters(cls, input_shape: Shape) -> bool:
-        return input_shape.n_dims >= 1
+    def check_parameters(cls, shape: Shape) -> bool:
+        return shape.n_dims >= 1
     # end def check_parameters
 
     def contains(
@@ -164,10 +164,10 @@ class BuildTensor(ParametricBuilder):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        if self._input_shape is None:
+        if self._shape is None:
             return Shape(dims=(len(operands),))
         # end if
-        return self._input_shape.copy()
+        return self._shape.copy()
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -191,8 +191,8 @@ class BuildTensor(ParametricBuilder):
         numpy_dtype = to_numpy(dtype)
         values = [np.asarray(operand.eval().value, dtype=numpy_dtype) for operand in operands]
         data = np.stack(values, axis=0)
-        if self._input_shape is not None:
-            data = data.reshape(self._input_shape.dims)
+        if self._shape is not None:
+            data = data.reshape(self._shape.dims)
         # end if
         return Tensor(data=np.asarray(data, dtype=numpy_dtype), dtype=dtype)
     # end def _eval
@@ -206,11 +206,11 @@ class BuildTensor(ParametricBuilder):
     # region OVERRIDE
 
     def __str__(self) -> str:
-        return f"{self.NAME}(input_shape={self._input_shape})"
+        return f"{self.NAME}(shape={self._shape})"
     # end def __str__
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(input_shape={self._input_shape})"
+        return f"{self.__class__.__name__}(shape={self._shape})"
     # end def __repr__
 
     # endregion OVERRIDE
@@ -529,10 +529,10 @@ class Concatenate(Builder):
             raise ValueError("Cannot infer shape without operands.")
         if self._axis is None:
             return Shape((self._flattened_size(operands),))
-        base_shape = operands[0].input_shape
+        base_shape = operands[0].shape
         axis = self._normalized_axis(base_shape.rank)
         dims = list(base_shape.dims)
-        dims[axis] = sum(operand.input_shape[axis] for operand in operands)
+        dims[axis] = sum(operand.shape[axis] for operand in operands)
         return Shape(tuple(dims))
     # end def infer_shape
 
@@ -541,12 +541,12 @@ class Concatenate(Builder):
             raise ValueError("Concatenate requires at least one operand.")
         if self._axis is None:
             return True
-        reference = operands[0].input_shape
+        reference = operands[0].shape
         axis = self._normalized_axis(reference.rank)
         for operand in operands[1:]:
-            if operand.input_shape.rank != reference.rank:
+            if operand.shape.rank != reference.rank:
                 raise ValueError("All operands must share the same rank for concatenation.")
-            for idx, (dim_ref, dim_other) in enumerate(zip(reference.dims, operand.input_shape.dims)):
+            for idx, (dim_ref, dim_other) in enumerate(zip(reference.dims, operand.shape.dims)):
                 if idx == axis:
                     continue
                 if dim_ref != dim_other:
@@ -571,7 +571,7 @@ class Concatenate(Builder):
     def _flattened_size(self, operands: Operands) -> int:
         total = 0
         for operand in operands:
-            size = operand.input_shape.size
+            size = operand.shape.size
             if size is None:
                 raise ValueError("Cannot concatenate unknown-size tensors along axis=None.")
             total += size

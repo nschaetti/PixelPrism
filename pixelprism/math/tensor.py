@@ -33,7 +33,7 @@ import numpy as np
 
 from .shape import Shape, ShapeLike
 from .dtype import DType, TypeLike, to_numpy, convert_numpy, from_numpy
-from .typing import TensorLike, NumberListLike, DimsInt, DimInt
+from .typing import TensorLike, ScalarListLike, DimsInt, DimInt
 
 __all__ = [
     "tensor",
@@ -343,7 +343,7 @@ def vector(
     --------
     >>> from pixelprism.math import T
     >>> weights = T.vector([0.2, 0.3, 0.5])
-    >>> weights.input_shape
+    >>> weights.shape
     (3,)
     """
     return _dim_tensor(data=value, ndim=1, dtype=dtype, mutable=mutable)
@@ -411,7 +411,7 @@ def empty(
     --------
     >>> from pixelprism.math as T
     >>> scratch = T.empty((2, 3))
-    >>> scratch.input_shape
+    >>> scratch.shape
     (2, 3)
     """
     dims = _normalize_shape(shape)
@@ -714,7 +714,7 @@ def zeros_like(
     >>> import pixelprism.math as ppmath
     >>> template = np.arange(6).reshape(2, 3)
     >>> zeros_clone = ppmath.zeros_like(template)
-    >>> zeros_clone.input_shape
+    >>> zeros_clone.shape
     (2, 3)
     """
     base = np.asarray(x)
@@ -2022,7 +2022,7 @@ class Tensor:
         return Tensor(data=self._data.ravel(order=order))
     # end def ravel
 
-    def tolist(self) -> NumberListLike:
+    def tolist(self) -> ScalarListLike:
         """Return the tensor data as nested Python lists.
         
         Returns

@@ -219,8 +219,8 @@ class Getitem(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        new_shape = list(operands[0].input_shape.dims)
-        for n_i, (i, n) in enumerate(zip(self._indices, operands[0].input_shape.dims)):
+        new_shape = list(operands[0].shape.dims)
+        for n_i, (i, n) in enumerate(zip(self._indices, operands[0].shape.dims)):
             if isinstance(i, int):
                 new_shape[n_i] = 0
             else:
@@ -241,7 +241,7 @@ class Getitem(StructureOperator):
     def check_shapes(self, operands: Operands) -> bool:
         for n_i, i in enumerate(self._indices):
             start = self._get_scalar(i.start) if isinstance(i, SliceExpr) else i
-            if start < -operands[0].input_shape[n_i] or start >= operands[0].input_shape[n_i]:
+            if start < -operands[0].shape[n_i] or start >= operands[0].shape[n_i]:
                 return False
             # end if
         # end for
@@ -368,7 +368,7 @@ class Flatten(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        return Shape(self._target_dims(operands[0].input_shape.dims))
+        return Shape(self._target_dims(operands[0].shape.dims))
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -420,11 +420,11 @@ class Squeeze(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        return Shape(self._target_dims(operands[0].input_shape.dims))
+        return Shape(self._target_dims(operands[0].shape.dims))
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
-        dims = operands[0].input_shape.dims
+        dims = operands[0].shape.dims
         axes = self._normalized_axes(dims)
         if self._axes is None:
             return True
@@ -507,11 +507,11 @@ class Unsqueeze(StructureOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        return Shape(self._target_dims(operands[0].input_shape.dims))
+        return Shape(self._target_dims(operands[0].shape.dims))
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
-        self._normalized_axes(len(operands[0].input_shape.dims))  # validation
+        self._normalized_axes(len(operands[0].shape.dims))  # validation
         return True
     # end def check_shapes
 

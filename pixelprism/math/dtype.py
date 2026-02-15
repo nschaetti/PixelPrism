@@ -47,15 +47,10 @@ from enum import Enum
 import sys
 import numpy as np
 
-from .typing import NumberLike, ScalarLike, NumberListLike
-
 
 __all__ = [
     "DType",
-    "NumberLike",
     "TypeLike",
-    "NumberListLike",
-    "ScalarLike",
     "Z_DTYPE",
     "R_DTYPE",
     "to_numpy",

@@ -45,15 +45,15 @@ from __future__ import annotations
 from typing import Iterable, List, Optional, Sequence, Union, Dict
 import numpy as np
 
-from .dtype import TypeLike, to_numpy
-from .typing import DimLike, DimsLike, DimExpr, MathExpr
+from .dtype import TypeLike, to_numpy, DType
+from .typing import DimLike, DimExpr, MathExpr
 from .math_exceptions import SymbolicMathInvalidDimensionError
 
 
 __all__ = ["Shape", "ShapeLike"]
 
 
-ShapeLike = Union['Shape', DimsLike]
+ShapeLike = Union['Shape', Sequence[DimLike]]
 
 
 class Shape(MathExpr):
@@ -61,7 +61,7 @@ class Shape(MathExpr):
     TODO: documentation
     """
 
-    def __init__(self, dims: DimsLike):
+    def __init__(self, dims: Sequence[DimLike]):
         """Initialize a TensorShape.
 
         Parameters
@@ -74,13 +74,13 @@ class Shape(MathExpr):
             self._check_dim(dim)
         # end for
         dims_tuple = [dim for dim in dims_tuple]
-        self._dims: DimsLike = dims_tuple
+        self._dims: Sequence[DimLike] = dims_tuple
     # end def __init__
 
     # region PROPERTIES
 
     @property
-    def dims(self) -> DimsLike:
+    def dims(self) -> Sequence[DimLike]:
         """Return the dimensions' tuple.
 
         Returns
@@ -92,10 +92,16 @@ class Shape(MathExpr):
     # end def dims
 
     @property
-    def shape(self) -> List[int]:
+    def shape(self) -> 'Shape':
         """Return the dimensions' list."""
-        return [dim.eval().item() if isinstance(dim, MathExpr) else dim for dim in self._dims]
+        return Shape([dim.eval().item() if isinstance(dim, MathExpr) else dim for dim in self._dims])
     # end def shape
+
+    @property
+    def dtype(self) -> "DType":
+        """Return the data type of the shape."""
+        return DType.Z
+    # end def dtype
 
     @property
     def rank(self) -> int:
@@ -214,7 +220,7 @@ class Shape(MathExpr):
             check_operator: bool = True
     ) -> bool:
         """Return whether the expression contains a given variable."""
-        return self.contains(variable, by_ref, check_operator, look_for='variable')
+        return self.contains(variable, by_ref, check_operator, look_for='var')
     # end def contains_variable
 
     def contains_constant(
@@ -224,7 +230,7 @@ class Shape(MathExpr):
             check_operator: bool = True
     ) -> bool:
         """Return whether the expression contains a given constant."""
-        return self.contains(constant, by_ref, check_operator, look_for='constant')
+        return self.contains(constant, by_ref, check_operator, look_for='const')
     # end def contains_constant
 
     def replace(self, old_m: 'MathExpr', new_m: 'MathExpr'):

@@ -145,17 +145,17 @@ class MatMul(LinearAlgebraOperator):
 
         # -------- Matrix @ Matrix (batched) --------
         if a.rank >= 2 and b.rank >= 2:
-            if a.input_shape[-1] != b.input_shape[-2]:
+            if a.shape[-1] != b.shape[-2]:
                 raise ValueError(
                     f"Matrix-matrix requires contraction dims to match, "
-                    f"got {a.input_shape[-1]} and {b.input_shape[-2]}"
+                    f"got {a.shape[-1]} and {b.shape[-2]}"
                 )
             # end if
 
-            if a.input_shape[:-2] != b.input_shape[:-2]:
+            if a.shape[:-2] != b.shape[:-2]:
                 raise ValueError(
                     f"MatMul requires batch dimensions to match, "
-                    f"got {a.input_shape[:-2]} and {b.input_shape[:-2]}"
+                    f"got {a.shape[:-2]} and {b.shape[:-2]}"
                 )
             # end if
 
@@ -164,17 +164,17 @@ class MatMul(LinearAlgebraOperator):
 
         # -------- Matrix @ Vector --------
         if a.rank >= 2 and b.rank == 1:
-            if a.input_shape[-1] != b.input_shape[-1]:
+            if a.shape[-1] != b.shape[-1]:
                 raise ValueError(
                     f"Matrix-vector requires contraction dims to match, "
-                    f"got {a.input_shape[-1]} and {b.input_shape[-1]}"
+                    f"got {a.shape[-1]} and {b.shape[-1]}"
                 )
             # end if
 
-            if a.input_shape[:-2] != b.input_shape[:-1]:
+            if a.shape[:-2] != b.shape[:-1]:
                 raise ValueError(
                     f"MatMul requires batch dimensions to match, "
-                    f"got {a.input_shape[:-2]} and {b.input_shape[:-1]}"
+                    f"got {a.shape[:-2]} and {b.shape[:-1]}"
                 )
             # end if
 
@@ -183,17 +183,17 @@ class MatMul(LinearAlgebraOperator):
 
         # -------- Vector @ Matrix --------
         if a.rank == 1 and b.rank >= 2:
-            if a.input_shape[-1] != b.input_shape[-2]:
+            if a.shape[-1] != b.shape[-2]:
                 raise ValueError(
                     f"Vector-matrix requires contraction dims to match, "
-                    f"got {a.input_shape[-1]} and {b.input_shape[-2]}"
+                    f"got {a.shape[-1]} and {b.shape[-2]}"
                 )
             # end if
 
-            if a.input_shape[:-1] != b.input_shape[:-2]:
+            if a.shape[:-1] != b.shape[:-2]:
                 raise ValueError(
                     f"MatMul requires batch dimensions to match, "
-                    f"got {a.input_shape[:-1]} and {b.input_shape[:-2]}"
+                    f"got {a.shape[:-1]} and {b.shape[:-2]}"
                 )
             # end if
 
@@ -206,8 +206,8 @@ class MatMul(LinearAlgebraOperator):
     @classmethod
     def infer_shape(cls, operands: Operands) -> Shape:
         A, B = operands
-        dims_a = A.input_shape.dims
-        dims_b = B.input_shape.dims
+        dims_a = A.shape.dims
+        dims_b = B.shape.dims
 
         rank_a = len(dims_a)
         rank_b = len(dims_b)
@@ -264,13 +264,13 @@ class Dot(LinearAlgebraOperator):
         # end if
 
         # Last dim equivalent
-        if a.input_shape[-1] != b.input_shape[-1]:
-            raise ValueError(f"Dot requires last dim to match, got {a.input_shape[-1]} and {b.input_shape[-1]}")
+        if a.shape[-1] != b.shape[-1]:
+            raise ValueError(f"Dot requires last dim to match, got {a.shape[-1]} and {b.shape[-1]}")
         # end if
 
         # Equivalent batch dims
-        if a.rank > 1 and a.input_shape[:-1] != b.input_shape[:-1]:
-            raise ValueError(f"Dot requires batch dims to match, got {a.input_shape[:-1]} and {b.input_shape[:-1]}")
+        if a.rank > 1 and a.shape[:-1] != b.shape[:-1]:
+            raise ValueError(f"Dot requires batch dims to match, got {a.shape[:-1]} and {b.shape[:-1]}")
         # end if
 
         return True
@@ -279,7 +279,7 @@ class Dot(LinearAlgebraOperator):
     @classmethod
     def infer_shape(cls, operands: Operands) -> Shape:
         A, B = operands
-        dims_a = A.input_shape.dims
+        dims_a = A.shape.dims
         rank_a = len(dims_a)
 
         # Batch dim
@@ -325,8 +325,8 @@ class Outer(LinearAlgebraOperator):
         # end if
 
         # Equivalent batch dims
-        if a.rank > 1 and a.input_shape[:-1] != b.input_shape[:-1]:
-            raise ValueError(f"Dot requires batch dims to match, got {a.input_shape[:-1]} and {b.input_shape[:-1]}")
+        if a.rank > 1 and a.shape[:-1] != b.shape[:-1]:
+            raise ValueError(f"Dot requires batch dims to match, got {a.shape[:-1]} and {b.shape[:-1]}")
         # end if
 
         return True
@@ -335,8 +335,8 @@ class Outer(LinearAlgebraOperator):
     @classmethod
     def infer_shape(cls, operands: Operands) -> Shape:
         A, B = operands
-        dims_a = A.input_shape.dims
-        dims_b = B.input_shape.dims
+        dims_a = A.shape.dims
+        dims_b = B.shape.dims
         rank_a = len(dims_a)
 
         # Batch dim
@@ -382,8 +382,8 @@ class Trace(LinearAlgebraOperator):
         # end if
 
         # Square matrices
-        if a.input_shape[-1] != a.input_shape[-2]:
-            raise ValueError(f"Trace requires square matrix, got {a.input_shape[-1]}x{a.input_shape[-2]}")
+        if a.shape[-1] != a.shape[-2]:
+            raise ValueError(f"Trace requires square matrix, got {a.shape[-1]}x{a.shape[-2]}")
         # end if
 
         return True
@@ -392,7 +392,7 @@ class Trace(LinearAlgebraOperator):
     @classmethod
     def infer_shape(cls, operands: Operands) -> Shape:
         A, = operands
-        dims_a = A.input_shape.dims
+        dims_a = A.shape.dims
         rank_a = len(dims_a)
 
         # Batch dim
@@ -724,7 +724,7 @@ class FrobeniusNorm(LinearAlgebraOperator):
         matrix = operands[0]
         if matrix.rank <= 2:
             return Shape.scalar()
-        return Shape(matrix.input_shape.dims[:-2])
+        return Shape(matrix.shape.dims[:-2])
     # end def infer_shape
 
     def infer_dtype(self, operands: Operands) -> DType:

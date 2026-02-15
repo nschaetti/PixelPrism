@@ -138,13 +138,4 @@ class MathBase:
         return self._name
     # end def name
 
-    @property
-    def output_shape(self) -> Shape:
-        """
-        Backwards-compatible alias used throughout operator implementations.
-        """
-        return self._shape
-    # end def input_shape
-
 # end class MathExpr
-

@@ -898,7 +898,7 @@ class Constant(MathLeaf):
             If ``by_ref`` is ``True`` while ``var`` is provided as a string.
         """
         if look_for is None or look_for == "const":
-            super(Constant, self).contains(
+            return super(Constant, self).contains(
                 leaf=leaf,
                 by_ref=by_ref,
                 check_operator=check_operator,

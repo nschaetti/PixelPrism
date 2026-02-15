@@ -72,7 +72,7 @@ Examples
 >>> with pm.new_context() as scope:
 ...     scope.set("w", np.zeros((2, 2)))
 ...     pm.set_value("b", np.ones((2,)))
-...     pm.get_value("w").input_shape
+...     pm.get_value("w").shape
 (2, 2)
 >>> pm.lookup("tensor:w") is None
 True
