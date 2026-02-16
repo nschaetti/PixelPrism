@@ -30,6 +30,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union, Dict
+import weakref
 
 from .math_base import MathBase
 
@@ -127,6 +128,7 @@ class MathLeaf(
         """
         # Init
         super(MathLeaf, self).__init__(name=name, dtype=dtype, shape=shape)
+        self._parents_weak = weakref.WeakSet()
     # end __init__
 
     # region MATH_EXPR

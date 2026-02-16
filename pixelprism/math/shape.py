@@ -1043,15 +1043,23 @@ class Shape(MathExpr):
         bool
             ``True`` when both shapes share identical dimensions.
         """
+        lhs_dims = tuple(self._dims)
         if isinstance(other, tuple):
-            return self._dims == other
+            return lhs_dims == tuple(other)
         elif isinstance(other, list):
-            return self._dims == tuple(other)
+            return lhs_dims == tuple(other)
         # end if
-        if not isinstance(other, Shape):
-            return False
+        if isinstance(other, Shape):
+            return lhs_dims == tuple(other._dims)
         # end if
-        return self._dims == other._dims
+        if hasattr(other, "dims"):
+            try:
+                return lhs_dims == tuple(getattr(other, "dims"))
+            except TypeError:
+                return False
+            # end try
+        # end if
+        return False
     # end def __eq__
 
     def __ne__(self, other: object) -> bool:

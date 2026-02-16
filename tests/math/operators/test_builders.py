@@ -190,28 +190,75 @@ def test_random_builders_shape_dtype_and_ranges():
 # end test_random_builders_shape_dtype_and_ranges
 
 
+def test_random_builders_parameters_are_evaluated_on_the_fly():
+    loc = pm.var("normal_loc", dtype=pm.DType.R, shape=())
+    scale = pm.var("normal_scale", dtype=pm.DType.R, shape=())
+    low = pm.var("uniform_low", dtype=pm.DType.R, shape=())
+    high = pm.var("uniform_high", dtype=pm.DType.R, shape=())
+    randint_low = pm.var("randint_low", dtype=pm.DType.Z, shape=())
+    randint_high = pm.var("randint_high", dtype=pm.DType.Z, shape=())
+    lam = pm.var("poisson_lam", dtype=pm.DType.R, shape=())
+    p = pm.var("bernoulli_p", dtype=pm.DType.R, shape=())
+
+    normal_expr = FB.normal(shape=(32, 16), loc=loc, scale=scale, dtype=pm.DType.R)
+    uniform_expr = FB.uniform(shape=(32, 16), low=low, high=high, dtype=pm.DType.R)
+    randint_expr = FB.randint(shape=(32, 16), low=randint_low, high=randint_high, dtype=pm.DType.Z)
+    poisson_expr = FB.poisson(shape=(32, 16), lam=lam, dtype=pm.DType.Z)
+    bernoulli_expr = FB.bernoulli(shape=(32, 16), p=p, dtype=pm.DType.Z)
+
+    with pm.new_context():
+        pm.set_value("normal_loc", 3.0)
+        pm.set_value("normal_scale", 1e-9)
+        pm.set_value("uniform_low", 2.0)
+        pm.set_value("uniform_high", 2.1)
+        pm.set_value("randint_low", 5)
+        pm.set_value("randint_high", 6)
+        pm.set_value("poisson_lam", 4.0)
+        pm.set_value("bernoulli_p", 1.0)
+
+        normal_val = normal_expr.eval().value
+        uniform_val = uniform_expr.eval().value
+        randint_val = randint_expr.eval().value
+        poisson_val = poisson_expr.eval().value
+        bernoulli_val = bernoulli_expr.eval().value
+
+    assert np.allclose(normal_val, np.full((32, 16), 3.0, dtype=np.float32), atol=1e-4)
+    assert np.all(uniform_val >= 2.0)
+    assert np.all(uniform_val < 2.1)
+    assert np.all(randint_val == 5)
+    assert np.all(poisson_val >= 0)
+    assert np.all(bernoulli_val == 1)
+# end test_random_builders_parameters_are_evaluated_on_the_fly
+
+
 def test_random_builders_validation_errors():
+    normal_expr = FB.normal(shape=(2, 2), scale=-1.0)
     with pytest.raises(ValueError):
-        FB.normal(shape=(2, 2), scale=-1.0)
+        normal_expr.eval()
     # end with
 
+    uniform_expr = FB.uniform(shape=(2, 2), low=1.0, high=1.0)
     with pytest.raises(ValueError):
-        FB.uniform(shape=(2, 2), low=1.0, high=1.0)
+        uniform_expr.eval()
     # end with
 
+    poisson_expr = FB.poisson(shape=(2, 2), lam=-0.1)
     with pytest.raises(ValueError):
-        FB.poisson(shape=(2, 2), lam=-0.1)
+        poisson_expr.eval()
     # end with
 
+    bernoulli_expr = FB.bernoulli(shape=(2, 2), p=1.1)
     with pytest.raises(ValueError):
-        FB.bernoulli(shape=(2, 2), p=1.1)
+        bernoulli_expr.eval()
     # end with
 
+    randint_expr = FB.randint(shape=(2, 2), low=0)
     with pytest.raises(ValueError):
-        FB.randint(shape=(2, 2), low=0)
+        randint_expr.eval()
     # end with
 
+    randint_bounds_expr = FB.randint(shape=(2, 2), low=5, high=5)
     with pytest.raises(ValueError):
-        FB.randint(shape=(2, 2), low=5, high=5)
+        randint_bounds_expr.eval()
     # end with
 # end test_random_builders_validation_errors

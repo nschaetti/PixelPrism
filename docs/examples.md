@@ -125,3 +125,17 @@ composer.create_video()
 ## More Examples
 
 For more examples, check out the [examples directory](https://github.com/nschaetti/PixelPrism/tree/main/examples) in the GitHub repository.
+
+## Math Examples
+
+For symbolic math workflows in this repository, see:
+
+- `examples/math/stats.py`
+- `examples/math/graph.py`
+- `examples/math/machine_learning.py`
+
+Notebook walkthroughs:
+
+- `notebooks/math/math_stats.ipynb`
+- `notebooks/math/math_graphs.ipynb`
+- `notebooks/math/math_machine_learning.ipynb`

@@ -98,7 +98,21 @@ from .function import Function
 
 from .mixins import EvaluableMixin, DifferentiableMixin, PredicateMixin
 
-from .operators import OperatorBase, Add, Sub, Mul, Div, Pow, Log, Log2, Log10, operator_registry
+from .operators import (
+    OperatorBase,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Pow,
+    Log,
+    Log2,
+    Log10,
+    operator_registry,
+    register_algorithm,
+    has_algorithm,
+    get_algorithm,
+)
 
 from .shape import (
     DimExpr,
@@ -211,6 +225,18 @@ from .geometry import (
 
 
 from .random import random_const_name, rand_name
+from .ml import Perceptron, DecisionTreeClassifier, SVC
+from .graph import (
+    Graph,
+    ExpressionGraph,
+    graph,
+    digraph,
+    graph_from_edges,
+    graph_from_adjacency,
+    expression_to_graph,
+    expression_to_adjacency,
+    graph_to_dot,
+)
 
 
 Z = DType.Z
@@ -383,6 +409,9 @@ __all__ = [
 
     # Function
     "Function",
+    "Perceptron",
+    "DecisionTreeClassifier",
+    "SVC",
 
     # Mixins
     "EvaluableMixin",
@@ -396,6 +425,9 @@ __all__ = [
     "Mul",
     "Div",
     "operator_registry",
+    "register_algorithm",
+    "has_algorithm",
+    "get_algorithm",
 
     # Shape
     "Shape",
@@ -414,6 +446,17 @@ __all__ = [
     "Affine3",
     "Circle2",
     "Ellipse2",
+
+    # Graph
+    "Graph",
+    "ExpressionGraph",
+    "graph",
+    "digraph",
+    "graph_from_edges",
+    "graph_from_adjacency",
+    "expression_to_graph",
+    "expression_to_adjacency",
+    "graph_to_dot",
 
     # Helpers
     "is_sequence_like",

@@ -59,14 +59,19 @@ from .builders import (
     SparseCOO,
     Zeros,
     Ones,
+    Eye,
+    Identity,
+    Map
+)
+from .stats import (
     Normal,
     Uniform,
     RandInt,
     Poisson,
     Bernoulli,
-    Eye,
-    Identity,
-    Map
+    Covariance,
+    Correlation,
+    ZScore,
 )
 from .elementwise import (
     Add,
@@ -164,6 +169,50 @@ from .activations import (
 from .conditional import (
     Where,
 )
+from .algorithmic import (
+    AlgorithmicOperator,
+    register_algorithm,
+    has_algorithm,
+    get_algorithm,
+)
+from .machine_learning import (
+    MachineLearningOperator,
+    SKLEARN_AVAILABLE,
+    PerceptronTrain,
+    PerceptronPredict,
+    PerceptronDecisionBoundary,
+    PerceptronCoefficients,
+    PerceptronIntercept,
+    PerceptronClasses,
+    DecisionTreeTrain,
+    DecisionTreePredict,
+    DecisionTreeClasses,
+    SVMTrain,
+    SVMPredict,
+    SVMDecisionFunction,
+    SVMClasses,
+)
+from .graph import (
+    GraphOperator,
+    Degree,
+    InDegree,
+    OutDegree,
+    Laplacian,
+    IsCyclic,
+    TopologicalSort,
+)
+from .statistical_learning import (
+    StatisticalLearningOperator,
+    LinearRegressionFit,
+    LinearRegressionPredict,
+    PolynomialFeatures,
+    PolynomialRegressionFit,
+    PolynomialRegressionPredict,
+    MSE,
+    RMSE,
+    MAE,
+    R2,
+)
 
 
 # Boolean
@@ -192,6 +241,7 @@ BUILDERS = (
     Diag,
     SparseCOO,
 )
+STATS_OPERATORS = (Covariance, Correlation, ZScore)
 DISCRETIZATION_OPERATORS = (Sign, Floor, Ceil, Trunc, Rint, Round, Clip)
 ELEMENTWISE_OPERATORS = (Neg, Exp, Exp2, Expm1, Log, Log1p, Log2, Log10, Square, Cbrt, Reciprocal, Abs, Where)
 TRIGO_OPERATORS = (Acos, Acosh, Asin, Asinh, Atan, Atan2, Atanh, Cos, Cosh, Cot, Csc, Sec, Sin, Sinh, Tan, Tanh)
@@ -200,6 +250,34 @@ REDUCTION_OPERATORS = (Sum, Mean, Std, Median, Max, Min, Q1, Q3, Summation, Prod
 STRUCTURE_OPERATORS = (Getitem, Flatten, Squeeze, Unsqueeze, Reshape)
 ACTIVATIONS_OPERATORS = (ReLU, LeakyReLU, Sigmoid, Softplus, GELU)
 CONDITIONAL_OPERATORS = (Where,)
+GRAPH_OPERATORS = (Degree, InDegree, OutDegree, Laplacian, IsCyclic, TopologicalSort)
+ALGORITHMIC_OPERATORS = (AlgorithmicOperator,)
+MACHINE_LEARNING_OPERATORS = (
+    PerceptronTrain,
+    PerceptronPredict,
+    PerceptronDecisionBoundary,
+    PerceptronCoefficients,
+    PerceptronIntercept,
+    PerceptronClasses,
+    DecisionTreeTrain,
+    DecisionTreePredict,
+    DecisionTreeClasses,
+    SVMTrain,
+    SVMPredict,
+    SVMDecisionFunction,
+    SVMClasses,
+)
+STATISTICAL_LEARNING_OPERATORS = (
+    LinearRegressionFit,
+    LinearRegressionPredict,
+    PolynomialFeatures,
+    PolynomialRegressionFit,
+    PolynomialRegressionPredict,
+    MSE,
+    RMSE,
+    MAE,
+    R2,
+)
 
 
 __all__ = [
@@ -208,6 +286,7 @@ __all__ = [
     "ALGEBRAIC_STRICT_OPERATORS",
     "ALGEBRAIC_OPERATORS",
     "BUILDERS",
+    "STATS_OPERATORS",
     "DISCRETIZATION_OPERATORS",
     "ELEMENTWISE_OPERATORS",
     "TRIGO_OPERATORS",
@@ -216,6 +295,10 @@ __all__ = [
     "STRUCTURE_OPERATORS",
     "ACTIVATIONS_OPERATORS",
     "CONDITIONAL_OPERATORS",
+    "GRAPH_OPERATORS",
+    "ALGORITHMIC_OPERATORS",
+    "MACHINE_LEARNING_OPERATORS",
+    "STATISTICAL_LEARNING_OPERATORS",
     # Base
     "Operands",
     "OperatorBase",
@@ -239,6 +322,9 @@ __all__ = [
     "RandInt",
     "Poisson",
     "Bernoulli",
+    "Covariance",
+    "Correlation",
+    "ZScore",
     "Eye",
     "Identity",
     "Map",
@@ -287,6 +373,46 @@ __all__ = [
     "Absolute",
     "Abs",
     "Where",
+    # Graph
+    "GraphOperator",
+    "Degree",
+    "InDegree",
+    "OutDegree",
+    "Laplacian",
+    "IsCyclic",
+    "TopologicalSort",
+    # Algorithmic
+    "AlgorithmicOperator",
+    "register_algorithm",
+    "has_algorithm",
+    "get_algorithm",
+    # Machine Learning
+    "MachineLearningOperator",
+    "SKLEARN_AVAILABLE",
+    "PerceptronTrain",
+    "PerceptronPredict",
+    "PerceptronDecisionBoundary",
+    "PerceptronCoefficients",
+    "PerceptronIntercept",
+    "PerceptronClasses",
+    "DecisionTreeTrain",
+    "DecisionTreePredict",
+    "DecisionTreeClasses",
+    "SVMTrain",
+    "SVMPredict",
+    "SVMDecisionFunction",
+    "SVMClasses",
+    # Statistical Learning
+    "StatisticalLearningOperator",
+    "LinearRegressionFit",
+    "LinearRegressionPredict",
+    "PolynomialFeatures",
+    "PolynomialRegressionFit",
+    "PolynomialRegressionPredict",
+    "MSE",
+    "RMSE",
+    "MAE",
+    "R2",
     # Discrete
     "Sign",
     "Floor",

@@ -57,11 +57,6 @@ from .builders import (
     full,
     zeros,
     ones,
-    normal,
-    uniform,
-    randint,
-    poisson,
-    bernoulli,
     eye,
     diag,
     identity,
@@ -73,6 +68,56 @@ from .builders import (
     vstack,
     from_function,
     sparse_coo
+)
+from .stats import (
+    normal,
+    uniform,
+    randint,
+    poisson,
+    bernoulli,
+    cov,
+    corr,
+    zscore,
+)
+from .statistical_learning import (
+    linear_regression_fit,
+    linear_regression_predict,
+    polynomial_features,
+    polynomial_regression_fit,
+    polynomial_regression_predict,
+    mse,
+    rmse,
+    mae,
+    r2,
+)
+from .graph import (
+    degree,
+    in_degree,
+    out_degree,
+    laplacian,
+    is_cyclic,
+    topological_sort,
+)
+from .algorithmic import (
+    register_algorithm,
+    has_algorithm,
+    get_algorithm,
+    algorithm,
+)
+from .machine_learning import (
+    fit,
+    predict,
+    decision_boundary,
+    coefficients,
+    intercept,
+    classes,
+    tree_fit,
+    tree_predict,
+    tree_classes,
+    svm_fit,
+    svm_predict,
+    svm_decision_function,
+    svm_classes,
 )
 
 from .calculus import (
@@ -230,6 +275,49 @@ __all__ = [
     "vstack",
     "from_function",
     "sparse_coo",
+    "cov",
+    "corr",
+    "zscore",
+
+    # Statistical Learning
+    "linear_regression_fit",
+    "linear_regression_predict",
+    "polynomial_features",
+    "polynomial_regression_fit",
+    "polynomial_regression_predict",
+    "mse",
+    "rmse",
+    "mae",
+    "r2",
+
+    # Graph
+    "degree",
+    "in_degree",
+    "out_degree",
+    "laplacian",
+    "is_cyclic",
+    "topological_sort",
+
+    # Algorithmic
+    "register_algorithm",
+    "has_algorithm",
+    "get_algorithm",
+    "algorithm",
+
+    # Machine Learning
+    "fit",
+    "predict",
+    "decision_boundary",
+    "coefficients",
+    "intercept",
+    "classes",
+    "tree_fit",
+    "tree_predict",
+    "tree_classes",
+    "svm_fit",
+    "svm_predict",
+    "svm_decision_function",
+    "svm_classes",
 
     # Activations
     "relu",

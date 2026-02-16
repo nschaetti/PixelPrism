@@ -82,6 +82,10 @@ nav:
       - Overview: guides/overview.md
       - Expressions: guides/expressions.md
       - Animation: guides/animation.md
+      - Math Sampling: guides/math_sampling.md
+      - Math Statistics: guides/math_statistics.md
+      - Math Graphs: guides/math_graphs.md
+      - Math Machine Learning: guides/math_machine_learning.md
   - Types: types.md
   - Examples: examples.md
   - API Reference: reference/

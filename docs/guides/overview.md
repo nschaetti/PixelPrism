@@ -24,4 +24,7 @@ pieces you will encounter while browsing the rest of the guides.
 
 - Continue with the [Expressions](expressions.md) guide to script parameter changes.
 - Jump to [Animation](animation.md) for time-based control.
+- Explore [Math Sampling](math_sampling.md), [Math Statistics](math_statistics.md),
+  [Math Graphs](math_graphs.md), and [Math Machine Learning](math_machine_learning.md)
+  for symbolic numeric workflows.
 - Visit the :doc:`../api/modules` reference for in-depth API documentation.

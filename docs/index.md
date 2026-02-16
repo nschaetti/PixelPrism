@@ -51,6 +51,13 @@ composer.create_video()
 
 For detailed documentation, please see the [API Reference](reference/) section.
 
+Math-focused guides:
+
+- [Math Sampling](guides/math_sampling.md)
+- [Math Statistics](guides/math_statistics.md)
+- [Math Graphs](guides/math_graphs.md)
+- [Math Machine Learning](guides/math_machine_learning.md)
+
 ## Examples
 
 Check out the [Examples](examples.md) page for more usage examples.

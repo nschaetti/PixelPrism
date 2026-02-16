@@ -178,92 +178,54 @@ def ones(
 
 def normal(
         shape: Union[Shape, Sequence[int], int],
-        loc: float = 0.0,
-        scale: float = 1.0,
+        loc: Union[MathNode, int, float] = 0.0,
+        scale: Union[MathNode, int, float] = 1.0,
         dtype: DType = DType.R
 ) -> MathNode:
-    tensor_shape = Shape.create(shape)
-    return apply_operator(
-        op_name="normal",
-        operands=(),
-        display_name=f"normal(shape={tensor_shape.dims}, loc={loc}, scale={scale})",
-        shape=tensor_shape,
-        loc=loc,
-        scale=scale,
-        dtype=dtype
-    )
+    from .stats import normal as stats_normal
+    return stats_normal(shape=shape, loc=loc, scale=scale, dtype=dtype)
 # end def normal
 
 
 def uniform(
         shape: Union[Shape, Sequence[int], int],
-        low: float = 0.0,
-        high: float = 1.0,
+        low: Union[MathNode, int, float] = 0.0,
+        high: Union[MathNode, int, float] = 1.0,
         dtype: DType = DType.R
 ) -> MathNode:
-    tensor_shape = Shape.create(shape)
-    return apply_operator(
-        op_name="uniform",
-        operands=(),
-        display_name=f"uniform(shape={tensor_shape.dims}, low={low}, high={high})",
-        shape=tensor_shape,
-        low=low,
-        high=high,
-        dtype=dtype
-    )
+    from .stats import uniform as stats_uniform
+    return stats_uniform(shape=shape, low=low, high=high, dtype=dtype)
 # end def uniform
 
 
 def randint(
         shape: Union[Shape, Sequence[int], int],
-        low: int,
-        high: Optional[int] = None,
+        low: Union[MathNode, int, float],
+        high: Optional[Union[MathNode, int, float]] = None,
         dtype: DType = DType.Z
 ) -> MathNode:
-    tensor_shape = Shape.create(shape)
-    return apply_operator(
-        op_name="randint",
-        operands=(),
-        display_name=f"randint(shape={tensor_shape.dims}, low={low}, high={high})",
-        shape=tensor_shape,
-        low=low,
-        high=high,
-        dtype=dtype
-    )
+    from .stats import randint as stats_randint
+    return stats_randint(shape=shape, low=low, high=high, dtype=dtype)
 # end def randint
 
 
 def poisson(
         shape: Union[Shape, Sequence[int], int],
-        lam: float = 1.0,
+        lam: Union[MathNode, int, float] = 1.0,
         dtype: DType = DType.Z
 ) -> MathNode:
-    tensor_shape = Shape.create(shape)
-    return apply_operator(
-        op_name="poisson",
-        operands=(),
-        display_name=f"poisson(shape={tensor_shape.dims}, lam={lam})",
-        shape=tensor_shape,
-        lam=lam,
-        dtype=dtype
-    )
+    from .stats import poisson as stats_poisson
+    return stats_poisson(shape=shape, lam=lam, dtype=dtype)
 # end def poisson
 
 
 def bernoulli(
         shape: Union[Shape, Sequence[int], int],
-        p: float = 0.5,
+        p: Union[MathNode, int, float] = 0.5,
         dtype: DType = DType.Z
 ) -> MathNode:
-    tensor_shape = Shape.create(shape)
-    return apply_operator(
-        op_name="bernoulli",
-        operands=(),
-        display_name=f"bernoulli(shape={tensor_shape.dims}, p={p})",
-        shape=tensor_shape,
-        p=p,
-        dtype=dtype
-    )
+    from .stats import bernoulli as stats_bernoulli
+    return stats_bernoulli(shape=shape, p=p, dtype=dtype)
 # end def bernoulli
 
 
