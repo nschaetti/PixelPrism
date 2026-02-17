@@ -96,7 +96,7 @@ from .math_leaves import MathLeaf, Variable, Constant, var, const
 
 from .function import Function
 
-from .mixins import EvaluableMixin, DifferentiableMixin, PredicateMixin
+from .mixins import PredicateMixin, ExprOperatorsMixin
 
 from .operators import (
     OperatorBase,
@@ -209,6 +209,8 @@ from .typing import (
     SimplifyOptions,
     SimplifyRule,
     OpSimplifyResult,
+    AlgebraicExpr,
+    ExprLike
 )
 
 from .geometry import (
@@ -414,8 +416,6 @@ __all__ = [
     "SVC",
 
     # Mixins
-    "EvaluableMixin",
-    "DifferentiableMixin",
     "PredicateMixin",
 
     # Operators

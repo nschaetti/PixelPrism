@@ -26,19 +26,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from ..math_node import MathNode
+from typing import Sequence, TYPE_CHECKING
 from ..operators.base import operator_registry
+from ..math_node import MathNode
 
-
-Operands = tuple[MathNode, ...]
+if TYPE_CHECKING:
+    from ..typing import Operand
+# end if
 
 
 def apply_operator(
         op_name: str,
-        operands: Operands,
+        operands: Sequence["Operand"],
         display_name: str,
         **kwargs
-) -> MathNode:
+) -> "MathNode":
     """
     Build a MathNode by applying a registered operator to operands.
 
@@ -69,10 +71,11 @@ def apply_operator(
 
     Examples
     --------
+    >>> import pixelprism.math as pm
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math import operator_registry
-    >>> a = tensor("a", 1.0)
-    >>> b = tensor("b", 2.0)
+    >>> a = pm.const("a", 1.0)
+    >>> b = pm.const("b", 2.0)
     >>> expr = apply_operator("add", (a, b), "a + b")
     >>> expr.eval()
     array(3.)

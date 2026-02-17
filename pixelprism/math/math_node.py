@@ -29,19 +29,18 @@
 # Imports
 from __future__ import annotations
 import weakref
-from typing import Any, FrozenSet, List, Optional, Tuple, Union, Dict, Sequence, TYPE_CHECKING, Mapping
+from typing import Any, FrozenSet, List, Optional, Union, Sequence, TYPE_CHECKING, Mapping
 
 from .math_base import MathBase
 from .math_exceptions import (
     SymbolicMathOperatorError,
     SymbolicMathNotImplementedError
 )
-from .math_slice import SliceExpr
-from .mixins import DifferentiableMixin, PredicateMixin
+from .mixins import PredicateMixin, ExprOperatorsMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .typing import Index, MathExpr, Operands, Operator, LeafKind, SimplifyOptions
+from .typing import MathExpr, Operands, Operator, LeafKind, SimplifyOptions
 
 if TYPE_CHECKING:
     from .math_leaves import Constant, Variable
@@ -55,8 +54,8 @@ __all__ = [
 
 class MathNode(
     MathBase,
-    DifferentiableMixin,
     PredicateMixin,
+    ExprOperatorsMixin,
     MathExpr
 ):
     """
@@ -283,7 +282,7 @@ class MathNode(
         >>> x = pm.Variable(name="x", dtype=pm.R, shape=pm.S.scalar)
         >>> y = pm.Variable(name="y", dtype=pm.R, shape=pm.S.scalar)
         >>> expr = x + y
-        >>> [v.name for v in expr.variables()]
+        >>> [my_var.name for my_var in expr.variables()]
         ['x', 'y']
         >>> with pm.new_context() as scope:
         ...     scope.set("x", np.array([1.0, 2.0]))
@@ -379,9 +378,9 @@ class MathNode(
         >>> import numpy as np
         >>> import pixelprism.math as pm
         >>> from pixelprism.math import DType, Shape, LeafKind
-        >>> x = pm.Variable(name="x", dtype=DType.R, shape=Shape((2,)))
-        >>> y = pm.Variable(name="y", dtype=DType.R, shape=Shape((2,)))
-        >>> c = pm.Constant.create(name="c", data=pm.tensor([1.0, 1.0]))
+        >>> x = pm.var(name="x", dtype=DType.R, shape=Shape((2,)))
+        >>> y = pm.var(name="y", dtype=DType.R, shape=Shape((2,)))
+        >>> c = pm.const(name="c", data=[1.0, 1.0])
         >>> expr = x + (y + c)
         >>> expr.contains("x")
         True
@@ -672,6 +671,27 @@ class MathNode(
     # end rename
 
     #
+    # Comparison
+    #
+
+    # Strict symbolic tree equality.
+    # Returns True only if both expressions have the same structure
+    # (same node kinds/operators, same operand order, same leaf content).
+    def eq_tree(self, other: "MathExpr") -> bool:
+        # TODO: to implement
+        pass
+    # end def eq_tree
+
+    # Mathematical symbolic equivalence.
+    # Returns True when both expressions represent the same symbolic meaning,
+    # even if their trees differ (e.g., after canonicalization/simplification).
+    # This check is symbolic only (no numeric/probabilistic fallback).
+    def equivalent(self, other: "MathExpr") -> bool:
+        # TODO: to implement
+        pass
+    # end def equivalent
+
+    #
     # Boolean predicates
     #
 
@@ -829,7 +849,7 @@ class MathNode(
         list['MathNode']
             Combined list of variables and constants.
         """
-        return self.variables() + self.constants()
+        return list(self.variables()) + list(self.constants())
     # end def leaves
 
     # endregion PUBLIC
@@ -848,7 +868,7 @@ class MathNode(
         if self._op is None:
             return
         # end if
-        if not self._op.is_variadic:
+        if not self._op.IS_VARIADIC:
             if self.arity != self._op.arity:
                 raise SymbolicMathOperatorError(
                     f"Operator and arity mismatch: "
@@ -875,454 +895,5 @@ class MathNode(
     # end _register_as_parent_of
 
     # endregion PRIVATE
-
-    # region OPERATORS
-
-    @staticmethod
-    def add(operand1: MathNode, operand2: MathNode) -> MathNode:
-        """
-        Create an elementwise addition node.
-
-        Parameters
-        ----------
-        operand1 : MathNode
-            Left operand.
-        operand2 : MathNode
-            Right operand.
-
-        Returns
-        -------
-        MathNode
-            Symbolic addition of ``operand1`` and ``operand2``.
-        """
-        from .functional.elementwise import add
-        return add(operand1, operand2)
-    # end def add
-
-    @staticmethod
-    def sub(operand1: MathNode, operand2: MathNode) -> MathNode:
-        """
-        Create an elementwise subtraction node.
-
-        Parameters
-        ----------
-        operand1 : MathNode
-            Left operand.
-        operand2 : MathNode
-            Right operand to subtract.
-
-        Returns
-        -------
-        MathNode
-            Symbolic subtraction ``operand1 - operand2``.
-        """
-        from .functional.elementwise import sub
-        return sub(operand1, operand2)
-    # end def sub
-
-    @staticmethod
-    def mul(operand1: MathNode, operand2: MathNode) -> MathNode:
-        """
-        Create an elementwise multiplication node.
-
-        Parameters
-        ----------
-        operand1 : MathNode
-            Left operand.
-        operand2 : MathNode
-            Right operand.
-
-        Returns
-        -------
-        MathNode
-            Symbolic product of the operands.
-        """
-        from .functional.elementwise import mul
-        return mul(operand1, operand2)
-    # end def mul
-
-    @staticmethod
-    def div(operand1: MathNode, operand2: MathNode) -> MathNode:
-        """
-        Create an elementwise division node.
-
-        Parameters
-        ----------
-        operand1 : MathNode
-            Numerator expression.
-        operand2 : MathNode
-            Denominator expression.
-
-        Returns
-        -------
-        MathNode
-            Symbolic quotient ``operand1 / operand2``.
-        """
-        from .functional.elementwise import div
-        return div(operand1, operand2)
-    # end def div
-
-    @staticmethod
-    def neg(operand: MathNode) -> MathNode:
-        """
-        Create an elementwise negation node.
-
-        Parameters
-        ----------
-        operand : MathNode
-            Expression to negate.
-
-        Returns
-        -------
-        MathNode
-            Symbolic negation of ``operand``.
-        """
-        from .functional.elementwise import neg
-        return neg(operand)
-    # end def neg
-
-    @staticmethod
-    def pow(operand1: MathNode, operand2: MathNode) -> MathNode:
-        """
-        Create an elementwise power node.
-
-        Parameters
-        ----------
-        operand1 : MathNode
-            Base expression.
-        operand2 : MathNode
-            Exponent expression.
-
-        Returns
-        -------
-        MathNode
-            Symbolic representation of ``operand1 ** operand2``.
-        """
-        from .functional.elementwise import pow as elementwise_pow
-        return elementwise_pow(operand1, operand2)
-    # end def pow
-
-    @staticmethod
-    def exp(operand: MathNode) -> MathNode:
-        """
-        Create an elementwise exponential node.
-
-        Parameters
-        ----------
-        operand : MathNode
-            Expression whose entries will be exponentiated.
-
-        Returns
-        -------
-        MathNode
-            Node computing ``exp(operand)``.
-        """
-        from .functional.elementwise import exp as elementwise_exp
-        return elementwise_exp(operand)
-    # end def exp
-
-    @staticmethod
-    def log(operand: MathNode) -> MathNode:
-        """
-        Create an elementwise natural-logarithm node.
-
-        Parameters
-        ----------
-        operand : MathNode
-            Expression whose entries will be transformed.
-
-        Returns
-        -------
-        MathNode
-            Node computing ``log(operand)``.
-        """
-        from .functional.elementwise import log as elementwise_log
-        return elementwise_log(operand)
-    # end def log
-
-    @staticmethod
-    def sqrt(operand: MathNode) -> MathNode:
-        """
-        Create an elementwise square-root node.
-
-        Parameters
-        ----------
-        operand : MathNode
-            Expression whose entries will be square-rooted.
-
-        Returns
-        -------
-        MathNode
-            Node computing ``sqrt(operand)``.
-        """
-        from .functional.elementwise import sqrt as elementwise_sqrt
-        return elementwise_sqrt(operand)
-    # end def sqrt
-
-    @staticmethod
-    def log2(operand: MathNode) -> MathNode:
-        """
-        Create an elementwise base-2 logarithm node.
-
-        Parameters
-        ----------
-        operand : MathNode
-            Expression whose entries will be transformed.
-
-        Returns
-        -------
-        MathNode
-            Node computing ``log2(operand)``.
-        """
-        from .functional.elementwise import log2 as elementwise_log2
-        return elementwise_log2(operand)
-    # end def log2
-
-    @staticmethod
-    def log10(operand: MathNode) -> MathNode:
-        """
-        Create an elementwise base-10 logarithm node.
-
-        Parameters
-        ----------
-        operand : MathNode
-            Expression whose entries will be transformed.
-
-        Returns
-        -------
-        MathNode
-            Node computing ``log10(operand)``.
-        """
-        from .functional.elementwise import log10 as elementwise_log10
-        return elementwise_log10(operand)
-    # end def log10
-
-    @staticmethod
-    def matmul(operand1: MathNode, operand2: MathNode) -> MathNode:
-        """
-        Create a matrix multiplication node.
-        """
-        from .functional.linear_algebra import matmul
-        return matmul(operand1, operand2)
-    # end def matmul
-
-    @staticmethod
-    def getitem(operand: MathNode, index: Index) -> MathNode:
-        """
-        Create a getitem node.
-        """
-        from .functional.structure import getitem
-        indices: List[Union[int, SliceExpr]] = [
-            SliceExpr.from_slice(s) if isinstance(s, slice) else s
-            for s in index
-        ]
-        return getitem(op1=operand, indices=indices)
-    # end def getitem
-
-    # endregion OPERATORS
-
-    # region STATIC
-
-    @staticmethod
-    def next_id() -> int:
-        """
-        Returns
-        -------
-        int
-            Next identifier that will be assigned to a :class:`MathExpr`.
-        """
-        return MathNode._next_id
-    # end def next_id
-
-    # endregion STATIC
-
-    # region OVERRIDE
-
-    def __hash__(self) -> int:
-        """
-        Returns
-        -------
-        int
-            Identity hash suitable for storing nodes in sets/dicts.
-        """
-        return hash(self._id)
-    # end __hash__
-
-    def __eq__(self, other: object) -> bool:
-        """
-        Compare node identities.
-
-        Parameters
-        ----------
-        other : object
-            Expression being compared.
-
-        Returns
-        -------
-        bool
-            ``True`` when both operands share the same identifier.
-        """
-        if self is other:
-            return True
-        # end if
-
-        if not isinstance(other, MathNode):
-            return False
-        # end if
-
-        return self._id == other._id
-    # end __eq__
-
-    def __ne__(self, other: object) -> bool:
-        """
-        Logical negation of :meth:`__eq__`.
-        """
-        return not self.__eq__(other)
-    # end __ne__
-
-    # Operator overloading
-    def __add__(self, other) -> MathNode:
-        """
-        Convenience forward addition operator.
-        """
-        return MathNode.add(self, other)
-    # end __add__
-
-    def __radd__(self, other) -> MathNode:
-        """
-        Reverse addition operator.
-        """
-        return MathNode.add(other, self)
-    # end __radd__
-
-    def __sub__(self, other) -> MathNode:
-        """
-        Convenience forward subtraction operator.
-        """
-        return MathNode.sub(self, other)
-    # end __sub__
-
-    def __rsub__(self, other) -> MathNode:
-        """
-        Reverse subtraction operator.
-        """
-        return MathNode.sub(other, self)
-    # end __rsub__
-
-    def __mul__(self, other) -> MathNode:
-        """
-        Convenience forward multiplication operator.
-        """
-        return MathNode.mul(self, other)
-    # end __mul__
-
-    def __rmul__(self, other) -> MathNode:
-        """
-        Reverse multiplication operator.
-        """
-        return MathNode.mul(other, self)
-    # end __rmul__
-
-    def __truediv__(self, other) -> MathNode:
-        """
-        Convenience forward division operator.
-        """
-        return MathNode.div(self, other)
-    # end __truediv__
-
-    def __rtruediv__(self, other) -> MathNode:
-        """
-        Reverse division operator.
-        """
-        return MathNode.div(other, self)
-    # end __rtruediv__
-
-    def __pow__(self, other) -> MathNode:
-        """
-        Convenience power operator.
-        """
-        return MathNode.pow(self, other)
-    # end __pow__
-
-    def __rpow__(self, other) -> MathNode:
-        """
-        Reverse power operator.
-        """
-        return MathNode.pow(other, self)
-    # end __rpow__
-
-    def __neg__(self) -> MathNode:
-        """
-        Negation operator.
-        """
-        return MathNode.neg(self)
-    # end def __neg__
-
-    def __matmul__(self, other):
-        return MathNode.matmul(self, other)
-    # end def __matmul__
-
-    def __rmatmul__(self, other):
-        return MathNode.matmul(other, self)
-    # end def __rmatmul__
-
-    # Override less
-    def __lt__(self, other) -> MathNode:
-        """
-        Placeholder less-than operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        raise SymbolicMathNotImplementedError("Ordering comparisons are not implemented for MathExpr.")
-    # end __lt__
-
-    # Override less or equal
-    def __le__(self, other) -> MathNode:
-        """
-        Placeholder less-or-equal operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        raise SymbolicMathNotImplementedError("Ordering comparisons are not implemented for MathExpr.")
-    # end __le__
-
-    # Override greater
-    def __gt__(self, other) -> MathNode:
-        """
-        Placeholder greater-than operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        raise SymbolicMathNotImplementedError("Ordering comparisons are not implemented for MathExpr.")
-    # end __gt__
-
-    # Override greater or equal
-    def __ge__(self, other) -> MathNode:
-        """
-        Placeholder greater-or-equal operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        raise SymbolicMathNotImplementedError("Ordering comparisons are not implemented for MathExpr.")
-    # end __ge__
-
-    # Get item
-    def __getitem__(self, item: Index):
-        return MathNode.getitem(self, item)
-    # end def __getitem__
-
-    # endregion OVERRIDE
 
 # end class MathNode

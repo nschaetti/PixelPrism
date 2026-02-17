@@ -776,7 +776,7 @@ def nan(
     --------
     >>> from pixelprism.math import T
     >>> missing = T.nan((2, 2))
-    >>> np.isnan(missing).all()
+    >>> np.isnan(missing).logical_all()
     True
     """
     dims = _normalize_shape(shape)

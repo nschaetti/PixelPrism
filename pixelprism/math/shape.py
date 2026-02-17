@@ -42,12 +42,19 @@
 
 # Imports
 from __future__ import annotations
-from typing import Iterable, List, Optional, Sequence, Union, Dict, TypeAlias, Tuple
+from typing import Iterable, List, Optional, Sequence, Union, Dict, TypeAlias, Tuple, TYPE_CHECKING, Mapping
 import numpy as np
 
 from .dtype import TypeLike, to_numpy, DType
-from .typing import MathExpr
-from .math_exceptions import SymbolicMathInvalidDimensionError
+from .typing import MathExpr, LeafKind, SimplifyOptions
+from .math_exceptions import SymbolicMathInvalidDimensionError, SymbolicMathNotImplementedError
+from .random import rand_name
+
+
+if TYPE_CHECKING:
+    from .math_leaves import Variable, Constant
+    from .tensor import Tensor
+# end if
 
 
 __all__ = [
@@ -71,14 +78,22 @@ class Shape(MathExpr):
     TODO: documentation
     """
 
-    def __init__(self, dims: Sequence[DimLike]):
+    def __init__(
+            self,
+            name: Optional[str] = None,
+            *,
+            dims: Sequence[DimLike]
+    ):
         """Initialize a TensorShape.
 
         Parameters
         ----------
+        name: Optional[str]
+            Name of the shape.
         dims : Iterable[TensorDim]
             Iterable of dimension sizes to store in the shape.
         """
+        self._name = name if name is not None else rand_name("shape")
         dims_tuple = tuple(dims)
         for dim in dims_tuple:
             self._check_dim(dim)
@@ -100,30 +115,6 @@ class Shape(MathExpr):
         """
         return self._dims
     # end def dims
-
-    @property
-    def shape(self) -> 'Shape':
-        """Return the dimensions' list."""
-        return Shape([dim.eval().item() if isinstance(dim, MathExpr) else dim for dim in self._dims])
-    # end def shape
-
-    @property
-    def dtype(self) -> "DType":
-        """Return the data type of the shape."""
-        return DType.Z
-    # end def dtype
-
-    @property
-    def rank(self) -> int:
-        """Return the tensor rank.
-
-        Returns
-        -------
-        int
-            Number of dimensions in the shape.
-        """
-        return len(self._dims)
-    # end def rank
 
     @property
     def size(self) -> Optional[int]:
@@ -184,24 +175,61 @@ class Shape(MathExpr):
 
     # region MATH_EXPR
 
+    @property
+    def shape(self) -> 'Shape':
+        """Return the dimensions' list."""
+        return Shape(dims=[dim.eval().item() if isinstance(dim, MathExpr) else dim for dim in self._dims])
+    # end def shape
+
+    @property
+    def dtype(self) -> "DType":
+        """Return the data type of the shape."""
+        return DType.Z
+    # end def dtype
+
+    @property
+    def name(self) -> str:
+        """Return the name root of the shape."""
+        return "shape"
+    # end def name
+
+    @property
+    def rank(self) -> int:
+        """Return the tensor rank.
+
+        Returns
+        -------
+        int
+            Number of dimensions in the shape.
+        """
+        return len(self._dims)
+    # end def rank
+
     def eval(self) -> 'Tensor':
         """Evaluate the symbolic shape as a tensor."""
         from .tensor import Tensor
-        dim_values = [d.eval() if isinstance(d, MathExpr) else d for d in self._dims]
+        dim_values = [d.eval().item() if isinstance(d, MathExpr) else d for d in self._dims]
         return Tensor(dim_values)
     # end def eval
 
     def diff(self, wrt: 'MathExpr') -> 'MathExpr':
         """Differentiate the symbolic shape with respect to a variable."""
-        raise NotImplementedError("Shape does not support differentiation.")
+        raise SymbolicMathNotImplementedError("Shape does not support differentiation.")
     # end def diff
 
-    def variables(self) -> List['MathExpr']:
-        """Return a list of variables used in the expression."""
+    def variables(self) -> Sequence["Variable"]:
+        """
+        Return all variable leaves reachable from this expression.
+
+        Returns
+        -------
+        Sequence["Variable"]
+            List of variable leaves reachable from this expression.
+        """
         return []
     # end def variables
 
-    def constants(self) -> List['MathExpr']:
+    def constants(self) -> Sequence["Constant"]:
         """Return a list of constants used in the expression."""
         consts = [
             d.constants() for d in self._dims if isinstance(d, MathExpr)
@@ -211,10 +239,10 @@ class Shape(MathExpr):
 
     def contains(
             self,
-            leaf: Union[str, 'MathExpr'],
+            leaf: Union[str, "MathExpr"],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Check if the expression contains a given leaf node or variable."""
         truth_values = [
@@ -230,7 +258,7 @@ class Shape(MathExpr):
             check_operator: bool = True
     ) -> bool:
         """Return whether the expression contains a given variable."""
-        return self.contains(variable, by_ref, check_operator, look_for='var')
+        return self.contains(variable, by_ref, check_operator, look_for=LeafKind.VARIABLE)
     # end def contains_variable
 
     def contains_constant(
@@ -240,26 +268,69 @@ class Shape(MathExpr):
             check_operator: bool = True
     ) -> bool:
         """Return whether the expression contains a given constant."""
-        return self.contains(constant, by_ref, check_operator, look_for='const')
+        return self.contains(constant, by_ref, check_operator, look_for=LeafKind.CONSTANT)
     # end def contains_constant
 
-    def replace(self, old_m: 'MathExpr', new_m: 'MathExpr'):
-        """Replace a leaf node or variable in the expression."""
-        for idx, dim in enumerate(self._dims):
-            if isinstance(dim, MathExpr):
-                dim.replace(old_m, new_m)
+    #
+    # Immutable transforms
+    #
+
+    # Apply symbolic rewrite rules and return a simplified expression.
+    # This operation is pure: it never mutates the current tree.
+    # `options` controls which rules are enabled/disabled for this pass.
+    def simplify(self, options: SimplifyOptions | None = None) -> MathExpr:
+        return self
+    # end def simplify
+
+    # Normalize an expression form without changing semantics.
+    # Typical effects: associative flattening, deterministic operand ordering, etc.
+    def canonicalize(self) -> MathExpr:
+        return self
+    # end def canonicalize
+
+    # Fold constant-only subexpressions into constant leaves.
+    # This is a focused transform and may be used independently of full simplifying.
+    def fold_constants(self) -> MathExpr:
+        return self
+    # end def fold_constants
+
+    # Replace matching subexpressions using `mapping` and return a new tree.
+    # - `by_ref=True`: match by object identity.
+    # - `by_ref=False`: match by symbolic/tree equality policy.
+    def substitute(
+            self,
+            mapping: Mapping[MathExpr, MathExpr],
+            *,
+            by_ref: bool = True
+    ) -> MathExpr:
+        """Apply a substitution mapping to the expression."""
+        for old_expr, new_expr in mapping.items():
+            if by_ref and old_expr is self:
+                return new_expr
+            # end if
+            if (not by_ref) and old_expr == self:
+                return new_expr
             # end if
         # end for
-    # end def replace
+        return self
+    # end def substitute
 
-    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
+    # Return a new expression where occurrences of `old_name` are renamed to `new_name`.
+    # This transform is immutable and does not alter the current instance.
+    def renamed(self, old_name: str, new_name: str) -> MathExpr:
         """Rename a variable in the expression."""
-        renames = dict()
-        for idx, dim in enumerate(self._dims):
-            renames.update(dim.renamed(old_name, new_name))
-        # end for
-        return renames
+        return self
     # end def rename
+
+    def eq_tree(self, other: MathExpr) -> bool:
+        """Return strict symbolic tree equality."""
+        return isinstance(other, Shape) and tuple(self._dims) == tuple(other._dims)
+    # end def eq_tree
+
+    def equivalent(self, other: MathExpr) -> bool:
+        """Return symbolic equivalence for shape expressions."""
+        return self.eq_tree(other)
+    # end def equivalent
 
     def is_constant(self) -> bool:
         """Returns ``True`` if the expression is a constant."""
@@ -283,7 +354,7 @@ class Shape(MathExpr):
 
     def depth(self) -> int:
         """Returns maximum depth of the expression tree."""
-        dims_depth = [d.depth() for d in self._dims]
+        dims_depth = [d.depth() if isinstance(d, MathExpr) else 1 for d in self._dims]
         return max(dims_depth) + 1
      # end def depth
 
@@ -296,11 +367,22 @@ class Shape(MathExpr):
             Copy of the current shape.
         """
         if not deep:
-            return Shape(self._dims)
+            return Shape(dims=self._dims)
         else:
-            return Shape([d.copy(deep) for d in self._dims])
+            return Shape(dims=[d.copy(deep=deep) if isinstance(d, MathExpr) else d for d in self._dims])
         # end if
     # end def copy
+
+    def __str__(self) -> str:
+        """Return the str() form of the shape.
+
+        Returns
+        -------
+        str
+            Readable representation.
+        """
+        return f"{self._dims}"
+    # end def __str__
 
     def __repr__(self) -> str:
         """Return the repr() form of the shape.
@@ -320,17 +402,6 @@ class Shape(MathExpr):
             return f"tensor_shape({self._dims})"
         # end if
     # end def __repr__
-
-    def __str__(self) -> str:
-        """Return the str() form of the shape.
-
-        Returns
-        -------
-        str
-            Readable representation.
-        """
-        return f"{self._dims}"
-    # end def __str__
 
     # endregion MATH_EXPR
 
@@ -398,11 +469,11 @@ class Shape(MathExpr):
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
         if axis == self.rank - 1:
-            return Shape(self._dims[:axis])
+            return Shape(dims=self._dims[:axis])
         elif axis == 0:
-            return Shape(self._dims[1:])
+            return Shape(dims=self._dims[1:])
         else:
-            return Shape(self._dims[:axis] + self._dims[axis + 1 :])
+            return Shape(dims=list(self._dims[:axis]) + list(self._dims[axis + 1 :]))
         # end if
     # end def drop_axis
 
@@ -447,7 +518,7 @@ class Shape(MathExpr):
         # end if
         from .build import as_expr
         size = as_expr(size)
-        return Shape(self._dims[:axis] + [size] + self._dims[axis:])
+        return Shape(dims=list(self._dims[:axis]) + [size] + list(self._dims[axis:]))
     # end def insert_axis
 
     def insert_axis_(self, axis: int, size: DimLike) -> None:
@@ -528,7 +599,7 @@ class Shape(MathExpr):
             raise ValueError("Elementwise operations require equal ranks.")
         # end if
         merged = tuple(self._merge_dims(dim_a, dim_b) for dim_a, dim_b in zip(self._dims, other._dims))
-        return Shape(merged)
+        return Shape(dims=merged)
     # end def merge_elementwise
 
     def matmul_result(self, other: "Shape") -> "Shape":
@@ -567,7 +638,7 @@ class Shape(MathExpr):
             raise ValueError("Inner dimensions do not match for MatMul.")
         # end if
         result = tuple(batch_dims) + (self._dims[-2], other._dims[-1])
-        return Shape(result)
+        return Shape(dims=result)
     # end def matmul_result
 
     def concat_result(self, other: "Shape", axis: int) -> "Shape":
@@ -603,7 +674,7 @@ class Shape(MathExpr):
                 dims.append(self._merge_dims(dim_a, dim_b))
             # end if
         # end for
-        return Shape(tuple(dims))
+        return Shape(dims=tuple(dims))
     # end def concat_result
 
     def can_reshape(self, new_shape: "Shape") -> bool:
@@ -738,15 +809,15 @@ class Shape(MathExpr):
             If the input type is unsupported.
         """
         if isinstance(shape, tuple):
-            return Shape(shape)
+            return Shape(dims=shape)
         elif isinstance(shape, Sequence):
-            return Shape(shape)
+            return Shape(dims=shape)
         elif isinstance(shape, int):
-            return Shape((shape,))
+            return Shape(dims=(shape,))
         elif isinstance(shape, Shape):
             return shape.copy()
         elif hasattr(shape, "dims"):
-            return Shape(getattr(shape, "dims"))
+            return Shape(dims=getattr(shape, "dims"))
         else:
             raise TypeError(f"Unsupported shape type: {type(shape)}")
         # end if
@@ -758,10 +829,10 @@ class Shape(MathExpr):
 
         Returns
         -------
-        Shape
+        'Shape'
             Shape with no dimensions.
         """
-        return Shape(())
+        return Shape(dims=())
     # end def scalar
 
     @staticmethod
@@ -778,7 +849,7 @@ class Shape(MathExpr):
         Shape
             Shape with a single dimension of size ``n``.
         """
-        return Shape((n,))
+        return Shape(dims=(n,))
     # end def vector
 
     @staticmethod
@@ -794,10 +865,10 @@ class Shape(MathExpr):
 
         Returns
         -------
-        Shape
+        'Shape'
             Shape with two dimensions ``(n, m)``.
         """
-        return Shape((n, m))
+        return Shape(dims=(n, m))
     # end def matrix
 
     @staticmethod
@@ -832,7 +903,7 @@ class Shape(MathExpr):
         # end for
         dims = list(base.dims)
         dims.insert(axis_norm, len(shapes))
-        return Shape(tuple(dims))
+        return Shape(dims=tuple(dims))
     # end def stack_shape
 
     @staticmethod

@@ -30,14 +30,14 @@ Operator base classes and registry.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Type, Tuple, Any, Optional
+from typing import List, Type, Tuple, Any, Optional, Sequence
 
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable
-from ..typing import Operands, Operator, MathExpr
+from ..typing import Operands, Operator, MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult
 
 
 __all__ = [
@@ -55,6 +55,11 @@ class OperatorBase(
     """
     Represents an operator that can be applied to a value.
     """
+
+    IS_VARIADIC = False
+    IS_DIFF = False
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     def __init__(self, **kwargs):
         """
@@ -111,10 +116,24 @@ class OperatorBase(
             self,
             expr: "MathExpr",
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
     # end def contains
+
+    def simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        """Return operator-local simplification result."""
+        return OpSimplifyResult(operands=tuple(operands), replacement=None)
+    # end def simplify
+
+    def canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        """Return canonicalized operands for this operator."""
+        return operands
+    # end def canonicalize
 
     @abstractmethod
     def check_operands(self, operands: Operands) -> bool:

@@ -29,7 +29,7 @@
 # Imports
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union, Dict
+from typing import List, Optional, Tuple, Union, Dict, Mapping, Sequence
 import weakref
 
 from .math_base import MathBase
@@ -40,13 +40,13 @@ from .math_exceptions import (
     SymbolicMathLookupError
 )
 # from .math_node import MathNode
-from .mixins import DifferentiableMixin, PredicateMixin, EvaluableMixin
+from .mixins import PredicateMixin, ExprOperatorsMixin
 from .dtype import DType, TypeLike, create
 from .shape import Shape, ShapeLike
 from .tensor import Tensor, TensorLike, tensor
 from .context import get_value
 from .random import rand_name
-from .typing import MathExpr
+from .typing import MathExpr, LeafKind, SimplifyOptions
 
 
 __all__ = [
@@ -92,9 +92,8 @@ def const(name: str, data: TensorLike, dtype: Optional[TypeLike] = None) -> Cons
 # An expression which does not contain sub-expressions
 class MathLeaf(
     MathBase,
-    DifferentiableMixin,
-    EvaluableMixin,
     PredicateMixin,
+    ExprOperatorsMixin,
     MathExpr,
     ABC
 ):
@@ -155,17 +154,23 @@ class MathLeaf(
 
     def depth(self) -> int:
         """Return the depth of the node in the tree"""
-        return 0
+        return 1
     # end def depth
+
+    @property
+    def rank(self) -> int:
+        """Return tensor rank derived from shape."""
+        return self._shape.rank
+    # end def rank
 
     def is_constant(self):
         """Does the expression contain only constant values?"""
-        raise NotImplementedError("Leaf nodes do not support is_constant.")
+        raise SymbolicMathNotImplementedError("Class must override is_constant.")
     # end def is_constant
 
     def is_variable(self):
         """Does the expression contain a variable?"""
-        raise NotImplementedError("Leaf nodes do not support is_variable.")
+        raise SymbolicMathNotImplementedError("Class must override is_variable.")
     # end def is_variable
 
     def contains(
@@ -173,7 +178,7 @@ class MathLeaf(
             leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """
         Check if ``var`` references this leaf.
@@ -240,7 +245,40 @@ class MathLeaf(
         """
     # end def contains_constant
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr) -> None:
+    def simplify(self, options: SimplifyOptions | None = None) -> MathExpr:
+        """Return this leaf unchanged."""
+        return self
+    # end def simplify
+
+    def canonicalize(self) -> MathExpr:
+        """Return this leaf unchanged."""
+        return self
+    # end def canonicalize
+
+    def fold_constants(self) -> MathExpr:
+        """Return this leaf unchanged."""
+        return self
+    # end def fold_constants
+
+    def substitute(
+            self,
+            mapping: Mapping[MathExpr, MathExpr],
+            *,
+            by_ref: bool = True
+    ) -> MathExpr:
+        """Replace this leaf when it matches a mapping key."""
+        for old_expr, new_expr in mapping.items():
+            if by_ref and old_expr is self:
+                return new_expr
+            # end if
+            if (not by_ref) and old_expr == self:
+                return new_expr
+            # end if
+        # end for
+        return self
+    # end def substitute
+
+    def replace(self, old_m: MathExpr, new_m: MathExpr) -> MathExpr:
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters
@@ -253,7 +291,7 @@ class MathLeaf(
         raise SymbolicMathNotImplementedError("Leaf nodes do not support replace.")
     # end def replace
 
-    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> MathExpr:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -266,16 +304,26 @@ class MathLeaf(
         raise SymbolicMathNotImplementedError("Leaf nodes do not support rename.")
     # end rename
 
+    def eq_tree(self, other: MathExpr) -> bool:
+        """Return strict symbolic tree equality for leaves."""
+        return self is other
+    # end def eq_tree
+
+    def equivalent(self, other: MathExpr) -> bool:
+        """Return symbolic equivalence for leaves."""
+        return self.eq_tree(other)
+    # end def equivalent
+
     def is_node(self) -> bool:
         """
-        TODO: keep explicit for MathExpr protocol audits.
+        Leaves are not nodes.
         """
         return False
     # end def is_node
 
     def is_leaf(self) -> bool:
         """
-        TODO: keep explicit for MathExpr protocol audits.
+        Leaves are leaves.
         """
         return True
     # end def is_leaf
@@ -351,11 +399,11 @@ class Variable(MathLeaf):
     # end def value
 
     @property
-    def dims(self) -> Tuple[int, ...]:
+    def dims(self) -> Sequence[MathExpr]:
         """
         Returns
         -------
-        tuple[int, ...]
+        Sequence[MathExpr]
             Tuple of shape dimensions.
         """
         return self._shape.dims
@@ -502,7 +550,7 @@ class Variable(MathLeaf):
             leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """
         Check if ``var`` references this leaf.
@@ -528,18 +576,18 @@ class Variable(MathLeaf):
         MathExprValidationError
             If ``by_ref`` is ``True`` while ``var`` is provided as a string.
         """
-        if look_for is None or look_for == "var":
+        if look_for in {LeafKind.ANY, LeafKind.VARIABLE}:
             return super(Variable, self).contains(
                 leaf=leaf,
                 by_ref=by_ref,
                 check_operator=check_operator,
-                look_for=None
+                look_for=LeafKind.ANY
             )
         # end if
         return False
     # end def contains
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr):
+    def replace(self, old_m: MathExpr, new_m: MathExpr) -> MathExpr:
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters
@@ -556,7 +604,7 @@ class Variable(MathLeaf):
         )
     # end def replace
 
-    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> MathExpr:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -569,7 +617,7 @@ class Variable(MathLeaf):
         if self._name == old_name:
             self._name = new_name
         # end if
-        return {old_name: new_name}
+        return self
     # end rename
 
     # endregion PREDICATE_MIXIN
@@ -599,8 +647,8 @@ class Variable(MathLeaf):
 
     def copy(
             self,
+            deep: bool = False,
             name: Optional[str] = None,
-            deep: bool = False
     ) -> 'Variable':
         """
         Create a shallow copy with a new name.
@@ -873,7 +921,7 @@ class Constant(MathLeaf):
             leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """
         Check if ``var`` references this leaf.
@@ -899,18 +947,18 @@ class Constant(MathLeaf):
         MathExprValidationError
             If ``by_ref`` is ``True`` while ``var`` is provided as a string.
         """
-        if look_for is None or look_for == "const":
+        if look_for in {LeafKind.ANY, LeafKind.CONSTANT}:
             return super(Constant, self).contains(
                 leaf=leaf,
                 by_ref=by_ref,
                 check_operator=check_operator,
-                look_for=None
+                look_for=LeafKind.ANY
             )
         # end if
         return False
     # en def contains
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr):
+    def replace(self, old_m: MathExpr, new_m: MathExpr) -> MathExpr:
         """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
 
         Parameters
@@ -927,7 +975,7 @@ class Constant(MathLeaf):
         )
     # end def replace
 
-    def renamed(self, old_name: str, new_name: str) -> Dict[str, str]:
+    def renamed(self, old_name: str, new_name: str) -> MathExpr:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -940,7 +988,7 @@ class Constant(MathLeaf):
         if self._name == old_name:
             self._name = new_name
         # end if
-        return {old_name: new_name}
+        return self
     # end rename
 
     # endregion PREDICATE_MIXIN
@@ -963,8 +1011,8 @@ class Constant(MathLeaf):
 
     def copy(
             self,
+            deep: bool = False,
             name: Optional[str] = None,
-            deep: bool = False
     ) -> 'Constant':
         """
         Create a copy of the constant with a new name.

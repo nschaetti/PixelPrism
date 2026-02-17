@@ -49,7 +49,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr
+from ..typing import MathExpr, LeafKind
 from .algorithmic import register_algorithm, get_algorithm
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
@@ -412,7 +412,7 @@ if SKLEARN_AVAILABLE:
 class MachineLearningOperator(OperatorBase, ParametricOperator, ABC):
     """Base class for machine learning operators."""
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -457,7 +457,7 @@ class PerceptronTrain(MachineLearningOperator):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return (
             self._max_iter.contains(expr, by_ref=by_ref, look_for=look_for)
             or self._learning_rate.contains(expr, by_ref=by_ref, look_for=look_for)
@@ -814,7 +814,7 @@ class DecisionTreeTrain(MachineLearningOperator):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return (
             self._max_depth.contains(expr, by_ref=by_ref, look_for=look_for)
             or self._min_samples_split.contains(expr, by_ref=by_ref, look_for=look_for)
@@ -1034,7 +1034,7 @@ class SVMTrain(MachineLearningOperator):
         _require_sklearn()
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return (
             self._c.contains(expr, by_ref=by_ref, look_for=look_for)
             or self._max_iter.contains(expr, by_ref=by_ref, look_for=look_for)

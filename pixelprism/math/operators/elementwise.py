@@ -37,6 +37,7 @@ from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
+from ..typing import MathExpr, LeafKind
 from .base import Operands, OperatorBase, operator_registry
 
 
@@ -84,9 +85,9 @@ class ElementwiseOperator(OperatorBase, ABC):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         return False
@@ -339,9 +340,9 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         return False

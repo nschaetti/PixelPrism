@@ -28,15 +28,21 @@
 
 # Imports
 from __future__ import annotations
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Mapping, Sequence, TYPE_CHECKING
 
-from .math_exceptions import SymbolicMathValidationError
+from .math_base import MathBase
+from .math_exceptions import SymbolicMathValidationError, SymbolicMathNotImplementedError
 from .math_leaves import Constant, MathLeaf
 from .mixins import PredicateMixin
 from .dtype import DType
+from .shape import Shape
 from .tensor import Tensor
-from .typing import MathExpr
+from .typing import MathExpr, LeafKind, SimplifyOptions
 from .random import rand_name
+
+if TYPE_CHECKING:
+    from .math_leaves import Variable
+# end if
 
 
 __all__ = [
@@ -44,7 +50,11 @@ __all__ = [
 ]
 
 
-class SliceExpr(PredicateMixin):
+class SliceExpr(
+    MathBase,
+    PredicateMixin,
+    MathExpr
+):
     """
     Immutable representation of a Python-style slice using :class:`MathExpr` bounds.
 
@@ -99,6 +109,7 @@ class SliceExpr(PredicateMixin):
         step : MathExpr or int or None, optional
             Slice stride.
         """
+        super(SliceExpr, self).__init__(name=rand_name("slice"))
         self._start: Optional[MathExpr] = self._coerce_bound("start", start)
         self._stop: Optional[MathExpr] = self._coerce_bound("stop", stop)
         self._step: Optional[MathExpr] = self._coerce_bound("step", step)
@@ -205,81 +216,242 @@ class SliceExpr(PredicateMixin):
 
     # endregion PROPERTIES
 
-    # region PREDICATE_MIXIN
+    # region MATH_EXPR
 
-    def is_constant(self):
-        """Contains any variables?"""
-        return not self.is_variable()
-    # end def is_constant
+    @property
+    def shape(self) -> Shape:
+        return Shape(dims=())
+    # end def shape
 
-    def is_variable(self):
-        """Contains any variables?"""
-        has_variable = False
-        if self._start is not None and self._start.is_variable(): has_variable = True
-        if self._stop is not None and self._stop.is_variable(): has_variable = True
-        if self._step is not None and self._step.is_variable(): has_variable = True
-        return has_variable
-    # end def is_variable
+    @property
+    def dtype(self) -> DType:
+        return DType.Z
+    # end def dtype
 
-    def variables(self) -> List['Variable']:
-        return []
+    @property
+    def name(self) -> str:
+        return "slice"
+    # end def name
+
+    @property
+    def rank(self) -> int:
+        return 0
+    # end def rank
+
+    def eval(self) -> Tensor:
+        raise SymbolicMathNotImplementedError("SliceExpr.eval() is not implemented.")
+    # end def eval
+
+    def diff(self, wrt: "Variable") -> MathExpr:
+        raise SymbolicMathNotImplementedError("SliceExpr does not support differentiation.")
+    # end def diff
+
+    def variables(self) -> List["Variable"]:
+        out = []
+        for child in (self._start, self._stop, self._step):
+            if child is not None:
+                out.extend(child.variables())
+            # end if
+        # end for
+        unique = {}
+        for var in out:
+            unique[id(var)] = var
+        # end for
+        return list(unique.values())
     # end def variables
 
-    def constants(self) -> List['Constant']:
-        slice_const = list()
-        slice_const.extend(self._start.constants() if self._start else [])
-        slice_const.extend(self._stop.constants() if self._stop else [])
-        slice_const.extend(self._step.constants() if self._step else [])
-        return slice_const
-    # end def constantes
+    def constants(self) -> List["Constant"]:
+        out = []
+        for child in (self._start, self._stop, self._step):
+            if child is not None:
+                out.extend(child.constants())
+            # end if
+        # end for
+        unique = {}
+        for const in out:
+            unique[id(const)] = const
+        # end for
+        return list(unique.values())
+    # end def constants
 
     def contains(
             self,
-            leaf: Union[str, PredicateMixin],
+            leaf: Union[str, MathExpr],
             by_ref: bool = False,
             check_operator: bool = True,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
-        children = [o for o in [self._start, self._stop, self._step] if o is not None]
-        return any([
-            o.contains(leaf, by_ref, check_operator, look_for)
-            for o in children
-        ])
+        return any(
+            child.contains(leaf, by_ref=by_ref, check_operator=check_operator, look_for=look_for)
+            for child in (self._start, self._stop, self._step)
+            if child is not None
+        )
     # end def contains
 
     def contains_variable(
             self,
-            variable: Union[str, 'Variable'],
+            variable: Union[str, "Variable"],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        return self.contains(variable, by_ref, check_operator, "var")
+        return self.contains(
+            variable,
+            by_ref=by_ref,
+            check_operator=check_operator,
+            look_for=LeafKind.VARIABLE,
+        )
     # end def contains_variable
 
     def contains_constant(
             self,
-            constant: Union[str, 'Constant'],
+            constant: Union[str, "Constant"],
             by_ref: bool = False,
             check_operator: bool = True
     ) -> bool:
-        return self.contains(constant, by_ref, check_operator, "const")
+        return self.contains(
+            constant,
+            by_ref=by_ref,
+            check_operator=check_operator,
+            look_for=LeafKind.CONSTANT,
+        )
     # end def contains_constant
 
-    def replace(self, old_m: PredicateMixin, new_m: PredicateMixin):
-        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence."""
-        if self._start is not None: self._start.replace(old_m, new_m)
-        if self._stop is not None: self._stop.replace(old_m, new_m)
-        if self._step is not None: self._step.replace(old_m, new_m)
-    # end def replace
+    def simplify(self, options: SimplifyOptions | None = None) -> MathExpr:
+        start = self._start.simplify(options) if self._start is not None else None
+        stop = self._stop.simplify(options) if self._stop is not None else None
+        step = self._step.simplify(options) if self._step is not None else None
+        return SliceExpr(start=start, stop=stop, step=step)
+    # end def simplify
 
-    def rename(self, old_name: str, new_name: str) -> Dict[str, str]:
-        if self._start is not None: self._start.renamed(old_name, new_name)
-        if self._stop is not None: self._stop.renamed(old_name, new_name)
-        if self._step is not None: self._step.renamed(old_name, new_name)
-        return {old_name: new_name}
-    # end def rename
+    def canonicalize(self) -> MathExpr:
+        start = self._start.canonicalize() if self._start is not None else None
+        stop = self._stop.canonicalize() if self._stop is not None else None
+        step = self._step.canonicalize() if self._step is not None else None
+        return SliceExpr(start=start, stop=stop, step=step)
+    # end def canonicalize
 
-    # endregion PREDICATE_MIXIN
+    def fold_constants(self) -> MathExpr:
+        start = self._start.fold_constants() if self._start is not None else None
+        stop = self._stop.fold_constants() if self._stop is not None else None
+        step = self._step.fold_constants() if self._step is not None else None
+        return SliceExpr(start=start, stop=stop, step=step)
+    # end def fold_constants
+
+    def substitute(
+            self,
+            mapping: Mapping[MathExpr, MathExpr],
+            *,
+            by_ref: bool = True,
+    ) -> MathExpr:
+        for old_expr, new_expr in mapping.items():
+            if by_ref and old_expr is self:
+                return new_expr
+            # end if
+            if (not by_ref) and old_expr == self:
+                return new_expr
+            # end if
+        # end for
+        start = self._start.substitute(mapping, by_ref=by_ref) if self._start is not None else None
+        stop = self._stop.substitute(mapping, by_ref=by_ref) if self._stop is not None else None
+        step = self._step.substitute(mapping, by_ref=by_ref) if self._step is not None else None
+        return SliceExpr(start=start, stop=stop, step=step)
+    # end def substitute
+
+    def renamed(self, old_name: str, new_name: str) -> MathExpr:
+        start = self._start.renamed(old_name, new_name) if self._start is not None else None
+        stop = self._stop.renamed(old_name, new_name) if self._stop is not None else None
+        step = self._step.renamed(old_name, new_name) if self._step is not None else None
+        return SliceExpr(start=start, stop=stop, step=step)
+    # end def renamed
+
+    def eq_tree(self, other: MathExpr) -> bool:
+        if not isinstance(other, SliceExpr):
+            return False
+        # end if
+        return (
+            SliceExpr._same_child(self._start, other._start)
+            and SliceExpr._same_child(self._stop, other._stop)
+            and SliceExpr._same_child(self._step, other._step)
+        )
+    # end def eq_tree
+
+    def equivalent(self, other: MathExpr) -> bool:
+        return self.eq_tree(other)
+    # end def equivalent
+
+    def is_constant(self) -> bool:
+        return not self.is_variable()
+    # end def is_constant
+
+    def is_variable(self) -> bool:
+        return any(
+            child.is_variable()
+            for child in (self._start, self._stop, self._step)
+            if child is not None
+        )
+    # end def is_variable
+
+    def is_node(self) -> bool:
+        return False
+    # end def is_node
+
+    def is_leaf(self) -> bool:
+        return False
+    # end def is_leaf
+
+    def depth(self) -> int:
+        child_depths = [
+            child.depth()
+            for child in (self._start, self._stop, self._step)
+            if child is not None
+        ]
+        return (max(child_depths) + 1) if child_depths else 1
+    # end def depth
+
+    def copy(self, deep: bool = False) -> MathExpr:
+        if not deep:
+            return SliceExpr(start=self._start, stop=self._stop, step=self._step)
+        # end if
+        start = self._start.copy(deep=True) if self._start is not None else None
+        stop = self._stop.copy(deep=True) if self._stop is not None else None
+        step = self._step.copy(deep=True) if self._step is not None else None
+        return SliceExpr(start=start, stop=stop, step=step)
+    # end def copy
+
+    def __str__(self):
+        """
+        Returns
+        -------
+        str
+            Human-readable description of the slice expression.
+        """
+        s = f"{self.start_value}:{self.stop_value}:{self.step_value}"
+        s = s.replace("None", "")
+        return s
+    # end def __str__
+
+    def __repr__(self) -> str:
+        """
+        Returns
+        -------
+        str
+            Human-readable representation showing resolved Python bounds.
+        """
+        return f"SliceExpr(start={self.start_value}, stop={self.stop_value}, step={self.step_value})"
+    # end def __repr__
+
+    @staticmethod
+    def _same_child(left: Optional[MathExpr], right: Optional[MathExpr]) -> bool:
+        if left is None or right is None:
+            return left is right
+        # end if
+        if hasattr(left, "eq_tree"):
+            return left.eq_tree(right)
+        # end if
+        return left == right
+    # end def _same_child
+
+    # endregion MATH_EXPR
 
     # region PUBLIC
 
@@ -441,31 +613,4 @@ class SliceExpr(PredicateMixin):
 
     # endregion STATIC
 
-    # region OVERRIDE
-
-    def __str__(self):
-        """
-        Returns
-        -------
-        str
-            Human-readable description of the slice expression.
-        """
-        s = f"{self.start_value}:{self.stop_value}:{self.step_value}"
-        s = s.replace("None", "")
-        return s
-    # end def __str__
-
-    def __repr__(self) -> str:
-        """
-        Returns
-        -------
-        str
-            Human-readable representation showing resolved Python bounds.
-        """
-        return f"SliceExpr(start={self.start_value}, stop={self.stop_value}, step={self.step_value})"
-    # end def __repr__
-
-    # endregion OVERRIDE
-
 # end class SliceExpr
-

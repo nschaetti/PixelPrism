@@ -36,6 +36,7 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..context import new_context, set_value
 from ..math_node import MathNode
+from ..typing import MathExpr, LeafKind
 from .base import Operands, operator_registry, OperatorBase, ParametricOperator
 
 
@@ -74,9 +75,9 @@ class ReductionOperator(OperatorBase, ParametricOperator, ABC):
 
     def contains(
             self,
-            expr: "MathNode",
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         raise NotImplementedError("Parametric reduction operators must implement contains(..).")
@@ -128,9 +129,9 @@ class AxisReductionOperator(ReductionOperator, ABC):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         return self._axis is not None and self._axis.contains(expr, by_ref=by_ref)
@@ -534,9 +535,9 @@ class Summation(ReductionOperator):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         ret = [o.contains(expr, by_ref=by_ref, look_for=look_for) for o in [self.lower, self.upper]]
@@ -726,9 +727,9 @@ class Product(ReductionOperator):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         ret = [o.contains(expr, by_ref=by_ref, look_for=look_for) for o in [self.lower, self.upper]]

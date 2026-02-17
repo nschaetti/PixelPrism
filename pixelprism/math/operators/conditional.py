@@ -37,6 +37,7 @@ from ..dtype import DType, to_numpy, promote
 from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
+from ..typing import MathExpr, LeafKind
 from .base import Operands, OperatorBase, operator_registry
 
 __all__ = [
@@ -97,9 +98,9 @@ class Where(OperatorBase):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: str | None = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         return False
     # end def contains
@@ -136,9 +137,9 @@ class IfOperator(OperatorBase):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: str | None = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         return self._cond.contains(expr, by_ref=by_ref, look_for=look_for)
     # end def contains

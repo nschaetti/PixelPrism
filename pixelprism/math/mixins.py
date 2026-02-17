@@ -25,75 +25,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-"""
-TODO: Add documentation.
-"""
 
 # Imports
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict, List, TYPE_CHECKING, Mapping, cast
+from typing import Union, Dict, List, TYPE_CHECKING, Mapping, cast
 
-from .typing import LeafKind, MathExpr
-
+from .typing import LeafKind, MathExpr, ExprLike, Index
 
 if TYPE_CHECKING:
-    from .tensor import Tensor
-    from .math_base import MathBase
     from .math_leaves import Variable, Constant
+    from .math_node import MathNode
 # end if
 
 
 __all__ = [
-    "EvaluableMixin",
-    "DifferentiableMixin",
     "PredicateMixin",
+    "ExprOperatorsMixin",
 ]
-
-
-class EvaluableMixin(ABC):
-    """
-    TODO: Add documentation.
-    """
-
-    @abstractmethod
-    def eval(self) -> 'Tensor':
-        """
-        Evaluate this expression in the active math context.
-
-        Returns
-        -------
-        Tensor
-            Result of executing ``self.op`` with evaluated children.
-        """
-    # end def eval
-
-# end class EvaluableMixin
-
-
-class DifferentiableMixin(ABC):
-    """
-    TODO: Add documentation.
-    """
-
-    @abstractmethod
-    def diff(self, wrt: "Variable") -> 'MathBase':
-        """
-        Compute the derivative of this expression with respect to ``wrt``.
-
-        Parameters
-        ----------
-        wrt : Variable
-            The variable to differentiate with respect to.
-
-        Returns
-        -------
-        MathBase
-            The derivative of ``self`` with respect to ``wrt``.
-        """
-    # end def diff
-
-# end class Differentiable
 
 
 class PredicateMixin(ABC):
@@ -251,3 +200,592 @@ class PredicateMixin(ABC):
     # end def is_variable
 
 # end class PredicateMixin
+
+
+class ExprOperatorsMixin:
+    """
+    Shared arithmetic operator overloads for symbolic expressions.
+    """
+
+    # region OPERATORS
+
+    @staticmethod
+    def add(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Create an elementwise addition node.
+
+        Parameters
+        ----------
+        operand1 : ExprLike
+            Left operand.
+        operand2 : ExprLike
+            Right operand.
+
+        Returns
+        -------
+        MathNode
+            Symbolic addition of ``operand1`` and ``operand2``.
+        """
+        from .functional.elementwise import add
+        return add(operand1, operand2)
+    # end def add
+
+    @staticmethod
+    def sub(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Create an elementwise subtraction node.
+
+        Parameters
+        ----------
+        operand1 : ExprLike
+            Left operand.
+        operand2 : ExprLike
+            Right operand to subtract.
+
+        Returns
+        -------
+        MathNode
+            Symbolic subtraction ``operand1 - operand2``.
+        """
+        from .functional.elementwise import sub
+        return sub(operand1, operand2)
+    # end def sub
+
+    @staticmethod
+    def mul(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Create an elementwise multiplication node.
+
+        Parameters
+        ----------
+        operand1 : ExprLike
+            Left operand.
+        operand2 : ExprLike
+            Right operand.
+
+        Returns
+        -------
+        MathNode
+            Symbolic product of the operands.
+        """
+        from .functional.elementwise import mul
+        return mul(operand1, operand2)
+    # end def mul
+
+    @staticmethod
+    def div(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Create an elementwise division node.
+
+        Parameters
+        ----------
+        operand1 : ExprLike
+            Numerator expression.
+        operand2 : ExprLike
+            Denominator expression.
+
+        Returns
+        -------
+        MathNode
+            Symbolic quotient ``operand1 / operand2``.
+        """
+        from .functional.elementwise import div
+        return div(operand1, operand2)
+    # end def div
+
+    @staticmethod
+    def neg(operand: ExprLike) -> MathNode:
+        """
+        Create an elementwise negation node.
+
+        Parameters
+        ----------
+        operand : ExprLike
+            Expression to negate.
+
+        Returns
+        -------
+        MathNode
+            Symbolic negation of ``operand``.
+        """
+        from .functional.elementwise import neg
+        return neg(operand)
+    # end def neg
+
+    @staticmethod
+    def pow(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Create an elementwise power node.
+
+        Parameters
+        ----------
+        operand1 : ExprLike
+            Base expression.
+        operand2 : ExprLike
+            Exponent expression.
+
+        Returns
+        -------
+        MathNode
+            Symbolic representation of ``operand1 ** operand2``.
+        """
+        from .functional.elementwise import pow as elementwise_pow
+        return elementwise_pow(operand1, operand2)
+    # end def pow
+
+    @staticmethod
+    def exp(operand: ExprLike) -> MathNode:
+        """
+        Create an elementwise exponential node.
+
+        Parameters
+        ----------
+        operand : ExprLike
+            Expression whose entries will be exponentiated.
+
+        Returns
+        -------
+        MathNode
+            Node computing ``exp(operand)``.
+        """
+        from .functional.elementwise import exp as elementwise_exp
+        return elementwise_exp(operand)
+    # end def exp
+
+    @staticmethod
+    def log(operand: ExprLike) -> MathNode:
+        """
+        Create an elementwise natural-logarithm node.
+
+        Parameters
+        ----------
+        operand : ExprLike
+            Expression whose entries will be transformed.
+
+        Returns
+        -------
+        MathNode
+            Node computing ``log(operand)``.
+        """
+        from .functional.elementwise import log as elementwise_log
+        return elementwise_log(operand)
+    # end def log
+
+    @staticmethod
+    def sqrt(operand: ExprLike) -> MathNode:
+        """
+        Create an elementwise square-root node.
+
+        Parameters
+        ----------
+        operand : ExprLike
+            Expression whose entries will be square-rooted.
+
+        Returns
+        -------
+        MathNode
+            Node computing ``sqrt(operand)``.
+        """
+        from .functional.elementwise import sqrt as elementwise_sqrt
+        return elementwise_sqrt(operand)
+    # end def sqrt
+
+    @staticmethod
+    def log2(operand: ExprLike) -> MathNode:
+        """
+        Create an elementwise base-2 logarithm node.
+
+        Parameters
+        ----------
+        operand : ExprLike
+            Expression whose entries will be transformed.
+
+        Returns
+        -------
+        MathNode
+            Node computing ``log2(operand)``.
+        """
+        from .functional.elementwise import log2 as elementwise_log2
+        return elementwise_log2(operand)
+    # end def log2
+
+    @staticmethod
+    def log10(operand: ExprLike) -> MathNode:
+        """
+        Create an elementwise base-10 logarithm node.
+
+        Parameters
+        ----------
+        operand : ExprLike
+            Expression whose entries will be transformed.
+
+        Returns
+        -------
+        MathNode
+            Node computing ``log10(operand)``.
+        """
+        from .functional.elementwise import log10 as elementwise_log10
+        return elementwise_log10(operand)
+    # end def log10
+
+    @staticmethod
+    def matmul(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Create a matrix multiplication node.
+        """
+        from .functional.linear_algebra import matmul
+        return matmul(operand1, operand2)
+    # end def matmul
+
+    @staticmethod
+    def getitem(operand: ExprLike, index: Index) -> MathNode:
+        """
+        Create a getitem node.
+        """
+        from .functional.structure import getitem
+        from .math_slice import SliceExpr
+        indices: List[Union[int, SliceExpr]] = [
+            SliceExpr.from_slice(s) if isinstance(s, slice) else s
+            for s in index
+        ]
+        return getitem(op1=operand, indices=indices)
+    # end def getitem
+
+    @staticmethod
+    def eq(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        from .functional.boolean import eq
+        from .build import as_expr
+        return eq(as_expr(operand1), as_expr(operand2))
+    # end def eq
+
+    @staticmethod
+    def ne(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        from .functional.boolean import ne
+        from .build import as_expr
+        return ne(as_expr(operand1), as_expr(operand2))
+    # end def ne
+
+    @staticmethod
+    # Override less
+    def lt(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Placeholder less-than operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import lt
+        from .build import as_expr
+        return lt(as_expr(operand1), as_expr(operand2))
+    # end def lt
+
+    # Override less or equal
+    @staticmethod
+    def le(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Placeholder less-or-equal operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import le
+        from .build import as_expr
+        return le(as_expr(operand1), as_expr(operand2))
+    # end def le
+
+    # Override greater
+    @staticmethod
+    def gt(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Placeholder greater-than operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import gt
+        from .build import as_expr
+        return gt(as_expr(operand1), as_expr(operand2))
+    # end def gt
+
+    # Override greater or equal
+    @staticmethod
+    def ge(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        """
+        Placeholder greater-or-equal operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import ge
+        from .build import as_expr
+        return ge(as_expr(operand1), as_expr(operand2))
+    # end def ge
+
+    @staticmethod
+    def logical_not(operand: ExprLike) -> MathNode:
+        from .functional.boolean import logical_not
+        from .build import as_expr
+        return logical_not(as_expr(operand))
+    # end def logical_not
+
+    @staticmethod
+    def logical_any(operand: ExprLike) -> MathNode:
+        from .functional.boolean import logical_any
+        from .build import as_expr
+        return logical_any(as_expr(operand))
+    # end def logical_any
+
+    @staticmethod
+    def logical_all(operand: ExprLike) -> MathNode:
+        from .functional.boolean import logical_all
+        from .build import as_expr
+        return logical_all(as_expr(operand))
+    # end def logical_all
+
+    @staticmethod
+    def logical_and(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        from .functional.boolean import logical_and
+        from .build import as_expr
+        return logical_and(as_expr(operand1), as_expr(operand2))
+    # end def logical_and
+
+    @staticmethod
+    def logical_or(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        from .functional.boolean import logical_or
+        from .build import as_expr
+        return logical_or(as_expr(operand1), as_expr(operand2))
+    # end def logical_or
+
+    @staticmethod
+    def logical_xor(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+        from .functional.boolean import logical_xor
+        from .build import as_expr
+        return logical_xor(as_expr(operand1), as_expr(operand2))
+    # end def logical_xor
+
+    # endregion OPERATORS
+
+    # region BINARY
+
+    def __add__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import add
+        from .build import as_expr
+        return add(as_expr(self), as_expr(other))
+    # end def __add__
+
+    def __radd__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import add
+        from .build import as_expr
+        return add(as_expr(other), as_expr(self))
+    # end def __radd__
+
+    def __sub__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import sub
+        from .build import as_expr
+        return sub(as_expr(self), as_expr(other))
+    # end def __sub__
+
+    def __rsub__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import sub
+        from .build import as_expr
+        return sub(as_expr(other), as_expr(self))
+    # end def __rsub__
+
+    def __mul__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import mul
+        from .build import as_expr
+        return mul(as_expr(self), as_expr(other))
+    # end def __mul__
+
+    def __rmul__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import mul
+        from .build import as_expr
+        return mul(as_expr(other), as_expr(self))
+    # end def __rmul__
+
+    def __truediv__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import div
+        from .build import as_expr
+        return div(as_expr(self), as_expr(other))
+    # end def __truediv__
+
+    def __rtruediv__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import div
+        from .build import as_expr
+        return div(as_expr(other), as_expr(self))
+    # end def __rtruediv__
+
+    def __pow__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import pow
+        from .build import as_expr
+        return pow(as_expr(self), as_expr(other))
+    # end def __pow__
+
+    def __rpow__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.elementwise import pow
+        from .build import as_expr
+        return pow(as_expr(other), as_expr(self))
+    # end def __rpow__
+
+    # endregion BINARY
+
+    # region UNARY
+
+    def __neg__(self: MathExpr) -> "MathNode":
+        from .functional.elementwise import neg
+        from .build import as_expr
+        return neg(as_expr(self))
+    # end def __neg__
+
+    def __matmul__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.linear_algebra import matmul
+        from .build import as_expr
+        return matmul(as_expr(self), as_expr(other))
+    # end def __matmul__
+
+    def __rmatmul__(self: MathExpr, other: ExprLike) -> "MathNode":
+        from .functional.linear_algebra import matmul
+        from .build import as_expr
+        return matmul(as_expr(other), as_expr(self))
+    # end def __rmatmul__
+
+    # endregion UNARY
+
+    # region COMPARISON
+
+    def __eq__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import eq
+        from .build import as_expr
+        return eq(as_expr(self), as_expr(other))
+    # end __eq__
+
+    def __ne__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import ne
+        from .build import as_expr
+        return ne(as_expr(self), as_expr(other))
+    # end __ne__
+
+    # Override less
+    def __lt__(self: MathExpr, other: ExprLike) -> MathNode:
+        """
+        Placeholder less-than operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import lt
+        from .build import as_expr
+        return lt(as_expr(self), as_expr(other))
+    # end __lt__
+
+    # Override less or equal
+    def __le__(self: MathExpr, other: ExprLike) -> MathNode:
+        """
+        Placeholder less-or-equal operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import le
+        from .build import as_expr
+        return le(as_expr(self), as_expr(other))
+    # end __le__
+
+    # Override greater
+    def __gt__(self: MathExpr, other: ExprLike) -> MathNode:
+        """
+        Placeholder greater-than operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import gt
+        from .build import as_expr
+        return gt(as_expr(self), as_expr(other))
+    # end __gt__
+
+    # Override greater or equal
+    def __ge__(self: MathExpr, other: ExprLike) -> MathNode:
+        """
+        Placeholder greater-or-equal operator.
+
+        Raises
+        ------
+        MathExprNotImplementedError
+            Always raised; ordering is not defined for ``MathExpr``.
+        """
+        from .functional.boolean import ge
+        from .build import as_expr
+        return ge(as_expr(self), as_expr(other))
+    # end __ge__
+
+    def __invert__(self: MathExpr) -> MathNode:
+        from .functional.boolean import logical_not
+        from .build import as_expr
+        return logical_not(as_expr(self))
+    # end __invert__
+
+    def __and__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import logical_and
+        from .build import as_expr
+        return logical_and(as_expr(self), as_expr(other))
+    # end __and__
+
+    def __rand__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import logical_and
+        from .build import as_expr
+        return logical_and(as_expr(other), as_expr(self))
+    # end __rand__
+
+    def __or__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import logical_or
+        from .build import as_expr
+        return logical_or(as_expr(self), as_expr(other))
+    # end __or__
+
+    def __ror__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import logical_or
+        from .build import as_expr
+        return logical_or(as_expr(other), as_expr(self))
+    # end __ror__
+
+    def __xor__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import logical_xor
+        from .build import as_expr
+        return logical_xor(as_expr(self), as_expr(other))
+    # end __xor__
+
+    def __rxor__(self: MathExpr, other: ExprLike) -> MathNode:
+        from .functional.boolean import logical_xor
+        from .build import as_expr
+        return logical_xor(as_expr(other), as_expr(self))
+    # end __rxor__
+
+    # endregion COMPARISON
+
+    # Get item
+    def __getitem__(self: ExprLike, index: Index):
+        from .functional.structure import getitem
+        from .math_slice import SliceExpr
+        indices: List[Union[int, SliceExpr]] = [
+            SliceExpr.from_slice(s) if isinstance(s, slice) else s
+            for s in index
+        ]
+        return getitem(op1=self, indices=indices)
+    # end def __getitem__
+
+# end class ExprOperatorsMixin

@@ -36,6 +36,7 @@ from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
+from ..typing import MathExpr, LeafKind
 from .base import Operands, OperatorBase, operator_registry
 
 __all__ = [
@@ -66,7 +67,7 @@ class _BinaryComparisonOperator(ComparisonOperator):
     IS_BINARY = False
     TENSOR_METHOD: str
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -146,7 +147,7 @@ class _UnaryBooleanComparisonOperator(ComparisonOperator, ABC):
         return operand.dtype == DType.B
     # end def check_operands
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 

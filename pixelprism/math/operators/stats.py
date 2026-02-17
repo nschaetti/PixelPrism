@@ -39,7 +39,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr
+from ..typing import MathExpr, LeafKind
 from .base import Operands, operator_registry
 from .builders import ParametricBuilder
 
@@ -106,7 +106,7 @@ class Normal(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return (
             self._loc.contains(expr, by_ref=by_ref, look_for=look_for)
             or self._scale.contains(expr, by_ref=by_ref, look_for=look_for)
@@ -194,7 +194,7 @@ class Uniform(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return (
             self._low.contains(expr, by_ref=by_ref, look_for=look_for)
             or self._high.contains(expr, by_ref=by_ref, look_for=look_for)
@@ -282,7 +282,7 @@ class RandInt(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         if self._high is None:
             return self._low.contains(expr, by_ref=by_ref, look_for=look_for)
         # end if
@@ -370,7 +370,7 @@ class Poisson(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return self._lam.contains(expr, by_ref=by_ref, look_for=look_for)
     # end def contains
 
@@ -445,7 +445,7 @@ class Bernoulli(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return self._p.contains(expr, by_ref=by_ref, look_for=look_for)
     # end def contains
 
@@ -522,7 +522,7 @@ class Covariance(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         if self._ddof is None:
             return False
         # end if
@@ -627,7 +627,7 @@ class Correlation(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -728,7 +728,7 @@ class ZScore(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return (
             self._ddof.contains(expr, by_ref=by_ref, look_for=look_for)
             or self._eps.contains(expr, by_ref=by_ref, look_for=look_for)

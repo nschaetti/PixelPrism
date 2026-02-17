@@ -31,6 +31,7 @@ from __future__ import annotations
 from ..build import as_expr
 from .helpers import apply_operator
 from ..math_node import MathNode
+from ..typing import ExprLike
 
 __all__ = [
     "eq",
@@ -40,20 +41,20 @@ __all__ = [
     "gt",
     "ge",
     "logical_not",
-    "any",
-    "all",
+    "logical_any",
+    "logical_all",
     "logical_and",
     "logical_or",
     "logical_xor",
 ]
 
 
-def _comparison_display(lhs: MathNode, rhs: MathNode, symbol: str) -> str:
+def _comparison_display(lhs: ExprLike, rhs: ExprLike, symbol: str) -> str:
     return f"{lhs.name} {symbol} {rhs.name}"
 # end def _comparison_display
 
 
-def _binary_comparison(op_name: str, lhs, rhs, symbol: str) -> MathNode:
+def _binary_comparison(op_name: str, lhs: ExprLike, rhs: ExprLike, symbol: str) -> MathNode:
     lhs_expr = as_expr(lhs)
     rhs_expr = as_expr(rhs)
     return apply_operator(
@@ -64,37 +65,37 @@ def _binary_comparison(op_name: str, lhs, rhs, symbol: str) -> MathNode:
 # end def _binary_comparison
 
 
-def eq(lhs, rhs) -> MathNode:
+def eq(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("eq", lhs, rhs, "≡")
 # end def eq
 
 
-def ne(lhs, rhs) -> MathNode:
+def ne(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("ne", lhs, rhs, "≠")
 # end def ne
 
 
-def lt(lhs, rhs) -> MathNode:
+def lt(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("lt", lhs, rhs, "<")
 # end def lt
 
 
-def le(lhs, rhs) -> MathNode:
+def le(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("le", lhs, rhs, "≤")
 # end def le
 
 
-def gt(lhs, rhs) -> MathNode:
+def gt(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("gt", lhs, rhs, ">")
 # end def gt
 
 
-def ge(lhs, rhs) -> MathNode:
+def ge(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("ge", lhs, rhs, "≥")
 # end def ge
 
 
-def logical_not(value) -> MathNode:
+def logical_not(value: ExprLike) -> MathNode:
     operand = as_expr(value)
     return apply_operator(
         "not",
@@ -104,36 +105,36 @@ def logical_not(value) -> MathNode:
 # end def logical_not
 
 
-def any(value) -> MathNode:
+def logical_any(value: ExprLike) -> MathNode:
     operand = as_expr(value)
     return apply_operator(
         "any",
         (operand,),
         f"any({operand.name})",
     )
-# end def any
+# end def logical_any
 
 
-def all(value) -> MathNode:
+def logical_all(value: ExprLike) -> MathNode:
     operand = as_expr(value)
     return apply_operator(
         "all",
         (operand,),
         f"all({operand.name})",
     )
-# end def all
+# end def logical_all
 
 
-def logical_and(lhs, rhs) -> MathNode:
+def logical_and(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("and", lhs, rhs, "∧")
 # end def logical_and
 
 
-def logical_or(lhs, rhs) -> MathNode:
+def logical_or(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("or", lhs, rhs, "∨")
 # end def logical_or
 
 
-def logical_xor(lhs, rhs) -> MathNode:
+def logical_xor(lhs: ExprLike, rhs: ExprLike) -> MathNode:
     return _binary_comparison("xor", lhs, rhs, "⊕")
 # end def logical_xor

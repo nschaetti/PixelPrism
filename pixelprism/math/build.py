@@ -29,8 +29,8 @@
 from typing import Any, Union, Optional
 import numpy as np
 
-from .math_node import MathNode
-from .math_leaves import MathLeaf, const
+from .math_base import MathBase
+from .math_leaves import const
 from .dtype import DType, TypeLike
 from .tensor import TensorLike, Tensor
 from .typing import MathExpr, ScalarLike
@@ -74,7 +74,7 @@ def as_expr(
 
     Returns
     -------
-    MathNode
+    MathExpr
         A math expression node representing the input.
 
     Examples
@@ -96,21 +96,21 @@ def as_expr(
     # end if
     if isinstance(obj, ScalarLike) or isinstance(obj, np.ndarray):
         return const(
-            name=f"constant_{MathNode.next_id()}",
+            name=f"constant_{MathBase.next_id()}",
             data=obj,
             dtype=dtype
         )
     # end if
     if isinstance(obj, (list, tuple)):
         return const(
-            name=f"constant_{MathNode.next_id()}",
+            name=f"constant_{MathBase.next_id()}",
             data=obj,
             dtype=dtype or DType.R
         )
     # end if
     if isinstance(obj, Tensor):
         return const(
-            name=f"constant_{MathNode.next_id()}",
+            name=f"constant_{MathBase.next_id()}",
             data=obj.value,
         )
     # end if

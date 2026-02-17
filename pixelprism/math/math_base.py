@@ -138,4 +138,25 @@ class MathBase:
         return self._name
     # end def name
 
-# end class MathExpr
+    def __hash__(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Identity hash suitable for storing nodes in sets/dicts.
+        """
+        return hash(self._id)
+    # end __hash__
+
+    @staticmethod
+    def next_id() -> int:
+        """
+        Returns
+        -------
+        int
+            Next identifier that will be assigned to a :class:`MathExpr`.
+        """
+        return MathBase._next_id
+    # end def next_id
+
+# end class MathBase

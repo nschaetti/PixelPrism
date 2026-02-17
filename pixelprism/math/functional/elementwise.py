@@ -31,6 +31,7 @@ from typing import Union
 from .helpers import apply_operator
 from ..math_node import MathNode
 from ..build import as_expr
+from ..typing import ExprLike
 
 
 __all__ = [
@@ -58,21 +59,18 @@ __all__ = [
 ]
 
 
-OperandIn = Union[MathNode, float, int]
-
-
 def add(
-        op1: OperandIn,
-        op2: OperandIn
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Element-wise addition of two operands.
 
     Parameters
     ----------
-    op1 : OperandIn
+    op1 : ExprLike
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : OperandIn
+    op2 : ExprLike
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -89,10 +87,11 @@ def add(
 
     Examples
     --------
+    >>> import pixelprism.math as pm
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional.elementwise import add
-    >>> a = tensor("a", 2.0)
-    >>> b = tensor("b", 3.0)
+    >>> a = pm.const("a", 2.0)
+    >>> b = pm.const("b", 3.0)
     >>> add(a, b).eval()
     array(5.)
     """
@@ -107,17 +106,17 @@ def add(
 
 
 def sub(
-        op1: OperandIn,
-        op2: OperandIn
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Element-wise subtraction of two operands.
 
     Parameters
     ----------
-    op1 : OperandIn
+    op1 : ExprLike
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : OperandIn
+    op2 : ExprLike
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -134,10 +133,11 @@ def sub(
 
     Examples
     --------
+    >>> import pixelprism.math as pm
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional.elementwise import sub
-    >>> a = tensor("a", 5.0)
-    >>> b = tensor("b", 3.0)
+    >>> a = pm.const("a", 5.0)
+    >>> b = pm.const("b", 3.0)
     >>> sub(a, b).eval()
     array(2.)
     """
@@ -152,17 +152,17 @@ def sub(
 
 
 def mul(
-        op1: OperandIn,
-        op2: OperandIn
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Element-wise multiplication of two operands.
 
     Parameters
     ----------
-    op1 : OperandIn
+    op1 : ExprLike
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : OperandIn
+    op2 : ExprLike
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -179,10 +179,11 @@ def mul(
 
     Examples
     --------
+    >>> import pixelprism.math as pm
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional.elementwise import mul
-    >>> a = tensor("a", 2.0)
-    >>> b = tensor("b", 4.0)
+    >>> a = pm.const("a", 2.0)
+    >>> b = pm.const("b", 4.0)
     >>> mul(a, b).eval()
     array(8.)
     """
@@ -197,17 +198,17 @@ def mul(
 
 
 def div(
-        op1: OperandIn,
-        op2: OperandIn
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Element-wise division of two operands.
 
     Parameters
     ----------
-    op1 : OperandIn
+    op1 : ExprLike
         Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : OperandIn
+    op2 : ExprLike
         Right operand. Non-expressions are converted via :func:`as_expr`.
 
     Returns
@@ -224,10 +225,11 @@ def div(
 
     Examples
     --------
+    >>> import pixelprism.math as pm
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional.elementwise import div
-    >>> a = tensor("a", 8.0)
-    >>> b = tensor("b", 2.0)
+    >>> a = pm.const("a", 8.0)
+    >>> b = pm.const("b", 2.0)
     >>> div(a, b).eval()
     array(4.)
     """
@@ -242,17 +244,17 @@ def div(
 
 
 def pow(
-        op1: OperandIn,
-        op2: OperandIn
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Element-wise exponentiation of two operands.
 
     Parameters
     ----------
-    op1 : OperandIn
+    op1 : ExprLike
         Base operand.
-    op2 : OperandIn
+    op2 : ExprLike
         Exponent operand.
 
     Returns
@@ -270,7 +272,7 @@ def pow(
 # end def pow
 
 
-def exp(op: OperandIn) -> MathNode:
+def exp(op: ExprLike) -> MathNode:
     """
     Element-wise exponential of an operand.
     """
@@ -283,7 +285,7 @@ def exp(op: OperandIn) -> MathNode:
 # end def exp
 
 
-def exp2(op: MathNode) -> MathNode:
+def exp2(op: ExprLike) -> MathNode:
     """
     Element-wise base-2 exponential of an operand.
     """
@@ -296,7 +298,7 @@ def exp2(op: MathNode) -> MathNode:
 # end def exp2
 
 
-def expm1(op: MathNode) -> MathNode:
+def expm1(op: ExprLike) -> MathNode:
     """
     Element-wise exp(x) - 1 of an operand.
     """
@@ -309,7 +311,7 @@ def expm1(op: MathNode) -> MathNode:
 # end def expm1
 
 
-def log(op: MathNode) -> MathNode:
+def log(op: ExprLike) -> MathNode:
     """
     Element-wise natural logarithm of an operand.
     """
@@ -322,7 +324,7 @@ def log(op: MathNode) -> MathNode:
 # end def log
 
 
-def log1p(op: MathNode) -> MathNode:
+def log1p(op: ExprLike) -> MathNode:
     """
     Element-wise log(1 + x) of an operand.
     """
@@ -335,7 +337,7 @@ def log1p(op: MathNode) -> MathNode:
 # end def log1p
 
 
-def log2(op: MathNode) -> MathNode:
+def log2(op: ExprLike) -> MathNode:
     """
     Element-wise base-2 logarithm of an operand.
     """
@@ -348,7 +350,7 @@ def log2(op: MathNode) -> MathNode:
 # end def log2
 
 
-def log10(op: MathNode) -> MathNode:
+def log10(op: ExprLike) -> MathNode:
     """
     Element-wise base-10 logarithm of an operand.
     """
@@ -361,7 +363,7 @@ def log10(op: MathNode) -> MathNode:
 # end def log10
 
 
-def sqrt(op: MathNode) -> MathNode:
+def sqrt(op: ExprLike) -> MathNode:
     """
     Element-wise square root of an operand.
     """
@@ -374,7 +376,7 @@ def sqrt(op: MathNode) -> MathNode:
 # end def sqrt
 
 
-def square(op: MathNode) -> MathNode:
+def square(op: ExprLike) -> MathNode:
     """
     Element-wise square of an operand.
     """
@@ -387,7 +389,7 @@ def square(op: MathNode) -> MathNode:
 # end def square
 
 
-def cbrt(op: MathNode) -> MathNode:
+def cbrt(op: ExprLike) -> MathNode:
     """
     Element-wise cubic root of an operand.
     """
@@ -400,7 +402,7 @@ def cbrt(op: MathNode) -> MathNode:
 # end def cbrt
 
 
-def reciprocal(op: MathNode) -> MathNode:
+def reciprocal(op: ExprLike) -> MathNode:
     """
     Element-wise reciprocal of an operand.
     """
@@ -413,7 +415,7 @@ def reciprocal(op: MathNode) -> MathNode:
 # end def reciprocal
 
 
-def deg2rad(op: MathNode) -> MathNode:
+def deg2rad(op: ExprLike) -> MathNode:
     """
     Convert degrees to radians element-wise.
     """
@@ -426,7 +428,7 @@ def deg2rad(op: MathNode) -> MathNode:
 # end def deg2rad
 
 
-def rad2deg(op: MathNode) -> MathNode:
+def rad2deg(op: ExprLike) -> MathNode:
     """
     Convert radians to degrees element-wise.
     """
@@ -439,7 +441,7 @@ def rad2deg(op: MathNode) -> MathNode:
 # end def rad2deg
 
 
-def absolute(op: MathNode) -> MathNode:
+def absolute(op: ExprLike) -> MathNode:
     """
     Element-wise absolute value of an operand.
     """
@@ -452,7 +454,7 @@ def absolute(op: MathNode) -> MathNode:
 # end def absolute
 
 
-def abs(op: MathNode) -> MathNode:
+def abs(op: ExprLike) -> MathNode:
     """
     Element-wise absolute value alias.
     """
@@ -465,7 +467,7 @@ def abs(op: MathNode) -> MathNode:
 # end def abs
 
 
-def neg(op: MathNode) -> MathNode:
+def neg(op: ExprLike) -> MathNode:
     """
     Element-wise negation of a single operand.
 
@@ -488,12 +490,12 @@ def neg(op: MathNode) -> MathNode:
 
     Examples
     --------
+    >>> import pixelprism.math as pm
     >>> from pixelprism.math import tensor
     >>> from pixelprism.math.functional.elementwise import neg
-    >>> x = tensor("x", 3.0)
+    >>> x = pm.const("x", 3.0)
     >>> neg(x).eval()
     array(-3.)
-
     >>> neg(2.5).eval()
     array(-2.5)
     """

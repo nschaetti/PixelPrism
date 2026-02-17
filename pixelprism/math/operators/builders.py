@@ -46,6 +46,7 @@ from ..tensor import (
 from ..context import new_context, set_value
 from ..math_leaves import const
 from ..random import random_const_name
+from ..typing import MathExpr, LeafKind
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
 
@@ -146,9 +147,9 @@ class BuildTensor(ParametricBuilder):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         return False
     # end def contains
@@ -243,7 +244,7 @@ class Vector(Builder):
         return len(operands) > 0
     # end def check_arity
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -311,7 +312,7 @@ class Matrix(ParametricBuilder):
         return rows > 0 and cols > 0
     # end def check_parameters
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -378,7 +379,7 @@ class Full(ParametricBuilder):
         return shape.n_dims >= 0
     # end def check_parameters
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -430,7 +431,7 @@ class Diag(Builder):
     NAME = "diag"
     ARITY = 1
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -501,9 +502,9 @@ class Concatenate(Builder):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         return False
     # end def contains
@@ -637,7 +638,7 @@ class Zeros(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -697,7 +698,7 @@ class Ones(ParametricBuilder):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -764,7 +765,7 @@ class Eye(ParametricBuilder):
         self._shape = Shape.matrix(rows, cols)
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -868,7 +869,7 @@ class Linspace(Builder):
         return Shape.vector(self._length)
     # end def _resolve_shape
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -968,7 +969,7 @@ class Logspace(Builder):
         return base_value
     # end def _resolve_base
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -1040,7 +1041,7 @@ class Map(Builder):
         self._body = body
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return self._body.contains(expr, by_ref=by_ref, look_for=look_for)
     # end def contains
 
@@ -1133,9 +1134,9 @@ class SparseCOO(Builder):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         return False
     # end def contains
@@ -1264,9 +1265,9 @@ class FromFunction(Builder):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         return False
     # end def contains

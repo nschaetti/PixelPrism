@@ -31,6 +31,8 @@ from typing import Sequence, Union, Optional
 from ..math_node import MathNode
 from ..build import as_expr
 from .helpers import apply_operator
+from ..typing import ExprLike
+
 
 __all__ = [
     "matmul",
@@ -47,8 +49,8 @@ __all__ = [
 
 
 def matmul(
-        op1: MathNode,
-        op2: MathNode
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Matrix-multiplication of two operands.
@@ -64,8 +66,8 @@ def matmul(
 
 
 def dot(
-        op1: MathNode,
-        op2: MathNode
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Dot product of two operands.
@@ -77,12 +79,12 @@ def dot(
         (op1, op2),
         f"{op1.name} ⋅ {op2.name}"
     )
-# end def matmul
+# end def dot
 
 
 def outer(
-        op1: MathNode,
-        op2: MathNode
+        op1: ExprLike,
+        op2: ExprLike
 ) -> MathNode:
     """
     Outer product of two operands.
@@ -98,7 +100,7 @@ def outer(
 
 
 def trace(
-        op1: MathNode
+        op1: ExprLike
 ) -> MathNode:
     """
     Trace of a matrix.
@@ -113,10 +115,10 @@ def trace(
 
 
 def transpose(
-        op1: MathNode,
-        axes: Optional[Union[MathNode, Sequence[int]]] = None
+        op1: ExprLike,
+        axes: Optional[Union[ExprLike, Sequence[int]]] = None
 ) -> MathNode:
-    """
+    """MathNode
     Transpose of a matrix.
     """
     return apply_operator(
@@ -129,7 +131,7 @@ def transpose(
 
 
 def det(
-        op1: MathNode,
+        op1: ExprLike,
 ) -> MathNode:
     """
     Determinant of a matrix.
@@ -143,7 +145,7 @@ def det(
 
 
 def inverse(
-        op1: MathNode,
+        op1: ExprLike,
 ) -> MathNode:
     """
     Inverse of a matrix.
@@ -157,8 +159,8 @@ def inverse(
 
 
 def norm(
-        op1: MathNode,
-        order: Optional[Union[MathNode, int, float]] = None
+        op1: ExprLike,
+        order: Optional[Union[ExprLike, int, float]] = None
 ) -> MathNode:
     return apply_operator(
         op_name="norm",
@@ -169,7 +171,7 @@ def norm(
 # end norm
 
 
-def infty_norm(op1: MathNode) -> MathNode:
+def infty_norm(op1: ExprLike) -> MathNode:
     """
     Convenience wrapper for the Infinity norm operator.
     """
@@ -182,7 +184,7 @@ def infty_norm(op1: MathNode) -> MathNode:
 # end def infty_norm
 
 
-def frobenius_norm(op1: MathNode) -> MathNode:
+def frobenius_norm(op1: ExprLike) -> MathNode:
     """
     Convenience wrapper for the Frobenius norm operator.
     """

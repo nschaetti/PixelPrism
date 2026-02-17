@@ -40,6 +40,7 @@ from ..dtype import DType, to_numpy, promote
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor, einsum
+from ..typing import MathExpr, LeafKind
 from .base import Operands, operator_registry, OperatorBase, ParametricOperator
 
 
@@ -71,9 +72,9 @@ class LinearAlgebraOperator(OperatorBase, ABC):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         return False
@@ -108,9 +109,9 @@ class LinearAlgebraParametricOperator(LinearAlgebraOperator, ParametricOperator,
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         raise NotImplementedError("Parametric operators must implement contains(..).")

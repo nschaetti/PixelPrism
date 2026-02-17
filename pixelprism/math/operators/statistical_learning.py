@@ -40,7 +40,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr
+from ..typing import MathExpr, LeafKind
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
 
@@ -156,7 +156,7 @@ def _n_poly_terms(n_features: int, degree: int, include_bias: bool, interaction_
 class StatisticalLearningOperator(OperatorBase, ParametricOperator, ABC):
     """Base class for statistical learning operators."""
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
 
@@ -182,7 +182,7 @@ class LinearRegressionFit(StatisticalLearningOperator):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return self._ridge_alpha.contains(expr, by_ref=by_ref, look_for=look_for)
     # end def contains
 
@@ -336,7 +336,7 @@ class PolynomialFeatures(StatisticalLearningOperator):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return self._degree.contains(expr, by_ref=by_ref, look_for=look_for)
     # end def contains
 
@@ -426,7 +426,7 @@ class PolynomialRegressionFit(StatisticalLearningOperator):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return (
             self._degree.contains(expr, by_ref=by_ref, look_for=look_for)
             or self._ridge_alpha.contains(expr, by_ref=by_ref, look_for=look_for)
@@ -536,7 +536,7 @@ class PolynomialRegressionPredict(StatisticalLearningOperator):
         self._dtype = dtype
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         if self._degree is None:
             return False
         # end if

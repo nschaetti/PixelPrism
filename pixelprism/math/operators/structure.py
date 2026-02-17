@@ -40,6 +40,7 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..math_slice import SliceExpr
 from ..math_node import MathNode
+from ..typing import MathExpr, LeafKind
 from .base import Operands, operator_registry, OperatorBase
 
 
@@ -66,9 +67,9 @@ class StructureOperator(OperatorBase, ABC):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         """Does the operator contain the given expression (in parameters)?"""
         raise NotImplementedError("Parametric operators must implement contains(..).")
@@ -250,9 +251,9 @@ class Getitem(StructureOperator):
 
     def contains(
             self,
-            expr: MathNode,
+            expr: MathExpr,
             by_ref: bool = False,
-            look_for: Optional[str] = None
+            look_for: LeafKind = LeafKind.ANY
     ) -> bool:
         return any([s.contains(expr, by_ref=by_ref, look_for=look_for) for s in self._indices])
     # end def contains

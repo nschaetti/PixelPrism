@@ -33,6 +33,7 @@ from ..math_node import MathNode
 from ..math_slice import SliceExpr
 from ..build import as_expr
 from .helpers import apply_operator
+from ..typing import ExprLike
 
 
 __all__ = [
@@ -44,7 +45,7 @@ __all__ = [
 ]
 
 
-def reshape(op1: MathNode, shape: Sequence[int]) -> MathNode:
+def reshape(op1: ExprLike, shape: Sequence[int]) -> MathNode:
     """Reshape a tensor."""
     op1 = as_expr(op1)
     return apply_operator(
@@ -56,7 +57,7 @@ def reshape(op1: MathNode, shape: Sequence[int]) -> MathNode:
 # end def reshape
 
 
-def getitem(op1: MathNode, indices: List[Union[SliceExpr, int]]) -> MathNode:
+def getitem(op1: ExprLike, indices: List[Union[SliceExpr, int]]) -> MathNode:
     """
     Sum of a tensor.
     """
@@ -70,7 +71,7 @@ def getitem(op1: MathNode, indices: List[Union[SliceExpr, int]]) -> MathNode:
 # end def sum
 
 
-def flatten(op1: MathNode) -> MathNode:
+def flatten(op1: ExprLike) -> MathNode:
     """Flatten a tensor."""
     op1 = as_expr(op1)
     return apply_operator(
@@ -81,7 +82,7 @@ def flatten(op1: MathNode) -> MathNode:
 # end def flatten
 
 
-def squeeze(op1: MathNode, axes: Optional[Sequence[int]] = None) -> MathNode:
+def squeeze(op1: ExprLike, axes: Optional[Sequence[int]] = None) -> MathNode:
     """Remove size-1 axes from a tensor."""
     op1 = as_expr(op1)
     axes_param = tuple(axes) if axes is not None else None
@@ -94,7 +95,7 @@ def squeeze(op1: MathNode, axes: Optional[Sequence[int]] = None) -> MathNode:
 # end def squeeze
 
 
-def unsqueeze(op1: MathNode, axes: Sequence[int]) -> MathNode:
+def unsqueeze(op1: ExprLike, axes: Sequence[int]) -> MathNode:
     """Insert size-1 axes at the requested positions."""
     op1 = as_expr(op1)
     return apply_operator(

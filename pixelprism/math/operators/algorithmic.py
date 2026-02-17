@@ -38,7 +38,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr
+from ..typing import MathExpr, LeafKind
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
 
@@ -121,7 +121,7 @@ class AlgorithmicOperator(OperatorBase, ParametricOperator):
         self._params = dict(params)
     # end def __init__
 
-    def contains(self, expr: MathNode, by_ref: bool = False, look_for: Optional[str] = None) -> bool:
+    def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         for value in self._params.values():
             if isinstance(value, MathExpr) and value.contains(expr, by_ref=by_ref, look_for=look_for):
                 return True
