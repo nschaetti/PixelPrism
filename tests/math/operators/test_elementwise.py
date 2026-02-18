@@ -74,6 +74,7 @@ def _const_expr(name, values, dtype):
     return pm.const(name=name, data=arr, dtype=dtype), arr
 # end def _const_expr
 
+
 OP_CASES = (
     ("add", add, np.add),
     ("sub", sub, np.subtract),

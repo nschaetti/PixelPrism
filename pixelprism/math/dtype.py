@@ -81,6 +81,26 @@ class DType(Enum):
     C = "C"
     B = "B"
 
+    def is_integer(self) -> bool:
+        return self is DType.Z
+    # end def is_integer
+
+    def is_numeric(self) -> bool:
+        return self in (DType.Z, DType.R, DType.C)
+    # end def is_numeric
+
+    def is_boolean(self) -> bool:
+        return self is DType.B
+    # end def is_boolean
+
+    def is_complex(self) -> bool:
+        return self is DType.C
+    # end def is_complex
+
+    def is_real(self) -> bool:
+        return self is DType.R
+    # end def is_real
+
     def __repr__(self) -> str:
         if self.name == "Z":
             return "Integers"

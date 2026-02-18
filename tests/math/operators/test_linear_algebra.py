@@ -605,3 +605,132 @@ def test_frobenius_norm_batched_matrices():
     assert expr.shape.dims == expected.shape
     assert expr.dtype == DType.R
 # end test_frobenius_norm_batched_matrices
+
+
+def _shape_constants():
+    """Create constant symbolic dimensions used by shape examples."""
+    n = pm.const("shape_test_N", data=2, dtype=DType.Z)
+    m = pm.const("shape_test_M", data=3, dtype=DType.Z)
+    return n, m
+# end def _shape_constants
+
+
+def test_shape_example_matmul_dot_outer_trace_transpose():
+    """
+    Reproduce example-based linear algebra flow with constant shape dimensions.
+    """
+    n, m = _shape_constants()
+    x_mat = pm.var("shape_x_mat", dtype=DType.R, shape=(2, n))
+    y_mat = pm.var("shape_y_mat", dtype=DType.R, shape=(n, m))
+    x_vec = pm.var("shape_x_vec", dtype=DType.R, shape=(m,))
+    y_vec = pm.var("shape_y_vec", dtype=DType.R, shape=(m,))
+
+    matmul_expr = LA.matmul(x_mat, y_mat)
+    dot_expr = LA.dot(x_vec, y_vec)
+    outer_expr = LA.outer(x_vec, y_vec)
+    trace_expr = LA.trace(outer_expr)
+    transpose_expr = LA.transpose(outer_expr)
+
+    assert matmul_expr.dtype == DType.R
+    assert dot_expr.dtype == DType.R
+    assert outer_expr.dtype == DType.R
+    assert trace_expr.dtype == DType.R
+    assert transpose_expr.dtype == DType.R
+
+    assert matmul_expr.shape.dims[0] == 2
+    assert matmul_expr.shape.dims[1] is m
+    assert dot_expr.shape.dims == []
+    assert outer_expr.shape.dims[0] is m
+    assert outer_expr.shape.dims[1] is m
+    assert trace_expr.shape.dims == []
+    assert transpose_expr.shape.dims[0] is m
+    assert transpose_expr.shape.dims[1] is m
+
+    with pm.new_context():
+        x_mat_np = np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+        y_mat_np = np.asarray([[5.0, 6.0, 4.0], [7.0, 8.0, 5.0]], dtype=np.float32)
+        x_vec_np = np.asarray([1.0, 2.0, 3.0], dtype=np.float32)
+        y_vec_np = np.asarray([4.0, 5.0, 6.0], dtype=np.float32)
+
+        pm.set_value("shape_x_mat", pm.tensor(x_mat_np, dtype=DType.R))
+        pm.set_value("shape_y_mat", pm.tensor(y_mat_np, dtype=DType.R))
+        pm.set_value("shape_x_vec", pm.tensor(x_vec_np, dtype=DType.R))
+        pm.set_value("shape_y_vec", pm.tensor(y_vec_np, dtype=DType.R))
+
+        expected_matmul = np.matmul(x_mat_np, y_mat_np)
+        expected_dot = np.dot(x_vec_np, y_vec_np)
+        expected_outer = np.outer(x_vec_np, y_vec_np)
+        expected_trace = np.trace(expected_outer)
+        expected_transpose = np.transpose(expected_outer)
+
+        _assert_expr_allclose(matmul_expr, expected_matmul)
+        _assert_expr_allclose(dot_expr, expected_dot)
+        _assert_expr_allclose(outer_expr, expected_outer)
+        _assert_expr_allclose(trace_expr, expected_trace)
+        _assert_expr_allclose(transpose_expr, expected_transpose)
+
+        assert tuple(matmul_expr.eval().shape.dims) == expected_matmul.shape
+        assert tuple(dot_expr.eval().shape.dims) == ()
+        assert tuple(outer_expr.eval().shape.dims) == expected_outer.shape
+        assert tuple(trace_expr.eval().shape.dims) == ()
+        assert tuple(transpose_expr.eval().shape.dims) == expected_transpose.shape
+    # end with
+# end test_shape_example_matmul_dot_outer_trace_transpose
+
+
+def test_shape_example_det_inverse_norms():
+    """
+    Reproduce determinant/inverse/norm examples with constant symbolic shapes.
+    """
+    n, m = _shape_constants()
+    x_square = pm.var("shape_x_square", dtype=DType.R, shape=(2, n))
+    x_norm = pm.var("shape_x_norm", dtype=DType.R, shape=(m,))
+    x_fro = pm.var("shape_x_fro", dtype=DType.R, shape=(n, n))
+
+    det_expr = _det(x_square)
+    inverse_expr = _inverse(x_square)
+    norm_expr = LA.norm(x_norm)
+    norm_inf_expr = LA.infty_norm(x_norm)
+    norm_fro_expr = LA.frobenius_norm(x_fro)
+
+    assert det_expr.dtype == DType.R
+    assert inverse_expr.dtype == DType.R
+    assert norm_expr.dtype == DType.R
+    assert norm_inf_expr.dtype == DType.R
+    assert norm_fro_expr.dtype == DType.R
+
+    assert det_expr.shape.dims == []
+    assert inverse_expr.shape.dims[0] == 2
+    assert inverse_expr.shape.dims[1] is n
+    assert norm_expr.shape.dims == []
+    assert norm_inf_expr.shape.dims == []
+    assert norm_fro_expr.shape.dims == []
+
+    with pm.new_context():
+        x_square_np = np.asarray([[2.0, 0.0], [0.0, 2.0]], dtype=np.float32)
+        x_norm_np = np.asarray([2.0, 0.0, 0.0], dtype=np.float32)
+        x_fro_np = np.asarray([[2.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+
+        pm.set_value("shape_x_square", pm.tensor(x_square_np, dtype=DType.R))
+        pm.set_value("shape_x_norm", pm.tensor(x_norm_np, dtype=DType.R))
+        pm.set_value("shape_x_fro", pm.tensor(x_fro_np, dtype=DType.R))
+
+        expected_det = np.linalg.det(x_square_np)
+        expected_inverse = np.linalg.inv(x_square_np)
+        expected_norm = np.linalg.norm(x_norm_np, ord=2)
+        expected_norm_inf = np.max(np.abs(x_norm_np), axis=-1)
+        expected_norm_fro = np.sqrt(np.sum(np.square(x_fro_np), axis=(-2, -1)))
+
+        _assert_expr_allclose(det_expr, expected_det)
+        _assert_expr_allclose(inverse_expr, expected_inverse)
+        _assert_expr_allclose(norm_expr, expected_norm)
+        _assert_expr_allclose(norm_inf_expr, expected_norm_inf)
+        _assert_expr_allclose(norm_fro_expr, expected_norm_fro)
+
+        assert tuple(det_expr.eval().shape.dims) == ()
+        assert tuple(inverse_expr.eval().shape.dims) == expected_inverse.shape
+        assert tuple(norm_expr.eval().shape.dims) == ()
+        assert tuple(norm_inf_expr.eval().shape.dims) == ()
+        assert tuple(norm_fro_expr.eval().shape.dims) == ()
+    # end with
+# end test_shape_example_det_inverse_norms

@@ -236,7 +236,7 @@ class OperatorBase(
         if v is None:
             return None
         # end if
-        if MathNode is not None and isinstance(v, MathNode):
+        if MathExpr is not None and isinstance(v, MathExpr):
             return v.eval().item()
         # end if
         return v

@@ -178,7 +178,8 @@ class Shape(MathExpr):
     @property
     def shape(self) -> 'Shape':
         """Return the dimensions' list."""
-        return Shape(dims=[dim.eval().item() if isinstance(dim, MathExpr) else dim for dim in self._dims])
+        # return Shape(dims=[dim.eval().item() if isinstance(dim, MathExpr) else dim for dim in self._dims])
+        return Shape.vector(len(self._dims))
     # end def shape
 
     @property
@@ -930,11 +931,14 @@ class Shape(MathExpr):
         # end if
         if isinstance(dim, MathExpr):
             # Only expr with constants
-            if not dim.is_constant:
-                raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be constant: {dim}")
+            if not dim.is_constant():
+                raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be constant: {dim} given")
+            # end if
+            if not dim.dtype.is_integer():
+                raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be integer: {dim} given")
             # end if
             if dim.eval().item() <= 0:
-                raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be positive: {dim}")
+                raise SymbolicMathInvalidDimensionError(f"Shape dimensions must be positive: {dim} given")
             # end if
         # end if
     # end def _check_dim
@@ -1085,12 +1089,12 @@ class Shape(MathExpr):
         return bool(self._dims)
     # end def __bool_
 
-    def __getitem__(self, index: int) -> DimLike:
+    def __getitem__(self, index: int | slice) -> DimLike | Sequence[DimLike]:
         """Return the dimension at the provided index.
 
         Parameters
         ----------
-        index : int
+        index : int | slice
             Axis index to access.
 
         Returns

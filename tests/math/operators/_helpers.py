@@ -31,11 +31,16 @@ Shared helpers for math operator tests.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import numpy as np
 
 import pixelprism.math as pm
-from pixelprism.math.math_base import MathNode
 from pixelprism.math.tensor import Tensor
+
+if TYPE_CHECKING:
+    from pixelprism.math import MathExpr
+# end if
+
 
 SCALAR_KINDS = (
     "math_expr",
@@ -45,7 +50,9 @@ SCALAR_KINDS = (
     "np_array_scalar",
 )
 
+
 UNARY_SCALAR_KINDS = SCALAR_KINDS
+
 
 TENSOR_SCALAR_KINDS = (
     "float",
@@ -55,18 +62,18 @@ TENSOR_SCALAR_KINDS = (
 )
 
 
-def make_tensor(value: float, name: str) -> MathNode:
+def make_tensor(value: float, name: str) -> MathExpr:
     """Create a scalar constant expression for tests."""
     return pm.const(name=name, data=value, dtype=pm.DType.R)
 
 
-def make_tensor_array(values, name: str) -> MathNode:
+def make_tensor_array(values, name: str) -> MathExpr:
     """Create an array constant expression for tests."""
     data = np.asarray(values, dtype=np.float32)
     return pm.const(name=name, data=data, dtype=pm.DType.R)
 
 
-def eval_expr_value(expr: MathNode) -> np.ndarray:
+def eval_expr_value(expr: MathExpr) -> np.ndarray:
     """Evaluate a MathExpr and return its NumPy array payload."""
     result = expr.eval()
     if isinstance(result, Tensor):
@@ -75,14 +82,14 @@ def eval_expr_value(expr: MathNode) -> np.ndarray:
 # end def eval_expr_value
 
 
-def assert_expr_allclose(expr: MathNode, expected, **kwargs) -> None:
+def assert_expr_allclose(expr: MathExpr, expected, **kwargs) -> None:
     """Assert that a MathExpr evaluates close to ``expected``."""
     np.testing.assert_allclose(eval_expr_value(expr), np.asarray(expected), **kwargs)
 # end def assert_expr_allclose
 
 
 def as_expected_array(value):
-    if isinstance(value, MathNode):
+    if isinstance(value, MathExpr):
         return eval_expr_value(value)
     if isinstance(value, Tensor):
         return value.value

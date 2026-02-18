@@ -127,6 +127,8 @@ class MatMul(LinearAlgebraOperator):
 
     NAME = "matmul"
     ARITY = 2
+    COMMUTATIVE = False
+    ASSOCIATIVE = True
 
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
@@ -144,19 +146,23 @@ class MatMul(LinearAlgebraOperator):
             raise ValueError("MatMul does not support vector-vector multiplication.")
         # end if
 
+        # Evaluate shape
+        a_shape = a.shape.eval()
+        b_shape = b.shape.eval()
+
         # -------- Matrix @ Matrix (batched) --------
         if a.rank >= 2 and b.rank >= 2:
-            if a.shape[-1] != b.shape[-2]:
+            if a_shape[-1] != b_shape[-2]:
                 raise ValueError(
                     f"Matrix-matrix requires contraction dims to match, "
-                    f"got {a.shape[-1]} and {b.shape[-2]}"
+                    f"got {a_shape[-1]} and {b_shape[-2]}"
                 )
             # end if
 
-            if a.shape[:-2] != b.shape[:-2]:
+            if a_shape[:-2] != b_shape[:-2]:
                 raise ValueError(
                     f"MatMul requires batch dimensions to match, "
-                    f"got {a.shape[:-2]} and {b.shape[:-2]}"
+                    f"got {a_shape[:-2]} and {b_shape[:-2]}"
                 )
             # end if
 
@@ -165,17 +171,17 @@ class MatMul(LinearAlgebraOperator):
 
         # -------- Matrix @ Vector --------
         if a.rank >= 2 and b.rank == 1:
-            if a.shape[-1] != b.shape[-1]:
+            if a_shape[-1] != b_shape[-1]:
                 raise ValueError(
                     f"Matrix-vector requires contraction dims to match, "
-                    f"got {a.shape[-1]} and {b.shape[-1]}"
+                    f"got {a_shape[-1]} and {b_shape[-1]}"
                 )
             # end if
 
-            if a.shape[:-2] != b.shape[:-1]:
+            if a_shape[:-2] != b_shape[:-1]:
                 raise ValueError(
                     f"MatMul requires batch dimensions to match, "
-                    f"got {a.shape[:-2]} and {b.shape[:-1]}"
+                    f"got {a_shape[:-2]} and {b_shape[:-1]}"
                 )
             # end if
 
@@ -184,17 +190,17 @@ class MatMul(LinearAlgebraOperator):
 
         # -------- Vector @ Matrix --------
         if a.rank == 1 and b.rank >= 2:
-            if a.shape[-1] != b.shape[-2]:
+            if a_shape[-1] != b_shape[-2]:
                 raise ValueError(
                     f"Vector-matrix requires contraction dims to match, "
-                    f"got {a.shape[-1]} and {b.shape[-2]}"
+                    f"got {a_shape[-1]} and {b_shape[-2]}"
                 )
             # end if
 
-            if a.shape[:-1] != b.shape[:-2]:
+            if a_shape[:-1] != b_shape[:-2]:
                 raise ValueError(
                     f"MatMul requires batch dimensions to match, "
-                    f"got {a.shape[:-1]} and {b.shape[:-2]}"
+                    f"got {a_shape[:-1]} and {b_shape[:-2]}"
                 )
             # end if
 
@@ -216,19 +222,19 @@ class MatMul(LinearAlgebraOperator):
         # Matrix @ Matrix (possibly batched)
         if rank_a >= 2 and rank_b >= 2:
             batch = dims_a[:-2]
-            return Shape(batch + (dims_a[-2], dims_b[-1]))
+            return Shape(dims=list(batch) + [dims_a[-2], dims_b[-1]])
         # end if
 
         # Matrix @ Vector
         if rank_a >= 2 and rank_b == 1:
             batch = dims_a[:-2]
-            return Shape(batch + (dims_a[-2],))
+            return Shape(dims=list(batch) + [dims_a[-2]])
         # end if
 
         # Vector @ Matrix
         if rank_a == 1 and rank_b >= 2:
             batch = dims_b[:-2]
-            return Shape(batch + (dims_b[-1],))
+            return Shape(dims=list(batch) + [dims_b[-1]])
         # end if
 
         # Vector @ Vector is excluded by design
@@ -254,10 +260,15 @@ class Dot(LinearAlgebraOperator):
 
     NAME = "dot"
     ARITY = 2
+    COMMUTATIVE = True
+    ASSOCIATIVE = False
 
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
         a, b = operands
+
+        a_shape = a.shape.eval()
+        b_shape = b.shape.eval()
 
         # Same rank
         if a.rank != b.rank:
@@ -265,13 +276,13 @@ class Dot(LinearAlgebraOperator):
         # end if
 
         # Last dim equivalent
-        if a.shape[-1] != b.shape[-1]:
-            raise ValueError(f"Dot requires last dim to match, got {a.shape[-1]} and {b.shape[-1]}")
+        if a_shape[-1] != b_shape[-1]:
+            raise ValueError(f"Dot requires last dim to match, got {a_shape[-1]} and {b_shape[-1]}")
         # end if
 
         # Equivalent batch dims
-        if a.rank > 1 and a.shape[:-1] != b.shape[:-1]:
-            raise ValueError(f"Dot requires batch dims to match, got {a.shape[:-1]} and {b.shape[:-1]}")
+        if a.rank > 1 and a_shape[:-1] != b_shape[:-1]:
+            raise ValueError(f"Dot requires batch dims to match, got {a_shape[:-1]} and {b_shape[:-1]}")
         # end if
 
         return True
@@ -284,17 +295,17 @@ class Dot(LinearAlgebraOperator):
         rank_a = len(dims_a)
 
         # Batch dim
-        batch_dim = ()
+        batch_dim = []
         if rank_a > 1:
             batch_dim = dims_a[:-1]
         # end if
 
-        return Shape(batch_dim)
+        return Shape(dims=batch_dim)
     # end def infer_shape
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, b = operands
-        if a.ndim == 1:
+        if a.rank == 1:
             return einsum("i,i->", a.eval(), b.eval())
         else:
             return einsum("...i,...i->...", a.eval(), b.eval())
@@ -315,19 +326,24 @@ class Outer(LinearAlgebraOperator):
 
     NAME = "outer"
     ARITY = 2
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
         a, b = operands
 
+        a_shape = a.shape.eval()
+        b_shape = b.shape.eval()
+
         # Same rank
         if a.rank != b.rank:
-            raise ValueError(f"Dot requires same rank operands, got {a.rank} and {b.rank}")
+            raise ValueError(f"Outer requires same rank operands, got {a.rank} and {b.rank}")
         # end if
 
         # Equivalent batch dims
-        if a.rank > 1 and a.shape[:-1] != b.shape[:-1]:
-            raise ValueError(f"Dot requires batch dims to match, got {a.shape[:-1]} and {b.shape[:-1]}")
+        if a.rank > 1 and a_shape[:-1] != b_shape[:-1]:
+            raise ValueError(f"Outer requires batch dims to match, got {a_shape[:-1]} and {b_shape[:-1]}")
         # end if
 
         return True
@@ -341,17 +357,17 @@ class Outer(LinearAlgebraOperator):
         rank_a = len(dims_a)
 
         # Batch dim
-        batch_dim = ()
+        batch_dim = []
         if rank_a > 1:
             batch_dim = dims_a[:-1]
         # end if
 
-        return Shape(batch_dim + (dims_a[-1], dims_b[-1]))
+        return Shape(dims=batch_dim + [dims_a[-1], dims_b[-1]])
     # end def infer_shape
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, b = operands
-        if a.ndim == 1:
+        if a.rank == 1:
             return einsum("i,j->ij", a.eval(), b.eval())
         else:
             return einsum("...i,...j->...ij", a.eval(), b.eval())
@@ -372,10 +388,14 @@ class Trace(LinearAlgebraOperator):
 
     NAME = "trace"
     ARITY = 1
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     @classmethod
     def check_shapes(cls, operands: Operands) -> bool:
         a, = operands
+
+        a_shape = a.shape.eval()
 
         # Same rank
         if a.rank < 2:
@@ -383,8 +403,8 @@ class Trace(LinearAlgebraOperator):
         # end if
 
         # Square matrices
-        if a.shape[-1] != a.shape[-2]:
-            raise ValueError(f"Trace requires square matrix, got {a.shape[-1]}x{a.shape[-2]}")
+        if a_shape[-1] != a_shape[-2]:
+            raise ValueError(f"Trace requires square matrix, got {a_shape[-1]}x{a_shape[-2]}")
         # end if
 
         return True
@@ -397,12 +417,12 @@ class Trace(LinearAlgebraOperator):
         rank_a = len(dims_a)
 
         # Batch dim
-        batch_dim = ()
+        batch_dim = []
         if rank_a > 2:
             batch_dim = dims_a[:-2]
         # end if
 
-        return Shape(batch_dim)
+        return Shape(dims=batch_dim)
     # end def infer_shape
 
     @classmethod
@@ -433,6 +453,8 @@ class Transpose(LinearAlgebraParametricOperator):
 
     NAME = "transpose"
     ARITY = 1
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     def __init__(self, axes: Optional[Union[MathNode, List[int]]] = None, **kwargs: Any):
         """
@@ -484,13 +506,13 @@ class Transpose(LinearAlgebraParametricOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        a: 'MathNode' = operands[0]
-        if self._axes and isinstance(self._axes, MathNode):
+        a: 'MathExpr' = operands[0]
+        if self._axes and isinstance(self._axes, MathExpr):
             axes = self._axes.eval().tolist()
         else:
             axes = self._axes
         # end if
-        return a.shape.t_transpose(axes=axes)
+        return a.shape.transpose(axes=axes)
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -517,15 +539,13 @@ class Det(LinearAlgebraOperator):
 
     NAME = "det"
     ARITY = 1
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         a, = operands
         return a.eval().det()
     # end def _eval
-
-    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
-        raise NotImplementedError("Transpose does not support backward.")
-    # end def backward
 
     def infer_dtype(self, operands: Operands) -> DType:
         """
@@ -536,15 +556,16 @@ class Det(LinearAlgebraOperator):
     # end def infer_dtype
 
     def infer_shape(self, operands: Operands) -> Shape:
-        a: 'MathNode' = operands[0]
+        a: 'MathExpr' = operands[0]
         new_shape = a.shape.copy()
         new_shape = new_shape[:-2]
-        return Shape(new_shape)
+        return Shape(dims=new_shape)
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
-        a: 'MathNode' = operands[0]
-        return a.rank >= 2 and a.shape[-1] == a.shape[-2]
+        a: 'MathExpr' = operands[0]
+        a_shape = a.shape.eval()
+        return a.rank >= 2 and a_shape[-1] == a_shape[-2]
     # end def check_shapes
 
 # end class Det
@@ -557,9 +578,11 @@ class Inverse(LinearAlgebraOperator):
 
     NAME = "inverse"
     ARITY = 1
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     def infer_shape(self, operands: Operands) -> Shape:
-        a: 'MathNode' = operands[0]
+        a: 'MathExpr' = operands[0]
         return a.shape.copy()
     # end def infer_shape
 
@@ -571,7 +594,7 @@ class Inverse(LinearAlgebraOperator):
     # end def infer_dtype
 
     def check_shapes(self, operands: Operands) -> bool:
-        a: 'MathNode' = operands[0]
+        a: 'MathExpr' = operands[0]
         return a.rank >= 2 and a.shape[-1] == a.shape[-2]
     # end def check_shapes
 
@@ -579,10 +602,6 @@ class Inverse(LinearAlgebraOperator):
         a, = operands
         return a.eval().inverse()
     # end def _eval
-
-    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
-        raise NotImplementedError("Inverse does not support backward.")
-    # end def backward
 
 # end class Inverse
 
@@ -595,8 +614,10 @@ class Norm(LinearAlgebraParametricOperator):
     NAME = "norm"
     ARITY = 1
     IS_SCALAR = False
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
-    def __init__(self, order: Union[MathNode, int, float] = None):
+    def __init__(self, order: Union[MathExpr, int, float] = None):
         super(Norm, self).__init__(order=order)
         # from ..utils import random_const_name
         if not order:
@@ -637,32 +658,22 @@ class Norm(LinearAlgebraParametricOperator):
         order_value = self._resolve_parameter(self._order)
         if order_value is None:
             order_value = 2
+        # end if
+        if not isinstance(order_value, (int, float)):
+            raise ValueError(f"Invalid order value {order_value} for norm.")
+        # end if
         result = vector.eval().norm(order=order_value)
         dtype = self.infer_dtype(operands)
         if result.dtype != dtype:
             result = result.astype(dtype)
         return result
-    # end def
-
-    def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
-        raise NotImplementedError("Norm does not support backward.")
-    # end def _backward
+    # end def _eval
 
     def check_shapes(self, operands: Operands) -> bool:
         return operands[0].rank == 1
     # end def check_shapes
 
 # end class Norm
-
-
-operator_registry.register(MatMul)
-operator_registry.register(Dot)
-operator_registry.register(Outer)
-operator_registry.register(Trace)
-operator_registry.register(Transpose)
-operator_registry.register(Det)
-operator_registry.register(Inverse)
-operator_registry.register(Norm)
 
 
 class InftyNorm(LinearAlgebraOperator):
@@ -672,12 +683,15 @@ class InftyNorm(LinearAlgebraOperator):
 
     NAME = "infty_norm"
     ARITY = 1
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     @staticmethod
-    def _scalar_or_batch_shape(vector: MathNode) -> Shape:
+    def _scalar_or_batch_shape(vector: MathExpr) -> Shape:
         if vector.rank <= 1:
             return Shape.scalar()
-        return Shape(vector.shape.dims[:-1])
+        # end if
+        return Shape(dims=vector.shape.dims[:-1])
     # end def _scalar_or_batch_shape
 
     def infer_shape(self, operands: Operands) -> Shape:
@@ -688,6 +702,7 @@ class InftyNorm(LinearAlgebraOperator):
         dtype = operands[0].dtype
         if dtype in {DType.R, DType.C}:
             return dtype
+        # end if
         return DType.R
     # end def infer_dtype
 
@@ -695,6 +710,7 @@ class InftyNorm(LinearAlgebraOperator):
         vector = operands[0]
         if vector.rank < 1:
             raise ValueError("InftyNorm expects at least a 1-D vector.")
+        # end if
         return True
     # end def check_shapes
 
@@ -706,10 +722,6 @@ class InftyNorm(LinearAlgebraOperator):
         return Tensor(data=np.asarray(result, dtype=to_numpy(dtype)), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("InftyNorm does not support backward.")
-    # end def _backward
-
 # end class InftyNorm
 
 
@@ -720,18 +732,22 @@ class FrobeniusNorm(LinearAlgebraOperator):
 
     NAME = "frobenius_norm"
     ARITY = 1
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     def infer_shape(self, operands: Operands) -> Shape:
         matrix = operands[0]
         if matrix.rank <= 2:
             return Shape.scalar()
-        return Shape(matrix.shape.dims[:-2])
+        # end if
+        return Shape(dims=matrix.shape.dims[:-2])
     # end def infer_shape
 
     def infer_dtype(self, operands: Operands) -> DType:
         dtype = operands[0].dtype
         if dtype in {DType.R, DType.C}:
             return dtype
+        # end if
         return DType.R
     # end def infer_dtype
 
@@ -739,6 +755,7 @@ class FrobeniusNorm(LinearAlgebraOperator):
         matrix = operands[0]
         if matrix.rank < 2:
             raise ValueError("FrobeniusNorm expects at least a 2-D matrix.")
+        # end if
         return True
     # end def check_shapes
 
@@ -753,12 +770,16 @@ class FrobeniusNorm(LinearAlgebraOperator):
         return Tensor(data=np.asarray(result, dtype=to_numpy(dtype)), dtype=dtype)
     # end def _eval
 
-    def _backward(self, out_grad, node):
-        raise NotImplementedError("FrobeniusNorm does not support backward.")
-    # end def _backward
-
 # end class FrobeniusNorm
 
 
+operator_registry.register(MatMul)
+operator_registry.register(Dot)
+operator_registry.register(Outer)
+operator_registry.register(Trace)
+operator_registry.register(Transpose)
+operator_registry.register(Det)
+operator_registry.register(Inverse)
+operator_registry.register(Norm)
 operator_registry.register(InftyNorm)
 operator_registry.register(FrobeniusNorm)
