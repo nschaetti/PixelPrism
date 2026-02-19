@@ -482,7 +482,7 @@ class Variable(MathLeaf):
         if var_val.dtype != self._dtype:
             var_val = var_val.astype(self._dtype)
         # end if
-        if var_val.shape != self._shape:
+        if not self._shape.equals(list(var_val.shape.dims)):
             raise SymbolicMathValidationError(
                 f"Variable {self._name} shape mismatch: {var_val.shape} != {self._shape}"
             )

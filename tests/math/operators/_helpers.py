@@ -31,15 +31,11 @@ Shared helpers for math operator tests.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 import numpy as np
 
 import pixelprism.math as pm
 from pixelprism.math.tensor import Tensor
-
-if TYPE_CHECKING:
-    from pixelprism.math import MathExpr
-# end if
+from pixelprism.math import MathExpr
 
 
 SCALAR_KINDS = (

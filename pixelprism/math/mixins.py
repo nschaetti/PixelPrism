@@ -29,13 +29,15 @@
 # Imports
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Union, Dict, List, TYPE_CHECKING, Mapping, cast
+from typing import Union, Dict, List, TYPE_CHECKING, Mapping, cast, Tuple
+import numpy as np
 
 from .typing import LeafKind, MathExpr, ExprLike, Index
 
 if TYPE_CHECKING:
     from .math_leaves import Variable, Constant
     from .math_node import MathNode
+    from .tensor import Tensor
 # end if
 
 
@@ -129,6 +131,55 @@ class PredicateMixin(ABC):
         """Return True if the expression contains a constant `constant`"""
 
     # end def contains_constant
+
+    def equals(
+            self: MathExpr,
+            other: MathExpr | Tuple | List,
+            *,
+            rtol: float = 1e-6,
+            atol: float = 1e-9,
+            equal_nan: bool = False,
+            require_same_shape: bool = True,
+            require_same_dtype: bool = False
+    ) -> bool:
+        """
+        Compare the numerical values of two expressions in a given context.
+
+        Notes
+        -----
+        - This method compares a numerical evaluation (not symbolic equivalence).
+        - `bindings` provides the values of variables used by the two expressions.
+        """
+        from .build import as_expr
+
+        # To math expression
+        other_expr = as_expr(other)
+
+        # Evaluate
+        left_val = self.eval()
+        right_val = other_expr.eval()
+
+        # To numpy array
+        left_arr = np.asarray(left_val)
+        right_arr = np.asarray(right_val)
+
+        if require_same_shape and left_arr.shape != right_arr.shape:
+            return False
+        # end if
+
+        if require_same_dtype:
+            if left_val.dtype != right_val.dtype:
+                return False
+            # end if
+        # end if
+
+        try:
+            return bool(np.allclose(left_arr, right_arr, rtol=rtol, atol=atol, equal_nan=equal_nan))
+        except ValueError:
+            # Shapes non broadcastables (si require_same_shape=False)
+            return False
+        # end try
+    # end def equals
 
     def substitute(
             self,
@@ -661,77 +712,86 @@ class ExprOperatorsMixin:
 
     # region COMPARISON
 
-    def __eq__(self: MathExpr, other: ExprLike) -> MathNode:
-        from .functional.boolean import eq
-        from .build import as_expr
-        return eq(as_expr(self), as_expr(other))
+    def __eq__(self: MathExpr, other: ExprLike) -> bool:
+        """Nodes are equal if they are the same object."""
+        return self is other
     # end __eq__
 
-    def __ne__(self: MathExpr, other: ExprLike) -> MathNode:
-        from .functional.boolean import ne
-        from .build import as_expr
-        return ne(as_expr(self), as_expr(other))
-    # end __ne__
+    def __neq__(self: MathExpr, other: ExprLike) -> bool:
+        return not self.__eq__(other)
+    # end def __neq__
 
-    # Override less
-    def __lt__(self: MathExpr, other: ExprLike) -> MathNode:
-        """
-        Placeholder less-than operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        from .functional.boolean import lt
-        from .build import as_expr
-        return lt(as_expr(self), as_expr(other))
-    # end __lt__
-
-    # Override less or equal
-    def __le__(self: MathExpr, other: ExprLike) -> MathNode:
-        """
-        Placeholder less-or-equal operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        from .functional.boolean import le
-        from .build import as_expr
-        return le(as_expr(self), as_expr(other))
-    # end __le__
-
-    # Override greater
-    def __gt__(self: MathExpr, other: ExprLike) -> MathNode:
-        """
-        Placeholder greater-than operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        from .functional.boolean import gt
-        from .build import as_expr
-        return gt(as_expr(self), as_expr(other))
-    # end __gt__
-
-    # Override greater or equal
-    def __ge__(self: MathExpr, other: ExprLike) -> MathNode:
-        """
-        Placeholder greater-or-equal operator.
-
-        Raises
-        ------
-        MathExprNotImplementedError
-            Always raised; ordering is not defined for ``MathExpr``.
-        """
-        from .functional.boolean import ge
-        from .build import as_expr
-        return ge(as_expr(self), as_expr(other))
-    # end __ge__
+    # def __eq__(self: MathExpr, other: ExprLike) -> MathNode:
+    #     from .functional.boolean import eq
+    #     from .build import as_expr
+    #     return eq(as_expr(self), as_expr(other))
+    # # end __eq__
+    #
+    # def __ne__(self: MathExpr, other: ExprLike) -> MathNode:
+    #     from .functional.boolean import ne
+    #     from .build import as_expr
+    #     return ne(as_expr(self), as_expr(other))
+    # # end __ne__
+    #
+    # # Override less
+    # def __lt__(self: MathExpr, other: ExprLike) -> MathNode:
+    #     """
+    #     Placeholder less-than operator.
+    #
+    #     Raises
+    #     ------
+    #     MathExprNotImplementedError
+    #         Always raised; ordering is not defined for ``MathExpr``.
+    #     """
+    #     from .functional.boolean import lt
+    #     from .build import as_expr
+    #     return lt(as_expr(self), as_expr(other))
+    # # end __lt__
+    #
+    # # Override less or equal
+    # def __le__(self: MathExpr, other: ExprLike) -> MathNode:
+    #     """
+    #     Placeholder less-or-equal operator.
+    #
+    #     Raises
+    #     ------
+    #     MathExprNotImplementedError
+    #         Always raised; ordering is not defined for ``MathExpr``.
+    #     """
+    #     from .functional.boolean import le
+    #     from .build import as_expr
+    #     return le(as_expr(self), as_expr(other))
+    # # end __le__
+    #
+    # # Override greater
+    # def __gt__(self: MathExpr, other: ExprLike) -> MathNode:
+    #     """
+    #     Placeholder greater-than operator.
+    #
+    #     Raises
+    #     ------
+    #     MathExprNotImplementedError
+    #         Always raised; ordering is not defined for ``MathExpr``.
+    #     """
+    #     from .functional.boolean import gt
+    #     from .build import as_expr
+    #     return gt(as_expr(self), as_expr(other))
+    # # end __gt__
+    #
+    # # Override greater or equal
+    # def __ge__(self: MathExpr, other: ExprLike) -> MathNode:
+    #     """
+    #     Placeholder greater-or-equal operator.
+    #
+    #     Raises
+    #     ------
+    #     MathExprNotImplementedError
+    #         Always raised; ordering is not defined for ``MathExpr``.
+    #     """
+    #     from .functional.boolean import ge
+    #     from .build import as_expr
+    #     return ge(as_expr(self), as_expr(other))
+    # # end __ge__
 
     def __invert__(self: MathExpr) -> MathNode:
         from .functional.boolean import logical_not

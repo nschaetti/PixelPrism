@@ -119,7 +119,7 @@ class ElementwiseOperator(OperatorBase, ABC):
             # end if
         else:
             # Same rank, but require same shape
-            if a.shape != b.shape:
+            if not a.shape.equals(b.shape):
                 raise ValueError(
                     f"{self.NAME} requires operands with identical shapes, "
                     f"got {a.shape} and {b.shape}."

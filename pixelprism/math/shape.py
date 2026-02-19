@@ -46,6 +46,7 @@ from typing import Iterable, List, Optional, Sequence, Union, Dict, TypeAlias, T
 import numpy as np
 
 from .dtype import TypeLike, to_numpy, DType
+from .mixins import PredicateMixin
 from .typing import MathExpr, LeafKind, SimplifyOptions
 from .math_exceptions import SymbolicMathInvalidDimensionError, SymbolicMathNotImplementedError
 from .random import rand_name
@@ -73,7 +74,7 @@ DimLike: TypeAlias = Union[int, "MathExpr"]
 ShapeLike = Union['Shape', Sequence[DimLike]]
 
 
-class Shape(MathExpr):
+class Shape(MathExpr, PredicateMixin):
     """
     TODO: documentation
     """
@@ -217,6 +218,40 @@ class Shape(MathExpr):
         """Differentiate the symbolic shape with respect to a variable."""
         raise SymbolicMathNotImplementedError("Shape does not support differentiation.")
     # end def diff
+
+    def equals(
+            self: MathExpr,
+            other: MathExpr | Tuple | List,
+            *,
+            rtol: float = 1e-6,
+            atol: float = 1e-9,
+            equal_nan: bool = False,
+            require_same_shape: bool = True,
+            require_same_dtype: bool = False
+    ) -> bool:
+        """
+        Compare the numerical values of two expressions in a given context.
+
+        Notes
+        -----
+        - This method compares a numerical evaluation (not symbolic equivalence).
+        - `bindings` provides the values of variables used by the two expressions.
+        """
+        # Evaluated dims equals
+        if isinstance(other, (tuple, list)):
+            return self.eval().tolist() == list(other)
+        # end if
+
+        return PredicateMixin.equals(
+            self,
+            other,
+            rtol=rtol,
+            atol=atol,
+            equal_nan=equal_nan,
+            require_same_shape=require_same_shape,
+            require_same_dtype=require_same_dtype
+        )
+    # end def equals
 
     def variables(self) -> Sequence["Variable"]:
         """
@@ -1125,7 +1160,7 @@ class Shape(MathExpr):
             return lhs_dims == tuple(other)
         # end if
         if isinstance(other, Shape):
-            return lhs_dims == tuple(other._dims)
+            return lhs_dims == tuple(other. dims)
         # end if
         if hasattr(other, "dims"):
             try:

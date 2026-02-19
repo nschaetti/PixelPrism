@@ -313,7 +313,7 @@ def test_elementwise_tensor_tensor_mixed_dtype_and_shape():
 
     _assert_expr_allclose(expr, expected)
     assert expr.dtype == pm.DType.R
-    assert expr.shape.dims == expected.shape
+    assert tuple(expr.shape.dims) == expected.shape
 # end test_elementwise_tensor_tensor_mixed_dtype_and_shape
 
 
@@ -360,7 +360,7 @@ def test_elementwise_combined_expression_chain():
     expected = np.sqrt((a_np * b_np) + (c_np / d_np))
 
     _assert_expr_allclose(combined, expected)
-    assert combined.shape.dims == expected.shape
+    assert tuple(combined.shape.dims) == expected.shape
 # end test_elementwise_combined_expression_chain
 
 
