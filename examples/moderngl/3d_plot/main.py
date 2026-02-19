@@ -18,7 +18,7 @@ import moderngl
 import numpy as np
 
 
-PALETTES = ("scientific", "viridis", "magma", "inferno", "turbo")
+PALETTES = ("scientific", "viridis", "magma", "inferno", "turbo", "rosewin")
 PALETTE_TO_ID = {name: idx for idx, name in enumerate(PALETTES)}
 
 
@@ -307,6 +307,11 @@ class SurfaceMesh:
         palette_name: str = "scientific",
     ) -> None:
         self.ctx = ctx
+        self.domain_size = domain_size
+        self.resolution = max(2, resolution)
+        self.height_functions = self._build_height_functions()
+        self.function_index = 0
+        self.function_name = self.height_functions[self.function_index][0]
 
         self.prog = self.ctx.program(
             vertex_shader="""
@@ -327,6 +332,114 @@ class SurfaceMesh:
                 #version 330
                 flat in vec3 v_normal;
                 flat in float v_z;
+                out vec4 fragColor;
+                uniform float zmin;
+                uniform float zmax;
+                uniform int palette_id;
+                uniform float surface_alpha;
+
+                vec3 gradient5(float t, vec3 c0, vec3 c1, vec3 c2, vec3 c3, vec3 c4) {
+                    if (t < 0.25) {
+                        float k = t / 0.25;
+                        return mix(c0, c1, k);
+                    }
+                    if (t < 0.50) {
+                        float k = (t - 0.25) / 0.25;
+                        return mix(c1, c2, k);
+                    }
+                    if (t < 0.75) {
+                        float k = (t - 0.50) / 0.25;
+                        return mix(c2, c3, k);
+                    }
+                    float k = (t - 0.75) / 0.25;
+                    return mix(c3, c4, k);
+                }
+
+                vec3 apply_palette(float t, int pid) {
+                    if (pid == 0) {
+                        return gradient5(
+                            t,
+                            vec3(0.35, 0.10, 0.70),
+                            vec3(0.10, 0.25, 0.90),
+                            vec3(0.10, 0.90, 0.95),
+                            vec3(0.97, 0.88, 0.20),
+                            vec3(1.00, 1.00, 1.00)
+                        );
+                    }
+                    if (pid == 1) {
+                        return gradient5(
+                            t,
+                            vec3(0.267, 0.005, 0.329),
+                            vec3(0.283, 0.141, 0.458),
+                            vec3(0.254, 0.265, 0.530),
+                            vec3(0.207, 0.520, 0.553),
+                            vec3(0.993, 0.906, 0.144)
+                        );
+                    }
+                    if (pid == 2) {
+                        return gradient5(
+                            t,
+                            vec3(0.001, 0.000, 0.014),
+                            vec3(0.201, 0.041, 0.414),
+                            vec3(0.493, 0.118, 0.513),
+                            vec3(0.873, 0.288, 0.408),
+                            vec3(0.988, 0.998, 0.645)
+                        );
+                    }
+                    if (pid == 3) {
+                        return gradient5(
+                            t,
+                            vec3(0.001, 0.000, 0.014),
+                            vec3(0.188, 0.039, 0.329),
+                            vec3(0.472, 0.111, 0.428),
+                            vec3(0.865, 0.318, 0.226),
+                            vec3(0.988, 0.998, 0.645)
+                        );
+                    }
+                    if (pid == 4) {
+                        return gradient5(
+                            t,
+                            vec3(0.190, 0.071, 0.232),
+                            vec3(0.270, 0.340, 0.706),
+                            vec3(0.125, 0.733, 0.722),
+                            vec3(0.898, 0.873, 0.177),
+                            vec3(0.980, 0.729, 0.221)
+                        );
+                    }
+                    return gradient5(
+                        t,
+                        vec3(0.271, 0.098, 0.463),
+                        vec3(0.365, 0.172, 0.441),
+                        vec3(0.459, 0.247, 0.418),
+                        vec3(0.553, 0.322, 0.396),
+                        vec3(0.682, 0.345, 0.149)
+                    );
+                }
+
+                void main() {
+                    float denom = max(zmax - zmin, 1e-6);
+                    float t = clamp((v_z - zmin) / denom, 0.0, 1.0);
+                    vec3 color = apply_palette(t, palette_id);
+                    float facet = 0.90 + 0.10 * abs(normalize(v_normal).z);
+                    fragColor = vec4(color * facet, surface_alpha);
+                }
+            """,
+        )
+
+        self.wire_prog = self.ctx.program(
+            vertex_shader="""
+                #version 330
+                in vec3 in_pos;
+                out float v_z;
+                uniform mat4 mvp;
+                void main() {
+                    gl_Position = mvp * vec4(in_pos, 1.0);
+                    v_z = in_pos.z;
+                }
+            """,
+            fragment_shader="""
+                #version 330
+                in float v_z;
                 out vec4 fragColor;
                 uniform float zmin;
                 uniform float zmax;
@@ -390,48 +503,38 @@ class SurfaceMesh:
                             vec3(0.988, 0.998, 0.645)
                         );
                     }
+                    if (pid == 4) {
+                        return gradient5(
+                            t,
+                            vec3(0.190, 0.071, 0.232),
+                            vec3(0.270, 0.340, 0.706),
+                            vec3(0.125, 0.733, 0.722),
+                            vec3(0.898, 0.873, 0.177),
+                            vec3(0.980, 0.729, 0.221)
+                        );
+                    }
                     return gradient5(
                         t,
-                        vec3(0.190, 0.071, 0.232),
-                        vec3(0.270, 0.340, 0.706),
-                        vec3(0.125, 0.733, 0.722),
-                        vec3(0.898, 0.873, 0.177),
-                        vec3(0.980, 0.729, 0.221)
+                        vec3(0.271, 0.098, 0.463),
+                        vec3(0.365, 0.172, 0.441),
+                        vec3(0.459, 0.247, 0.418),
+                        vec3(0.553, 0.322, 0.396),
+                        vec3(0.682, 0.345, 0.149)
                     );
                 }
 
                 void main() {
                     float denom = max(zmax - zmin, 1e-6);
                     float t = clamp((v_z - zmin) / denom, 0.0, 1.0);
-                    vec3 color = apply_palette(t, palette_id);
-                    float facet = 0.90 + 0.10 * abs(normalize(v_normal).z);
-                    fragColor = vec4(color * facet, 1.0);
-                }
-            """,
-        )
-
-        self.wire_prog = self.ctx.program(
-            vertex_shader="""
-                #version 330
-                in vec3 in_pos;
-                uniform mat4 mvp;
-                void main() {
-                    gl_Position = mvp * vec4(in_pos, 1.0);
-                }
-            """,
-            fragment_shader="""
-                #version 330
-                out vec4 fragColor;
-                uniform vec4 wire_color;
-                void main() {
-                    fragColor = wire_color;
+                    vec3 color = apply_palette(t, palette_id) * 0.8;
+                    fragColor = vec4(color, 1.0);
                 }
             """,
         )
 
         vertices, indices, wire_vertices, wire_indices, zmin, zmax = self._build_mesh(
-            domain_size=domain_size,
-            resolution=resolution,
+            domain_size=self.domain_size,
+            resolution=self.resolution,
         )
         self.zmin = zmin
         self.zmax = zmax
@@ -453,16 +556,65 @@ class SurfaceMesh:
         )
 
         self.set_mvp(mvp)
-        self.prog["zmin"].value = self.zmin
-        self.prog["zmax"].value = self.zmax
-        # self.wire_prog["wire_color"].value = (0.92, 0.92, 0.96, 0.10)
-        self.wire_prog["wire_color"].value = (0.1, 0.1, 0.1, 0.01)
+        self._set_height_uniforms()
         self.set_palette(palette_name)
+        self.set_surface_alpha(0.8)
 
     @staticmethod
-    def _height(px: float, py: float) -> float:
-        r = math.sqrt(px * px + py * py)
-        return math.sin(r) / (1.0 + 0.3 * r)
+    def _build_height_functions():
+        def radial_decay(px: float, py: float) -> float:
+            r = math.hypot(px, py)
+            return math.sin(r) / (1.0 + 0.3 * r)
+
+        def ripple(px: float, py: float) -> float:
+            r = math.hypot(px, py)
+            return math.cos(1.4 * r) / (1.0 + 0.2 * r)
+
+        def waves(px: float, py: float) -> float:
+            return 0.9 * math.sin(1.2 * px) * math.cos(1.2 * py)
+
+        def egg_crate(px: float, py: float) -> float:
+            return 0.45 * (math.cos(1.5 * px) + math.cos(1.5 * py))
+
+        def gaussian_bump(px: float, py: float) -> float:
+            return 1.2 * math.exp(-0.18 * (px * px + py * py)) - 0.2
+
+        def saddle(px: float, py: float) -> float:
+            return 0.08 * (px * px - py * py)
+
+        def monkey_saddle(px: float, py: float) -> float:
+            return 0.015 * (px * px * px - 3.0 * px * py * py)
+
+        def twist(px: float, py: float) -> float:
+            return math.sin(0.6 * px * py) / (1.0 + 0.08 * (px * px + py * py))
+
+        def rings(px: float, py: float) -> float:
+            r = math.hypot(px, py)
+            return math.sin(2.4 * r) / (1.0 + r)
+
+        def spiral(px: float, py: float) -> float:
+            r = math.hypot(px, py)
+            theta = math.atan2(py, px)
+            return math.sin(r + 2.0 * theta) / (1.0 + 0.25 * r)
+
+        return (
+            ("radial_decay", radial_decay),
+            ("ripple", ripple),
+            ("waves", waves),
+            ("egg_crate", egg_crate),
+            ("gaussian_bump", gaussian_bump),
+            ("saddle", saddle),
+            ("monkey_saddle", monkey_saddle),
+            ("twist", twist),
+            ("rings", rings),
+            ("spiral", spiral),
+        )
+
+    def _set_height_uniforms(self) -> None:
+        self.prog["zmin"].value = self.zmin
+        self.prog["zmax"].value = self.zmax
+        self.wire_prog["zmin"].value = self.zmin
+        self.wire_prog["zmax"].value = self.zmax
 
     def _build_mesh(
         self,
@@ -472,6 +624,7 @@ class SurfaceMesh:
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]:
         resolution = max(2, resolution)
         half = domain_size * 0.5
+        height_fn = self.height_functions[self.function_index][1]
 
         xs = np.linspace(-half, half, resolution, dtype="f4")
         ys = np.linspace(-half, half, resolution, dtype="f4")
@@ -479,7 +632,10 @@ class SurfaceMesh:
         z_samples = np.zeros((resolution, resolution), dtype="f4")
         for iy, y in enumerate(ys):
             for ix, x in enumerate(xs):
-                z_samples[iy, ix] = self._height(float(x), float(y))
+                z = float(height_fn(float(x), float(y)))
+                if not math.isfinite(z):
+                    z = 0.0
+                z_samples[iy, ix] = z
 
         zmin = float(z_samples.min())
         zmax = float(z_samples.max())
@@ -498,17 +654,13 @@ class SurfaceMesh:
         def point(ix: int, iy: int) -> np.ndarray:
             return grid_vertices[iy, ix]
 
-        def emit_triangle(p0: np.ndarray, p1: np.ndarray, p2: np.ndarray) -> None:
-            edge1 = p1 - p0
-            edge2 = p2 - p0
-            normal = np.cross(edge1, edge2)
-            norm = float(np.linalg.norm(normal))
-            if norm <= 1e-8:
-                normal = np.array([0.0, 0.0, 1.0], dtype="f4")
-            else:
-                normal = normal / norm
-
-            face_z = float((p0[2] + p1[2] + p2[2]) / 3.0)
+        def emit_triangle_with_face_attrs(
+            p0: np.ndarray,
+            p1: np.ndarray,
+            p2: np.ndarray,
+            normal: np.ndarray,
+            face_z: float,
+        ) -> None:
             base = len(packed_vertices)
             packed_vertices.append([p0[0], p0[1], p0[2], normal[0], normal[1], normal[2], face_z])
             packed_vertices.append([p1[0], p1[1], p1[2], normal[0], normal[1], normal[2], face_z])
@@ -522,8 +674,19 @@ class SurfaceMesh:
                 p01 = point(ix, iy + 1)
                 p11 = point(ix + 1, iy + 1)
 
-                emit_triangle(p00, p10, p11)
-                emit_triangle(p00, p11, p01)
+                edge_x = p10 - p00
+                edge_y = p01 - p00
+                cell_normal = np.cross(edge_x, edge_y)
+                norm = float(np.linalg.norm(cell_normal))
+                if norm <= 1e-8:
+                    cell_normal = np.array([0.0, 0.0, 1.0], dtype="f4")
+                else:
+                    cell_normal = cell_normal / norm
+
+                cell_face_z = float((p00[2] + p10[2] + p01[2] + p11[2]) * 0.25)
+
+                emit_triangle_with_face_attrs(p00, p10, p11, cell_normal, cell_face_z)
+                emit_triangle_with_face_attrs(p00, p11, p01, cell_normal, cell_face_z)
 
         for iy in range(resolution):
             for ix in range(resolution - 1):
@@ -551,7 +714,9 @@ class SurfaceMesh:
         if palette_name not in PALETTE_TO_ID:
             raise ValueError(f"Unknown palette '{palette_name}'. Available: {', '.join(PALETTES)}")
         self.palette_name = palette_name
-        self.prog["palette_id"].value = PALETTE_TO_ID[palette_name]
+        palette_id = PALETTE_TO_ID[palette_name]
+        self.prog["palette_id"].value = palette_id
+        self.wire_prog["palette_id"].value = palette_id
 
     def cycle_palette(self, step: int = 1) -> str:
         idx = PALETTE_TO_ID[self.palette_name]
@@ -559,6 +724,30 @@ class SurfaceMesh:
         next_name = PALETTES[next_idx]
         self.set_palette(next_name)
         return next_name
+
+    def cycle_function(self, step: int = 1) -> str:
+        self.function_index = (self.function_index + step) % len(self.height_functions)
+        self.function_name = self.height_functions[self.function_index][0]
+        vertices, indices, wire_vertices, wire_indices, zmin, zmax = self._build_mesh(
+            domain_size=self.domain_size,
+            resolution=self.resolution,
+        )
+        self.zmin = zmin
+        self.zmax = zmax
+        self.vbo.write(vertices.tobytes())
+        self.ibo.write(indices.tobytes())
+        self.wire_vbo.write(wire_vertices.tobytes())
+        self.wire_ibo.write(wire_indices.tobytes())
+        self._set_height_uniforms()
+        return self.function_name
+
+    def set_surface_alpha(self, alpha: float) -> None:
+        self.surface_alpha = float(np.clip(alpha, 0.0, 1.0))
+        self.prog["surface_alpha"].value = self.surface_alpha
+
+    def adjust_surface_alpha(self, delta: float) -> float:
+        self.set_surface_alpha(self.surface_alpha + delta)
+        return self.surface_alpha
 
     def render(self) -> None:
         self.vao.render(mode=moderngl.TRIANGLES)
@@ -591,6 +780,7 @@ class StaticPlotApp:
         self.last_x = 0.0
         self.last_y = 0.0
         self.rotate_sensitivity = 0.22
+        self.alpha_step = 0.05
 
         self.camera = Camera(width, height)
 
@@ -606,9 +796,9 @@ class StaticPlotApp:
         self.grid = Grid(
             self.ctx,
             mvp=self.camera.mvp,
-            size_x=10.0,
-            size_y=10.0,
-            step=1.0,
+            size_x=20.0,
+            size_y=20.0,
+            step=0.5,
             z_level=0.0,
             color=grid_color,
             border_color=grid_border_color,
@@ -626,8 +816,8 @@ class StaticPlotApp:
         self.surface = SurfaceMesh(
             self.ctx,
             mvp=self.camera.mvp,
-            domain_size=8.0,
-            resolution=20,
+            domain_size=20.0,
+            resolution=200,
             palette_name=palette,
         )
 
@@ -694,15 +884,34 @@ class StaticPlotApp:
             app._update_window_title()
             return
 
+        if key == glfw.KEY_E:
+            app.surface.cycle_function(1)
+            app._update_window_title()
+            return
+
         digit_map = {
             glfw.KEY_1: 0,
             glfw.KEY_2: 1,
             glfw.KEY_3: 2,
             glfw.KEY_4: 3,
             glfw.KEY_5: 4,
+            glfw.KEY_6: 5,
         }
         if key in digit_map:
             app.surface.set_palette(PALETTES[digit_map[key]])
+            app._update_window_title()
+            return
+
+        alpha_down_keys = {glfw.KEY_MINUS, glfw.KEY_LEFT_BRACKET, glfw.KEY_KP_SUBTRACT}
+        alpha_up_keys = {glfw.KEY_EQUAL, glfw.KEY_RIGHT_BRACKET, glfw.KEY_KP_ADD}
+
+        if key in alpha_down_keys:
+            app.surface.adjust_surface_alpha(-app.alpha_step)
+            app._update_window_title()
+            return
+
+        if key in alpha_up_keys:
+            app.surface.adjust_surface_alpha(app.alpha_step)
             app._update_window_title()
 
     def _update_viewport(self, width: int, height: int) -> None:
@@ -722,15 +931,17 @@ class StaticPlotApp:
         self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
         self.grid.render()
 
-        self.ctx.disable(moderngl.BLEND)
         self.surface.render()
 
-        self.ctx.enable(moderngl.BLEND)
-        self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
         self.axes.render()
 
     def _update_window_title(self) -> None:
-        title = f"ModernGL Surface Plot - palette: {self.surface.palette_name} (C cycle, 1-5 select)"
+        alpha_pct = int(round(self.surface.surface_alpha * 100.0))
+        title = (
+            f"ModernGL Surface Plot - function: {self.surface.function_name}, "
+            f"palette: {self.surface.palette_name}, squares alpha: {alpha_pct}% "
+            "(E next function, C cycle palette, 1-6 select, [-]/[+] alpha)"
+        )
         glfw.set_window_title(self.window, title)
 
     def run(self) -> None:

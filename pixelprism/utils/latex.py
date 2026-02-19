@@ -71,9 +71,28 @@ def render_latex_to_svg(
     # end with
 
     # Run pdflatex to generate DVI
-    subprocess.run(["pdflatex", "-output-format=dvi", "-output-directory", temp_dir, latex_file_path])
+    subprocess.run(
+        [
+            "pdflatex",
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-file-line-error",
+            "-output-format=dvi",
+            "-output-directory",
+            temp_dir,
+            latex_file_path,
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
     dvi_path = os.path.join(temp_dir, "equation.dvi")
-    subprocess.run(["dvisvgm", dvi_path, "-o", output_path, "--no-fonts"])
+    subprocess.run(
+        ["dvisvgm", dvi_path, "-o", output_path, "--no-fonts"],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
     # Clean up temporary files
     for file in os.listdir(temp_dir):
@@ -81,4 +100,3 @@ def render_latex_to_svg(
     # end for
     os.rmdir(temp_dir)
 # end render_latex_to_svg
-

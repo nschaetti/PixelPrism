@@ -41,7 +41,8 @@ import numbers
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Sequence, Tuple, List, Union, Optional
 import numpy as np
-from ..math_node import MathNode
+from ..math_node import MathExpr
+from ..typing import MathExpr
 from ..math_leaves import Constant
 from ..math_slice import SliceExpr
 from ..operators import OperatorBase
@@ -124,7 +125,7 @@ class _OpRule:
     """
 
     precedence: int
-    formatter: Callable[["_LatexRenderer", MathNode, "_OpRule", OperatorBase], str]
+    formatter: Callable[["_LatexRenderer", MathExpr, "_OpRule", OperatorBase], str]
 # end class _OpRule
 
 
@@ -139,13 +140,13 @@ class _LatexRenderer:
     _LEAF_PRECEDENCE = 100
     _FUNCTION_PRECEDENCE = 80
 
-    def render(self, expr: MathNode) -> str:
+    def render(self, expr: MathExpr) -> str:
         """
         Convert ``expr`` into a LaTeX math string.
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Expression tree root to render.
 
         Returns
@@ -163,13 +164,13 @@ class _LatexRenderer:
         return latex
     # end def render
 
-    def _emit(self, expr: MathNode) -> Tuple[str, int]:
+    def _emit(self, expr: MathExpr) -> Tuple[str, int]:
         """
         Recursively render ``expr`` and return its precedence.
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Expression being formatted.
 
         Returns
@@ -204,13 +205,13 @@ class _LatexRenderer:
         return latex, self._FUNCTION_PRECEDENCE
     # end def _emit
 
-    def _get_operator(self, expr: MathNode) -> Any:
+    def _get_operator(self, expr: MathExpr) -> Any:
         """
         Retrieve the operator descriptor attached to ``expr``.
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Expression whose operator should be returned.
 
         Returns
@@ -225,9 +226,9 @@ class _LatexRenderer:
         return op
     # end def _get_operator
 
-    def _render_operand(
+    def render_operand(
         self,
-        expr: MathNode,
+        expr: MathExpr,
         parent_prec: int,
         *,
         allow_equal: bool,
@@ -237,7 +238,7 @@ class _LatexRenderer:
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Operand to render.
         parent_prec : int
             Precedence of the parent operator.
@@ -256,13 +257,13 @@ class _LatexRenderer:
         return latex
     # end def _render_operand
 
-    def _render_group(self, expr: MathNode) -> str:
+    def _render_group(self, expr: MathExpr) -> str:
         """
         Render an expression without adjusting precedence.
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Expression to render.
 
         Returns
@@ -274,13 +275,13 @@ class _LatexRenderer:
         return latex
     # end def _render_group
 
-    def _render_leaf(self, expr: MathNode) -> str:
+    def _render_leaf(self, expr: MathExpr) -> str:
         """
         Render a leaf node, preferring literal values when available.
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Leaf expression.
 
         Returns
@@ -305,7 +306,7 @@ class _LatexRenderer:
         return r"\mathrm{expr}"
     # end def _render_leaf
 
-    def _render_constant_leaf(self, expr: MathNode) -> str | None:
+    def _render_constant_leaf(self, expr: MathExpr) -> str | None:
         """
         Render the stored value for immutable leaves when feasible.
         """
@@ -342,7 +343,7 @@ class _LatexRenderer:
         return None
     # end def _render_constant_leaf
 
-    def _extract_leaf_data(self, expr: MathNode) -> Any | None:
+    def _extract_leaf_data(self, expr: MathExpr) -> Any | None:
         """
         Retrieve raw payload stored on a leaf expression.
         """
@@ -357,13 +358,13 @@ class _LatexRenderer:
         return None
     # end def _extract_leaf_data
 
-    def _extract_scalar_name(self, expr: MathNode) -> str | None:
+    def _extract_scalar_name(self, expr: MathExpr) -> str | None:
         """
         Attempt to extract a scalar name from ``expr``.
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Expression to inspect.
 
         Returns
@@ -450,13 +451,13 @@ class _LatexRenderer:
         return latex_map.get(name, name)
     # end def _extract_scalar_literal
 
-    def _coerce_scalar(self, expr: MathNode) -> numbers.Number | None:
+    def _coerce_scalar(self, expr: MathExpr) -> numbers.Number | None:
         """
         Convert an expression's stored data into a scalar.
 
         Parameters
         ----------
-        expr : MathNode
+        expr : MathExpr
             Leaf expression containing potential data.
 
         Returns
@@ -584,7 +585,7 @@ class _LatexRenderer:
     def _render_named_function(
             self,
             command: str,
-            operands: Sequence[MathNode],
+            operands: Sequence[MathExpr],
             operator: OperatorBase
     ) -> str:
         """
@@ -594,7 +595,7 @@ class _LatexRenderer:
         ----------
         command : str
             LaTeX command to emit.
-        operands : Sequence[MathNode]
+        operands : Sequence[MathExpr]
             Operands to render as arguments.
 
         Returns
@@ -636,7 +637,7 @@ class _LatexRenderer:
     def _render_generic_function(
         self,
         name: str,
-        operands: Sequence[MathNode],
+        operands: Sequence[MathExpr],
     ) -> str:
         """
         Render an operator using ``\\operatorname{}``.
@@ -645,7 +646,7 @@ class _LatexRenderer:
         ----------
         name : str
             Operator name.
-        operands : Sequence[MathNode]
+        operands : Sequence[MathExpr]
             Child expressions.
 
         Returns
@@ -663,9 +664,9 @@ class _LatexRenderer:
 # region BUILDERS
 
 
-def _format_vector(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_vector(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r"\begin{bmatrix}" + r" \\ ".join(operands) + r"\end{bmatrix}"
@@ -678,7 +679,7 @@ def _format_vector(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
 # region ELEMENT-WISE
 
 
-def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_add(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format addition expressions.
 
@@ -686,7 +687,7 @@ def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Addition node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -697,14 +698,14 @@ def _format_add(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
         Formatted LaTeX fragment.
     """
     terms = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return " + ".join(terms)
 # end def _format_add
 
 
-def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_sub(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format subtraction expressions.
 
@@ -712,7 +713,7 @@ def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Subtraction node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -725,144 +726,144 @@ def _format_sub(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     if len(expr.children) != 2:
         raise ValueError("sub expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=False)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=False)
     return f"{left} - {right}"
 # end def _format_sub
 
 
-def _format_eq(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_eq(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format equality comparisons with the \\equiv symbol.
     """
     if len(expr.children) != 2:
         raise ValueError("eq expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return rf"{left} \equiv {right}"
 # end def _format_eq
 
 
-def _format_ne(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_ne(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format inequality comparisons."""
     if len(expr.children) != 2:
         raise ValueError("ne expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return rf"{left} \neq {right}"
 # end def _format_ne
 
 
-def _format_lt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_lt(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format strict less-than comparisons."""
     if len(expr.children) != 2:
         raise ValueError("lt expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return f"{left} < {right}"
 # end def _format_lt
 
 
-def _format_le(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_le(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format less-than-or-equal comparisons."""
     if len(expr.children) != 2:
         raise ValueError("le expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return rf"{left} \le {right}"
 # end def _format_le
 
 
-def _format_and(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_and(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical conjunction."""
     if len(expr.children) != 2:
         raise ValueError("and expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return rf"{left} \land {right}"
 # end def _format_and
 
 
-def _format_or(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_or(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical disjunction."""
     if len(expr.children) != 2:
         raise ValueError("or expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return rf"{left} \lor {right}"
 # end def _format_or
 
 
-def _format_xor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_xor(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical exclusive-or."""
     if len(expr.children) != 2:
         raise ValueError("xor expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return rf"{left} \oplus {right}"
 # end def _format_xor
 
 
-def _format_not(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_not(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format logical negation."""
     if len(expr.children) != 1:
         raise ValueError("not expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\neg {operand}"
 # end def _format_not
 
 
-def _format_any(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_any(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format boolean any reduction."""
     if len(expr.children) != 1:
         raise ValueError("any expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\operatorname{{any}}({operand})"
 # end def _format_any
 
 
-def _format_all(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_all(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format boolean all reduction."""
     if len(expr.children) != 1:
         raise ValueError("all expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\operatorname{{all}}({operand})"
 # end def _format_all
 
 
-def _format_gt(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_gt(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format strict greater-than comparisons."""
     if len(expr.children) != 2:
         raise ValueError("gt expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return f"{left} > {right}"
 # end def _format_gt
 
 
-def _format_ge(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_ge(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format greater-than-or-equal comparisons."""
     if len(expr.children) != 2:
         raise ValueError("ge expects exactly two operands.")
     # end if
-    left = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
-    right = renderer._render_operand(expr.children[1], rule.precedence, allow_equal=True)
+    left = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    right = renderer.render_operand(expr.children[1], rule.precedence, allow_equal=True)
     return rf"{left} \ge {right}"
 # end def _format_ge
 
 
-def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_neg(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format negation expressions.
 
@@ -870,7 +871,7 @@ def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Negation node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -883,12 +884,12 @@ def _format_neg(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     if len(expr.children) != 1:
         raise ValueError("neg expects a single operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return f"-{operand}"
 # end def _format_neg
 
 
-def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_mul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format multiplication expressions.
 
@@ -896,7 +897,7 @@ def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Multiplication node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -907,7 +908,7 @@ def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
         Formatted LaTeX fragment.
     """
     factors = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r" \cdot ".join(factors)
@@ -917,156 +918,156 @@ def _format_mul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # endregion ELEMENT-WISE
 
 
-def _format_outer(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_outer(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 2:
         raise ValueError("outer expects exactly two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r" \otimes ".join(operands)
 # end def _format_outer
 
 
-def _format_inverse(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_inverse(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format the inverse of a matrix."""
     if len(expr.children) != 1:
         raise ValueError("inverse expects exactly one operand.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
     return rf"{inner}^{{-1}}"
 # end def _format_inverse
 
 
-def _format_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_norm(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format the norm of a vector."""
     if len(expr.children) != 1:
         raise ValueError("norm expects exactly one operand.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
     order = op.get_parameter('order')
     return rf"\left\Vert{{{inner}}}\right\Vert_{{{order}}}"
 # end def _format_norm
 
 
-def _format_infty_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_infty_norm(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format the infinity norm."""
     if len(expr.children) != 1:
         raise ValueError("infty_norm expects exactly one operand.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
     return rf"\lVert {inner} \rVert_\infty"
 # end def _format_infty_norm
 
 
-def _format_frobenius_norm(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_frobenius_norm(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format the Frobenius norm."""
     if len(expr.children) != 1:
         raise ValueError("frobenius_norm expects exactly one operand.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
     return rf"\lVert {inner} \rVert_F"
 # end def _format_frobenius_norm
 
 
-def _format_mean(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_mean(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
         raise ValueError("mean expects exactly two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r"\operatorname{mean}(" + str(operands[0]) + r")"
 # end def _format_mean
 
 
-def _format_sum(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_sum(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
         raise ValueError("sum expects exactly two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r"\operatorname{sum}(" + str(operands[0]) + r")"
 # end def _format_sum
 
-def _format_summation(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_summation(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
         raise ValueError("summation expects exactly one operand.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     bounded_name = expr.op.bounded_var
-    lower = renderer._render_operand(expr.op.lower, rule.precedence, allow_equal=True)
-    upper = renderer._render_operand(expr.op.upper, rule.precedence, allow_equal=True)
+    lower = renderer.render_operand(expr.op.lower, rule.precedence, allow_equal=True)
+    upper = renderer.render_operand(expr.op.upper, rule.precedence, allow_equal=True)
     return r"\sum_{" + bounded_name + "=" + lower + "}^{" + upper + "}{" + operands[0] + "}"
 # end def _format_sum
 
 
-def _format_product(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase):
+def _format_product(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase):
      """Format product expressions."""
      if len(expr.children) != 1:
          raise ValueError("product expects exactly two operand.")
      # end if
      operands = [
-         renderer._render_operand(child, rule.precedence, allow_equal=True)
+         renderer.render_operand(child, rule.precedence, allow_equal=True)
          for child in expr.children
      ]
      bounded_name = expr.op.bounded_var
-     lower = renderer._render_operand(expr.op.lower, rule.precedence, allow_equal=True)
-     upper = renderer._render_operand(expr.op.upper, rule.precedence, allow_equal=True)
+     lower = renderer.render_operand(expr.op.lower, rule.precedence, allow_equal=True)
+     upper = renderer.render_operand(expr.op.upper, rule.precedence, allow_equal=True)
      return r"\prod_{" + bounded_name + "=" + lower + "}^{" + upper + "}{" + operands[0] + "}"
 # end def _format_product
 
 
-def _format_std(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_std(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
         raise ValueError("std expects exactly two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r"\sigma(" + str(operands[0]) + r")"
 # end def _format_std
 
 
-def _format_q1(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_q1(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Q1"""
     if len(expr.children) != 1:
         raise ValueError("q1 expects exactly two operands.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
     return rf"\operatorname{{q_1}}({{{inner}}})"
 # end def _format_q1
 
 
-def _format_q3(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_q3(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Q3"""
     if len(expr.children) != 1:
         raise ValueError("q3 expects exactly two operands.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=True)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=True)
     return rf"\operatorname{{q_3}}({{{inner}}})"
 # end def _format_q3
 
 
-def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_div(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format division expressions.
 
@@ -1074,7 +1075,7 @@ def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Division node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -1093,7 +1094,7 @@ def _format_div(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # end def _format_div
 
 
-def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_pow(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format exponentiation expressions.
 
@@ -1101,7 +1102,7 @@ def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Power node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -1114,69 +1115,69 @@ def _format_pow(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
     if len(expr.children) != 2:
         raise ValueError("pow expects exactly two operands.")
     # end if
-    base = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    base = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     exponent = renderer._render_group(expr.children[1])
     return rf"{base}^{{{exponent}}}"
 # end def _format_pow
 
 
-def _format_square(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_square(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 1:
         raise ValueError("square expects exactly 1 operand.")
     # end if
-    base = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    base = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"{base}^2"
 # end def _format_pow
 
 
-def _format_exp2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_exp2(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format 2-base exponential expressions."""
     if len(expr.children) != 1:
         raise ValueError("exp2 expects exactly one operand.")
     # end if
-    base = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    base = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"2^{{{base}}}"
 # end def _format_exp2
 
-def _format_log2(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_log2(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format 2-base logarithm expressions."""
     if len(expr.children) != 1:
         raise ValueError("log2 expects exactly one operand.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     base = 2
     return rf"\log_{{{base}}}({{{inner}}})"
 # end def _format_log2
 
-def _format_log10(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_log10(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format 10-base logarithm expressions."""
     if len(expr.children) != 1:
         raise ValueError("log10 expects exactly one operand.")
     # end if
-    inner = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    inner = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     base = 10
     return rf"\log_{{{base}}}({{{inner}}})"
 # end def _format_log10
 
 
-def _format_reciprocal(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_reciprocal(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format reciprocal expressions."""
     if len(expr.children) != 1:
         raise ValueError("reciprocal expects exactly one operand.")
     # end if
-    base = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    base = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\frac{{1}}{{{base}}}"
 # end def _format_reciprocal
 
 
-def _format_abs(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_abs(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format absolute value expressions."""
     if len(expr.children) != 1:
         raise ValueError("abs expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\left|{{{operand}}} \right|"
 # end def _format_abs
 
@@ -1185,46 +1186,46 @@ def _format_abs(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 # Discretization operators
 #
 
-def _format_sign(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_sign(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format sign expressions."""
     if len(expr.children) != 1:
         raise ValueError("sign expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\mathrm{{sgn}}({{{operand}}})"
 # end def _format_sign
 
 
-def _format_floor(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_floor(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format floor expressions."""
     if len(expr.children) != 1:
         raise ValueError("floor expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\lfloor{{{operand}}} \rfloor"
 # end def _format_floor
 
 
-def _format_ceil(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_ceil(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format ceiling expressions."""
     if len(expr.children) != 1:
         raise ValueError("ceil expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"\lceil{{{operand}}} \rceil"
 # end def _format_ceil
 
 
-def _format_round(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_round(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format rounding expressions."""
     if len(expr.children) != 1:
         raise ValueError("round expects exactly 1 operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
 
     decimals = op.get_parameter('decimals')
-    if decimals is not None and isinstance(decimals, MathNode):
-        decimals = renderer._render_operand(op.get_parameter('decimals'), rule.precedence, allow_equal=False)
+    if decimals is not None and isinstance(decimals, MathExpr):
+        decimals = renderer.render_operand(op.get_parameter('decimals'), rule.precedence, allow_equal=False)
     elif isinstance(decimals, int):
         decimals = str(decimals)
     else:
@@ -1235,16 +1236,16 @@ def _format_round(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: O
 # end def _format_round
 
 
-def _format_clip(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_clip(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format clipping expressions."""
     if len(expr.children) != 1:
         raise ValueError("clip expects exactly 1 operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
 
     lower = op.get_parameter('lower')
-    if lower is not None and isinstance(lower, MathNode):
-        lower = renderer._render_operand(op.get_parameter('lower'), rule.precedence, allow_equal=False)
+    if lower is not None and isinstance(lower, MathExpr):
+        lower = renderer.render_operand(op.get_parameter('lower'), rule.precedence, allow_equal=False)
     elif isinstance(lower, int):
         lower = str(lower)
     else:
@@ -1252,8 +1253,8 @@ def _format_clip(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
     # end if
 
     upper = op.get_parameter('upper')
-    if upper is not None and isinstance(upper, MathNode):
-        upper = renderer._render_operand(op.get_parameter('upper'), rule.precedence, allow_equal=False)
+    if upper is not None and isinstance(upper, MathExpr):
+        upper = renderer.render_operand(op.get_parameter('upper'), rule.precedence, allow_equal=False)
     elif isinstance(upper, int):
         upper = str(upper)
     else:
@@ -1269,7 +1270,7 @@ def _format_clip(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Op
 #
 
 
-def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_transpose(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format transpose expressions.
 
@@ -1277,7 +1278,7 @@ def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, o
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Transpose node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -1290,12 +1291,12 @@ def _format_transpose(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, o
     if len(expr.children) != 1:
         raise ValueError("transpose expects a single operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     return rf"{operand}^{{\mathsf{{T}}}}"
 # end def _format_transpose
 
 
-def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_matmul(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     Format matrix multiplication expressions.
 
@@ -1303,7 +1304,7 @@ def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
     ----------
     renderer : _LatexRenderer
         Renderer instance driving the traversal.
-    expr : MathNode
+    expr : MathExpr
         Matrix multiplication node.
     rule : _OpRule
         Formatting rule used for precedence.
@@ -1317,21 +1318,21 @@ def _format_matmul(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: 
         raise ValueError("matmul expects at least two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r"".join(operands)
 # end def _format_matmul
 
 
-def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_dot(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """
     """
     if len(expr.children) != 2:
         raise ValueError("dot expects exactly two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r" \cdot ".join(operands)
@@ -1343,12 +1344,12 @@ def _format_dot(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: Ope
 #
 
 
-def _format_getitem(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_getitem(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     """Format getitem expressions."""
     if len(expr.children) != 1:
         raise ValueError("getitem expects exactly one operand.")
     # end if
-    operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+    operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     indices: List[Union[SliceExpr, int]] = op.get_parameter('indices')
     indices_str = ",".join([str(ind) for ind in indices])
     if indices_str[:2] == "0:":
@@ -1360,7 +1361,7 @@ def _format_getitem(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op:
 
 def _format_structure_unary(
         renderer: _LatexRenderer,
-        expr: MathNode,
+        expr: MathExpr,
         rule: _OpRule, *,
         op: OperatorBase,
         name: str,
@@ -1372,10 +1373,10 @@ def _format_structure_unary(
     if op.arity <= 0:
         operand = ""
     elif op.arity == 1:
-        operand = renderer._render_operand(expr.children[0], rule.precedence, allow_equal=False)
+        operand = renderer.render_operand(expr.children[0], rule.precedence, allow_equal=False)
     elif op.arity >= 2:
         operand = "(" + ",".join([
-            renderer._render_operand(c, rule.precedence, allow_equal=False)
+            renderer.render_operand(c, rule.precedence, allow_equal=False)
             for c in expr.children
         ]) + ")"
     # end if
@@ -1413,39 +1414,39 @@ def _format_axes_suffix(axes: Optional[Sequence[int]]) -> str:
 # end def _format_axes_suffix
 
 
-def _format_squeeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_squeeze(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     return _format_structure_unary(renderer, expr, rule, op=op, name="squeeze")
 # end def _format_squeeze
 
 
-def _format_unsqueeze(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_unsqueeze(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     return _format_structure_unary(renderer, expr, rule, op=op, name="unsqueeze")
 # end def _format_unsqueeze
 
 
-def _format_concat(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_concat(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     return _format_structure_unary(renderer, expr, rule, op=op, name="concat", num_operands=-1)
 # end def _format_concat
 
 
-def _format_hstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_hstack(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     if len(expr.children) <= 1:
         raise ValueError("hstack expects at least two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r"[" + r"\;".join(operands) + r"]"
 # end def _format_hstack
 
 
-def _format_vstack(renderer: _LatexRenderer, expr: MathNode, rule: _OpRule, op: OperatorBase) -> str:
+def _format_vstack(renderer: _LatexRenderer, expr: MathExpr, rule: _OpRule, op: OperatorBase) -> str:
     if len(expr.children) <= 1:
         raise ValueError("vstack expects at least two operands.")
     # end if
     operands = [
-        renderer._render_operand(child, rule.precedence, allow_equal=True)
+        renderer.render_operand(child, rule.precedence, allow_equal=True)
         for child in expr.children
     ]
     return r"\begin{bmatrix}" + r" \\ ".join(operands) + r"\end{bmatrix}"
@@ -1594,13 +1595,13 @@ _FUNCTION_COMMANDS: Dict[str, str] = {
 }
 
 
-def to_latex(expr: MathNode) -> str:
+def to_latex(expr: MathExpr) -> str:
     """
     Convert a :class:`MathExpr` into LaTeX math code.
 
     Parameters
     ----------
-    expr : MathNode
+    expr : MathExpr
         Expression tree to convert. The expression is treated as immutable
         input; it will not be evaluated or mutated.
 

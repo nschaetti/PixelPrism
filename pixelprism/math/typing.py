@@ -115,6 +115,8 @@ class SimplifyRule(Enum):
     MUL_ZERO = auto()          # x * 0 -> 0 ; 0 * x -> 0
     DIV_ONE = auto()           # x / 1 -> x
 
+    MERGE_CONSTANTS = auto()   # a + b -> c
+
     # Constant folding
     CONST_FOLD = auto()        # combine constant-only subexpressions
 
@@ -333,7 +335,7 @@ class MathExpr(Protocol):
 # Operands are the operands of an operator.
 # Can be a single operand or a tuple of operands.
 # Can be a MathNode, Variable, or Constant, then a MathExpr.
-Operand: TypeAlias = "MathExpr"
+Operand: TypeAlias = "AlgebraicExpr"
 Operands = Sequence[Operand]
 
 # Expression type

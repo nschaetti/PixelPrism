@@ -587,8 +587,19 @@ class MathNode(
         >>> str(kept)  # doctest: +SKIP
         '(x + z)'
         """
-        # TODO: to implement
-        pass
+        # Simplify children first
+        children = [child.simplify(options=options) for child in self._children]
+
+        # Apply operator rules
+        simplify_result = self._op.simplify(operands=children, options=options)
+
+        if simplify_result.replacement is not None:
+            return simplify_result.replacement
+        # end if
+
+        self._children = simplify_result.operands
+
+        return self
     # end def simplify
 
     def canonicalize(self) -> "MathExpr":

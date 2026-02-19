@@ -32,6 +32,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union, Dict, Mapping, Sequence
 import weakref
 
+import numpy as np
+
 from .math_base import MathBase
 
 from .math_exceptions import (
@@ -631,12 +633,12 @@ class Variable(MathLeaf):
         if wrt is self:
             return Constant(
                 name=rand_name(f"{self.name}_autodiff_"),
-                data=Tensor(data=1, dtype=self._dtype)
+                data=Tensor.full(1, shape=self.shape.eval().tolist(), dtype=self.dtype)
             )
         else:
             return Constant(
                 name=rand_name(f"{self.name}_autodiff_"),
-                data=Tensor(data=0, dtype=self._dtype)
+                data=Tensor.full(0, shape=self.shape.eval().tolist(), dtype=self.dtype)
             )
         # end if
     # end def diff
@@ -1001,7 +1003,7 @@ class Constant(MathLeaf):
         """
         return Constant(
             name=rand_name(f"{self.name}_autodiff_"),
-            data=Tensor(data=0, dtype=self._dtype)
+            data=Tensor.zeros_like(self.value, self.dtype)
         )
     # end def diff
 

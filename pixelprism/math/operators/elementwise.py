@@ -37,7 +37,7 @@ from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule
 from .base import Operands, OperatorBase, operator_registry
 
 
@@ -170,6 +170,8 @@ class Add(ElementwiseOperator):
     ARITY = 2
     IS_VARIADIC = False
     IS_DIFF = True
+    COMMUTATIVE = True
+    ASSOCIATIVE = True
     NAME = "add"
 
     # region PRIVATE
@@ -187,6 +189,45 @@ class Add(ElementwiseOperator):
         return a.diff(wrt) + b.diff(wrt)
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        a: MathExpr = operands[0]
+        b: MathExpr = operands[1]
+
+        # Replace expression
+        new_operands = [a, b]
+        repr_expr = None
+
+        # Merge constants
+        if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
+            # Replaces with constant when both operands are constant
+            if isinstance(a, Constant) and isinstance(b, Constant):
+                repr_expr = Constant.new(a.eval() + b.eval())
+                new_operands = []
+            # end if
+        # end if
+
+        # Add zero
+        if self._apply_rule(SimplifyRule.ADD_ZERO, options):
+            if isinstance(a, Constant) and a.eval().is_null():
+                repr_expr = b
+                new_operands = [b]
+            elif isinstance(b, Constant) and b.eval().is_null():
+                repr_expr = a
+                new_operands = [a]
+            # end if
+        # end if
+
+        return OpSimplifyResult(new_operands, repr_expr)
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Add
@@ -201,6 +242,8 @@ class Sub(ElementwiseOperator):
     NAME = "sub"
     IS_VARIADIC = False
     IS_DIFF = True
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
 
     # region PRIVATE
 
@@ -215,6 +258,45 @@ class Sub(ElementwiseOperator):
         return a.diff(wrt) - b.diff(wrt)
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        a: MathExpr = operands[0]
+        b: MathExpr = operands[1]
+
+        # Replace expression
+        new_operands = [a, b]
+        repr_expr = None
+
+        # Merge constants
+        if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
+            # Replaces with constant when both operands are constant
+            if isinstance(a, Constant) and isinstance(b, Constant):
+                repr_expr = Constant.new(a.eval() + b.eval())
+                new_operands = []
+            # end if
+        # end if
+
+        # Add zero
+        if self._apply_rule(SimplifyRule.ADD_ZERO, options):
+            if isinstance(a, Constant) and a.eval().is_null():
+                repr_expr = b
+                new_operands = [b]
+            elif isinstance(b, Constant) and b.eval().is_null():
+                repr_expr = a
+                new_operands = [a]
+            # end if
+        # end if
+
+        return OpSimplifyResult(new_operands, repr_expr)
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Sub
@@ -228,6 +310,8 @@ class Mul(ElementwiseOperator):
     ARITY = 2
     IS_VARIADIC = False
     IS_DIFF = True
+    COMMUTATIVE = True
+    ASSOCIATIVE = True
     NAME = "mul"
 
     # region PRIVATE
@@ -243,6 +327,18 @@ class Mul(ElementwiseOperator):
         return a.diff(wrt) * b + b.diff(wrt) * a
     # end def _diff
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Mul
@@ -256,6 +352,8 @@ class Div(ElementwiseOperator):
     ARITY = 2
     IS_VARIADIC = False
     IS_DIFF = True
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
     NAME = "div"
 
     # region PRIVATE
@@ -273,6 +371,18 @@ class Div(ElementwiseOperator):
         return num / denom
     # end def _diff
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Div
@@ -286,6 +396,8 @@ class Pow(ElementwiseOperator):
     ARITY = 2
     IS_VARIADIC = False
     IS_DIFF = True
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
     NAME = "pow"
 
     # region PRIVATE
@@ -316,6 +428,18 @@ class Pow(ElementwiseOperator):
             return pow_ab * (bd_loga + b_ad_on_a)
         # end if
     # end def _diff
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -416,6 +540,18 @@ class Exp(UnaryElementwiseOperator):
         # end if
     # end def _diff
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Exp
@@ -441,6 +577,18 @@ class Exp2(UnaryElementwiseOperator):
         (value,) = operands
         return Pow.create_node(operands=(Constant.new(2), value)) * Log.create_node(operands=(Constant.new(2),))
     # end def _diff
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -469,6 +617,18 @@ class Expm1(UnaryElementwiseOperator):
         raise NotImplementedError("Expm1 does not support backward.")
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Expm1
@@ -494,6 +654,18 @@ class Log(UnaryElementwiseOperator):
         (value,) = operands
         return (Constant.new(1) / value) * value.diff(wrt)
     # end def _diff
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -522,6 +694,18 @@ class Log1p(UnaryElementwiseOperator):
         raise NotImplementedError("Log1p does not support backward.")
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Log1p
@@ -548,6 +732,18 @@ class Sqrt(UnaryElementwiseOperator):
         return (Constant.new(1) / (Constant.new(2) * Sqrt.create_node(operands=(value,)))) * value.diff(wrt)
     # end def _diff
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Sqrt
@@ -573,6 +769,18 @@ class Square(UnaryElementwiseOperator):
         (value,) = operands
         return Constant.new(2) * value * value.diff(wrt)
     # end def _diff
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -601,6 +809,18 @@ class Cbrt(UnaryElementwiseOperator):
         raise NotImplementedError("Cbrt does not support backward.")
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Cbrt
@@ -627,6 +847,18 @@ class Reciprocal(UnaryElementwiseOperator):
     ) -> Sequence[MathNode]:
         raise NotImplementedError("Reciprocal does not support backward.")
     # end def _backward
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -655,6 +887,18 @@ class Log2(UnaryElementwiseOperator):
         raise NotImplementedError("Log2 does not support backward.")
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Log2
@@ -681,6 +925,18 @@ class Log10(UnaryElementwiseOperator):
     ) -> Sequence[MathNode]:
         raise NotImplementedError("Log10 does not support backward.")
     # end def _backward
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -709,6 +965,18 @@ class Deg2rad(UnaryElementwiseOperator):
         raise NotImplementedError("Deg2rad does not support backward.")
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Deg2rad
@@ -735,6 +1003,18 @@ class Rad2deg(UnaryElementwiseOperator):
     ) -> Sequence[MathNode]:
         raise NotImplementedError("Rad2deg does not support backward.")
     # end def _backward
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -763,6 +1043,18 @@ class Absolute(UnaryElementwiseOperator):
         raise NotImplementedError("Absolute does not support backward.")
     # end def _backward
 
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Absolute
@@ -789,6 +1081,18 @@ class Abs(UnaryElementwiseOperator):
     ) -> Sequence[MathNode]:
         raise NotImplementedError("Abs does not support backward.")
     # end def _backward
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -844,6 +1148,18 @@ class Neg(UnaryElementwiseOperator):
         x = operands[0]
         return -(x.diff(wrt))
     # end def _diff
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
 
     # endregion PRIVATE
 

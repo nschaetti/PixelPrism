@@ -37,8 +37,7 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable
-from ..typing import Operands, Operator, MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult
-
+from ..typing import Operands, Operator, MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule
 
 __all__ = [
     "OperatorBase",
@@ -127,12 +126,12 @@ class OperatorBase(
             options: SimplifyOptions | None = None
     ) -> OpSimplifyResult:
         """Return operator-local simplification result."""
-        return OpSimplifyResult(operands=tuple(operands), replacement=None)
+        return self._simplify(operands=operands, options=options)
     # end def simplify
 
     def canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         """Return canonicalized operands for this operator."""
-        return operands
+        return self._canonicalize(operands=operands)
     # end def canonicalize
 
     @abstractmethod
@@ -177,6 +176,33 @@ class OperatorBase(
 
     # region PRIVATE
 
+    def _apply_rule(
+            self,
+            rule: SimplifyRule,
+            options: SimplifyOptions | None = None,
+    ) -> bool:
+        """Return ```True``` if the rule should be applied."""
+        if not options:
+            return True
+        # end if
+
+        # Rule is not disabled
+        if rule not in options.disabled:
+            # No enabled list => always apply rule
+            if not options.enabled:
+                return True
+            # Not in enabled list => don't apply rule
+            elif rule not in options.enabled:
+                return False
+            # In enabled list => apply rule
+            else:
+                return True
+            # end if
+        # end if
+
+        return False
+    # end def _apply_rule
+
     @abstractmethod
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
@@ -191,7 +217,21 @@ class OperatorBase(
         Local backward rule for this operator.
         """
         raise NotImplementedError(f"{self.NAME} is not differentiable.")
-    # end _backward
+    # end _diff
+
+    @abstractmethod
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        """Return operator-local simplification result."""
+    # end def simplify
+
+    @abstractmethod
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        """Return canonicalized operands for this operator."""
+    # end def canonicalize
 
     # endregion PRIVATE
 

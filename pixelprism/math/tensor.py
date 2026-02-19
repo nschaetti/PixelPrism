@@ -464,6 +464,32 @@ def zeros(
 # end def zeros
 
 
+def zeros_like(
+        a: 'Tensor',
+        dtype: Optional[TypeLike] = None,
+        mutable: bool = True
+) -> 'Tensor':
+    """
+    Create a tensor with the same shape and dtype as ``a``.
+
+    Parameters
+    ----------
+    a: Tensor
+        The tensor whose shape and dtype will be used to create the new tensor.
+    dtype: AnyDType, optional
+        Numerical dtype of the new tensor. If not provided, the dtype of ``a`` is used.
+    mutable: bool, default True
+        Whether the new tensor may later be mutated.
+
+    Returns
+    -------
+    'Tensor'
+        'Tensor' filled with zeros of the same shape and dtype as ``a``.
+    """
+    return Tensor.zeros_like(a, dtype=dtype or a.dtype.to_numpy(), mutable=mutable)
+# end def zeros_like
+
+
 def ones(
         shape: ShapeLike,
         dtype: TypeLike = float,
@@ -499,6 +525,32 @@ def ones(
     data = np.ones(dims, dtype=_resolve_dtype(dtype))
     return Tensor(data=data, mutable=mutable)
 # end def ones
+
+
+def ones_like(
+        a: 'Tensor',
+        dtype: Optional[TypeLike] = None,
+        mutable: bool = True
+) -> 'Tensor':
+    """
+    Create a tensor with the same shape and dtype as ``a``.
+
+    Parameters
+    ----------
+    a: Tensor
+        The tensor whose shape and dtype will be used to create the new tensor.
+    dtype: AnyDType, optional
+        Type of the new tensor. If not provided, the dtype of ``a`` is used.
+    mutable: bool, default True
+        Whether the new tensor may later be mutated.
+
+    Returns
+    -------
+    'Tensor'
+        'Tensor' filled with ones of the same shape and dtype as ``a``.
+    """
+    return Tensor.ones_like(a, dtype=dtype or a.dtype.to_numpy(), mutable=mutable)
+# end def ones_like
 
 
 def full(
@@ -2268,6 +2320,16 @@ class Tensor:
         return self._data
     # end def numpy
 
+    def is_null(self) -> bool:
+        """Returns true if the tensor is full of zeros."""
+        return np.all(self._data == 0)
+    # end def is_null
+
+    def is_full(self, value: Union[int, float] = 1) -> bool:
+        """Returns true if the tensor is full of the given value."""
+        return np.all(self._data == value)
+    # end def is_full
+
     # endregion PUBLIC
 
     # region PRIVATE
@@ -3789,7 +3851,7 @@ class Tensor:
     # end def from_numpy
 
     @staticmethod
-    def full(fill_value, shape: ShapeLike, dtype: Optional[TypeLike] = None) -> 'Tensor':
+    def full(fill_value, shape: ShapeLike, dtype: Optional[TypeLike] = None, mutable: bool = True) -> 'Tensor':
         """Create a tensor of full.
 
         Parameters
@@ -3800,6 +3862,8 @@ class Tensor:
             Input parameter.
         dtype : Optional[TypeLike]
             Input parameter.
+        mutable: bool, default True
+            Whether the new tensor may later be mutated.
 
         Returns
         -------
@@ -3808,7 +3872,7 @@ class Tensor:
         """
         shape = Shape.create(shape)
         np_dtype = _convert_dtype_to_numpy(dtype) if dtype else None
-        return Tensor(data=np.full(shape, fill_value, dtype=np_dtype))
+        return Tensor(data=np.full(shape, fill_value, dtype=np_dtype), mutable=mutable)
     # end def full
 
     @staticmethod
@@ -3829,6 +3893,18 @@ class Tensor:
         """
         return Tensor.full(0, shape, dtype=dtype)
     # end def zeros
+
+    @staticmethod
+    def zeros_like(a: 'Tensor', dtype: Optional[DType] = None, mutable: bool = True) -> 'Tensor':
+        """Create a tensor of zeros of shape similar to `a`"""
+        return Tensor.full(0, a.shape.dims, dtype=dtype or a.dtype.to_numpy(), mutable=mutable)
+    # end def zeros_like
+
+    @staticmethod
+    def ones_like(a: 'Tensor', dtype: Optional[DType] = None, mutable: bool = True) -> 'Tensor':
+        """Create a tensor of ones of shape similar to `a`"""
+        return Tensor.full(1, a.shape.dims, dtype=dtype or a.dtype.to_numpy(), mutable=mutable)
+    # end def ones_like
 
     @staticmethod
     def ones(shape: ShapeLike, dtype: Optional[TypeLike] = None) -> 'Tensor':

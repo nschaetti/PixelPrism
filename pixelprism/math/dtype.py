@@ -101,6 +101,10 @@ class DType(Enum):
         return self is DType.R
     # end def is_real
 
+    def to_numpy(self) -> np.dtype:
+        return to_numpy(self)
+    # end def to_numpy
+
     def __repr__(self) -> str:
         if self.name == "Z":
             return "Integers"
