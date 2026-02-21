@@ -115,7 +115,7 @@ class MathNode(
     # region PROPERTIES
 
     @property
-    def op(self) -> Optional[Any]:
+    def op(self) -> Optional[Operator]:
         """
         Returns
         -------
@@ -777,7 +777,7 @@ class MathNode(
         Human-readable representation intended for users/logs.
         TODO: provide a dedicated human-readable string format.
         """
-        return self.__repr__()
+        return self._op.print(self._children)
     # end def __str__
 
     def __repr__(self) -> str:

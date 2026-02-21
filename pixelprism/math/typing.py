@@ -59,9 +59,10 @@ __all__ = [
     "SimplifyRule",
     "SimplifyOptions",
     "LeafKind",
+    "OpAssociativity",
     "OpSimplifyResult",
     "AlgebraicExpr",
-    "ExprLike",
+    "ExprLike"
 ]
 
 
@@ -114,8 +115,12 @@ class SimplifyRule(Enum):
     MUL_ONE = auto()           # x * 1 -> x ; 1 * x -> x
     MUL_ZERO = auto()          # x * 0 -> 0 ; 0 * x -> 0
     DIV_ONE = auto()           # x / 1 -> x
+    ZERO_DIV = auto()          # 0 / x -> 0
 
     MERGE_CONSTANTS = auto()   # a + b -> c
+
+    # Remove double negation
+    NEGATE_NEGATE = auto()
 
     # Constant folding
     CONST_FOLD = auto()        # combine constant-only subexpressions
@@ -348,6 +353,13 @@ class OpSimplifyResult(NamedTuple):
 # end def OpSimplifyResult
 
 
+class OpAssociativity(Enum):
+    LEFT = auto()
+    RIGHT = auto()
+    NONE = auto()
+# end class Associativity
+
+
 # Protocol for mathematical operators
 @runtime_checkable
 class Operator(Protocol):
@@ -378,6 +390,17 @@ class Operator(Protocol):
     # True if regrouping does not change semantic result.
     # Example: add(add(a, b), c) == add(a, add(b, c))
     ASSOCIATIVE: ClassVar[bool]
+
+    # Set the precedence of the operator in the expression tree.
+    # Operators with higher precedence are evaluated first.
+    PRECEDENCE: ClassVar[int]
+
+    # Set if the operator is left or right associative.
+    # Operators with the same precedence are evaluated from left to right.
+    ASSOCIATIVITY: ClassVar[OpAssociativity]
+
+    # Symbol of the operator in the expression tree.
+    SYMBOL: ClassVar[str]
 
     #
     # Properties
@@ -495,6 +518,9 @@ class Operator(Protocol):
     #
     # Representation
     #
+
+    # Print operator as a mathematical expression.
+    def print(self, operands: Operands, **kwargs) -> str: ...
 
     # Human-readable operator representation for logs and user-facing displays.
     def __str__(self) -> str: ...

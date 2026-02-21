@@ -342,7 +342,7 @@ class MathLeaf(
         """
         TODO: subclasses should provide domain-specific string representations.
         """
-        return self.__repr__()
+        return self.name
     # end def __str__
 
     def __repr__(self) -> str:
@@ -685,7 +685,7 @@ class Variable(MathLeaf):
         str
             Human-readable description of the variable.
         """
-        return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
+        return self.name
     # end __str__
 
     def __repr__(self):
@@ -695,7 +695,7 @@ class Variable(MathLeaf):
         str
             Debug representation identical to :meth:`__str__`.
         """
-        return self.__str__()
+        return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
     # end __repr__
 
     # endregion MATH_EXPR_MISC
@@ -1048,7 +1048,7 @@ class Constant(MathLeaf):
         str
             Human-readable description of the constant.
         """
-        return f"constant({self.name}, dtype={self._dtype}, shape={self._shape})"
+        return self.value.__str__()
     # end __str__
 
     def __repr__(self):
@@ -1058,7 +1058,7 @@ class Constant(MathLeaf):
         str
             Debug representation identical to :meth:`__str__`.
         """
-        return self.__str__()
+        return f"constant({self.name}, dtype={self._dtype}, shape={self._shape})"
     # end __repr__
 
     # endregion MATH_EXPR_MISC

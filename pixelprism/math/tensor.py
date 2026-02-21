@@ -2811,7 +2811,11 @@ class Tensor:
         str
             Result of the operation.
         """
-        return f"tensor({str(self._data.tolist())}, dtype={self._dtype}, shape={self._shape}, mutable={self._mutable})"
+        if self.rank == 0:
+            return f"{self._data.item()}"
+        else:
+            return f"{self.tolist()}"
+        # end if
     # end __str__
 
     def __repr__(self):
@@ -2822,7 +2826,7 @@ class Tensor:
         str
             Result of the operation.
         """
-        return self.__str__()
+        return f"tensor({str(self._data.tolist())}, dtype={self._dtype}, shape={self._shape}, mutable={self._mutable})"
     # end __repr__
 
     def __getitem__(self, key: Union[int, slice, Tuple[Union[int, slice], ...]]):

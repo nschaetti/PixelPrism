@@ -37,7 +37,8 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable
-from ..typing import Operands, Operator, MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule
+from ..typing import Operands, Operator, MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule, \
+    OpAssociativity
 
 __all__ = [
     "OperatorBase",
@@ -55,10 +56,14 @@ class OperatorBase(
     Represents an operator that can be applied to a value.
     """
 
-    IS_VARIADIC = False
-    IS_DIFF = False
-    COMMUTATIVE = False
-    ASSOCIATIVE = False
+    # IS_VARIADIC = False
+    # IS_DIFF = False
+    # COMMUTATIVE = False
+    # ASSOCIATIVE = False
+    # PRECEDENCE = 0
+    # ASSOCIATIVITY = OpAssociativity.LEFT
+    # ARITY = 0
+    # SYMBOL = ""
 
     def __init__(self, **kwargs):
         """
@@ -170,11 +175,44 @@ class OperatorBase(
         else:
             return self._diff(wrt=wrt, operands=operands)
         # end if
-    # end def backward
+    # end def diff
 
     # endregion PUBLIC
 
     # region PRIVATE
+
+    def _needs_parentheses(self, child: MathExpr, is_right_child: bool):
+        """Return ```True``` if the child operator needs parentheses.
+
+        Parameters
+        ----------
+        child : MathExpr
+            The child operator to check.
+        is_right_child : bool
+            Whether the child is the right child of the current operator.
+
+        Returns
+        -------
+        bool
+            Whether the child operator needs parentheses.
+        """
+        if hasattr(child, "op"):
+            if child.op.PRECEDENCE < self.PRECEDENCE:
+                return True
+            # end if
+            if child.op.PRECEDENCE > self.PRECEDENCE:
+                return False
+            # end if
+            # mêmes précédences
+            if self.ASSOCIATIVITY == OpAssociativity.LEFT and is_right_child:
+                return self.name != child.name
+            # end if
+            if self.ASSOCIATIVITY == OpAssociativity.RIGHT and not is_right_child:
+                return self.name != child.name
+            # end if
+        # end if
+        return False
+    # end def _needs_parentheses
 
     def _apply_rule(
             self,
@@ -260,6 +298,11 @@ class OperatorBase(
     ) -> bool:
         """Check that the operands have compatible shapes."""
     # end def check_shapes
+
+    @abstractmethod
+    def print(self, operands: Operands, **kwargs) -> str:
+        """Return a human-readable representation of the operator."""
+    # end def print
 
     @abstractmethod
     def __str__(self) -> str:

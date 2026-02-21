@@ -29,16 +29,14 @@
 Elementwise operator implementations.
 """
 from abc import ABC
-from typing import Sequence, Optional
-
-from . import ParametricOperator
+from typing import Sequence
 from ..tensor import Tensor
 from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
-from ..typing import MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule
-from .base import Operands, OperatorBase, operator_registry
+from ..typing import MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule, OpAssociativity, AlgebraicExpr
+from .base import Operands, OperatorBase, operator_registry, ParametricOperator
 
 
 __all__ = [
@@ -93,6 +91,27 @@ class ElementwiseOperator(OperatorBase, ABC):
         return False
     # end def contains
 
+    def print(self, operands: Operands, **kwargs) -> str:
+        """Return a human-readable representation of the operator.
+
+        Parameters
+        ----------
+        operands : Operands
+            The operands of the operator.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        str : A human-readable representation of the operator.
+        """
+        need_left_paren = self._needs_parentheses(child=operands[0], is_right_child=True)
+        need_right_paren = self._needs_parentheses(child=operands[1], is_right_child=False)
+        left_str = f"({operands[0]})" if need_left_paren else operands[0].__str__()
+        right_str = f"({operands[1]})" if need_right_paren else operands[1].__str__()
+        return f"{left_str} {self.SYMBOL} {right_str}"
+    # end def print
+
     def __str__(self) -> str:
         """Return a concise human-readable identifier."""
         return f"{self.NAME}()"
@@ -100,7 +119,7 @@ class ElementwiseOperator(OperatorBase, ABC):
 
     def __repr__(self) -> str:
         """Return a debug-friendly representation."""
-        return f"{self.__class__.__name__}(arity={self.ARITY})"
+        return f"{self.NAME}(arity={self.ARITY})"
     # end def __repr__
 
     # region STATIC
@@ -172,9 +191,10 @@ class Add(ElementwiseOperator):
     IS_DIFF = True
     COMMUTATIVE = True
     ASSOCIATIVE = True
+    PRECEDENCE = 10
+    ASSOCIATIVITY = OpAssociativity.LEFT
     NAME = "add"
-
-    # region PRIVATE
+    SYMBOL = "+"
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """
@@ -214,10 +234,10 @@ class Add(ElementwiseOperator):
         if self._apply_rule(SimplifyRule.ADD_ZERO, options):
             if isinstance(a, Constant) and a.eval().is_null():
                 repr_expr = b
-                new_operands = [b]
+                new_operands = []
             elif isinstance(b, Constant) and b.eval().is_null():
                 repr_expr = a
-                new_operands = [a]
+                new_operands = []
             # end if
         # end if
 
@@ -227,8 +247,6 @@ class Add(ElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
-
-    # endregion PRIVATE
 
 # end class Add
 
@@ -244,6 +262,9 @@ class Sub(ElementwiseOperator):
     IS_DIFF = True
     COMMUTATIVE = False
     ASSOCIATIVE = False
+    PRECEDENCE = 10
+    ASSOCIATIVITY = OpAssociativity.LEFT
+    SYMBOL = "-"
 
     # region PRIVATE
 
@@ -270,23 +291,24 @@ class Sub(ElementwiseOperator):
         new_operands = [a, b]
         repr_expr = None
 
-        # Merge constants
+        # a - b = c
         if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
             # Replaces with constant when both operands are constant
             if isinstance(a, Constant) and isinstance(b, Constant):
-                repr_expr = Constant.new(a.eval() + b.eval())
+                repr_expr = Constant.new(a.eval() - b.eval())
                 new_operands = []
             # end if
         # end if
 
-        # Add zero
-        if self._apply_rule(SimplifyRule.ADD_ZERO, options):
+        # x - 0 = x
+        # 0 - x = -x
+        if self._apply_rule(SimplifyRule.SUB_ZERO, options):
             if isinstance(a, Constant) and a.eval().is_null():
-                repr_expr = b
-                new_operands = [b]
+                repr_expr = -b
+                new_operands = []
             elif isinstance(b, Constant) and b.eval().is_null():
                 repr_expr = a
-                new_operands = [a]
+                new_operands = []
             # end if
         # end if
 
@@ -313,6 +335,9 @@ class Mul(ElementwiseOperator):
     COMMUTATIVE = True
     ASSOCIATIVE = True
     NAME = "mul"
+    SYMBOL = "*"
+    PRECEDENCE = 20
+    ASSOCIATIVITY = OpAssociativity.LEFT
 
     # region PRIVATE
 
@@ -332,7 +357,45 @@ class Mul(ElementwiseOperator):
             operands: Sequence[MathExpr],
             options: SimplifyOptions | None = None
     ) -> OpSimplifyResult:
-        pass
+        a: MathExpr = operands[0]
+        b: MathExpr = operands[1]
+
+        # Replace expression
+        new_operands = [a, b]
+        repr_expr = None
+
+        # a * b = c
+        if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
+            # Replaces with constant when both operands are constant
+            if isinstance(a, Constant) and isinstance(b, Constant):
+                repr_expr = Constant.new(a.eval() * b.eval())
+                new_operands = []
+            # end if
+        # end if
+
+        # x * 1 = x
+        if self._apply_rule(SimplifyRule.MUL_ONE, options):
+            if isinstance(a, Constant) and a.eval().is_full(1):
+                repr_expr = b
+                new_operands = []
+            elif isinstance(b, Constant) and b.eval().is_full(1):
+                repr_expr = a
+                new_operands = []
+            # end if
+        # end if
+
+        # x * 0 = 0
+        if self._apply_rule(SimplifyRule.MUL_ZERO, options):
+            if isinstance(a, Constant) and a.eval().is_null():
+                repr_expr = Constant.new(0)
+                new_operands = []
+            elif isinstance(b, Constant) and b.eval().is_null():
+                repr_expr = Constant.new(0)
+                new_operands = []
+            # end if
+        # end if
+
+        return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
 
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
@@ -355,6 +418,9 @@ class Div(ElementwiseOperator):
     COMMUTATIVE = False
     ASSOCIATIVE = False
     NAME = "div"
+    SYMBOL = "/"
+    PRECEDENCE = 20
+    ASSOCIATIVITY = OpAssociativity.LEFT
 
     # region PRIVATE
 
@@ -376,7 +442,39 @@ class Div(ElementwiseOperator):
             operands: Sequence[MathExpr],
             options: SimplifyOptions | None = None
     ) -> OpSimplifyResult:
-        pass
+        a: MathExpr = operands[0]
+        b: MathExpr = operands[1]
+
+        # Replace expression
+        new_operands = [a, b]
+        repr_expr = None
+
+        # a / b = c
+        if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
+            # Replaces with constant when both operands are constant
+            if isinstance(a, Constant) and isinstance(b, Constant):
+                repr_expr = Constant.new(a.eval() / b.eval())
+                new_operands = []
+            # end if
+        # end if
+
+        # x / 1 = x
+        if self._apply_rule(SimplifyRule.DIV_ONE, options):
+            if isinstance(b, Constant) and b.eval().is_full(1):
+                repr_expr = a
+                new_operands = [a]
+            # end if
+        # end if
+
+        # 0 / x = 0
+        if self._apply_rule(SimplifyRule.ZERO_DIV, options):
+            if isinstance(a, Constant) and a.eval().is_null():
+                repr_expr = Constant.new(0)
+                new_operands = []
+            # end if
+        # end if
+
+        return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
 
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
@@ -387,63 +485,6 @@ class Div(ElementwiseOperator):
 
 # end class Div
 
-
-class Pow(ElementwiseOperator):
-    """
-    Element-wise power operator.
-    """
-
-    ARITY = 2
-    IS_VARIADIC = False
-    IS_DIFF = True
-    COMMUTATIVE = False
-    ASSOCIATIVE = False
-    NAME = "pow"
-
-    # region PRIVATE
-
-    def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        """Evaluate element-wise exponentiation."""
-        base, exponent = operands
-        return Tensor.pow(base.eval(), exponent.eval())
-    # end def _eval
-
-    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
-        base, exp = operands
-        if exp.is_constant():
-            c1 = Constant.new(exp.eval(), dtype=exp.dtype)
-            if exp.eval() == 0:
-                return Constant.new(0)
-            elif exp.eval() > 0:
-                c2 = Constant.new(exp.eval() - 1, dtype=exp.dtype)
-                return c1 * Pow.create_node(operands=(base, c2))  * base.diff(wrt)
-            else:
-                c2 = Constant.new(-(exp.eval() - 1), dtype=exp.dtype)
-                return c1 * 1 / Pow.create_node(operands=(base, c2)) * base.diff(wrt)
-            # end if
-        else:
-            pow_ab = Pow.create_node(operands=(base, exp))
-            bd_loga = exp.diff(wrt) * Log.create_node(operands=(base,))
-            b_ad_on_a = exp * (base.diff(wrt) / base)
-            return pow_ab * (bd_loga + b_ad_on_a)
-        # end if
-    # end def _diff
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    # endregion PRIVATE
-
-# end class Pow
 
 
 class UnaryElementwiseOperator(OperatorBase, ABC):
@@ -516,6 +557,191 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
 class UnaryElementwiseParametricOperator(UnaryElementwiseOperator, ParametricOperator, ABC):
     pass
 # end class UnaryElementwiseParametricOperator
+
+
+class Neg(UnaryElementwiseOperator):
+    """
+    Element-wise negation operator.
+    """
+
+    ARITY = 1
+    IS_VARIADIC = False
+    IS_DIFF = True
+    NAME = "neg"
+    SYMBOL = "-"
+    PRECEDENCE = 40
+    ASSOCIATIVITY = OpAssociativity.NONE
+
+    def __init__(self):
+        super().__init__()
+    # end def __init__
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        """Return a human-readable representation of the operator.
+
+        Parameters
+        ----------
+        operands : Operands
+            The operands of the operator.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        str : A human-readable representation of the operator.
+        """
+        need_paren = isinstance(operands[0], MathNode) and operands[0].op.arity > 1
+        child_str = f"({operands[0]})" if need_paren else operands[0].__str__()
+        return f"{self.SYMBOL}{child_str}"
+    # end def print
+
+    # region STATIC
+
+    @classmethod
+    def check_shapes(cls, operands: Operands) -> bool:
+        """Neg accepts any operand shape."""
+        return True
+    # end def check_shapes
+
+    @classmethod
+    def infer_shape(cls, operands: Operands) -> Shape:
+        """Shape matches operand."""
+        return operands[0].shape
+    # end def infer_shape
+
+    @classmethod
+    def infer_dtype(cls, operands: Operands) -> DType:
+        """Return operand dtype."""
+        return operands[0].dtype
+    # end def infer_dtype
+
+    # endregion STATIC
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        """Evaluate element-wise negation."""
+        (value,) = operands
+        return -value.eval()
+    # end def _eval
+
+    # TODO: That issue with MathNode -> diff should return MathNode
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
+        x = operands[0]
+        return -(x.diff(wrt))
+    # end def _diff
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        a: MathExpr = operands[0]
+
+        # Replace expression
+        new_operands = [a]
+        repr_expr = None
+
+        # --x = x
+        if hasattr(a, "op") and isinstance(a, MathNode) and a.op.name == Neg.NAME:
+            if self._apply_rule(SimplifyRule.NEGATE_NEGATE, options):
+                repr_expr = a.children[0]
+                new_operands = []
+            # end if
+        # end if
+
+        return OpSimplifyResult(new_operands, repr_expr)
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[AlgebraicExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
+    # endregion PRIVATE
+
+# end class Neg
+
+
+class Pow(ElementwiseOperator):
+    """
+    Element-wise power operator.
+    """
+
+    ARITY = 2
+    IS_VARIADIC = False
+    IS_DIFF = True
+    COMMUTATIVE = False
+    ASSOCIATIVE = False
+    NAME = "pow"
+    SYMBOL = "^"
+    PRECEDENCE = 30
+    ASSOCIATIVITY = OpAssociativity.NONE
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        """Return a human-readable representation of the operator.
+
+        Parameters
+        ----------
+        operands : Operands
+            The operands of the operator.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        str : A human-readable representation of the operator.
+        """
+        left_need_paren = isinstance(operands[0], MathNode) and operands[0].op.arity > 1
+        right_need_paren = isinstance(operands[1], MathNode) and operands[1].op.arity > 1
+        left_child_str = f"({operands[0]})" if left_need_paren else operands[0].__str__()
+        right_child_str = f"({operands[1]})" if right_need_paren else operands[1].__str__()
+        return f"{left_child_str}{self.SYMBOL}{right_child_str}"
+    # end def print
+
+    # region PRIVATE
+
+    def _eval(self, operands: Operands, **kwargs) -> Tensor:
+        """Evaluate element-wise exponentiation."""
+        base, exponent = operands
+        return Tensor.pow(base.eval(), exponent.eval())
+    # end def _eval
+
+    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
+        base, exp = operands
+        if exp.is_constant():
+            c1 = Constant.new(exp.eval(), dtype=exp.dtype)
+            if exp.eval() == 0:
+                return Constant.new(0)
+            elif exp.eval() > 0:
+                c2 = Constant.new(exp.eval() - 1, dtype=exp.dtype)
+                return c1 * Pow.create_node(operands=(base, c2))  * base.diff(wrt)
+            else:
+                c2 = Constant.new(-(exp.eval() - 1), dtype=exp.dtype)
+                return c1 * 1 / Pow.create_node(operands=(base, c2)) * base.diff(wrt)
+            # end if
+        else:
+            pow_ab = Pow.create_node(operands=(base, exp))
+            bd_loga = exp.diff(wrt) * Log.create_node(operands=(base,))
+            b_ad_on_a = exp * (base.diff(wrt) / base)
+            return pow_ab * (bd_loga + b_ad_on_a)
+        # end if
+    # end def _diff
+
+    def _simplify(
+            self,
+            operands: Sequence[MathExpr],
+            options: SimplifyOptions | None = None
+    ) -> OpSimplifyResult:
+        pass
+    # end def _simplify
+
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+        pass
+    # end def _canonicalize
+
+    # endregion PRIVATE
+
+# end class Pow
 
 
 class Exp(UnaryElementwiseOperator):
@@ -1097,73 +1323,6 @@ class Abs(UnaryElementwiseOperator):
     # endregion PRIVATE
 
 # end class Abs
-
-
-class Neg(UnaryElementwiseOperator):
-    """
-    Element-wise negation operator.
-    """
-
-    ARITY = 1
-    IS_VARIADIC = False
-    IS_DIFF = True
-    NAME = "neg"
-
-    def __init__(self):
-        super().__init__()
-    # end def __init__
-
-    # region STATIC
-
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
-        """Neg accepts any operand shape."""
-        return True
-    # end def check_shapes
-
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
-        """Shape matches operand."""
-        return operands[0].shape
-    # end def infer_shape
-
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
-        """Return operand dtype."""
-        return operands[0].dtype
-    # end def infer_dtype
-
-    # endregion STATIC
-
-    # region PRIVATE
-
-    def _eval(self, operands: Operands, **kwargs) -> Tensor:
-        """Evaluate element-wise negation."""
-        (value,) = operands
-        return -value.eval()
-    # end def _eval
-
-    # TODO: That issue with MathNode -> diff should return MathNode
-    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
-        x = operands[0]
-        return -(x.diff(wrt))
-    # end def _diff
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    # endregion PRIVATE
-
-# end class Neg
 
 
 operator_registry.register(Add)

@@ -5,17 +5,17 @@ import sys
 import tempfile
 
 import pixelprism.math as pm
-import pixelprism.math.functional as F
 import pixelprism.math.render as render
 
 # Constant shapes
-n = pm.const("N", dtype=pm.DType.Z, data=2)
-m = pm.const("M", dtype=pm.DType.Z, data=3)
-zeros = pm.const("zeros", dtype=pm.DType.R, data=[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]])
+# n = pm.const("N", dtype=pm.DType.Z, data=2)
+# m = pm.const("M", dtype=pm.DType.Z, data=3)
+# zeros = pm.const("zeros", dtype=pm.DType.R, data=[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]])
+zeros = pm.const("zeros", dtype=pm.DType.R, data=0)
 
-x = pm.var("x", dtype=pm.DType.R, shape=(3, n))
-y = pm.var("y", dtype=pm.DType.R, shape=(m, n))
-z = pm.var("z", dtype=pm.DType.R, shape=(m, n))
+x = pm.var("x", dtype=pm.DType.R, shape=())
+y = pm.var("y", dtype=pm.DType.R, shape=())
+z = pm.var("z", dtype=pm.DType.R, shape=())
 
 _KITTY_TMP_IMAGES = []
 
@@ -32,7 +32,7 @@ def _cleanup_kitty_tmp_images():
 atexit.register(_cleanup_kitty_tmp_images)
 
 
-def show_expr(label, expr):
+def show_expr(label: str, expr: pm.MathExpr):
     print("")
     latex = render.to_latex(expr)
     print(f"{label}: {latex}")
@@ -69,39 +69,43 @@ def show_expr(label, expr):
     print("")
 # end def show_expr
 
-
 #
 # Addition and substraction
 #
 
-add_sub_expr = x + y - z
+add_sub_expr = (x + y) * z
 diff_add_sub_expr = add_sub_expr.diff(wrt=x)
+diff_add_sub_expr = diff_add_sub_expr.simplify()
 
-show_expr("Add and sub expr", add_sub_expr)
-show_expr("Diff of add and sub expr", diff_add_sub_expr)
+diff_add_sub_expr_z = add_sub_expr.diff(wrt=z).simplify()
+
+print(f"Add and sub expr: {add_sub_expr}")
+print(f"Diff of add and sub expr (x): {diff_add_sub_expr}")
+print("Diff of add and sub expr (z)", diff_add_sub_expr_z)
 
 with pm.new_context():
-    pm.set_value("x", [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
-    pm.set_value("y", [[5.0, 6.0], [7.0, 8.0], [9.0, 10.0]])
-    pm.set_value("z", [[9.0, 10.0], [11.0, 12.0], [13.0, 14.0]])
-    print(f"Add and sub expr: {add_sub_expr.eval()}")
-    print(f"Diff of add and sub expr: {diff_add_sub_expr.eval()}")
+    pm.set_value("x", 2)
+    pm.set_value("y", 3)
+    pm.set_value("z", 4)
+    print(f"Eval => Add and sub expr: {add_sub_expr.eval()}")
+    print(f"Eval => Diff of add and sub expr: {diff_add_sub_expr.eval()}")
 # end with
 print("")
 
 
-add_sub_expr = x + zeros - z
+add_sub_expr = (--x + (zeros - z) / y).simplify()
 
-show_expr("Add and sub expr", add_sub_expr)
+print(f"Add and sub expr: {add_sub_expr}")
 
 add_sub_expr = add_sub_expr.simplify()
 
-show_expr("Simplified add and sub expr", add_sub_expr)
+print(f"Simplified add and sub expr: {add_sub_expr}")
 
 with pm.new_context():
-    pm.set_value("x", [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
-    pm.set_value("z", [[9.0, 10.0], [11.0, 12.0], [13.0, 14.0]])
-    print(f"Simplified add and sub expr: {add_sub_expr.eval()}")
+    pm.set_value("x", 2)
+    pm.set_value("z", 4)
+    pm.set_value("y", 1)
+    print(f"Eval => Simplified add and sub expr: {add_sub_expr.eval()}")
 # end with
 
 print("")
