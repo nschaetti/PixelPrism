@@ -1054,6 +1054,22 @@ class Constant(MathLeaf):
         )
     # end def copy
 
+    # Check if the expression has children.
+    def has_children(self) -> bool:
+        """
+        Check if the expression has children.
+        """
+        return False
+    # end def has_children
+
+    # Check the number of children of the expression.
+    def num_children(self) -> int:
+        """
+        Check the number of children of the expression.
+        """
+        return 0
+    # end def num_children
+
     # endregion MATH_EXPR_MISC
 
     # region MATH_EXPR_MISC

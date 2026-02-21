@@ -31,7 +31,7 @@ from typing import Union
 from .helpers import apply_operator
 from ..math_node import MathNode
 from ..build import as_expr
-from ..typing import ExprLike
+from ..typing import ExprLike, MathExpr
 
 
 __all__ = [
@@ -62,7 +62,7 @@ __all__ = [
 def add(
         op1: ExprLike,
         op2: ExprLike
-) -> MathNode:
+) -> MathExpr:
     """
     Element-wise addition of two operands.
 
@@ -99,7 +99,7 @@ def add(
     op2 = as_expr(op2)
     return apply_operator(
         "add",
-        (op1, op2),
+        [op1, op2],
         f"{op1.name} + {op2.name}"
     )
 # end def add
@@ -108,7 +108,7 @@ def add(
 def sub(
         op1: ExprLike,
         op2: ExprLike
-) -> MathNode:
+) -> MathExpr:
     """
     Element-wise subtraction of two operands.
 
@@ -145,7 +145,7 @@ def sub(
     op2 = as_expr(op2)
     return apply_operator(
         "sub",
-        (op1, op2),
+        [op1, op2],
         f"{op1.name} - {op2.name}"
     )
 # end def sub
@@ -154,7 +154,7 @@ def sub(
 def mul(
         op1: ExprLike,
         op2: ExprLike
-) -> MathNode:
+) -> MathExpr:
     """
     Element-wise multiplication of two operands.
 
@@ -191,7 +191,7 @@ def mul(
     op2 = as_expr(op2)
     return apply_operator(
         "mul",
-        (op1, op2),
+        [op1, op2],
         f"{op1.name} * {op2.name}"
     )
 # end def mul
@@ -200,7 +200,7 @@ def mul(
 def div(
         op1: ExprLike,
         op2: ExprLike
-) -> MathNode:
+) -> MathExpr:
     """
     Element-wise division of two operands.
 
@@ -213,7 +213,7 @@ def div(
 
     Returns
     -------
-    MathNode
+    MathExpr
         Expression node representing the division.
 
     Raises
@@ -237,7 +237,7 @@ def div(
     op2 = as_expr(op2)
     return apply_operator(
         "div",
-        (op1, op2),
+        [op1, op2],
         f"{op1.name} / {op2.name}"
     )
 # end def div
@@ -246,7 +246,7 @@ def div(
 def pow(
         op1: ExprLike,
         op2: ExprLike
-) -> MathNode:
+) -> MathExpr:
     """
     Element-wise exponentiation of two operands.
 
@@ -259,20 +259,20 @@ def pow(
 
     Returns
     -------
-    MathNode
+    MathExpr
         Expression node representing the exponentiation.
     """
     op1 = as_expr(op1)
     op2 = as_expr(op2)
     return apply_operator(
         "pow",
-        (op1, op2),
+        [op1, op2],
         f"{op1.name} ** {op2.name}"
     )
 # end def pow
 
 
-def exp(op: ExprLike) -> MathNode:
+def exp(op: ExprLike) -> MathExpr:
     """
     Element-wise exponential of an operand.
     """
@@ -285,7 +285,7 @@ def exp(op: ExprLike) -> MathNode:
 # end def exp
 
 
-def exp2(op: ExprLike) -> MathNode:
+def exp2(op: ExprLike) -> MathExpr:
     """
     Element-wise base-2 exponential of an operand.
     """
@@ -298,7 +298,7 @@ def exp2(op: ExprLike) -> MathNode:
 # end def exp2
 
 
-def expm1(op: ExprLike) -> MathNode:
+def expm1(op: ExprLike) -> MathExpr:
     """
     Element-wise exp(x) - 1 of an operand.
     """
@@ -311,7 +311,7 @@ def expm1(op: ExprLike) -> MathNode:
 # end def expm1
 
 
-def log(op: ExprLike) -> MathNode:
+def log(op: ExprLike) -> MathExpr:
     """
     Element-wise natural logarithm of an operand.
     """
@@ -324,7 +324,7 @@ def log(op: ExprLike) -> MathNode:
 # end def log
 
 
-def log1p(op: ExprLike) -> MathNode:
+def log1p(op: ExprLike) -> MathExpr:
     """
     Element-wise log(1 + x) of an operand.
     """
@@ -337,7 +337,7 @@ def log1p(op: ExprLike) -> MathNode:
 # end def log1p
 
 
-def log2(op: ExprLike) -> MathNode:
+def log2(op: ExprLike) -> MathExpr:
     """
     Element-wise base-2 logarithm of an operand.
     """
@@ -350,7 +350,7 @@ def log2(op: ExprLike) -> MathNode:
 # end def log2
 
 
-def log10(op: ExprLike) -> MathNode:
+def log10(op: ExprLike) -> MathExpr:
     """
     Element-wise base-10 logarithm of an operand.
     """
@@ -363,7 +363,7 @@ def log10(op: ExprLike) -> MathNode:
 # end def log10
 
 
-def sqrt(op: ExprLike) -> MathNode:
+def sqrt(op: ExprLike) -> MathExpr:
     """
     Element-wise square root of an operand.
     """
@@ -376,7 +376,7 @@ def sqrt(op: ExprLike) -> MathNode:
 # end def sqrt
 
 
-def square(op: ExprLike) -> MathNode:
+def square(op: ExprLike) -> MathExpr:
     """
     Element-wise square of an operand.
     """
@@ -389,7 +389,7 @@ def square(op: ExprLike) -> MathNode:
 # end def square
 
 
-def cbrt(op: ExprLike) -> MathNode:
+def cbrt(op: ExprLike) -> MathExpr:
     """
     Element-wise cubic root of an operand.
     """
@@ -402,7 +402,7 @@ def cbrt(op: ExprLike) -> MathNode:
 # end def cbrt
 
 
-def reciprocal(op: ExprLike) -> MathNode:
+def reciprocal(op: ExprLike) -> MathExpr:
     """
     Element-wise reciprocal of an operand.
     """
@@ -415,7 +415,7 @@ def reciprocal(op: ExprLike) -> MathNode:
 # end def reciprocal
 
 
-def deg2rad(op: ExprLike) -> MathNode:
+def deg2rad(op: ExprLike) -> MathExpr:
     """
     Convert degrees to radians element-wise.
     """
@@ -428,7 +428,7 @@ def deg2rad(op: ExprLike) -> MathNode:
 # end def deg2rad
 
 
-def rad2deg(op: ExprLike) -> MathNode:
+def rad2deg(op: ExprLike) -> MathExpr:
     """
     Convert radians to degrees element-wise.
     """
@@ -441,7 +441,7 @@ def rad2deg(op: ExprLike) -> MathNode:
 # end def rad2deg
 
 
-def absolute(op: ExprLike) -> MathNode:
+def absolute(op: ExprLike) -> MathExpr:
     """
     Element-wise absolute value of an operand.
     """
@@ -454,7 +454,7 @@ def absolute(op: ExprLike) -> MathNode:
 # end def absolute
 
 
-def abs(op: ExprLike) -> MathNode:
+def abs(op: ExprLike) -> MathExpr:
     """
     Element-wise absolute value alias.
     """
@@ -467,7 +467,7 @@ def abs(op: ExprLike) -> MathNode:
 # end def abs
 
 
-def neg(op: ExprLike) -> MathNode:
+def neg(op: ExprLike) -> MathExpr:
     """
     Element-wise negation of a single operand.
 

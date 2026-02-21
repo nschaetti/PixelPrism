@@ -29,10 +29,7 @@
 from typing import Sequence, TYPE_CHECKING
 from ..operators.base import operator_registry
 from ..math_node import MathNode
-
-if TYPE_CHECKING:
-    from ..typing import Operand
-# end if
+from ..typing import MathExpr, Operator, Operand
 
 
 def apply_operator(
@@ -40,7 +37,7 @@ def apply_operator(
         operands: Sequence["Operand"],
         display_name: str,
         **kwargs
-) -> "MathNode":
+) -> MathExpr:
     """
     Build a MathNode by applying a registered operator to operands.
 
@@ -57,7 +54,7 @@ def apply_operator(
 
     Returns
     -------
-    MathNode
+    MathExpr
         A new operator node wrapping the operands.
 
     Raises
@@ -83,35 +80,20 @@ def apply_operator(
     # Get operator class
     op_cls = operator_registry.get(op_name)
 
-    # We check that operator arity is respected
-    if not op_cls.check_arity(operands):
-        raise TypeError(
-            f"Operator {op_cls.NAME}({op_cls.ARITY}) expected {op_cls.ARITY} operands, "
-            f"got {len(operands)}"
-        )
-    # end if
-
     # Instantiate operator
-    op = op_cls(**kwargs)
+    op = op_cls.construct(operands=operands, **kwargs)
 
-    # We check that shapes of the operands are compatible
-    if not op.check_shapes(operands):
-        shapes = ", ".join(str(o.shape) for o in operands)
-        raise TypeError(
-            f"Incompatible shapes for operator {op_cls.NAME}: {shapes}"
+    if isinstance(op, MathExpr):
+        return op
+    elif isinstance(op, Operator):
+        return MathNode(
+            name=display_name,
+            op=op,
+            children=operands,
+            dtype=op.infer_dtype(operands),
+            shape=op.infer_shape(operands),
         )
+    else:
+        raise TypeError(f"Unexpected operator type: {type(op)}")
     # end if
-
-    # We check that the operator approves the operand(s)
-    if not op.check_operands(operands):
-        raise ValueError(f"Invalid parameters for operator {op.name}: {kwargs}")
-    # end if
-
-    return MathNode(
-        name=display_name,
-        op=op,
-        children=operands,
-        dtype=op.infer_dtype(operands),
-        shape=op.infer_shape(operands),
-    )
 # end def apply_operator

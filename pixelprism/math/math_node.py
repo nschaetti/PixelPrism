@@ -755,6 +755,25 @@ class MathNode(
         return self._op is not None and self._op.name == name
     # end if
 
+    # Check if the expression has children.
+    def has_children(self) -> bool:
+        """
+        Check if the expression has children.
+        """
+        if self._children is None:
+            return False
+        # end if
+        return len(self._children) > 0
+    # end def has_children
+
+    # Check the number of children of the expression.
+    def num_children(self) -> int:
+        """
+        Check the number of children of the expression.
+        """
+        return len(self._children) if self._children is not None else 0
+    # end def num_children
+
     #
     # Structure
     #

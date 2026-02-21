@@ -32,7 +32,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 from types import EllipsisType
-from typing import Protocol, runtime_checkable, NamedTuple, FrozenSet, List
+from typing import Protocol, runtime_checkable, NamedTuple, FrozenSet, List, Optional
 from typing import TYPE_CHECKING, Tuple, Union, Sequence, TypeAlias
 from typing import ClassVar, Mapping
 import numpy as np
@@ -327,6 +327,12 @@ class MathExpr(Protocol):
     # Check if the expression as an operator with the given name.
     def has_operator(self, name: str) -> bool: ...
 
+    # Check if the expression has children.
+    def has_children(self) -> bool: ...
+
+    # Check the number of children of the expression.
+    def num_children(self) -> int: ...
+
     #
     # Structure
     #
@@ -357,7 +363,7 @@ class MathExpr(Protocol):
 # Operands are the operands of an operator.
 # Can be a single operand or a tuple of operands.
 # Can be a MathNode, Variable, or Constant, then a MathExpr.
-Operand: TypeAlias = "AlgebraicExpr"
+Operand: TypeAlias = "MathExpr"
 Operands = Sequence[Operand]
 
 # Expression type
@@ -471,7 +477,10 @@ class Operator(Protocol):
     # Return canonicalized operands for this operator without changing semantics.
     # Intended for a deterministic tree form (e.g., flatten associative, sort commutative).
     # This does not directly replace the node; the caller rebuilds with returned operands.
-    def canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]: ...
+    def canonicalize(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> Optional[Union[MathExpr, 'Operator']]: ...
 
     #
     # Structure
@@ -527,10 +536,9 @@ class Operator(Protocol):
     def check_arity(cls, operands: Operands) -> bool: ...
 
     @classmethod
-    # Construct a MathNode bound to this operator from validated operands.
-    # Implementations should infer dtype/shape and attach operator parameters from `kwargs`.
-    # Returns a symbolic node ready for graph use.
-    def create_node(cls, operands: Operands, **kwargs) -> "MathNode": ...
+    # Construct the operator. This is the official and only way to create the operator instance.
+    # The method will check rule of simplification.
+    def construct(cls, operands: Operands, **kwargs) -> Union["Operator", "MathExpr"]: ...
 
     #
     # Representation

@@ -1,7 +1,14 @@
 import pixelprism.math as pm
 
 
-def _print_expr_details(title: str, expr: pm.MathExpr, x: pm.MathExpr, y: pm.MathExpr, z: pm.MathExpr) -> None:
+def _print_expr_details(
+    title: str,
+    expr: pm.MathExpr,
+    x: pm.Variable,
+    y: pm.Variable,
+    z: pm.Variable,
+    w: pm.Variable,
+) -> None:
     print("\n" + "=" * 90)
     print(f"CASE: {title}")
     print("-" * 90)
@@ -15,19 +22,23 @@ def _print_expr_details(title: str, expr: pm.MathExpr, x: pm.MathExpr, y: pm.Mat
     print(f"expr repr     : {repr(expr)}")
     print(f"simplified repr: {repr(simplified)}")
 
-    if hasattr(expr, "op"):
-        print(f"expr op       : {expr.op} | {repr(expr.op)}")
-    if hasattr(simplified, "op"):
-        print(f"simplified op : {simplified.op} | {repr(simplified.op)}")
+    expr_op = getattr(expr, "op", None)
+    simplified_op = getattr(simplified, "op", None)
+    if expr_op is not None:
+        print(f"expr op       : {expr_op} | {repr(expr_op)}")
+    if simplified_op is not None:
+        print(f"simplified op : {simplified_op} | {repr(simplified_op)}")
 
     # Derivatives
     dx = expr.diff(wrt=x)
     dy = expr.diff(wrt=y)
     dz = expr.diff(wrt=z)
+    dw = expr.diff(wrt=w)
 
     dx_s = dx.simplify()
     dy_s = dy.simplify()
     dz_s = dz.simplify()
+    dw_s = dw.simplify()
 
     print(f"d/dx          : {dx}")
     print(f"d/dx simplify : {dx_s}")
@@ -35,24 +46,29 @@ def _print_expr_details(title: str, expr: pm.MathExpr, x: pm.MathExpr, y: pm.Mat
     print(f"d/dy simplify : {dy_s}")
     print(f"d/dz          : {dz}")
     print(f"d/dz simplify : {dz_s}")
+    print(f"d/dw          : {dw}")
+    print(f"d/dw simplify : {dw_s}")
 
     # Numeric checks
     with pm.new_context():
         pm.set_value("x", 2.0)
         pm.set_value("y", 3.0)
         pm.set_value("z", 4.0)
+        pm.set_value("w", 5.0)
 
         print(f"eval(expr)    : {expr.eval()}")
         print(f"eval(simplify): {simplified.eval()}")
         print(f"eval(d/dx)    : {dx_s.eval()}")
         print(f"eval(d/dy)    : {dy_s.eval()}")
         print(f"eval(d/dz)    : {dz_s.eval()}")
+        print(f"eval(d/dw)    : {dw_s.eval()}")
 
 
 def main() -> None:
     x = pm.var("x", dtype=pm.DType.R, shape=())
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
+    w = pm.var("w", dtype=pm.DType.R, shape=())
 
     c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
     c2 = pm.const("two", dtype=pm.DType.R, data=2.0)
@@ -71,13 +87,18 @@ def main() -> None:
         ("3 vars: (x + y) + z", (x + y) + z),
         ("3 vars: x + (y + z)", x + (y + z)),
         ("3 vars + neg: (x + y) + (-z)", (x + y) + (-z)),
+        ("3 vars with sub: x - y + z", x - y + z),
+        ("3 vars with sub: x - (y + z)", x - (y + z)),
+        ("3 vars with sub: (x - y) + z", (x - y) + z),
+        ("4 vars with sub: x - (y - z) + w", x - (y - z) + w),
+        ("4 vars with nested sub: x - (y - (z - w))", x - (y - (z - w))),
     ]
 
     print("\nElementwise Add deep-check (print/simplify/diff/eval)")
-    print("Values used for eval: x=2, y=3, z=4")
+    print("Values used for eval: x=2, y=3, z=4, w=5")
 
     for title, expr in cases:
-        _print_expr_details(title, expr, x, y, z)
+        _print_expr_details(title, expr, x, y, z, w)
 
     print("\nDone.")
 

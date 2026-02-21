@@ -30,7 +30,7 @@ Operator base classes and registry.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Type, Tuple, Any, Optional, Sequence
+from typing import List, Type, Tuple, Any, Optional, Sequence, Union
 
 from ..dtype import DType
 from ..shape import Shape
@@ -134,7 +134,10 @@ class OperatorBase(
         return self._simplify(operands=operands, options=options)
     # end def simplify
 
-    def canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+    def canonicalize(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> Optional[Union[MathExpr, 'Operator']]:
         """Return canonicalized operands for this operator."""
         return self._canonicalize(operands=operands)
     # end def canonicalize
@@ -262,14 +265,12 @@ class OperatorBase(
         """Return operator-local simplification result."""
     # end def simplify
 
-    @abstractmethod
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> Optional[Union[MathExpr, 'Operator']]:
         """Return canonicalized operands for this operator."""
+        return None
     # end def canonicalize
 
     # endregion PRIVATE
-
-    # region STATIC
 
     @abstractmethod
     def infer_dtype(
@@ -310,6 +311,8 @@ class OperatorBase(
         """Return a debug-friendly description for the operator."""
     # end def __repr__
 
+    # region STATIC
+
     @staticmethod
     def _resolve_parameter(v: Any):
         if v is None:
@@ -320,6 +323,10 @@ class OperatorBase(
         # end if
         return v
     # end def _resolve_parameter
+
+    # endregion STATIC
+
+    # region CLASS METHODS
 
     @classmethod
     def check_arity(
@@ -378,7 +385,59 @@ class OperatorBase(
         )
     # end def create_node
 
-    # endregion STATIC
+    @classmethod
+    # Construct the operator. This is the official and only way to create the operator instance.
+    # The method will check rule of simplification.
+    def construct(cls, operands: Operands, **kwargs) -> Union["Operator", "MathExpr"]:
+        """
+        Construct the operator. This is the official and only way to create the operator instance.
+        The method will check the rule of simplification.
+
+        Parameters
+        ----------
+        operands : Operands
+            The operands for the operator.
+        kwargs : dict
+            Additional keyword arguments for the operator.
+
+        Returns
+        -------
+        Union["Operator", "MathExpr"]
+            The constructed operator or simplified expression.
+        """
+        # We check that operator arity is respected
+        if not cls.check_arity(operands):
+            raise TypeError(
+                f"Operator {cls.NAME}({cls.ARITY}) expected {cls.ARITY} operands, "
+                f"got {len(operands)}"
+            )
+        # end if
+
+        # Instantiate operator
+        op = cls(**kwargs)
+
+        # We check that the shapes of the operands are compatible
+        if not op.check_shapes(operands):
+            shapes = ", ".join(str(o.shape) for o in operands)
+            raise TypeError(
+                f"Incompatible shapes for operator {op.name}: {shapes}"
+            )
+        # end if
+
+        # We check that the operator approves the operand(s)
+        if not op.check_operands(operands):
+            raise ValueError(f"Invalid parameters for operator {op.name}: {kwargs}")
+        # end if
+
+        # Canonicalize operands
+        canon_expr: Union[MathExpr, 'Operator'] = op.canonicalize(operands)
+
+        if canon_expr is None:
+            return op
+        else:
+            return canon_expr
+        # end if
+    # endregion CLASS METHODS
 
 # end class Operator
 

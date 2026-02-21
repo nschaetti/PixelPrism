@@ -29,13 +29,13 @@
 Elementwise operator implementations.
 """
 from abc import ABC
-from typing import Sequence
+from typing import Sequence, Union, Optional
 from ..tensor import Tensor
 from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
-from ..typing import MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule, OpAssociativity, AlgebraicExpr
+from ..typing import MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule, OpAssociativity, AlgebraicExpr, Operator
 from .base import Operands, OperatorBase, operator_registry, ParametricOperator
 
 
@@ -237,7 +237,8 @@ class Add(ElementwiseOperator):
             if isinstance(a, Constant) and a.eval().is_null():
                 repr_expr = b
                 new_operands = []
-            elif isinstance(b, Constant) and b.eval().is_null():
+            # end if
+            if isinstance(b, Constant) and b.eval().is_null():
                 repr_expr = a
                 new_operands = []
             # end if
@@ -264,7 +265,7 @@ class Add(ElementwiseOperator):
 
         # a*x + b*x = (a+b)*x
         if self._apply_rule(SimplifyRule.ADD_AX_BX, options):
-            if hasattr(a, "op") and hasattr(b, "op"):
+            if hasattr(a, "op") and hasattr(b, "op") and a.num_children() > 1 and b.num_children() > 1:
                 is_ax = a.has_operator(Mul.NAME) and a.children[1] == b.children[1] and a.children[0].is_constant()
                 is_bx = b.has_operator(Mul.NAME) and b.children[1] == a.children[1] and b.children[0].is_constant()
                 if is_ax and is_bx:
@@ -277,8 +278,31 @@ class Add(ElementwiseOperator):
         return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
 
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
+    def _canonicalize(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> Optional[Union[MathExpr, Operator]]:
+        """
+        Simplify an expression by combining adjacent terms.
+        """
+        a, b = operands
+
+        # a + b = c
+        if a.is_constant() and b.is_constant():
+            return Constant.new(a.eval() + b.eval())
+        # end if
+
+        # 0.0 + x = x
+        if a.is_constant() and a.eval().is_null():
+            return b
+        # end if
+
+        # x + 0.0 = x
+        if b.is_constant() and b.eval().is_null():
+            return a
+        # end if
+
+        return None
     # end def _canonicalize
 
 # end class Add
@@ -319,7 +343,7 @@ class Sub(ElementwiseOperator):
     ) -> OpSimplifyResult:
         a: MathExpr = operands[0]
         b: MathExpr = operands[1]
-
+        print(f"_simplify {a} - {b}")
         # Replace expression
         new_operands = [a, b]
         repr_expr = None
@@ -336,10 +360,15 @@ class Sub(ElementwiseOperator):
         # x - 0 = x
         # 0 - x = -x
         if self._apply_rule(SimplifyRule.SUB_ZERO, options):
+            print(a)
+            print(b)
             if isinstance(a, Constant) and a.eval().is_null():
+                print("SUB_ZERO 1")
                 repr_expr = -b
                 new_operands = []
-            elif isinstance(b, Constant) and b.eval().is_null():
+            # end if
+            if isinstance(b, Constant) and b.eval().is_null():
+                print("SUB_ZERO 2")
                 repr_expr = a
                 new_operands = []
             # end if
@@ -364,8 +393,31 @@ class Sub(ElementwiseOperator):
         return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
 
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
+    def _canonicalize(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> Optional[Union[MathExpr, Operator]]:
+        """
+        Simplify an expression by combining adjacent terms.
+        """
+        a, b = operands
+
+        # a - b = c
+        if a.is_constant() and b.is_constant():
+            return Constant.new(a.eval() - b.eval())
+        # end if
+
+        # x - 0 = x
+        if b.is_constant() and b.eval().is_null():
+            return a
+        # end if
+
+        # 0 - x = -x
+        if a.is_constant() and a.eval().is_null():
+            return -b
+        # end if
+
+        return None
     # end def _canonicalize
 
     # endregion PRIVATE
@@ -419,6 +471,7 @@ class Mul(ElementwiseOperator):
             if isinstance(a, Constant) and isinstance(b, Constant):
                 repr_expr = Constant.new(a.eval() * b.eval())
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -427,9 +480,11 @@ class Mul(ElementwiseOperator):
             if isinstance(a, Constant) and a.eval().is_full(1):
                 repr_expr = b
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             elif isinstance(b, Constant) and b.eval().is_full(1):
                 repr_expr = a
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -438,9 +493,11 @@ class Mul(ElementwiseOperator):
             if isinstance(a, Constant) and a.eval().is_null():
                 repr_expr = Constant.new(0)
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             elif isinstance(b, Constant) and b.eval().is_null():
                 repr_expr = Constant.new(0)
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -449,6 +506,7 @@ class Mul(ElementwiseOperator):
             if a.is_variable() and b.is_constant():
                 repr_expr = None
                 new_operands = [b, a]
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -457,6 +515,7 @@ class Mul(ElementwiseOperator):
             if a == b:
                 repr_expr = a.pow(a, 2.0)
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -466,6 +525,7 @@ class Mul(ElementwiseOperator):
             if hasattr(b, "op") and b.op.name == Neg.NAME:
                 repr_expr = -a * b.children[0]
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -474,6 +534,12 @@ class Mul(ElementwiseOperator):
             if isinstance(b, Constant) and b.eval().is_full(-1):
                 repr_expr = -a
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
+            # end if
+            if isinstance(a, Constant) and a.eval().is_full(-1):
+                repr_expr = -b
+                new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -481,10 +547,10 @@ class Mul(ElementwiseOperator):
         if self._apply_rule(SimplifyRule.MUL_BY_INV, options):
             if (hasattr(b, 'op') and b.op.name == Div.NAME and
                     isinstance(b.children[0], Constant)
-                    and not b.children[0].eval().is_null()):
+                    and b.children[0].eval().is_full(1.0)):
                 repr_expr = a / b.children[1]
                 new_operands = []
-                print(f"MUL_BY_INV: {repr_expr}")
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -495,6 +561,8 @@ class Mul(ElementwiseOperator):
                     and b.children[0].eval().is_full(-1)):
                 repr_expr = -(a / b.children[1])
                 new_operands = []
+                print(repr_expr)
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
@@ -503,15 +571,12 @@ class Mul(ElementwiseOperator):
             if hasattr(b, 'op') and b.op.name == Neg.NAME and a == b.children[0]:
                 repr_expr = -(a**2)
                 new_operands = []
+                return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
 
         return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -753,6 +818,15 @@ class Neg(UnaryElementwiseOperator):
         # Replace expression
         new_operands = [a]
         repr_expr = None
+
+        # Merge constante
+        # -a = c
+        if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
+            if isinstance(a, Constant):
+                repr_expr = Constant.new(-a.eval())
+                new_operands = []
+            # end if
+        # end if
 
         # --x = x
         if hasattr(a, "op") and isinstance(a, MathNode) and a.op.name == Neg.NAME:
