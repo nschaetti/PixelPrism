@@ -105,8 +105,8 @@ class ElementwiseOperator(OperatorBase, ABC):
         -------
         str : A human-readable representation of the operator.
         """
-        need_left_paren = self._needs_parentheses(child=operands[0], is_right_child=True)
-        need_right_paren = self._needs_parentheses(child=operands[1], is_right_child=False)
+        need_left_paren = self._needs_parentheses(child=operands[0], is_right_child=False)
+        need_right_paren = self._needs_parentheses(child=operands[1], is_right_child=True)
         left_str = f"({operands[0]})" if need_left_paren else operands[0].__str__()
         right_str = f"({operands[1]})" if need_right_paren else operands[1].__str__()
         return f"{left_str} {self.SYMBOL} {right_str}"
@@ -221,7 +221,8 @@ class Add(ElementwiseOperator):
         new_operands = [a, b]
         repr_expr = None
 
-        # Merge constants
+        # a + b = c
+        # replace the expression
         if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
             # Replaces with constant when both operands are constant
             if isinstance(a, Constant) and isinstance(b, Constant):
@@ -230,7 +231,8 @@ class Add(ElementwiseOperator):
             # end if
         # end if
 
-        # Add zero
+        # x + 0 = x, 0 + x = x
+        # replace the expression
         if self._apply_rule(SimplifyRule.ADD_ZERO, options):
             if isinstance(a, Constant) and a.eval().is_null():
                 repr_expr = b
@@ -238,6 +240,37 @@ class Add(ElementwiseOperator):
             elif isinstance(b, Constant) and b.eval().is_null():
                 repr_expr = a
                 new_operands = []
+            # end if
+        # end if
+
+        # x + x = 2x
+        # replace the expression
+        if self._apply_rule(SimplifyRule.ADD_ITSELF, options):
+            # a and b are the same object
+            if operands[0] == operands[1]:
+                repr_expr = a.mul(2.0, a)
+                new_operands = []
+        # end if
+
+        # x + -y = x - y
+        # replace the expression
+        if self._apply_rule(SimplifyRule.ADD_NEG, options):
+            # b is a node, and has the neg operator
+            if hasattr(b, "op") and b.op.name == Neg.NAME:
+                repr_expr = a.sub(a, b.children[0])
+                new_operands = []
+            # end if
+        # end if
+
+        # a*x + b*x = (a+b)*x
+        if self._apply_rule(SimplifyRule.ADD_AX_BX, options):
+            if hasattr(a, "op") and hasattr(b, "op"):
+                is_ax = a.has_operator(Mul.NAME) and a.children[1] == b.children[1] and a.children[0].is_constant()
+                is_bx = b.has_operator(Mul.NAME) and b.children[1] == a.children[1] and b.children[0].is_constant()
+                if is_ax and is_bx:
+                    repr_expr = Constant.new(a.children[0].eval() + b.children[0].eval()) * a.children[1]
+                    new_operands = []
+                # end if
             # end if
         # end if
 
@@ -309,6 +342,22 @@ class Sub(ElementwiseOperator):
             elif isinstance(b, Constant) and b.eval().is_null():
                 repr_expr = a
                 new_operands = []
+            # end if
+        # end if
+
+        # x - x = 0
+        if self._apply_rule(SimplifyRule.SUB_ITSELF, options):
+            if a == b:
+                repr_expr = Constant.new(0)
+                new_operands = []
+            # end if
+        # end if
+
+        # x - -y = x + y
+        if self._apply_rule(SimplifyRule.SUB_ITSELF, options):
+            # b is a node, and has the neg operator
+            if hasattr(b, "op") and b.op.name == Neg.NAME:
+                repr_expr = a.add(a, b.children[0])
             # end if
         # end if
 
@@ -391,6 +440,68 @@ class Mul(ElementwiseOperator):
                 new_operands = []
             elif isinstance(b, Constant) and b.eval().is_null():
                 repr_expr = Constant.new(0)
+                new_operands = []
+            # end if
+        # end if
+
+        # x * c = c * x
+        if self._apply_rule(SimplifyRule.MUL_BY_CONSTANT, options):
+            if a.is_variable() and b.is_constant():
+                repr_expr = None
+                new_operands = [b, a]
+            # end if
+        # end if
+
+        # x * x = x^2
+        if self._apply_rule(SimplifyRule.MUL_ITSELF, options):
+            if a == b:
+                repr_expr = a.pow(a, 2.0)
+                new_operands = []
+            # end if
+        # end if
+
+        # x * -y -> -x * y
+        if self._apply_rule(SimplifyRule.MUL_NEG, options):
+            # b is a node, and has the neg operator
+            if hasattr(b, "op") and b.op.name == Neg.NAME:
+                repr_expr = -a * b.children[0]
+                new_operands = []
+            # end if
+        # end if
+
+        # x * -1 = -x
+        if self._apply_rule(SimplifyRule.MUL_BY_NEG_ONE, options):
+            if isinstance(b, Constant) and b.eval().is_full(-1):
+                repr_expr = -a
+                new_operands = []
+            # end if
+        # end if
+
+        # x * 1/y = x/y
+        if self._apply_rule(SimplifyRule.MUL_BY_INV, options):
+            if (hasattr(b, 'op') and b.op.name == Div.NAME and
+                    isinstance(b.children[0], Constant)
+                    and not b.children[0].eval().is_null()):
+                repr_expr = a / b.children[1]
+                new_operands = []
+                print(f"MUL_BY_INV: {repr_expr}")
+            # end if
+        # end if
+
+        # x * -1/y = -(x/y)
+        if self._apply_rule(SimplifyRule.MUL_BY_INV_NEG, options):
+            if (hasattr(b, 'op') and b.op.name == Div.NAME and
+                    isinstance(b.children[0], Constant)
+                    and b.children[0].eval().is_full(-1)):
+                repr_expr = -(a / b.children[1])
+                new_operands = []
+            # end if
+        # end if
+
+        # x * -x = -x^2
+        if self._apply_rule(SimplifyRule.MUL_BY_NEG_ITSELF, options):
+            if hasattr(b, 'op') and b.op.name == Neg.NAME and a == b.children[0]:
+                repr_expr = -(a**2)
                 new_operands = []
             # end if
         # end if
@@ -590,7 +701,8 @@ class Neg(UnaryElementwiseOperator):
         -------
         str : A human-readable representation of the operator.
         """
-        need_paren = isinstance(operands[0], MathNode) and operands[0].op.arity > 1
+        need_paren = (isinstance(operands[0], MathNode) and operands[0].op.arity > 1
+                      and operands[0].op.PRECEDENCE <= self.PRECEDENCE)
         child_str = f"({operands[0]})" if need_paren else operands[0].__str__()
         return f"{self.SYMBOL}{child_str}"
     # end def print

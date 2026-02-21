@@ -101,6 +101,10 @@ add_sub_expr = add_sub_expr.simplify()
 
 print(f"Simplified add and sub expr: {add_sub_expr}")
 
+ddy = add_sub_expr.diff(wrt=y).simplify()
+
+print(f"Diff of add and sub expr (y): {ddy}")
+
 with pm.new_context():
     pm.set_value("x", 2)
     pm.set_value("z", 4)

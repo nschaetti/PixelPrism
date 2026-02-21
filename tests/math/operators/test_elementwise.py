@@ -425,3 +425,151 @@ def test_element_wise_op_scalar():
         assert z25.eval().value == pytest.approx(6.6663360595703125, abs=1e-6)
     # end with
 # end test test_element_wise_op_scalar
+
+
+ADD_CASES = (
+    ("merge_constants", "2.0 + 3.0", "5.0", 5.0, (0.0, 0.0, 0.0)),
+    ("add_zero_right", "x + 0.0", "x", 2.0, (1.0, 0.0, 0.0)),
+    ("add_zero_left", "0.0 + x", "x", 2.0, (1.0, 0.0, 0.0)),
+    ("add_itself", "x + x", "2.0 * x", 4.0, (2.0, 0.0, 0.0)),
+    ("add_neg", "x + -y", "x - y", -1.0, (1.0, -1.0, 0.0)),
+    ("two_vars", "x + y", "x + y", 5.0, (1.0, 1.0, 0.0)),
+    ("two_vars_plus_zero", "x + y + 0.0", "x + y", 5.0, (1.0, 1.0, 0.0)),
+    ("three_vars_left_assoc", "x + y + z", "x + y + z", 9.0, (1.0, 1.0, 1.0)),
+    ("three_vars_right_assoc", "x + (y + z)", "x + (y + z)", 9.0, (1.0, 1.0, 1.0)),
+    ("three_vars_plus_neg", "x + y + -z", "x + y - z", 1.0, (1.0, 1.0, -1.0)),
+)
+
+
+def _build_add_case(case_name, x, y, z, c0, c2, c3):
+    if case_name == "merge_constants":
+        return c2 + c3
+    if case_name == "add_zero_right":
+        return x + c0
+    if case_name == "add_zero_left":
+        return c0 + x
+    if case_name == "add_itself":
+        return x + x
+    if case_name == "add_neg":
+        return x + (-y)
+    if case_name == "two_vars":
+        return x + y
+    if case_name == "two_vars_plus_zero":
+        return (x + y) + c0
+    if case_name == "three_vars_left_assoc":
+        return (x + y) + z
+    if case_name == "three_vars_right_assoc":
+        return x + (y + z)
+    if case_name == "three_vars_plus_neg":
+        return (x + y) + (-z)
+    raise ValueError(f"Unsupported add case: {case_name}")
+
+
+@pytest.mark.parametrize(
+    "case_name, expected_expr_str, expected_simplified_str, expected_eval, expected_grads",
+    ADD_CASES,
+    ids=[case[0] for case in ADD_CASES],
+)
+def test_add_cases_print_simplify_diff(case_name, expected_expr_str, expected_simplified_str, expected_eval, expected_grads):
+    x = pm.var("x", dtype=pm.DType.R, shape=())
+    y = pm.var("y", dtype=pm.DType.R, shape=())
+    z = pm.var("z", dtype=pm.DType.R, shape=())
+
+    c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
+    c2 = pm.const("two", dtype=pm.DType.R, data=2.0)
+    c3 = pm.const("three", dtype=pm.DType.R, data=3.0)
+
+    expr = _build_add_case(case_name, x, y, z, c0, c2, c3)
+    simplified = expr.simplify()
+
+    assert str(expr) == expected_expr_str
+    assert str(simplified) == expected_simplified_str
+
+    d_dx = expr.diff(wrt=x).simplify()
+    d_dy = expr.diff(wrt=y).simplify()
+    d_dz = expr.diff(wrt=z).simplify()
+
+    with pm.new_context():
+        pm.set_value("x", 2.0)
+        pm.set_value("y", 3.0)
+        pm.set_value("z", 4.0)
+
+        _assert_expr_allclose(expr, np.array(expected_eval, dtype=np.float32))
+        _assert_expr_allclose(simplified, np.array(expected_eval, dtype=np.float32))
+        _assert_expr_allclose(d_dx, np.array(expected_grads[0], dtype=np.float32))
+        _assert_expr_allclose(d_dy, np.array(expected_grads[1], dtype=np.float32))
+        _assert_expr_allclose(d_dz, np.array(expected_grads[2], dtype=np.float32))
+
+
+SUB_CASES = (
+    ("merge_constants", "5.0 - 2.0", "3.0", 3.0, (-0.0, -0.0, -0.0)),
+    ("sub_zero_right", "x - 0.0", "x", 2.0, (1.0, -0.0, -0.0)),
+    ("sub_zero_left", "0.0 - x", "-x", -2.0, (-1.0, -0.0, -0.0)),
+    ("sub_itself", "x - x", "0.0", 0.0, (0.0, -0.0, -0.0)),
+    ("sub_neg", "x - -y", "x + y", 5.0, (1.0, 1.0, 0.0)),
+    ("two_vars", "x - y", "x - y", -1.0, (1.0, -1.0, -0.0)),
+    ("two_vars_minus_zero", "x - y - 0.0", "x - y", -1.0, (1.0, -1.0, -0.0)),
+    ("three_vars_left_assoc", "x - y - z", "x - y - z", -5.0, (1.0, -1.0, -1.0)),
+    ("three_vars_right_assoc", "x - (y - z)", "x - (y - z)", 3.0, (1.0, -1.0, 1.0)),
+    ("three_vars_minus_neg", "x - y - -z", "x - y + z", 3.0, (1.0, -1.0, 1.0)),
+)
+
+
+def _build_sub_case(case_name, x, y, z, c0, c2, c5):
+    if case_name == "merge_constants":
+        return c5 - c2
+    if case_name == "sub_zero_right":
+        return x - c0
+    if case_name == "sub_zero_left":
+        return c0 - x
+    if case_name == "sub_itself":
+        return x - x
+    if case_name == "sub_neg":
+        return x - (-y)
+    if case_name == "two_vars":
+        return x - y
+    if case_name == "two_vars_minus_zero":
+        return (x - y) - c0
+    if case_name == "three_vars_left_assoc":
+        return (x - y) - z
+    if case_name == "three_vars_right_assoc":
+        return x - (y - z)
+    if case_name == "three_vars_minus_neg":
+        return (x - y) - (-z)
+    raise ValueError(f"Unsupported sub case: {case_name}")
+
+
+@pytest.mark.parametrize(
+    "case_name, expected_expr_str, expected_simplified_str, expected_eval, expected_grads",
+    SUB_CASES,
+    ids=[case[0] for case in SUB_CASES],
+)
+def test_sub_cases_print_simplify_diff(case_name, expected_expr_str, expected_simplified_str, expected_eval, expected_grads):
+    x = pm.var("x", dtype=pm.DType.R, shape=())
+    y = pm.var("y", dtype=pm.DType.R, shape=())
+    z = pm.var("z", dtype=pm.DType.R, shape=())
+
+    c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
+    c2 = pm.const("two", dtype=pm.DType.R, data=2.0)
+    c5 = pm.const("five", dtype=pm.DType.R, data=5.0)
+
+    expr = _build_sub_case(case_name, x, y, z, c0, c2, c5)
+    simplified = expr.simplify()
+
+    assert str(expr) == expected_expr_str
+    assert str(simplified) == expected_simplified_str
+
+    d_dx = expr.diff(wrt=x).simplify()
+    d_dy = expr.diff(wrt=y).simplify()
+    d_dz = expr.diff(wrt=z).simplify()
+
+    with pm.new_context():
+        pm.set_value("x", 2.0)
+        pm.set_value("y", 3.0)
+        pm.set_value("z", 4.0)
+
+        _assert_expr_allclose(expr, np.array(expected_eval, dtype=np.float32))
+        _assert_expr_allclose(simplified, np.array(expected_eval, dtype=np.float32))
+        _assert_expr_allclose(d_dx, np.array(expected_grads[0], dtype=np.float32))
+        _assert_expr_allclose(d_dy, np.array(expected_grads[1], dtype=np.float32))
+        _assert_expr_allclose(d_dz, np.array(expected_grads[2], dtype=np.float32))

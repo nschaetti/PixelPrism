@@ -738,6 +738,23 @@ class MathNode(
         return len(self._children) == 0
     # end is_leaf
 
+    def has_operator(self, name: str) -> bool:
+        """
+        Check if the expression as an operator with the given name.
+
+        Parameters
+        ----------
+        name : 'str'
+            Name of the operator to check for.
+
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression has an operator with the given name.
+        """
+        return self._op is not None and self._op.name == name
+    # end if
+
     #
     # Structure
     #

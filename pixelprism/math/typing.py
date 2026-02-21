@@ -110,10 +110,24 @@ Index: TypeAlias = Union[
 # - Canonicalization rules normalize a tree form for stable comparisons.
 class SimplifyRule(Enum):
     # Algebraic identities
-    ADD_ZERO = auto()          # x + 0 -> x ; 0 + x -> x
-    SUB_ZERO = auto()          # x - 0 -> x
-    MUL_ONE = auto()           # x * 1 -> x ; 1 * x -> x
-    MUL_ZERO = auto()          # x * 0 -> 0 ; 0 * x -> 0
+    ADD_ZERO = auto()           # x + 0 -> x ; 0 + x -> x
+    ADD_NEG = auto()            # x + -y -> x - y
+    ADD_ITSELF = auto()         # x + x -> 2x
+    ADD_AX_BX = auto()          # a*x + b*x -> (a+b)*x
+
+    SUB_ZERO = auto()           # x - 0 -> x
+    SUB_ITSELF = auto()         # x - x -> 0
+
+    MUL_ONE = auto()            # x * 1 -> x ; 1 * x -> x
+    MUL_ZERO = auto()           # x * 0 -> 0 ; 0 * x -> 0
+    MUL_BY_CONSTANT = auto()    # x * c -> c * x
+    MUL_ITSELF = auto()         # x * x -> x^2
+    MUL_NEG = auto()            # x * -y -> -x * y
+    MUL_BY_NEG_ONE = auto()     # x * -1 -> -x
+    MUL_BY_INV = auto()         # x * 1/y -> x/y
+    MUL_BY_INV_NEG = auto()     # x * -1/y -> -x/y
+    MUL_BY_NEG_ITSELF = auto()  # x * -x -> -x^2
+
     DIV_ONE = auto()           # x / 1 -> x
     ZERO_DIV = auto()          # 0 / x -> 0
 
@@ -309,6 +323,9 @@ class MathExpr(Protocol):
 
     # True for terminal tree elements (variables/constants) with no children.
     def is_leaf(self) -> bool: ...
+
+    # Check if the expression as an operator with the given name.
+    def has_operator(self, name: str) -> bool: ...
 
     #
     # Structure

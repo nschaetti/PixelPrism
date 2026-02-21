@@ -330,6 +330,23 @@ class MathLeaf(
         return True
     # end def is_leaf
 
+    def has_operator(self, name: str) -> bool:
+        """
+        Check if the expression as an operator with the given name.
+
+        Parameters
+        ----------
+        name : 'str'
+            Name of the operator to check for.
+
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression has an operator with the given name.
+        """
+        return False
+    # end if
+
     def copy(self, deep: bool = False) -> "MathLeaf":
         """
         TODO: unify leaf copy contract (`deep`) with Variable/Constant copy APIs.

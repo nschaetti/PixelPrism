@@ -197,18 +197,14 @@ class OperatorBase(
             Whether the child operator needs parentheses.
         """
         if hasattr(child, "op"):
-            if child.op.PRECEDENCE < self.PRECEDENCE:
-                return True
-            # end if
-            if child.op.PRECEDENCE > self.PRECEDENCE:
-                return False
-            # end if
-            # mêmes précédences
-            if self.ASSOCIATIVITY == OpAssociativity.LEFT and is_right_child:
-                return self.name != child.name
-            # end if
-            if self.ASSOCIATIVITY == OpAssociativity.RIGHT and not is_right_child:
-                return self.name != child.name
+            if child.op.PRECEDENCE <= self.PRECEDENCE:
+                # mêmes précédences
+                if self.ASSOCIATIVITY == OpAssociativity.LEFT and is_right_child:
+                    return self.name != child.name
+                # end if
+                if self.ASSOCIATIVITY == OpAssociativity.RIGHT and not is_right_child:
+                    return self.name != child.name
+                # end if
             # end if
         # end if
         return False
