@@ -61,6 +61,7 @@ __all__ = [
     "LeafKind",
     "OpAssociativity",
     "OpSimplifyResult",
+    "OpConstruct",
     "AlgebraicExpr",
     "ExprLike"
 ]
@@ -270,7 +271,7 @@ class MathExpr(Protocol):
     # `options` controls which rules are enabled/disabled for this pass.
     def simplify(self, options: SimplifyOptions | None = None) -> "MathExpr": ...
 
-    # Normalize expression form without changing semantics.
+    # Normalize an expression form without changing semantics.
     # Typical effects: associative flattening, deterministic operand ordering, etc.
     def canonicalize(self) -> "MathExpr": ...
 
@@ -371,9 +372,15 @@ ExprLike = Union[MathExpr, ScalarLike]
 
 
 class OpSimplifyResult(NamedTuple):
-    operands: Operands                      # Normalized/simplified operands
+    operands: Operands | None                      # Normalized/simplified operands
     replacement: MathExpr | None = None     # If not None, the operator was replaced by this expression
 # end def OpSimplifyResult
+
+
+class OpConstruct(NamedTuple):
+    expr: Operator | MathExpr           # Constructed operator or simplified expression
+    operands: Operands | None           # Operator operands or None if replaced by replacement
+# end class OpConstruct
 
 
 class OpAssociativity(Enum):
@@ -394,6 +401,9 @@ class Operator(Protocol):
     # Declared operator arity.
     # For fixed-arity operators, this is the exact number of required operands.
     ARITY: ClassVar[int]
+
+    # Declare the minimum operands needed
+    MIN_OPERANDS: ClassVar[int] = 0
 
     # True when the operator accepts a variable number of operands.
     # When True, arity validation is handled dynamically.
@@ -440,6 +450,12 @@ class Operator(Protocol):
     @property
     def arity(self) -> int: ...
 
+    # The minimum number of operands required by the operator.
+    # This is the same as `MIN_OPERANDS` for fixed-arity operators.
+    # For variadic operators, this may reflect runtime operand count.
+    @property
+    def min_operands(self) -> int: ...
+
     # Set effective arity for this operator instance.
     # Intended mainly for variadic operators after operand validation.
     @arity.setter
@@ -480,7 +496,7 @@ class Operator(Protocol):
     def canonicalize(
             self,
             operands: Sequence[MathExpr]
-    ) -> Optional[Union[MathExpr, 'Operator']]: ...
+    ) -> OpSimplifyResult: ...
 
     #
     # Structure
@@ -538,7 +554,7 @@ class Operator(Protocol):
     @classmethod
     # Construct the operator. This is the official and only way to create the operator instance.
     # The method will check rule of simplification.
-    def construct(cls, operands: Operands, **kwargs) -> Union["Operator", "MathExpr"]: ...
+    def construct(cls, operands: Operands, **kwargs) -> OpConstruct: ...
 
     #
     # Representation

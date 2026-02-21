@@ -91,6 +91,29 @@ class ElementwiseOperator(OperatorBase, ABC):
         return False
     # end def contains
 
+    # region STATIC
+
+    @classmethod
+    def check_parameters(cls, **kwargs) -> bool:
+        """Check that the operands have compatible shapes."""
+        pass
+    # end def check_shapes
+
+    # endregion STATIC
+
+# end class ElementwiseOperator
+
+
+# Binary Elementwise Operator
+class BinaryElementwiseOperator(ElementwiseOperator, ABC):
+    """
+    Binary element-wise operator with fixed arity of 2.
+    """
+
+    ARITY = 2
+    IS_VARIADIC = False
+    MIN_OPERANDS = 2
+
     def print(self, operands: Operands, **kwargs) -> str:
         """Return a human-readable representation of the operator.
 
@@ -111,18 +134,6 @@ class ElementwiseOperator(OperatorBase, ABC):
         right_str = f"({operands[1]})" if need_right_paren else operands[1].__str__()
         return f"{left_str} {self.SYMBOL} {right_str}"
     # end def print
-
-    def __str__(self) -> str:
-        """Return a concise human-readable identifier."""
-        return f"{self.NAME}()"
-    # end def __str__
-
-    def __repr__(self) -> str:
-        """Return a debug-friendly representation."""
-        return f"{self.NAME}(arity={self.ARITY})"
-    # end def __repr__
-
-    # region STATIC
 
     def check_shapes(self, operands: Operands) -> bool:
         """
@@ -170,24 +181,191 @@ class ElementwiseOperator(OperatorBase, ABC):
         return promote(a.dtype, b.dtype)
     # end def infer_dtype
 
-    @classmethod
-    def check_parameters(cls, **kwargs) -> bool:
-        """Check that the operands have compatible shapes."""
-        pass
+    def _needs_parentheses(self, child: MathExpr, is_right_child: bool):
+        """Return ```True``` if the child operator needs parentheses.
+
+        Parameters
+        ----------
+        child : MathExpr
+            The child operator to check.
+        is_right_child : bool
+            Whether the child is the right child of the current operator.
+
+        Returns
+        -------
+        bool
+            Whether the child operator needs parentheses.
+        """
+        if hasattr(child, "op"):
+            if child.op.PRECEDENCE <= self.PRECEDENCE:
+                # mêmes précédences
+                if self.ASSOCIATIVITY == OpAssociativity.LEFT and is_right_child:
+                    return self.name != child.name
+                # end if
+                if self.ASSOCIATIVITY == OpAssociativity.RIGHT and not is_right_child:
+                    return self.name != child.name
+                # end if
+            # end if
+        # end if
+        return False
+    # end def _needs_parentheses
+
+    def __str__(self) -> str:
+        """Return a concise human-readable identifier."""
+        return f"{self.NAME}()"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        """Return a debug-friendly representation."""
+        return f"{self.NAME}(arity={self.ARITY})"
+    # end def __repr__
+
+# end class BinaryElementwiseOperator
+
+
+class NaryElementwiseOperator(ElementwiseOperator, ABC):
+    """
+    Element-wise operator with a variable number of operands.
+    """
+
+    ARITY = -1
+    IS_VARIADIC = True
+    MIN_OPERANDS = 2
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        """Return a human-readable representation of the operator.
+
+        Parameters
+        ----------
+        operands : Operands
+            The operands of the operator.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        str : A human-readable representation of the operator.
+        """
+        op_str = list()
+        for i, op in enumerate(operands):
+            need_parens = self._needs_parentheses(op, i, len(operands))
+            op_str.append(f"({op})" if need_parens else f"{op}")
+        # end for
+        return f" {self.SYMBOL} ".join(op_str)
+    # end def print
+
+    def check_shapes(self, operands: Operands) -> bool:
+        """
+        Check that that operands have identical shapes or support scalar broadcasting.
+        """
+        n_ops = len(operands)
+        for i in range(n_ops - 1):
+            a, b = operands[i], operands[i + 1]
+            if a.rank != b.rank:
+                if a.rank != 0 and b.rank != 0:
+                    raise ValueError(
+                        f"{self.NAME} requires operands with identical ranks if not scalar, "
+                        f"got {a.rank} and {b.rank}."
+                    )
+                # end if
+            else:
+                # Same rank, but require same shape
+                if not a.shape.equals(b.shape):
+                    raise ValueError(
+                        f"{self.NAME} requires operands with identical shapes, "
+                        f"got {a.shape} and {b.shape}."
+                    )
+                # end if
+            # end if
+        # end for
+        return True
     # end def check_shapes
 
-    # endregion STATIC
+    def infer_shape(self, operands: Operands) -> Shape:
+        """
+        Output shape is identical to operand shapes.
+        """
+        n_ops = len(operands)
+        ranks = [operands[i].rank for i in range(n_ops)]
+        max_rank = max(ranks)
+        biggest_operand_i = ranks.index(max_rank)
+        return operands[biggest_operand_i].shape
+    # end def infer_shape
 
-# end class ElementwiseOperator
+    def infer_dtype(self, operands: Operands) -> DType:
+        """
+        Promote operand dtypes.
+        """
+        n_ops = len(operands)
+        if n_ops > 1:
+            inferred_type = operands[0].dtype
+            for i in range(1, n_ops):
+                inferred_type = promote(inferred_type, operands[i].dtype)
+            # end for
+            return inferred_type
+        elif n_ops == 1:
+            return operands[0].dtype
+        else:
+            return DType.R
+        # end if
+    # end def infer_dtype
+
+    def _needs_parentheses(self, child: MathExpr, position: int, n_ops: int):
+        """Return ```True``` if the child operator needs parentheses.
+
+        Parameters
+        ----------
+        child : MathExpr
+            The child operator to check.
+        position : int
+            The position of the child in the parent's children list.
+        n_ops : int
+            The number of operands.
+
+        Returns
+        -------
+        bool
+            Whether the child operator needs parentheses.
+        """
+        parent: Operator = self
+        if hasattr(child, "op"):
+            if child.op.PRECEDENCE < parent.PRECEDENCE:
+                return True
+            # end if
+            if child.op.PRECEDENCE > parent.PRECEDENCE:
+                return False
+            # end if
+            # > Equal precedence, check associativity
+            if parent.ASSOCIATIVE:
+                return False
+            # end if
+            if parent.ASSOCIATIVITY == OpAssociativity.LEFT:
+                return position > 0
+            # end if
+            if parent.ASSOCIATIVITY == OpAssociativity.RIGHT:
+                return position < n_ops - 1
+        # end if
+        return False
+    # end def _needs_parentheses
+
+    def __str__(self) -> str:
+        """Return a concise human-readable identifier."""
+        return f"{self.NAME}()"
+    # end def __str__
+
+    def __repr__(self) -> str:
+        """Return a debug-friendly representation."""
+        return f"{self.NAME}()"
+    # end def __repr__
+
+# end class NaryElementwiseOperator
 
 
-class Add(ElementwiseOperator):
+class Add(NaryElementwiseOperator):
     """
     Element-wise addition operator.
     """
 
-    ARITY = 2
-    IS_VARIADIC = False
     IS_DIFF = True
     COMMUTATIVE = True
     ASSOCIATIVE = True
@@ -200,13 +378,21 @@ class Add(ElementwiseOperator):
         """
         Evaluate element-wise addition.
         """
-        a, b = operands
-        return a.eval() + b.eval()
+        values = [op.eval() for op in operands]
+        acc = values[0]
+        for v in values[1:]:
+            acc = acc + v
+        # end for
+        return acc
     # end def _eval
 
     def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
-        a, b = operands
-        return a.diff(wrt) + b.diff(wrt)
+        diffs = [op.diff(wrt=wrt) for op in operands]
+        acc = diffs[0]
+        for v in diffs[1:]:
+            acc = acc + v
+        # end for
+        return acc
     # end def _backward
 
     def _simplify(
@@ -281,7 +467,7 @@ class Add(ElementwiseOperator):
     def _canonicalize(
             self,
             operands: Sequence[MathExpr]
-    ) -> Optional[Union[MathExpr, Operator]]:
+    ) -> OpSimplifyResult:
         """
         Simplify an expression by combining adjacent terms.
         """
@@ -289,26 +475,26 @@ class Add(ElementwiseOperator):
 
         # a + b = c
         if a.is_constant() and b.is_constant():
-            return Constant.new(a.eval() + b.eval())
+            return OpSimplifyResult(operands=None, replacement=Constant.new(a.eval() + b.eval()))
         # end if
 
         # 0.0 + x = x
         if a.is_constant() and a.eval().is_null():
-            return b
+            return OpSimplifyResult(operands=None, replacement=b)
         # end if
 
         # x + 0.0 = x
         if b.is_constant() and b.eval().is_null():
-            return a
+            return OpSimplifyResult(operands=None, replacement=a)
         # end if
 
-        return None
+        return OpSimplifyResult(operands=operands, replacement=None)
     # end def _canonicalize
 
 # end class Add
 
 
-class Sub(ElementwiseOperator):
+class Sub(NaryElementwiseOperator):
     """
     Element-wise subtraction operator.
     """
@@ -396,7 +582,7 @@ class Sub(ElementwiseOperator):
     def _canonicalize(
             self,
             operands: Sequence[MathExpr]
-    ) -> Optional[Union[MathExpr, Operator]]:
+    ) -> OpSimplifyResult:
         """
         Simplify an expression by combining adjacent terms.
         """
@@ -404,20 +590,20 @@ class Sub(ElementwiseOperator):
 
         # a - b = c
         if a.is_constant() and b.is_constant():
-            return Constant.new(a.eval() - b.eval())
+            return OpSimplifyResult(operands=None, replacement=Constant.new(a.eval() - b.eval()))
         # end if
 
         # x - 0 = x
         if b.is_constant() and b.eval().is_null():
-            return a
+            return OpSimplifyResult(operands=None, replacement=a)
         # end if
 
         # 0 - x = -x
         if a.is_constant() and a.eval().is_null():
-            return -b
+            return OpSimplifyResult(operands=[b], replacement=-b)
         # end if
 
-        return None
+        return OpSimplifyResult(operands=operands, replacement=None)
     # end def _canonicalize
 
     # endregion PRIVATE
@@ -425,7 +611,7 @@ class Sub(ElementwiseOperator):
 # end class Sub
 
 
-class Mul(ElementwiseOperator):
+class Mul(NaryElementwiseOperator):
     """
     Element-wise multiplication operator.
     """
@@ -561,7 +747,6 @@ class Mul(ElementwiseOperator):
                     and b.children[0].eval().is_full(-1)):
                 repr_expr = -(a / b.children[1])
                 new_operands = []
-                print(repr_expr)
                 return OpSimplifyResult(new_operands, repr_expr)
             # end if
         # end if
@@ -578,12 +763,59 @@ class Mul(ElementwiseOperator):
         return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
 
+    def _canonicalize(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> OpSimplifyResult:
+        """
+        Simplify an expression by combining adjacent terms.
+        """
+        a, b = operands
+
+        # a * b = c
+        if a.is_constant() and b.is_constant():
+            return OpSimplifyResult(operands=None, replacement=Constant.new(a.eval() * b.eval()))
+        # end if
+
+        # x * 0 = 0
+        if b.is_constant() and b.eval().is_null():
+            return OpSimplifyResult(operands=None, replacement=Constant.new(0))
+        # end if
+
+        # 0 * x = 0
+        if a.is_constant() and a.eval().is_null():
+            return OpSimplifyResult(operands=None, replacement=Constant.new(0))
+        # end if
+
+        # x * 1 = x
+        if a.is_constant() and a.eval().is_full(1):
+            return OpSimplifyResult(operands=None, replacement=b)
+        # end if
+
+        # 1 * x = x
+        if b.is_constant() and b.eval().is_full(1):
+            return OpSimplifyResult(operands=None, replacement=a)
+        # end if
+
+        # x * -1 = -x
+        if b.is_constant() and b.eval().is_full(-1):
+            return OpSimplifyResult(operands=[a], replacement=-a)
+        # end if
+
+        # -1 * x = -x
+        if a.is_constant() and a.eval().is_full(-1):
+            return OpSimplifyResult(operands=[b], replacement=-b)
+        # end if
+
+        return OpSimplifyResult(operands=operands, replacement=None)
+    # end def _canonicalize
+
     # endregion PRIVATE
 
 # end class Mul
 
 
-class Div(ElementwiseOperator):
+class Div(NaryElementwiseOperator):
     """
     Element-wise division operator.
     """
@@ -652,10 +884,6 @@ class Div(ElementwiseOperator):
 
         return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
 
     # endregion PRIVATE
 
@@ -839,8 +1067,21 @@ class Neg(UnaryElementwiseOperator):
         return OpSimplifyResult(new_operands, repr_expr)
     # end def _simplify
 
-    def _canonicalize(self, operands: Sequence[AlgebraicExpr]) -> Sequence[MathExpr]:
-        pass
+    def _canonicalize(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> OpSimplifyResult:
+        """
+        Simplify an expression by combining adjacent terms.
+        """
+        a, = operands
+
+        # --x = x
+        if hasattr(a, "op") and a.is_node() and a.has_operator(Neg.NAME):
+            return OpSimplifyResult(operands=None, replacement=a.children[0])
+        # end if
+
+        return OpSimplifyResult(operands=operands, replacement=None)
     # end def _canonicalize
 
     # endregion PRIVATE
@@ -920,10 +1161,6 @@ class Pow(ElementwiseOperator):
     ) -> OpSimplifyResult:
         pass
     # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
 
     # endregion PRIVATE
 

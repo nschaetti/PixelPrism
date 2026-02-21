@@ -81,11 +81,13 @@ def apply_operator(
     op_cls = operator_registry.get(op_name)
 
     # Instantiate operator
-    op = op_cls.construct(operands=operands, **kwargs)
+    op_result = op_cls.construct(operands=operands, **kwargs)
 
-    if isinstance(op, MathExpr):
-        return op
-    elif isinstance(op, Operator):
+    if isinstance(op_result.expr, MathExpr):
+        return op_result.expr
+    elif isinstance(op_result.expr, Operator):
+        op = op_result.expr
+        operands = op_result.operands
         return MathNode(
             name=display_name,
             op=op,
@@ -94,6 +96,6 @@ def apply_operator(
             shape=op.infer_shape(operands),
         )
     else:
-        raise TypeError(f"Unexpected operator type: {type(op)}")
+        raise TypeError(f"Unexpected operator type: {type(op_result.expr)}")
     # end if
 # end def apply_operator

@@ -211,6 +211,7 @@ from .typing import (
     SimplifyOptions,
     SimplifyRule,
     OpSimplifyResult,
+    OpConstruct,
     AlgebraicExpr,
     ExprLike,
     OpAssociativity
@@ -549,6 +550,7 @@ __all__ = [
     "SimplifyOptions",
     "SimplifyRule",
     "OpSimplifyResult",
+    "OpConstruct",
     "AlgebraicExpr",
     "OpAssociativity",
 ]

@@ -38,7 +38,7 @@ from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable
 from ..typing import Operands, Operator, MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule, \
-    OpAssociativity
+    OpAssociativity, OpConstruct
 
 __all__ = [
     "OperatorBase",
@@ -100,6 +100,12 @@ class OperatorBase(
     # end def arity
 
     @property
+    def min_operands(self) -> int:
+        """Return the minimum operand count."""
+        return self.MIN_OPERANDS
+    # end def min_operands
+
+    @property
     def is_variadic(self) -> bool:
         """Return whether the operator accepts a variable number of operands."""
         return self.IS_VARIADIC
@@ -137,7 +143,7 @@ class OperatorBase(
     def canonicalize(
             self,
             operands: Sequence[MathExpr]
-    ) -> Optional[Union[MathExpr, 'Operator']]:
+    ) -> OpSimplifyResult:
         """Return canonicalized operands for this operator."""
         return self._canonicalize(operands=operands)
     # end def canonicalize
@@ -184,7 +190,8 @@ class OperatorBase(
 
     # region PRIVATE
 
-    def _needs_parentheses(self, child: MathExpr, is_right_child: bool):
+    @abstractmethod
+    def _needs_parentheses(self, *args, **kwargs):
         """Return ```True``` if the child operator needs parentheses.
 
         Parameters
@@ -199,18 +206,6 @@ class OperatorBase(
         bool
             Whether the child operator needs parentheses.
         """
-        if hasattr(child, "op"):
-            if child.op.PRECEDENCE <= self.PRECEDENCE:
-                # mêmes précédences
-                if self.ASSOCIATIVITY == OpAssociativity.LEFT and is_right_child:
-                    return self.name != child.name
-                # end if
-                if self.ASSOCIATIVITY == OpAssociativity.RIGHT and not is_right_child:
-                    return self.name != child.name
-                # end if
-            # end if
-        # end if
-        return False
     # end def _needs_parentheses
 
     def _apply_rule(
@@ -265,9 +260,9 @@ class OperatorBase(
         """Return operator-local simplification result."""
     # end def simplify
 
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Optional[Union[MathExpr, 'Operator']]:
+    def _canonicalize(self, operands: Sequence[MathExpr]) -> OpSimplifyResult:
         """Return canonicalized operands for this operator."""
-        return None
+        return OpSimplifyResult(operands=operands, replacement=None)
     # end def canonicalize
 
     # endregion PRIVATE
@@ -388,7 +383,7 @@ class OperatorBase(
     @classmethod
     # Construct the operator. This is the official and only way to create the operator instance.
     # The method will check rule of simplification.
-    def construct(cls, operands: Operands, **kwargs) -> Union["Operator", "MathExpr"]:
+    def construct(cls, operands: Operands, **kwargs) -> OpConstruct:
         """
         Construct the operator. This is the official and only way to create the operator instance.
         The method will check the rule of simplification.
@@ -402,7 +397,7 @@ class OperatorBase(
 
         Returns
         -------
-        Union["Operator", "MathExpr"]
+        OpConstruct
             The constructed operator or simplified expression.
         """
         # We check that operator arity is respected
@@ -430,12 +425,12 @@ class OperatorBase(
         # end if
 
         # Canonicalize operands
-        canon_expr: Union[MathExpr, 'Operator'] = op.canonicalize(operands)
+        canon_result: OpSimplifyResult = op.canonicalize(operands)
 
-        if canon_expr is None:
-            return op
+        if canon_result.replacement is None:
+            return OpConstruct(expr=op, operands=canon_result.operands)
         else:
-            return canon_expr
+            return OpConstruct(expr=canon_result.replacement, operands=canon_result.operands)
         # end if
     # endregion CLASS METHODS
 
