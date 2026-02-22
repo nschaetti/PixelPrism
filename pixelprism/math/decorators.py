@@ -27,7 +27,7 @@
 #
 
 
-from .typing import SimplifyRule, RuleSpec, SimplifyRuleType
+from .typing_rules import SimplifyRule, RuleSpec, SimplifyRuleType
 
 
 __all__ = [
@@ -59,4 +59,3 @@ def rule(flag: SimplifyRule, rule_type: SimplifyRuleType, priority: int = 100):
     # end def
     return deco
 # end def rule
-

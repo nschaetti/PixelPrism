@@ -28,7 +28,7 @@
 
 from __future__ import annotations
 
-from ..build import as_expr
+from .. import as_expr
 from .helpers import apply_operator
 from ..math_node import MathNode
 from ..typing import ExprLike

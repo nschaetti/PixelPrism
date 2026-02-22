@@ -44,7 +44,7 @@ except Exception as exc:  # pragma: no cover
     SKLEARN_AVAILABLE = False
     SKLEARN_IMPORT_ERROR = exc
 
-from ..build import as_expr
+from .. import as_expr
 from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape

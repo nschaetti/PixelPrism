@@ -27,7 +27,7 @@
 #
 
 # Imports
-from ..build import as_expr
+from .. import as_expr
 from .helpers import apply_operator
 from ..math_node import MathNode
 

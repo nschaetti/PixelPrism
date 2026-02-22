@@ -31,7 +31,7 @@ from typing import Union, List, Sequence, Optional
 
 from ..math_node import MathNode
 from ..math_slice import SliceExpr
-from ..build import as_expr
+from .. import as_expr
 from .helpers import apply_operator
 from ..typing import ExprLike
 

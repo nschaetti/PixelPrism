@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Optional, Union
 
-from ..build import as_expr
+from .. import as_expr
 from ..dtype import DType
 from ..operators.machine_learning import SKLEARN_AVAILABLE
 from ..typing import MathExpr

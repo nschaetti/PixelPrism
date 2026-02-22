@@ -552,7 +552,7 @@ class Shape(MathExpr, PredicateMixin):
         if axis < 0 or axis > self.rank:
             raise ValueError(f"Axis {axis} out of bounds for rank {self.rank}.")
         # end if
-        from .build import as_expr
+        from . import as_expr
         size = as_expr(size)
         return Shape(dims=list(self._dims[:axis]) + [size] + list(self._dims[axis:]))
     # end def insert_axis
@@ -572,7 +572,7 @@ class Shape(MathExpr, PredicateMixin):
         None
             This operation updates the instance in-place.
         """
-        from .build import as_expr
+        from . import as_expr
         size = as_expr(size)
         self._dims = self.insert_axis(axis, size)._dims
     # end def insert_axis_

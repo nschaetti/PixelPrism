@@ -38,18 +38,16 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable
-from ..typing import (
+from ..typing_expr import (
     Operands,
     Operator,
     MathExpr,
     LeafKind,
-    SimplifyOptions,
     OpSimplifyResult,
-    SimplifyRule,
     OpAssociativity,
-    OpConstruct,
-    SimplifyRuleType
+    OpConstruct
 )
+from ..typing_rules import SimplifyOptions, SimplifyRule, SimplifyRuleType
 from ..mixins import SimplifyRuleMixin
 
 __all__ = [
@@ -68,15 +66,6 @@ class OperatorBase(
     """
     Represents an operator that can be applied to a value.
     """
-
-    # IS_VARIADIC = False
-    # IS_DIFF = False
-    # COMMUTATIVE = False
-    # ASSOCIATIVE = False
-    # PRECEDENCE = 0
-    # ASSOCIATIVITY = OpAssociativity.LEFT
-    # ARITY = 0
-    # SYMBOL = ""
 
     def __init__(self, **kwargs):
         """

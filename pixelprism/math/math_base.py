@@ -46,6 +46,7 @@ from __future__ import annotations
 from typing import Optional
 from .dtype import DType
 from .shape import Shape
+from .typing import MathExpr, ExprDomain, ExprKind
 
 
 __all__ = [
@@ -53,7 +54,7 @@ __all__ = [
 ]
 
 
-class MathBase:
+class MathBase(MathExpr):
     """
     TODO: Add documentation.
     """
@@ -63,6 +64,7 @@ class MathBase:
         "_name",
         "_dtype",
         "_shape",
+        "_domain",
     )
 
     # Global counter
@@ -70,8 +72,9 @@ class MathBase:
 
     def __init__(
             self,
-            name: Optional[str],
-            *,
+            name: str,
+            kind: ExprKind,
+            domain: ExprDomain,
             dtype: DType,
             shape: Shape
     ) -> None:
@@ -80,8 +83,12 @@ class MathBase:
 
         Parameters
         ----------
-        name : str or None
-            Optional debugging label for the node.
+        name : str
+            Label for the node.
+        kind: ExprKind
+            Kind of the node.
+        domain : ExprDomain
+            Domain of the node.
         dtype : DType
             Element dtype advertised by the node.
         shape : Shape
@@ -91,8 +98,12 @@ class MathBase:
         self._name: str = name
         self._dtype: DType = dtype
         self._shape: Shape = shape
+        self._domain: ExprDomain = domain
+        self._kind: ExprKind = kind
         MathBase._next_id += 1
     # end __init__
+
+    # region PROPERTIES
 
     @property
     def identifier(self) -> int:
@@ -105,16 +116,30 @@ class MathBase:
         return self._id
     # end def identifier
 
-    @property
-    def dtype(self) -> DType:
+    @staticmethod
+    def next_id() -> int:
         """
         Returns
         -------
-        'DType'
-            Element dtype for this expression.
+        int
+            Next identifier that will be assigned to a :class:`MathExpr`.
         """
-        return self._dtype
-    # end def dtype
+        return MathBase._next_id
+    # end def next_id
+
+    def __hash__(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Identity hash suitable for storing nodes in sets/dicts.
+        """
+        return hash(self._id)
+    # end __hash__
+
+    # endregion PROPERTIES
+
+    # region MATH_EXPR
 
     @property
     def shape(self) -> Shape:
@@ -128,6 +153,17 @@ class MathBase:
     # end def shape
 
     @property
+    def dtype(self) -> DType:
+        """
+        Returns
+        -------
+        'DType'
+            Element dtype for this expression.
+        """
+        return self._dtype
+    # end def dtype
+
+    @property
     def name(self) -> Optional[str]:
         """
         Returns
@@ -138,25 +174,6 @@ class MathBase:
         return self._name
     # end def name
 
-    def __hash__(self) -> int:
-        """
-        Returns
-        -------
-        int
-            Identity hash suitable for storing nodes in sets/dicts.
-        """
-        return hash(self._id)
-    # end __hash__
-
-    @staticmethod
-    def next_id() -> int:
-        """
-        Returns
-        -------
-        int
-            Next identifier that will be assigned to a :class:`MathExpr`.
-        """
-        return MathBase._next_id
-    # end def next_id
+    # endregion MATH_EXPR
 
 # end class MathBase

@@ -34,7 +34,7 @@ from __future__ import annotations
 from typing import Optional, Sequence, Union
 import numpy as np
 
-from ..build import as_expr
+from .. import as_expr
 from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape

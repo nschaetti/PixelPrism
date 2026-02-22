@@ -39,7 +39,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional, Union, cast
 
-from .build import as_expr
+from . import as_expr
 from .dtype import DType
 from .math_leaves import var
 from .typing import MathExpr

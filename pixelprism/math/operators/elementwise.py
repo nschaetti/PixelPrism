@@ -28,6 +28,8 @@
 """
 Elementwise operator implementations.
 """
+
+# Imports
 import math
 from abc import ABC
 from collections import defaultdict
@@ -38,17 +40,16 @@ from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
-from ..typing import (
+from ..typing_expr import (
     MathExpr,
     LeafKind,
-    SimplifyOptions,
     OpSimplifyResult,
-    SimplifyRule,
     OpAssociativity,
     AlgebraicExpr,
     Operator,
-    SimplifyRuleType
+    OperatorSpec, AritySpec,
 )
+from ..typing_rules import SimplifyOptions, SimplifyRule, SimplifyRuleType
 from ..decorators import rule
 
 from .base import Operands, OperatorBase, operator_registry, ParametricOperator
@@ -80,6 +81,22 @@ __all__ = [
     "Abs",
     "Neg",
 ]
+
+
+def _is_constant_variable(
+        m: MathExpr
+) -> Optional[Tuple[Constant, Variable]]:
+    # Is of the form x * y
+    if hasattr(m, "op") and m.has_operator(Mul.SPEC.name) and m.num_children() == 2:
+        # The first is a constant, the second a variable (a * x)
+        if m.children[0].is_constant() and m.children[1].is_variable():
+            return m.children[0], m.children[1]
+        # end if
+    elif m.num_children() == 1 and m.children[0].is_variable() and m.depth() == 1:
+        return Constant.new(1.0), m.children[0]
+    # end if
+    return None
+# end def is_constant_variable
 
 
 class ElementwiseOperator(OperatorBase, ABC):
@@ -125,9 +142,16 @@ class BinaryElementwiseOperator(ElementwiseOperator, ABC):
     Binary element-wise operator with fixed arity of 2.
     """
 
-    ARITY = 2
-    IS_VARIADIC = False
-    MIN_OPERANDS = 2
+    SPEC = OperatorSpec(
+        name="binary_elementwise",
+        arity=AritySpec(exact=2, min_operands=2, variadic=False),
+        symbol="?",
+        precedence=0,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     def print(self, operands: Operands, **kwargs) -> str:
         """Return a human-readable representation of the operator.
@@ -147,7 +171,7 @@ class BinaryElementwiseOperator(ElementwiseOperator, ABC):
         need_right_paren = self._needs_parentheses(child=operands[1], is_right_child=True)
         left_str = f"({operands[0]})" if need_left_paren else operands[0].__str__()
         right_str = f"({operands[1]})" if need_right_paren else operands[1].__str__()
-        return f"{left_str} {self.SYMBOL} {right_str}"
+        return f"{left_str} {self.SPEC.symbol} {right_str}"
     # end def print
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -158,7 +182,7 @@ class BinaryElementwiseOperator(ElementwiseOperator, ABC):
         if a.rank != b.rank:
             if a.rank != 0 and b.rank != 0:
                 raise ValueError(
-                    f"{self.NAME} requires operands with identical ranks if not scalar, "
+                    f"{self.SPEC.name} requires operands with identical ranks if not scalar, "
                     f"got {a.rank} and {b.rank}."
                 )
             # end if
@@ -166,7 +190,7 @@ class BinaryElementwiseOperator(ElementwiseOperator, ABC):
             # Same rank, but require same shape
             if not a.shape.equals(b.shape):
                 raise ValueError(
-                    f"{self.NAME} requires operands with identical shapes, "
+                    f"{self.SPEC.name} requires operands with identical shapes, "
                     f"got {a.shape} and {b.shape}."
                 )
             # end if
@@ -212,12 +236,12 @@ class BinaryElementwiseOperator(ElementwiseOperator, ABC):
             Whether the child operator needs parentheses.
         """
         if hasattr(child, "op"):
-            if child.op.PRECEDENCE <= self.PRECEDENCE:
+            if child.op.SPEC.precedence <= self.SPEC.precedence:
                 # mêmes précédences
-                if self.ASSOCIATIVITY == OpAssociativity.LEFT and is_right_child:
+                if self.SPEC.associativity == OpAssociativity.LEFT and is_right_child:
                     return self.name != child.name
                 # end if
-                if self.ASSOCIATIVITY == OpAssociativity.RIGHT and not is_right_child:
+                if self.SPEC.associativity == OpAssociativity.RIGHT and not is_right_child:
                     return self.name != child.name
                 # end if
             # end if
@@ -227,12 +251,12 @@ class BinaryElementwiseOperator(ElementwiseOperator, ABC):
 
     def __str__(self) -> str:
         """Return a concise human-readable identifier."""
-        return f"{self.NAME}()"
+        return f"{self.SPEC.name}()"
     # end def __str__
 
     def __repr__(self) -> str:
         """Return a debug-friendly representation."""
-        return f"{self.NAME}(arity={self.ARITY})"
+        return f"{self.SPEC.name}(arity={self.SPEC.arity.exact})"
     # end def __repr__
 
 # end class BinaryElementwiseOperator
@@ -243,9 +267,16 @@ class NaryElementwiseOperator(ElementwiseOperator, ABC):
     Element-wise operator with a variable number of operands.
     """
 
-    ARITY = -1
-    IS_VARIADIC = True
-    MIN_OPERANDS = 2
+    SPEC = OperatorSpec(
+        name="nary_elementwise",
+        arity=AritySpec(exact=None, min_operands=2, variadic=True),
+        symbol="?",
+        precedence=0,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     def print(self, operands: Operands, **kwargs) -> str:
         """Return a human-readable representation of the operator.
@@ -266,7 +297,7 @@ class NaryElementwiseOperator(ElementwiseOperator, ABC):
             need_parens = self._needs_parentheses(op, i, len(operands))
             op_str.append(f"({op})" if need_parens else f"{op}")
         # end for
-        return f" {self.SYMBOL} ".join(op_str)
+        return f" {self.SPEC.symbol} ".join(op_str)
     # end def print
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -279,7 +310,7 @@ class NaryElementwiseOperator(ElementwiseOperator, ABC):
             if a.rank != b.rank:
                 if a.rank != 0 and b.rank != 0:
                     raise ValueError(
-                        f"{self.NAME} requires operands with identical ranks if not scalar, "
+                        f"{self.SPEC.name} requires operands with identical ranks if not scalar, "
                         f"got {a.rank} and {b.rank}."
                     )
                 # end if
@@ -287,7 +318,7 @@ class NaryElementwiseOperator(ElementwiseOperator, ABC):
                 # Same rank, but require same shape
                 if not a.shape.equals(b.shape):
                     raise ValueError(
-                        f"{self.NAME} requires operands with identical shapes, "
+                        f"{self.SPEC.name} requires operands with identical shapes, "
                         f"got {a.shape} and {b.shape}."
                     )
                 # end if
@@ -344,20 +375,20 @@ class NaryElementwiseOperator(ElementwiseOperator, ABC):
         """
         parent: Operator = self
         if hasattr(child, "op"):
-            if child.op.PRECEDENCE < parent.PRECEDENCE:
+            if child.op.SPEC.precedence < parent.SPEC.precedence:
                 return True
             # end if
-            if child.op.PRECEDENCE > parent.PRECEDENCE:
+            if child.op.SPEC.precedence > parent.SPEC.precedence:
                 return False
             # end if
             # > Equal precedence, check associativity
-            if parent.ASSOCIATIVE:
+            if parent.SPEC.associative:
                 return False
             # end if
-            if parent.ASSOCIATIVITY == OpAssociativity.LEFT:
+            if parent.SPEC.associativity == OpAssociativity.LEFT:
                 return position > 0
             # end if
-            if parent.ASSOCIATIVITY == OpAssociativity.RIGHT:
+            if parent.SPEC.associativity == OpAssociativity.RIGHT:
                 return position < n_ops - 1
         # end if
         return False
@@ -365,12 +396,12 @@ class NaryElementwiseOperator(ElementwiseOperator, ABC):
 
     def __str__(self) -> str:
         """Return a concise human-readable identifier."""
-        return f"{self.NAME}()"
+        return f"{self.SPEC.name}()"
     # end def __str__
 
     def __repr__(self) -> str:
         """Return a debug-friendly representation."""
-        return f"{self.NAME}()"
+        return f"{self.SPEC.name}()"
     # end def __repr__
 
 # end class NaryElementwiseOperator
@@ -381,13 +412,17 @@ class Add(NaryElementwiseOperator):
     Element-wise addition operator.
     """
 
-    IS_DIFF = True
-    COMMUTATIVE = True
-    ASSOCIATIVE = True
-    PRECEDENCE = 10
-    ASSOCIATIVITY = OpAssociativity.LEFT
-    NAME = "add"
-    SYMBOL = "+"
+    # Operator specification
+    SPEC = OperatorSpec(
+        name='add',
+        arity=AritySpec(variadic=True, min_operands=2),
+        symbol='+',
+        precedence=10,
+        associativity=OpAssociativity.LEFT,
+        commutative=True,
+        associative=True,
+        is_diff=True,
+    )
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """
@@ -421,7 +456,7 @@ class Add(NaryElementwiseOperator):
         new_operands = list()
         for o in operands:
             # It's a + => flatten
-            if hasattr(o, "op") and o.has_operator(Add.NAME):
+            if hasattr(o, "op") and o.has_operator(Add.SPEC.name):
                 new_operands += o.children
             else:
                 new_operands.append(o)
@@ -513,17 +548,6 @@ class Add(NaryElementwiseOperator):
         """
         Group alike terms.
         """
-        def is_constant_variable(m: MathExpr) -> Optional[Tuple[Constant, Variable]]:
-            # Is of the form x * y
-            if hasattr(m, "op") and m.has_operator(Mul.NAME) and m.num_children() == 2:
-                # The first is a constant, the second a variable (a * x)
-                if m.children[0].is_constant() and m.children[1].is_variable():
-                    return m.children[0], m.children[1]
-                # end if
-            # end if
-            return None
-        # end def is_constant_variable
-
         constants = [op for op in operands if op.is_constant()]
         variables = [op for op in operands if op.is_variable()]
         if len(variables) == 0:
@@ -531,7 +555,7 @@ class Add(NaryElementwiseOperator):
         # end if
         groups = defaultdict(lambda: 0)
         for op in variables:
-            const_var = is_constant_variable(op)
+            const_var = _is_constant_variable(op)
             if const_var:
                 groups[const_var[1]] += const_var[0].eval()
             else:
@@ -567,15 +591,16 @@ class Sub(NaryElementwiseOperator):
     Element-wise subtraction operator.
     """
 
-    ARITY = -1
-    NAME = "sub"
-    IS_VARIADIC = True
-    IS_DIFF = True
-    COMMUTATIVE = False
-    ASSOCIATIVE = False
-    PRECEDENCE = 10
-    ASSOCIATIVITY = OpAssociativity.LEFT
-    SYMBOL = "-"
+    SPEC = OperatorSpec(
+        name="sub",
+        arity=AritySpec(exact=None, min_operands=2, variadic=True),
+        symbol="-",
+        precedence=10,
+        associativity=OpAssociativity.LEFT,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -604,7 +629,7 @@ class Sub(NaryElementwiseOperator):
             operands: Sequence[MathExpr]
     ):
         """Flatten if the first operand is a subtraction."""
-        if hasattr(operands[0], 'op') and operands[0].has_operator(Sub.NAME):
+        if hasattr(operands[0], 'op') and operands[0].has_operator(Sub.SPEC.name):
             return OpSimplifyResult(
                 operands=operands[0].children + operands[1:],
                 replacement=None
@@ -715,6 +740,59 @@ class Sub(NaryElementwiseOperator):
         # end if
     # end def _r_remove_zeros
 
+    # @rule(SimplifyRule.SUB_GROUP_ALIKE, priority=4, rule_type=SimplifyRuleType.BOTH)
+    # def _r_sub_group_alike(
+    #         self,
+    #         operands: Sequence[MathExpr]
+    # ) -> OpSimplifyResult | None:
+    #     """
+    #     Group alike terms.
+    #     """
+    #     print(f"_r_sub_group_alike called with operands: {operands}")
+    #     first_variable = _is_constant_variable(operands[0])
+    #     constants = [op for op in operands if op.is_constant()]
+    #     variables = [op for op in operands if op.is_variable()]
+    #     if len(variables) == 0:
+    #         return None
+    #     # end if
+    #     groups = defaultdict(lambda: 0)
+    #     for op in variables:
+    #         const_var = _is_constant_variable(op)
+    #         if const_var:
+    #             if first_variable and const_var[1] == first_variable[1]:
+    #                 groups[const_var[1]] += const_var[0].eval()
+    #             else:
+    #                 groups[const_var[1]] -= const_var[0].eval()
+    #             # end if
+    #         else:
+    #             if op == first_variable[1]:
+    #                 groups[op] += 1
+    #             else:
+    #                 groups[op] -= 1
+    #             # end if
+    #         # end if
+    #     # end for
+    #     new_ops = list()
+    #     for v, count in groups.items():
+    #         if count != 1:
+    #             new_ops += [Mul.create_node([Constant.new(count), v])]
+    #         elif count != 0:
+    #             new_ops.append(v)
+    #         # end if
+    #     # end for
+    #     if len(new_ops) + len(constants) == len(operands):
+    #         return None
+    #     # end if
+    #     if len(new_ops) + len(constants) == 1:
+    #         if len(new_ops) == 0:
+    #             return OpSimplifyResult(operands=None, replacement=constants[0])
+    #         else:
+    #             return OpSimplifyResult(operands=None, replacement=new_ops[0])
+    #         # end if
+    #     # end if
+    #     return OpSimplifyResult(operands=constants + new_ops, replacement=None)
+    # # end def _r_sub_group_alike
+
     # endregion PRIVATE
 
 # end class Sub
@@ -725,15 +803,16 @@ class Mul(NaryElementwiseOperator):
     Element-wise multiplication operator.
     """
 
-    ARITY = -1
-    IS_VARIADIC = True
-    IS_DIFF = True
-    COMMUTATIVE = True
-    ASSOCIATIVE = True
-    NAME = "mul"
-    SYMBOL = "*"
-    PRECEDENCE = 20
-    ASSOCIATIVITY = OpAssociativity.LEFT
+    SPEC = OperatorSpec(
+        name="mul",
+        arity=AritySpec(exact=None, min_operands=2, variadic=True),
+        symbol="*",
+        precedence=20,
+        associativity=OpAssociativity.LEFT,
+        commutative=True,
+        associative=True,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -961,15 +1040,16 @@ class Div(BinaryElementwiseOperator):
     Element-wise division operator.
     """
 
-    ARITY = 2
-    IS_VARIADIC = False
-    IS_DIFF = True
-    COMMUTATIVE = False
-    ASSOCIATIVE = False
-    NAME = "div"
-    SYMBOL = "/"
-    PRECEDENCE = 20
-    ASSOCIATIVITY = OpAssociativity.LEFT
+    SPEC = OperatorSpec(
+        name="div",
+        arity=AritySpec(exact=2, min_operands=2, variadic=False),
+        symbol="/",
+        precedence=20,
+        associativity=OpAssociativity.LEFT,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -1037,7 +1117,16 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
     Base class for unary element-wise operators.
     """
 
-    ARITY = 1
+    SPEC = OperatorSpec(
+        name="unary_elementwise",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="?",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1060,12 +1149,12 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
 
     def __str__(self) -> str:
         """Return a concise human-readable identifier."""
-        return f"{self.NAME}()"
+        return f"{self.SPEC.name}()"
     # end def __str__
 
     def __repr__(self) -> str:
         """Return a debug-friendly representation."""
-        return f"{self.__class__.__name__}(arity={self.ARITY})"
+        return f"{self.__class__.__name__}(arity={self.SPEC.arity.exact})"
     # end def __repr__
 
     # region STATIC
@@ -1109,13 +1198,16 @@ class Neg(UnaryElementwiseOperator):
     Element-wise negation operator.
     """
 
-    ARITY = 1
-    IS_VARIADIC = False
-    IS_DIFF = True
-    NAME = "neg"
-    SYMBOL = "-"
-    PRECEDENCE = 40
-    ASSOCIATIVITY = OpAssociativity.NONE
+    SPEC = OperatorSpec(
+        name="neg",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="-",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     def __init__(self):
         super().__init__()
@@ -1136,9 +1228,9 @@ class Neg(UnaryElementwiseOperator):
         str : A human-readable representation of the operator.
         """
         need_paren = (isinstance(operands[0], MathNode) and operands[0].op.arity > 1
-                      and operands[0].op.PRECEDENCE <= self.PRECEDENCE)
+                      and operands[0].op.SPEC.precedence <= self.SPEC.precedence)
         child_str = f"({operands[0]})" if need_paren else operands[0].__str__()
-        return f"{self.SYMBOL}{child_str}"
+        return f"{self.SPEC.symbol}{child_str}"
     # end def print
 
     def _needs_parentheses(self, *args, **kwargs):
@@ -1202,7 +1294,7 @@ class Neg(UnaryElementwiseOperator):
         # end if
 
         # --x = x
-        if hasattr(a, "op") and isinstance(a, MathNode) and a.op.name == Neg.NAME:
+        if hasattr(a, "op") and isinstance(a, MathNode) and a.op.name == Neg.SPEC.name:
             if self._apply_rule(SimplifyRule.NEGATE_NEGATE, options):
                 repr_expr = a.children[0]
                 new_operands = []
@@ -1222,7 +1314,7 @@ class Neg(UnaryElementwiseOperator):
         a, = operands
 
         # --x = x
-        if hasattr(a, "op") and a.is_node() and a.has_operator(Neg.NAME):
+        if hasattr(a, "op") and a.is_node() and a.has_operator(Neg.SPEC.name):
             return OpSimplifyResult(operands=None, replacement=a.children[0])
         # end if
 
@@ -1239,15 +1331,16 @@ class Pow(ElementwiseOperator):
     Element-wise power operator.
     """
 
-    ARITY = 2
-    IS_VARIADIC = False
-    IS_DIFF = True
-    COMMUTATIVE = False
-    ASSOCIATIVE = False
-    NAME = "pow"
-    SYMBOL = "^"
-    PRECEDENCE = 30
-    ASSOCIATIVITY = OpAssociativity.NONE
+    SPEC = OperatorSpec(
+        name="pow",
+        arity=AritySpec(exact=2, min_operands=2, variadic=False),
+        symbol="^",
+        precedence=30,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     def print(self, operands: Operands, **kwargs) -> str:
         """Return a human-readable representation of the operator.
@@ -1267,7 +1360,7 @@ class Pow(ElementwiseOperator):
         right_need_paren = isinstance(operands[1], MathNode) and operands[1].op.arity > 1
         left_child_str = f"({operands[0]})" if left_need_paren else operands[0].__str__()
         right_child_str = f"({operands[1]})" if right_need_paren else operands[1].__str__()
-        return f"{left_child_str}{self.SYMBOL}{right_child_str}"
+        return f"{left_child_str}{self.SPEC.symbol}{right_child_str}"
     # end def print
 
     # region PRIVATE
@@ -1317,9 +1410,16 @@ class Exp(UnaryElementwiseOperator):
     Element-wise exponential operator.
     """
 
-    NAME = "exp"
-    IS_VARIADIC = False
-    IS_DIFF = True
+    SPEC = OperatorSpec(
+        name="exp",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="exp",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -1356,9 +1456,16 @@ class Exp2(UnaryElementwiseOperator):
     Element-wise base-2 exponential operator.
     """
 
-    NAME = "exp2"
-    IS_VARIADIC = False
-    IS_DIFF = True
+    SPEC = OperatorSpec(
+        name="exp2",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="exp2",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -1394,7 +1501,16 @@ class Expm1(UnaryElementwiseOperator):
     Element-wise exp(x) - 1 operator.
     """
 
-    NAME = "expm1"
+    SPEC = OperatorSpec(
+        name="expm1",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="expm1",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1433,9 +1549,16 @@ class Log(UnaryElementwiseOperator):
     Element-wise natural logarithm operator.
     """
 
-    NAME = "log"
-    IS_VARIADIC = False
-    IS_DIFF = True
+    SPEC = OperatorSpec(
+        name="log",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="log",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -1471,7 +1594,16 @@ class Log1p(UnaryElementwiseOperator):
     Element-wise log(1 + x) operator.
     """
 
-    NAME = "log1p"
+    SPEC = OperatorSpec(
+        name="log1p",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="log1p",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1510,9 +1642,16 @@ class Sqrt(UnaryElementwiseOperator):
     Element-wise square root operator.
     """
 
-    NAME = "sqrt"
-    IS_VARIADIC = False
-    IS_DIFF = True
+    SPEC = OperatorSpec(
+        name="sqrt",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="sqrt",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -1548,9 +1687,16 @@ class Square(UnaryElementwiseOperator):
     Element-wise square operator.
     """
 
-    NAME = "square"
-    IS_VARIADIC = False
-    IS_DIFF = True
+    SPEC = OperatorSpec(
+        name="square",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="square",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
 
     # region PRIVATE
 
@@ -1586,7 +1732,16 @@ class Cbrt(UnaryElementwiseOperator):
     Element-wise cubic root operator.
     """
 
-    NAME = "cbrt"
+    SPEC = OperatorSpec(
+        name="cbrt",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="cbrt",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1625,7 +1780,16 @@ class Reciprocal(UnaryElementwiseOperator):
     Element-wise reciprocal operator.
     """
 
-    NAME = "reciprocal"
+    SPEC = OperatorSpec(
+        name="reciprocal",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="reciprocal",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1664,7 +1828,16 @@ class Log2(UnaryElementwiseOperator):
     Element-wise base-2 logarithm operator.
     """
 
-    NAME = "log2"
+    SPEC = OperatorSpec(
+        name="log2",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="log2",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1703,7 +1876,16 @@ class Log10(UnaryElementwiseOperator):
     Element-wise base-10 logarithm operator.
     """
 
-    NAME = "log10"
+    SPEC = OperatorSpec(
+        name="log10",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="log10",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1742,7 +1924,16 @@ class Deg2rad(UnaryElementwiseOperator):
     Convert degrees to radians.
     """
 
-    NAME = "deg2rad"
+    SPEC = OperatorSpec(
+        name="deg2rad",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="deg2rad",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1781,7 +1972,16 @@ class Rad2deg(UnaryElementwiseOperator):
     Convert radians to degrees.
     """
 
-    NAME = "rad2deg"
+    SPEC = OperatorSpec(
+        name="rad2deg",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="rad2deg",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1820,7 +2020,16 @@ class Absolute(UnaryElementwiseOperator):
     Element-wise absolute value operator.
     """
 
-    NAME = "absolute"
+    SPEC = OperatorSpec(
+        name="absolute",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="absolute",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 
@@ -1859,7 +2068,16 @@ class Abs(UnaryElementwiseOperator):
     Element-wise absolute value alias operator.
     """
 
-    NAME = "abs"
+    SPEC = OperatorSpec(
+        name="abs",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="abs",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     # region PRIVATE
 

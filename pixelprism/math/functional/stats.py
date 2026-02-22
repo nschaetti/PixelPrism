@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Optional, Sequence, Union
 
-from ..build import as_expr
+from .. import as_expr
 from ..dtype import DType
 from ..math_node import MathNode
 from ..shape import Shape

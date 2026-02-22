@@ -33,7 +33,7 @@ import numpy as np
 
 from ..math_node import MathNode
 from ..math_leaves import Variable
-from ..build import as_expr
+from .. import as_expr
 from ..shape import Shape
 from ..dtype import DType
 from .helpers import apply_operator

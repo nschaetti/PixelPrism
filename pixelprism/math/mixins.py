@@ -32,8 +32,8 @@ from abc import ABC, abstractmethod
 from typing import Union, Dict, List, TYPE_CHECKING, Mapping, cast, Tuple, Callable, Optional
 import numpy as np
 
-from .typing import LeafKind, MathExpr, ExprLike, Index, OpSimplifyResult, SimplifyRule, SimplifyOptions, \
-    SimplifyRuleType, RuleSpec
+from .typing_expr import LeafKind, MathExpr, ExprLike, Index, OpSimplifyResult
+from .typing_rules import SimplifyRule, SimplifyOptions, SimplifyRuleType, RuleSpec
 
 if TYPE_CHECKING:
     from .math_leaves import Variable, Constant
@@ -151,7 +151,7 @@ class PredicateMixin(ABC):
         - This method compares a numerical evaluation (not symbolic equivalence).
         - `bindings` provides the values of variables used by the two expressions.
         """
-        from .build import as_expr
+        from . import as_expr
 
         # To math expression
         other_expr = as_expr(other)
@@ -506,14 +506,14 @@ class ExprOperatorsMixin:
     @staticmethod
     def eq(operand1: ExprLike, operand2: ExprLike) -> MathNode:
         from .functional.boolean import eq
-        from .build import as_expr
+        from . import as_expr
         return eq(as_expr(operand1), as_expr(operand2))
     # end def eq
 
     @staticmethod
     def ne(operand1: ExprLike, operand2: ExprLike) -> MathNode:
         from .functional.boolean import ne
-        from .build import as_expr
+        from . import as_expr
         return ne(as_expr(operand1), as_expr(operand2))
     # end def ne
 
@@ -529,7 +529,7 @@ class ExprOperatorsMixin:
             Always raised; ordering is not defined for ``MathExpr``.
         """
         from .functional.boolean import lt
-        from .build import as_expr
+        from . import as_expr
         return lt(as_expr(operand1), as_expr(operand2))
     # end def lt
 
@@ -545,7 +545,7 @@ class ExprOperatorsMixin:
             Always raised; ordering is not defined for ``MathExpr``.
         """
         from .functional.boolean import le
-        from .build import as_expr
+        from . import as_expr
         return le(as_expr(operand1), as_expr(operand2))
     # end def le
 
@@ -561,7 +561,7 @@ class ExprOperatorsMixin:
             Always raised; ordering is not defined for ``MathExpr``.
         """
         from .functional.boolean import gt
-        from .build import as_expr
+        from . import as_expr
         return gt(as_expr(operand1), as_expr(operand2))
     # end def gt
 
@@ -577,49 +577,49 @@ class ExprOperatorsMixin:
             Always raised; ordering is not defined for ``MathExpr``.
         """
         from .functional.boolean import ge
-        from .build import as_expr
+        from . import as_expr
         return ge(as_expr(operand1), as_expr(operand2))
     # end def ge
 
     @staticmethod
     def logical_not(operand: ExprLike) -> MathNode:
         from .functional.boolean import logical_not
-        from .build import as_expr
+        from . import as_expr
         return logical_not(as_expr(operand))
     # end def logical_not
 
     @staticmethod
     def logical_any(operand: ExprLike) -> MathNode:
         from .functional.boolean import logical_any
-        from .build import as_expr
+        from . import as_expr
         return logical_any(as_expr(operand))
     # end def logical_any
 
     @staticmethod
     def logical_all(operand: ExprLike) -> MathNode:
         from .functional.boolean import logical_all
-        from .build import as_expr
+        from . import as_expr
         return logical_all(as_expr(operand))
     # end def logical_all
 
     @staticmethod
     def logical_and(operand1: ExprLike, operand2: ExprLike) -> MathNode:
         from .functional.boolean import logical_and
-        from .build import as_expr
+        from . import as_expr
         return logical_and(as_expr(operand1), as_expr(operand2))
     # end def logical_and
 
     @staticmethod
     def logical_or(operand1: ExprLike, operand2: ExprLike) -> MathNode:
         from .functional.boolean import logical_or
-        from .build import as_expr
+        from . import as_expr
         return logical_or(as_expr(operand1), as_expr(operand2))
     # end def logical_or
 
     @staticmethod
     def logical_xor(operand1: ExprLike, operand2: ExprLike) -> MathNode:
         from .functional.boolean import logical_xor
-        from .build import as_expr
+        from . import as_expr
         return logical_xor(as_expr(operand1), as_expr(operand2))
     # end def logical_xor
 
@@ -629,61 +629,61 @@ class ExprOperatorsMixin:
 
     def __add__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import add
-        from .build import as_expr
+        from . import as_expr
         return add(as_expr(self), as_expr(other))
     # end def __add__
 
     def __radd__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import add
-        from .build import as_expr
+        from . import as_expr
         return add(as_expr(other), as_expr(self))
     # end def __radd__
 
     def __sub__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import sub
-        from .build import as_expr
+        from . import as_expr
         return sub(as_expr(self), as_expr(other))
     # end def __sub__
 
     def __rsub__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import sub
-        from .build import as_expr
+        from . import as_expr
         return sub(as_expr(other), as_expr(self))
     # end def __rsub__
 
     def __mul__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import mul
-        from .build import as_expr
+        from . import as_expr
         return mul(as_expr(self), as_expr(other))
     # end def __mul__
 
     def __rmul__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import mul
-        from .build import as_expr
+        from . import as_expr
         return mul(as_expr(other), as_expr(self))
     # end def __rmul__
 
     def __truediv__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import div
-        from .build import as_expr
+        from . import as_expr
         return div(as_expr(self), as_expr(other))
     # end def __truediv__
 
     def __rtruediv__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import div
-        from .build import as_expr
+        from . import as_expr
         return div(as_expr(other), as_expr(self))
     # end def __rtruediv__
 
     def __pow__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import pow
-        from .build import as_expr
+        from . import as_expr
         return pow(as_expr(self), as_expr(other))
     # end def __pow__
 
     def __rpow__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.elementwise import pow
-        from .build import as_expr
+        from . import as_expr
         return pow(as_expr(other), as_expr(self))
     # end def __rpow__
 
@@ -693,19 +693,19 @@ class ExprOperatorsMixin:
 
     def __neg__(self: MathExpr) -> "MathNode":
         from .functional.elementwise import neg
-        from .build import as_expr
+        from . import as_expr
         return neg(as_expr(self))
     # end def __neg__
 
     def __matmul__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.linear_algebra import matmul
-        from .build import as_expr
+        from . import as_expr
         return matmul(as_expr(self), as_expr(other))
     # end def __matmul__
 
     def __rmatmul__(self: MathExpr, other: ExprLike) -> "MathNode":
         from .functional.linear_algebra import matmul
-        from .build import as_expr
+        from . import as_expr
         return matmul(as_expr(other), as_expr(self))
     # end def __rmatmul__
 
@@ -796,43 +796,43 @@ class ExprOperatorsMixin:
 
     def __invert__(self: MathExpr) -> MathNode:
         from .functional.boolean import logical_not
-        from .build import as_expr
+        from . import as_expr
         return logical_not(as_expr(self))
     # end __invert__
 
     def __and__(self: MathExpr, other: ExprLike) -> MathNode:
         from .functional.boolean import logical_and
-        from .build import as_expr
+        from . import as_expr
         return logical_and(as_expr(self), as_expr(other))
     # end __and__
 
     def __rand__(self: MathExpr, other: ExprLike) -> MathNode:
         from .functional.boolean import logical_and
-        from .build import as_expr
+        from . import as_expr
         return logical_and(as_expr(other), as_expr(self))
     # end __rand__
 
     def __or__(self: MathExpr, other: ExprLike) -> MathNode:
         from .functional.boolean import logical_or
-        from .build import as_expr
+        from . import as_expr
         return logical_or(as_expr(self), as_expr(other))
     # end __or__
 
     def __ror__(self: MathExpr, other: ExprLike) -> MathNode:
         from .functional.boolean import logical_or
-        from .build import as_expr
+        from . import as_expr
         return logical_or(as_expr(other), as_expr(self))
     # end __ror__
 
     def __xor__(self: MathExpr, other: ExprLike) -> MathNode:
         from .functional.boolean import logical_xor
-        from .build import as_expr
+        from . import as_expr
         return logical_xor(as_expr(self), as_expr(other))
     # end __xor__
 
     def __rxor__(self: MathExpr, other: ExprLike) -> MathNode:
         from .functional.boolean import logical_xor
-        from .build import as_expr
+        from . import as_expr
         return logical_xor(as_expr(other), as_expr(self))
     # end __rxor__
 

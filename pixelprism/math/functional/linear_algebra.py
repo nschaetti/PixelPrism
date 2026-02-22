@@ -29,7 +29,7 @@
 from typing import Sequence, Union, Optional
 
 from ..math_node import MathNode
-from ..build import as_expr
+from .. import as_expr
 from .helpers import apply_operator
 from ..typing import ExprLike
 

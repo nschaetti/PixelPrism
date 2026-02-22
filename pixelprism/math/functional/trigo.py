@@ -29,7 +29,7 @@
 Trigonometric functional helpers.
 """
 
-from ..build import as_expr
+from .. import as_expr
 from ..math_node import MathNode
 
 from .helpers import apply_operator

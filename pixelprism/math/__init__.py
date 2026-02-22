@@ -27,7 +27,7 @@
 #
 """Unified symbolic math package with split class modules."""
 
-from .build import as_expr
+from .typing_expr import as_expr
 
 from .context import (
     Context,

@@ -26,7 +26,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from ..build import as_expr
+from .. import as_expr
 from ..math_node import MathNode
 from .helpers import apply_operator
 

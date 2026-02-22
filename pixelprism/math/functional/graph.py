@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from ..build import as_expr
+from .. import as_expr
 from ..dtype import DType
 from ..typing import MathExpr
 from .helpers import apply_operator

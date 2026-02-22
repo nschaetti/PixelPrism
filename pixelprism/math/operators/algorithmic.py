@@ -33,7 +33,7 @@ from typing import Any, Callable, Dict, Optional, Sequence
 
 import numpy as np
 
-from ..build import as_expr
+from .. import as_expr
 from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape

@@ -80,7 +80,6 @@ class MathNode(
     def __init__(
             self,
             name: Optional[str],
-            *,
             op: Optional[Operator],
             children: Operands,
             dtype: DType,

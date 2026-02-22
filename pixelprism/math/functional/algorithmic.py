@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from ..build import as_expr
+from .. import as_expr
 from ..dtype import DType
 from ..operators.algorithmic import register_algorithm as _register_algorithm
 from ..operators.algorithmic import has_algorithm, get_algorithm

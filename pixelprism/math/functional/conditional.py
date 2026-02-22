@@ -27,7 +27,7 @@
 #
 
 from ..math_node import MathNode
-from ..build import as_expr
+from .. import as_expr
 from .helpers import apply_operator
 
 __all__ = [
