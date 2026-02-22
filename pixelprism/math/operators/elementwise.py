@@ -29,13 +29,27 @@
 Elementwise operator implementations.
 """
 from abc import ABC
+from collections import defaultdict
 from typing import Sequence, Union, Optional
+
 from ..tensor import Tensor
 from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
-from ..typing import MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule, OpAssociativity, AlgebraicExpr, Operator
+from ..typing import (
+    MathExpr,
+    LeafKind,
+    SimplifyOptions,
+    OpSimplifyResult,
+    SimplifyRule,
+    OpAssociativity,
+    AlgebraicExpr,
+    Operator,
+    SimplifyRuleType
+)
+from ..decorators import rule
+
 from .base import Operands, OperatorBase, operator_registry, ParametricOperator
 
 
@@ -395,101 +409,316 @@ class Add(NaryElementwiseOperator):
         return acc
     # end def _backward
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        a: MathExpr = operands[0]
-        b: MathExpr = operands[1]
+    # region RULES
 
-        # Replace expression
-        new_operands = [a, b]
-        repr_expr = None
-
-        # a + b = c
-        # replace the expression
-        if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
-            # Replaces with constant when both operands are constant
-            if isinstance(a, Constant) and isinstance(b, Constant):
-                repr_expr = Constant.new(a.eval() + b.eval())
-                new_operands = []
-            # end if
-        # end if
-
-        # x + 0 = x, 0 + x = x
-        # replace the expression
-        if self._apply_rule(SimplifyRule.ADD_ZERO, options):
-            if isinstance(a, Constant) and a.eval().is_null():
-                repr_expr = b
-                new_operands = []
-            # end if
-            if isinstance(b, Constant) and b.eval().is_null():
-                repr_expr = a
-                new_operands = []
-            # end if
-        # end if
-
-        # x + x = 2x
-        # replace the expression
-        if self._apply_rule(SimplifyRule.ADD_ITSELF, options):
-            # a and b are the same object
-            if operands[0] == operands[1]:
-                repr_expr = a.mul(2.0, a)
-                new_operands = []
-        # end if
-
-        # x + -y = x - y
-        # replace the expression
-        if self._apply_rule(SimplifyRule.ADD_NEG, options):
-            # b is a node, and has the neg operator
-            if hasattr(b, "op") and b.op.name == Neg.NAME:
-                repr_expr = a.sub(a, b.children[0])
-                new_operands = []
-            # end if
-        # end if
-
-        # a*x + b*x = (a+b)*x
-        if self._apply_rule(SimplifyRule.ADD_AX_BX, options):
-            if hasattr(a, "op") and hasattr(b, "op") and a.num_children() > 1 and b.num_children() > 1:
-                is_ax = a.has_operator(Mul.NAME) and a.children[1] == b.children[1] and a.children[0].is_constant()
-                is_bx = b.has_operator(Mul.NAME) and b.children[1] == a.children[1] and b.children[0].is_constant()
-                if is_ax and is_bx:
-                    repr_expr = Constant.new(a.children[0].eval() + b.children[0].eval()) * a.children[1]
-                    new_operands = []
-                # end if
-            # end if
-        # end if
-
-        return OpSimplifyResult(new_operands, repr_expr)
-    # end def _simplify
-
-    def _canonicalize(
+    @rule(SimplifyRule.SUM_CONSTANTS, priority=10, rule_type=SimplifyRuleType.BOTH)
+    def _r_sum_constants(
             self,
             operands: Sequence[MathExpr]
-    ) -> OpSimplifyResult:
+    ) -> OpSimplifyResult | None:
+        """Merge constant terms in addition.
+
+        Applies the rule ``a + b -> c`` when operands are constants,
+        where ``c`` is the constant sum of ``a`` and ``b``.
+
+        Parameters
+        ----------
+        operands : Sequence[MathExpr]
+            Operator operands in order ``(a, b)``.
+
+        Returns
+        -------
+        OpSimplifyResult or None
+            Replacement result when the rule matches, otherwise ``None``.
         """
-        Simplify an expression by combining adjacent terms.
+        constants = [op for op in operands if op.is_constant()]
+        non_constant = [op for op in operands if not op.is_constant()]
+        if len(constants) == 0:
+            return None
+        # end if
+        new_constant = Constant.new(sum(op.eval() for op in constants))
+        # Replaces with sum and non‑constant terms
+        if len(non_constant) == 0:
+            return OpSimplifyResult(operands=None, replacement=new_constant)
+        else:
+            return OpSimplifyResult(
+                operands=[new_constant] + non_constant,
+                replacement=None
+            )
+        # end if
+    # end def _r_merge_constants
+
+    @rule(SimplifyRule.REMOVE_ZEROS, priority=9, rule_type=SimplifyRuleType.BOTH)
+    def _r_remove_zeros(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> OpSimplifyResult | None:
         """
-        a, b = operands
-
-        # a + b = c
-        if a.is_constant() and b.is_constant():
-            return OpSimplifyResult(operands=None, replacement=Constant.new(a.eval() + b.eval()))
+        Eliminate additive neutral elements.
+        """
+        non_zeros = [
+            op for op in operands
+            if (op.is_constant() and not op.eval().is_null()) or op.is_variable()
+        ]
+        if len(non_zeros) == 0:
+            return OpSimplifyResult(operands=None, replacement=Constant.new(0.0))
+        else:
+            return OpSimplifyResult(operands=non_zeros, replacement=None)
         # end if
+    # end def _r_remove_zeros
 
-        # 0.0 + x = x
-        if a.is_constant() and a.eval().is_null():
-            return OpSimplifyResult(operands=None, replacement=b)
+    @rule(SimplifyRule.GROUP_ALIKE, priority=8, rule_type=SimplifyRuleType.BOTH)
+    def _r_group_alike(
+            self,
+            operands: Sequence[MathExpr]
+    ) -> OpSimplifyResult | None:
+        """
+        Group alike terms.
+        """
+        constants = [op for op in operands if op.is_constant()]
+        variables = [op for op in operands if op.is_variable()]
+        if len(variables) == 0:
+            return None
         # end if
-
-        # x + 0.0 = x
-        if b.is_constant() and b.eval().is_null():
-            return OpSimplifyResult(operands=None, replacement=a)
+        groups = defaultdict(lambda: 0)
+        for op in variables:
+            groups[op] += 1
+        # end for
+        new_ops = list()
+        for v, count in groups.items():
+            if count > 1:
+                new_ops += [Constant.new(count) * v]
+            else:
+                new_ops.append(v)
+            # end if
+        # end for
+        if len(new_ops) + len(constants) == len(operands):
+            return None
         # end if
+        if len(new_ops) + len(constants) == 1:
+            if len(new_ops) == 0:
+                return OpSimplifyResult(operands=None, replacement=constants[0])
+            else:
+                return OpSimplifyResult(operands=None, replacement=new_ops[0])
+            # end if
+        # end if
+        return OpSimplifyResult(operands=constants + new_ops, replacement=None)
+    # end def _r_group_alike
 
-        return OpSimplifyResult(operands=operands, replacement=None)
-    # end def _canonicalize
+    # @rule(SimplifyRule.ADD_ZERO, priority=10)
+    # def _r_add_zero(
+    #         self,
+    #         operands: Sequence[MathExpr],
+    #         options: SimplifyOptions | None = None
+    # ) -> OpSimplifyResult | None:
+    #     """Eliminate additive neutral elements.
+    #
+    #     Applies the rules ``x + 0 -> x`` and ``0 + x -> x``.
+    #
+    #     Parameters
+    #     ----------
+    #     operands : Sequence[MathExpr]
+    #         Operator operands in order ``(a, b)``.
+    #     options : SimplifyOptions or None, optional
+    #         Simplification options for the current pass.
+    #
+    #     Returns
+    #     -------
+    #     OpSimplifyResult or None
+    #         Replacement result when the rule matches, otherwise ``None``.
+    #     """
+    #     a: MathExpr = operands[0]
+    #     b: MathExpr = operands[1]
+    #     if isinstance(a, Constant) and a.eval().is_null():
+    #         return OpSimplifyResult(operands=None, replacement=b)
+    #     # end if
+    #     if isinstance(b, Constant) and b.eval().is_null():
+    #         return OpSimplifyResult(operands=None, replacement=a)
+    #     # end if
+    #     return None
+    # # end def _r_add_zero
+    #
+    # @rule(SimplifyRule.ADD_ITSELF, priority=20)
+    # def _r_add_itself(
+    #         self,
+    #         operands: Sequence[MathExpr],
+    #         options: SimplifyOptions | None = None
+    # ) -> OpSimplifyResult | None:
+    #     """Fold duplicated addends.
+    #
+    #     Applies the rule ``x + x -> 2 * x`` when both operands are equal.
+    #
+    #     Parameters
+    #     ----------
+    #     operands : Sequence[MathExpr]
+    #         Operator operands in order ``(a, b)``.
+    #     options : SimplifyOptions or None, optional
+    #         Simplification options for the current pass.
+    #
+    #     Returns
+    #     -------
+    #     OpSimplifyResult or None
+    #         Replacement result when the rule matches, otherwise ``None``.
+    #     """
+    #     a: MathExpr = operands[0]
+    #     b: MathExpr = operands[1]
+    #     if a == b:
+    #         return OpSimplifyResult(operands=None, replacement=a.mul(2.0, a))
+    #     # end if
+    #     return None
+    # # end def _r_add_itself
+    #
+    # @rule(SimplifyRule.ADD_NEG, priority=30)
+    # def _r_add_neg(
+    #         self,
+    #         operands: Sequence[MathExpr],
+    #         options: SimplifyOptions | None = None
+    # ) -> OpSimplifyResult | None:
+    #     """Rewrite addition of a negated term as subtraction.
+    #
+    #     Applies the rule ``x + (-y) -> x - y``.
+    #
+    #     Parameters
+    #     ----------
+    #     operands : Sequence[MathExpr]
+    #         Operator operands in order ``(a, b)``.
+    #     options : SimplifyOptions or None, optional
+    #         Simplification options for the current pass.
+    #
+    #     Returns
+    #     -------
+    #     OpSimplifyResult or None
+    #         Replacement result when the rule matches, otherwise ``None``.
+    #     """
+    #     a: MathExpr = operands[0]
+    #     b: MathExpr = operands[1]
+    #     if hasattr(b, "op") and b.op.name == Neg.NAME:
+    #         return OpSimplifyResult(operands=None, replacement=a.sub(a, b.children[0]))
+    #     # end if
+    #     return None
+    # # end def _r_add_neg
+    #
+    # @rule(SimplifyRule.ADD_AX_BX, priority=40)
+    # def _r_add_ax_bx(
+    #         self,
+    #         operands: Sequence[MathExpr],
+    #         options: SimplifyOptions | None = None
+    # ) -> OpSimplifyResult | None:
+    #     """Factor a common symbolic term in a linear combination.
+    #
+    #     Applies the rule ``a*x + b*x -> (a+b)*x`` when both summands are
+    #     multiplications sharing the same symbolic factor ``x`` and scalar
+    #     constant coefficients ``a`` and ``b``.
+    #
+    #     Parameters
+    #     ----------
+    #     operands : Sequence[MathExpr]
+    #         Operator operands in order ``(a, b)``.
+    #     options : SimplifyOptions or None, optional
+    #         Simplification options for the current pass.
+    #
+    #     Returns
+    #     -------
+    #     OpSimplifyResult or None
+    #         Replacement result when the rule matches, otherwise ``None``.
+    #     """
+    #     a: MathExpr = operands[0]
+    #     b: MathExpr = operands[1]
+    #     if hasattr(a, "op") and hasattr(b, "op") and a.num_children() > 1 and b.num_children() > 1:
+    #         is_ax = a.has_operator(Mul.NAME) and a.children[1] == b.children[1] and a.children[0].is_constant()
+    #         is_bx = b.has_operator(Mul.NAME) and b.children[1] == a.children[1] and b.children[0].is_constant()
+    #         if is_ax and is_bx:
+    #             replacement = Constant.new(a.children[0].eval() + b.children[0].eval()) * a.children[1]
+    #             return OpSimplifyResult(operands=None, replacement=replacement)
+    #         # end if
+    #     # end if
+    #     return None
+    # # end def _r_add_ax_bx
+
+    # endregion RULES
+
+    # def _simplify(
+    #         self,
+    #         operands: Sequence[MathExpr],
+    #         options: SimplifyOptions | None = None
+    # ) -> OpSimplifyResult:
+    #     a: MathExpr = operands[0]
+    #     b: MathExpr = operands[1]
+    #
+    #     # Replace expression
+    #     new_operands = [a, b]
+    #     repr_expr = None
+    #
+    #     # a + b = c
+    #     # replace the expression
+    #     if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
+    #         # Replaces with constant when both operands are constant
+    #         if isinstance(a, Constant) and isinstance(b, Constant):
+    #             repr_expr = Constant.new(a.eval() + b.eval())
+    #             new_operands = []
+    #         # end if
+    #     # end if
+    #
+    #     # x + x = 2x
+    #     # replace the expression
+    #     if self._apply_rule(SimplifyRule.ADD_ITSELF, options):
+    #         # a and b are the same object
+    #         if operands[0] == operands[1]:
+    #             repr_expr = a.mul(2.0, a)
+    #             new_operands = []
+    #     # end if
+    #
+    #     # x + -y = x - y
+    #     # replace the expression
+    #     if self._apply_rule(SimplifyRule.ADD_NEG, options):
+    #         # b is a node, and has the neg operator
+    #         if hasattr(b, "op") and b.op.name == Neg.NAME:
+    #             repr_expr = a.sub(a, b.children[0])
+    #             new_operands = []
+    #         # end if
+    #     # end if
+    #
+    #     # a*x + b*x = (a+b)*x
+    #     if self._apply_rule(SimplifyRule.ADD_AX_BX, options):
+    #         if hasattr(a, "op") and hasattr(b, "op") and a.num_children() > 1 and b.num_children() > 1:
+    #             is_ax = a.has_operator(Mul.NAME) and a.children[1] == b.children[1] and a.children[0].is_constant()
+    #             is_bx = b.has_operator(Mul.NAME) and b.children[1] == a.children[1] and b.children[0].is_constant()
+    #             if is_ax and is_bx:
+    #                 repr_expr = Constant.new(a.children[0].eval() + b.children[0].eval()) * a.children[1]
+    #                 new_operands = []
+    #             # end if
+    #         # end if
+    #     # end if
+    #
+    #     return OpSimplifyResult(new_operands, repr_expr)
+    # # end def _simplify
+
+    # def _canonicalize(
+    #         self,
+    #         operands: Sequence[MathExpr]
+    # ) -> OpSimplifyResult:
+    #     """
+    #     Simplify an expression by combining adjacent terms.
+    #     """
+    #     a, b = operands
+    #
+    #     # a + b = c
+    #     if a.is_constant() and b.is_constant():
+    #         return OpSimplifyResult(operands=None, replacement=Constant.new(a.eval() + b.eval()))
+    #     # end if
+    #
+    #     # 0.0 + x = x
+    #     if a.is_constant() and a.eval().is_null():
+    #         return OpSimplifyResult(operands=None, replacement=b)
+    #     # end if
+    #
+    #     # x + 0.0 = x
+    #     if b.is_constant() and b.eval().is_null():
+    #         return OpSimplifyResult(operands=None, replacement=a)
+    #     # end if
+    #
+    #     return OpSimplifyResult(operands=operands, replacement=None)
+    # # end def _canonicalize
 
 # end class Add
 
@@ -999,6 +1228,10 @@ class Neg(UnaryElementwiseOperator):
         child_str = f"({operands[0]})" if need_paren else operands[0].__str__()
         return f"{self.SYMBOL}{child_str}"
     # end def print
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
 
     # region STATIC
 

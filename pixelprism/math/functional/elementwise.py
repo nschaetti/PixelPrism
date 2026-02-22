@@ -26,7 +26,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from typing import Union
+from typing import Union, Sequence
 
 from .helpers import apply_operator
 from ..math_node import MathNode
@@ -60,18 +60,14 @@ __all__ = [
 
 
 def add(
-        op1: ExprLike,
-        op2: ExprLike
+        *operands: ExprLike,
 ) -> MathExpr:
     """
     Element-wise addition of two operands.
 
     Parameters
     ----------
-    op1 : ExprLike
-        Left operand. Non-expressions are converted via :func:`as_expr`.
-    op2 : ExprLike
-        Right operand. Non-expressions are converted via :func:`as_expr`.
+    operands : Sequence[ExprLike]
 
     Returns
     -------
@@ -94,20 +90,22 @@ def add(
     >>> b = pm.const("b", 3.0)
     >>> add(a, b).eval()
     array(5.)
+
+    Args:
+        operands:
     """
-    op1 = as_expr(op1)
-    op2 = as_expr(op2)
+    operands = [as_expr(o) for o in operands]
+    display_name = f" + ".join(o.name for o in operands)
     return apply_operator(
-        "add",
-        [op1, op2],
-        f"{op1.name} + {op2.name}"
+        op_name="add",
+        operands=operands,
+        display_name=display_name
     )
 # end def add
 
 
 def sub(
-        op1: ExprLike,
-        op2: ExprLike
+        *operands: ExprLike,
 ) -> MathExpr:
     """
     Element-wise subtraction of two operands.
@@ -141,19 +139,18 @@ def sub(
     >>> sub(a, b).eval()
     array(2.)
     """
-    op1 = as_expr(op1)
-    op2 = as_expr(op2)
+    operands = [as_expr(o) for o in operands]
+    display_name = f" - ".join(o.name for o in operands)
     return apply_operator(
-        "sub",
-        [op1, op2],
-        f"{op1.name} - {op2.name}"
+        op_name="sub",
+        operands=operands,
+        display_name=display_name
     )
 # end def sub
 
 
 def mul(
-        op1: ExprLike,
-        op2: ExprLike
+        *operands: ExprLike,
 ) -> MathExpr:
     """
     Element-wise multiplication of two operands.
@@ -187,12 +184,12 @@ def mul(
     >>> mul(a, b).eval()
     array(8.)
     """
-    op1 = as_expr(op1)
-    op2 = as_expr(op2)
+    operands = [as_expr(o) for o in operands]
+    display_name = f" * ".join(o.name for o in operands)
     return apply_operator(
-        "mul",
-        [op1, op2],
-        f"{op1.name} * {op2.name}"
+        op_name="mul",
+        operands=operands,
+        display_name=display_name
     )
 # end def mul
 
@@ -236,9 +233,9 @@ def div(
     op1 = as_expr(op1)
     op2 = as_expr(op2)
     return apply_operator(
-        "div",
-        [op1, op2],
-        f"{op1.name} / {op2.name}"
+        op_name="div",
+        operands=[op1, op2],
+        display_name=f"{op1.name} / {op2.name}"
     )
 # end def div
 

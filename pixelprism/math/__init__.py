@@ -47,6 +47,10 @@ from .context import (
     restore_context_stack
 )
 
+from .decorators import (
+    rule,
+)
+
 from .dtype import (
     DType,
     TypeLike,
@@ -96,7 +100,7 @@ from .math_leaves import MathLeaf, Variable, Constant, var, const
 
 from .function import Function
 
-from .mixins import PredicateMixin, ExprOperatorsMixin
+from .mixins import PredicateMixin, ExprOperatorsMixin, SimplifyRuleMixin
 
 from .operators import (
     OperatorBase,
@@ -210,6 +214,7 @@ from .typing import (
     LeafKind,
     SimplifyOptions,
     SimplifyRule,
+    SimplifyRuleType,
     OpSimplifyResult,
     OpConstruct,
     AlgebraicExpr,
@@ -374,6 +379,9 @@ __all__ = [
     "snapshot_context_stack",
     "restore_context_stack",
 
+    # Decorators
+    "rule",
+
     # DType
     "DType",
     "Z",
@@ -421,6 +429,8 @@ __all__ = [
 
     # Mixins
     "PredicateMixin",
+    "ExprOperatorsMixin",
+    "SimplifyRuleMixin",
 
     # Operators
     "OperatorBase",
@@ -549,6 +559,7 @@ __all__ = [
     "LeafKind",
     "SimplifyOptions",
     "SimplifyRule",
+    "SimplifyRuleType",
     "OpSimplifyResult",
     "OpConstruct",
     "AlgebraicExpr",

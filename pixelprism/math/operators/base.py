@@ -32,13 +32,25 @@ Operator base classes and registry.
 from abc import ABC, abstractmethod
 from typing import List, Type, Tuple, Any, Optional, Sequence, Union
 
+from ..random import rand_name
 from ..dtype import DType
 from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable
-from ..typing import Operands, Operator, MathExpr, LeafKind, SimplifyOptions, OpSimplifyResult, SimplifyRule, \
-    OpAssociativity, OpConstruct
+from ..typing import (
+    Operands,
+    Operator,
+    MathExpr,
+    LeafKind,
+    SimplifyOptions,
+    OpSimplifyResult,
+    SimplifyRule,
+    OpAssociativity,
+    OpConstruct,
+    SimplifyRuleType
+)
+from ..mixins import SimplifyRuleMixin
 
 __all__ = [
     "OperatorBase",
@@ -50,6 +62,7 @@ __all__ = [
 
 class OperatorBase(
     Operator,
+    SimplifyRuleMixin,
     ABC
 ):
     """
@@ -165,7 +178,10 @@ class OperatorBase(
 
     def eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
-        if len(operands) != self.arity:
+        if self.is_variadic and len(operands) < self.min_operands:
+            raise ValueError(f"Expected at least {self.min_operands} operands, got {len(operands)}")
+        # end if
+        if not self.is_variadic and len(operands) != self.arity:
             raise ValueError(f"Expected {self.arity} operands, got {len(operands)}")
         # end if
         return self._eval(operands=operands, **kwargs)
@@ -208,33 +224,6 @@ class OperatorBase(
         """
     # end def _needs_parentheses
 
-    def _apply_rule(
-            self,
-            rule: SimplifyRule,
-            options: SimplifyOptions | None = None,
-    ) -> bool:
-        """Return ```True``` if the rule should be applied."""
-        if not options:
-            return True
-        # end if
-
-        # Rule is not disabled
-        if rule not in options.disabled:
-            # No enabled list => always apply rule
-            if not options.enabled:
-                return True
-            # Not in enabled list => don't apply rule
-            elif rule not in options.enabled:
-                return False
-            # In enabled list => apply rule
-            else:
-                return True
-            # end if
-        # end if
-
-        return False
-    # end def _apply_rule
-
     @abstractmethod
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
@@ -251,18 +240,28 @@ class OperatorBase(
         raise NotImplementedError(f"{self.NAME} is not differentiable.")
     # end _diff
 
-    @abstractmethod
     def _simplify(
             self,
             operands: Sequence[MathExpr],
             options: SimplifyOptions | None = None
     ) -> OpSimplifyResult:
         """Return operator-local simplification result."""
+        hit = self._run_rules(
+            operands=operands,
+            options=options,
+            rule_type=SimplifyRuleType.SIMPLIFICATION
+        )
+        return hit or OpSimplifyResult(operands=operands, replacement=None)
     # end def simplify
 
     def _canonicalize(self, operands: Sequence[MathExpr]) -> OpSimplifyResult:
         """Return canonicalized operands for this operator."""
-        return OpSimplifyResult(operands=operands, replacement=None)
+        hit = self._run_rules(
+            operands=operands,
+            options=None,
+            rule_type=SimplifyRuleType.CANONICALIZATION
+        )
+        return hit or OpSimplifyResult(operands=operands, replacement=None)
     # end def canonicalize
 
     # endregion PRIVATE
@@ -340,44 +339,28 @@ class OperatorBase(
             cls,
             operands: Operands,
             **kwargs
-    ) -> MathNode:
+    ) -> MathExpr:
         """
         Build a MathNode by applying a registered operator to operands.
         """
-        # Get operator class
-        op_cls = cls
-
-        # We check that operator arity is respected
-        if not op_cls.check_arity(operands):
-            raise TypeError(
-                f"Operator {op_cls.NAME}({op_cls.ARITY}) expected {op_cls.ARITY} operands, "
-                f"got {len(operands)}"
-            )
-        # end if
-
         # Instantiate operator
-        op = op_cls(**kwargs)
+        op_result = cls.construct(operands=operands, **kwargs)
 
-        # We check that shapes of the operands are compatible
-        if not op.check_shapes(operands):
-            shapes = ", ".join(str(o.shape) for o in operands)
-            raise TypeError(
-                f"Incompatible shapes for operator {op_cls.NAME}: {shapes}"
+        if isinstance(op_result.expr, MathExpr):
+            return op_result.expr
+        elif isinstance(op_result.expr, Operator):
+            op = op_result.expr
+            operands = op_result.operands
+            return MathNode(
+                name=rand_name(f"{cls.NAME}"),
+                op=op,
+                children=operands,
+                dtype=op.infer_dtype(operands),
+                shape=op.infer_shape(operands),
             )
+        else:
+            raise TypeError(f"Unexpected operator type: {type(op_result.expr)}")
         # end if
-
-        # We check that the operator approves the operand(s)
-        if not op.check_operands(operands):
-            raise ValueError(f"Invalid parameters for operator {op.name}: {kwargs}")
-        # end if
-
-        return MathNode(
-            name=op_cls.NAME,
-            op=op,
-            children=operands,
-            dtype=op.infer_dtype(operands),
-            shape=op.infer_shape(operands),
-        )
     # end def create_node
 
     @classmethod

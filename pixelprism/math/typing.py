@@ -58,6 +58,8 @@ __all__ = [
     "Operator",
     "SimplifyRule",
     "SimplifyOptions",
+    "SimplifyRuleType",
+    "RuleSpec",
     "LeafKind",
     "OpAssociativity",
     "OpSimplifyResult",
@@ -77,7 +79,7 @@ ScalarLike = float | int | np.number | bool | complex
 ScalarListLike: TypeAlias = list[Union[ScalarLike, "ScalarListLike"]]
 
 # Tensor data
-# Any accepted tensor payload: scalar, nested Python lists, or NumPy array.
+# are Any accepted tensor payload: scalar, nested Python lists, or NumPy array.
 TensorLike: TypeAlias = Union[ScalarLike, ScalarListLike, np.ndarray]
 
 
@@ -110,6 +112,10 @@ Index: TypeAlias = Union[
 # - Algebraic identities reduce expression size (e.g. x + 0 -> x).
 # - Canonicalization rules normalize a tree form for stable comparisons.
 class SimplifyRule(Enum):
+    SUM_CONSTANTS = auto()
+    REMOVE_ZEROS = auto()
+    GROUP_ALIKE = auto()
+
     # Algebraic identities
     ADD_ZERO = auto()           # x + 0 -> x ; 0 + x -> x
     ADD_NEG = auto()            # x + -y -> x - y
@@ -146,6 +152,13 @@ class SimplifyRule(Enum):
 # end class SimplifyRule
 
 
+class SimplifyRuleType(Enum):
+    SIMPLIFICATION = auto()
+    CANONICALIZATION = auto()
+    BOTH = auto()
+# end class SimplifyRuleType
+
+
 # Rule selection for one simplify pass.
 # - enabled=None means "all rules enabled by default".
 # - disabled always takes precedence over enabled.
@@ -154,6 +167,17 @@ class SimplifyOptions:
     enabled: FrozenSet[SimplifyRule] | None = None
     disabled: FrozenSet[SimplifyRule] = frozenset()
 # end class SimplifyOptions
+
+
+@dataclass(frozen=True)
+class RuleSpec:
+    """
+    Specify a rewrite rule for `simplify`.
+    """
+    flag: SimplifyRule
+    rule_type: SimplifyRuleType
+    priority: int = 100
+# end class RuleSpec
 
 
 #
@@ -555,6 +579,10 @@ class Operator(Protocol):
     # Construct the operator. This is the official and only way to create the operator instance.
     # The method will check rule of simplification.
     def construct(cls, operands: Operands, **kwargs) -> OpConstruct: ...
+
+    @classmethod
+    # Create a new operator node from the given operands.
+    def create_node(cls, operands: Operands, **kwargs) -> MathExpr: ...
 
     #
     # Representation

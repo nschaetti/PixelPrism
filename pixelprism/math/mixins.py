@@ -29,21 +29,22 @@
 # Imports
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Union, Dict, List, TYPE_CHECKING, Mapping, cast, Tuple
+from typing import Union, Dict, List, TYPE_CHECKING, Mapping, cast, Tuple, Callable, Optional
 import numpy as np
 
-from .typing import LeafKind, MathExpr, ExprLike, Index
+from .typing import LeafKind, MathExpr, ExprLike, Index, OpSimplifyResult, SimplifyRule, SimplifyOptions, \
+    SimplifyRuleType, RuleSpec
 
 if TYPE_CHECKING:
     from .math_leaves import Variable, Constant
     from .math_node import MathNode
-    from .tensor import Tensor
 # end if
 
 
 __all__ = [
     "PredicateMixin",
     "ExprOperatorsMixin",
+    "SimplifyRuleMixin",
 ]
 
 
@@ -849,3 +850,110 @@ class ExprOperatorsMixin:
     # end def __getitem__
 
 # end class ExprOperatorsMixin
+
+
+class SimplifyRuleMixin:
+    """
+    Mixin for applying simplification rules to expressions.
+    """
+
+    # List of simplification rules
+    _rules: tuple[Callable, ...] = ()
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # 1. Subclass gets the rules of the parents
+        inherited = []
+        for base in cls.__mro__[1:]:
+            if not hasattr(base, "_rules"):
+                inherited.extend(getattr(base, "_rules", ()))
+            # end if
+        # end for
+
+        # 2. collect rules declared in the current class
+        local = []
+        for _, obj in cls.__dict__.items():
+            spec = getattr(obj, "__rule_spec__", None)
+            if spec is not None:
+                local.append((spec.priority, obj))
+            # end if
+        # end for
+
+        # 3. sort by priority + stable order
+        local.sort(key=lambda x: x[0])
+
+        # 4. concatenate
+        cls._rules = tuple(inherited + [fn for _, fn in local])
+    # end def __init_subclass__
+
+    def _apply_rule(
+            self,
+            rule: RuleSpec,
+            options: SimplifyOptions | None = None,
+            rule_type: SimplifyRuleType | None = None,
+    ) -> bool:
+        """Return ```True``` if the rule should be applied."""
+        if not options:
+            return True
+        # end if
+
+        if rule_type and rule_type != rule.rule_type:
+            return False
+        # end if
+
+        # Rule is not disabled
+        if rule.flag not in options.disabled:
+            # No enabled list => always apply rule
+            if not options.enabled:
+                return True
+            # Not in the enabled list => don't apply rule
+            elif rule.flag not in options.enabled:
+                return False
+            # In the enabled list => apply rule
+            else:
+                return True
+            # end if
+        # end if
+
+        return False
+    # end def _apply_rule
+
+    def _run_rules(
+            self,
+            operands,
+            rule_type: SimplifyRuleType,
+            options: Optional[SimplifyOptions] = None,
+    ) -> OpSimplifyResult | None:
+        """
+        Apply simplification rules to the expression.
+
+        Parameters
+        ----------
+        operands: tuple[Op, ...]
+            The operands of the expression.
+        options: SimplifyOptions
+            The simplification options.
+
+        Returns
+        -------
+        OpSimplifyResult | None
+            The result of applying the simplification rules, or None if no rule was applied.
+        """
+        for fn in self._rules:
+            spec = fn.__rule_spec__
+            if not self._apply_rule(spec, options, rule_type):
+                continue
+            # end if
+            out = fn(self, operands)   # out: OpSimplifyResult | None
+            # out is None if rule did not apply
+            if out is not None and out.replacement is not None:
+                return out
+            elif out is not None:
+                operands = out.operands
+            # end if
+        # end for
+        return OpSimplifyResult(operands=operands, replacement=None)
+    # end def _run_rules
+
+# end class SimplifyRuleMixin
