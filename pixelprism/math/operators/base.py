@@ -179,7 +179,10 @@ class OperatorBase(
     def eval(self, operands: Operands, **kwargs) -> Tensor:
         """Evaluate the operator."""
         if self.is_variadic and len(operands) < self.min_operands:
-            raise ValueError(f"Expected at least {self.min_operands} operands, got {len(operands)}")
+            raise ValueError(
+                f"Expected at least {self.min_operands} operands for operator '{self.name}', "
+                f"got {len(operands)}: {operands}"
+            )
         # end if
         if not self.is_variadic and len(operands) != self.arity:
             raise ValueError(f"Expected {self.arity} operands, got {len(operands)}")
@@ -330,6 +333,8 @@ class OperatorBase(
         """Check that the operands have the correct arity."""
         if not cls.IS_VARIADIC:
             return len(operands) == cls.ARITY
+        else:
+            return cls.MIN_OPERANDS <= len(operands)
         # end if
         return True
     # end def check_arity
@@ -364,6 +369,45 @@ class OperatorBase(
     # end def create_node
 
     @classmethod
+    def _check_arity(
+            cls,
+            operands: Operands
+    ):
+        if not cls.check_arity(operands):
+            if not cls.IS_VARIADIC:
+                raise TypeError(
+                    f"Operator {cls.NAME}({cls.ARITY}) expected {cls.ARITY} operands, "
+                    f"got {len(operands)}"
+                )
+            else:
+                raise TypeError(
+                    f"Operator {cls.NAME} expected minimum {cls.MIN_OPERANDS} operands, "
+                    f"got {len(operands)}"
+                )
+            # end if
+        # end if
+    # end def _check_arity
+
+    @classmethod
+    def _check_shapes(cls, op: Operator, operands: Operands):
+        # We check that the shapes of the operands are compatible
+        if not op.check_shapes(operands):
+            shapes = ", ".join(str(o.shape) for o in operands)
+            raise TypeError(
+                f"Incompatible shapes for operator {op.name}: {shapes}"
+            )
+        # end if
+    # end def _check_shapes
+
+    @classmethod
+    def _check_operands(cls, op: Operator, operands: Operands):
+        # We check that the operator approves the operand(s)
+        if not op.check_operands(operands):
+            raise ValueError(f"Invalid parameters for operator {op.name}: {kwargs}")
+        # end if
+    # end def _check_operands
+
+    @classmethod
     # Construct the operator. This is the official and only way to create the operator instance.
     # The method will check rule of simplification.
     def construct(cls, operands: Operands, **kwargs) -> OpConstruct:
@@ -383,34 +427,16 @@ class OperatorBase(
         OpConstruct
             The constructed operator or simplified expression.
         """
-        # We check that operator arity is respected
-        if not cls.check_arity(operands):
-            raise TypeError(
-                f"Operator {cls.NAME}({cls.ARITY}) expected {cls.ARITY} operands, "
-                f"got {len(operands)}"
-            )
-        # end if
-
         # Instantiate operator
         op = cls(**kwargs)
-
-        # We check that the shapes of the operands are compatible
-        if not op.check_shapes(operands):
-            shapes = ", ".join(str(o.shape) for o in operands)
-            raise TypeError(
-                f"Incompatible shapes for operator {op.name}: {shapes}"
-            )
-        # end if
-
-        # We check that the operator approves the operand(s)
-        if not op.check_operands(operands):
-            raise ValueError(f"Invalid parameters for operator {op.name}: {kwargs}")
-        # end if
 
         # Canonicalize operands
         canon_result: OpSimplifyResult = op.canonicalize(operands)
 
         if canon_result.replacement is None:
+            cls._check_arity(canon_result.operands)
+            cls._check_shapes(op, canon_result.operands)
+            cls._check_operands(op, canon_result.operands)
             return OpConstruct(expr=op, operands=canon_result.operands)
         else:
             return OpConstruct(expr=canon_result.replacement, operands=canon_result.operands)

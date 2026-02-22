@@ -26,7 +26,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from typing import Sequence, TYPE_CHECKING
+from typing import Sequence
 from ..operators.base import operator_registry
 from ..math_node import MathNode
 from ..typing import MathExpr, Operator, Operand

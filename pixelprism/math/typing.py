@@ -112,19 +112,24 @@ Index: TypeAlias = Union[
 # - Algebraic identities reduce expression size (e.g. x + 0 -> x).
 # - Canonicalization rules normalize a tree form for stable comparisons.
 class SimplifyRule(Enum):
+    # Operator agnostic rules
+    MERGE_CONSTANTS = auto()  # a + b -> c, a * b -> c, etc
+
     SUM_CONSTANTS = auto()
-    REMOVE_ZEROS = auto()
-    GROUP_ALIKE = auto()
+    CONSTANT_FIRST = auto()
 
-    # Algebraic identities
-    ADD_ZERO = auto()           # x + 0 -> x ; 0 + x -> x
-    ADD_NEG = auto()            # x + -y -> x - y
-    ADD_ITSELF = auto()         # x + x -> 2x
-    ADD_AX_BX = auto()          # a*x + b*x -> (a+b)*x
+    # Add (+) rules
+    ADD_FLATTEN = auto()        # (a+b)+c -> a+b+c
+    ADD_GROUP_ALIKE = auto()    # a * x + b * x -> (a+b)*x
+    ADD_REMOVE_ZEROS = auto()   # x + 0 -> x ; x + -0 -> x
 
-    SUB_ZERO = auto()           # x - 0 -> x
-    SUB_ITSELF = auto()         # x - x -> 0
+    # Sub (-) rules
+    SUB_FLATTEN = auto()
+    SUB_FIRST_ZERO = auto()
+    SUB_GROUP_ALIKE = auto()
+    SUB_REMOVE_ZEROS = auto()
 
+    # Mul (*) rules
     MUL_ONE = auto()            # x * 1 -> x ; 1 * x -> x
     MUL_ZERO = auto()           # x * 0 -> 0 ; 0 * x -> 0
     MUL_BY_CONSTANT = auto()    # x * c -> c * x
@@ -137,8 +142,6 @@ class SimplifyRule(Enum):
 
     DIV_ONE = auto()           # x / 1 -> x
     ZERO_DIV = auto()          # 0 / x -> 0
-
-    MERGE_CONSTANTS = auto()   # a + b -> c
 
     # Remove double negation
     NEGATE_NEGATE = auto()
@@ -675,13 +678,6 @@ class AlgebraicExpr(MathExpr, Protocol):
 
     def __matmul__(self, other: ExprLike) -> MathNode: ...
     def __rmatmul__(self, other: ExprLike) -> MathNode: ...
-
-    # def __eq__(self, other: ExprLike) -> MathNode: ...
-    # def __ne__(self, other: ExprLike) -> MathNode: ...
-    # def __lt__(self, other: ExprLike) -> MathNode: ...
-    # def __le__(self, other: ExprLike) -> MathNode: ...
-    # def __gt__(self, other: ExprLike) -> MathNode: ...
-    # def __ge__(self, other: ExprLike) -> MathNode: ...
 
     def __invert__(self) -> MathNode: ...
     def __and__(self, other: ExprLike) -> MathNode: ...

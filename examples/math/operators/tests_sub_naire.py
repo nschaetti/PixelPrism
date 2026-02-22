@@ -1,5 +1,5 @@
 import pixelprism.math as pm
-from pixelprism.math.functional.elementwise import add
+from pixelprism.math.functional.elementwise import sub
 
 
 def _print_expr_details(title: str, expr: pm.MathExpr, x: pm.MathExpr, y: pm.MathExpr, z: pm.MathExpr) -> None:
@@ -61,21 +61,22 @@ def main() -> None:
     cneg1 = pm.const("minus_one", dtype=pm.DType.R, data=-1.0)
 
     cases = [
-        ("N-ARY single constant: add(2)", add(c2)),
-        ("N-ARY single variable: add(x)", add(x)),
-        ("N-ARY MERGE_CONSTANTS: add(2, 3, 4)", add(c2, c3, c4)),
-        ("N-ARY ADD_REMOVE_ZEROS: add(x, 0, y, 0, z)", add(x, c0, y, c0, z)),
-        ("N-ARY ADD_GROUP_ALIKE: add(x, x, x)", add(x, x, x)),
-        ("N-ARY MERGE_CONSTANTS: add(x, -y, z, -1)", add(x, -y, z, cneg1)),
-        ("N-ARY ADD_REMOVE_ZEROS: add(x, 0)", add(x, c0)),
-        ("N-ARY ADD_GROUP_ALIKE (pure): add(x*2, 3*x, 1*y, y*9)", add(x * c2, c3 * x, c1 * y, y * c9)),
-        ("N-ARY ADD_GROUP_ALIKE (mixed): add(2*x, 3*x, y)", add(c2 * x, c3 * x, y)),
-        ("N-ARY 3 vars: add(x, y, z)", add(x, y, z)),
-        ("N-ARY nested: add(add(x, y), z, 0)", add(add(x, y), z, c0)),
-        ("N-ARY long chain: add(x, y, z, 1, 2, -1)", add(x, y, z, c1, c2, cneg1)),
+        ("N-ARY single constant: sub(2)", sub(c2)),
+        ("N-ARY single variable: sub(x)", sub(x)),
+        ("N-ARY MERGE_CONSTANTS: sub(9, 4, 2)", sub(c9, c4, c2)),
+        ("N-ARY SUB_REMOVE_ZEROS: sub(x, 0, y, 0, z)", sub(x, c0, y, c0, z)),
+        ("N-ARY SUB_FIRST_ZERO: sub(0, x)", sub(c0, x)),
+        ("N-ARY SUB_FIRST_ZERO: sub(0, x, y)", sub(c0, x, y)),
+        ("N-ARY SUB_REMOVE_ZEROS: sub(x, 0)", sub(x, c0)),
+        ("N-ARY MERGE_CONSTANTS: sub(x, -y, z, -1)", sub(x, -y, z, cneg1)),
+        ("N-ARY 3 vars: sub(x, y, z)", sub(x, y, z)),
+        ("N-ARY nested: sub(sub(x, y), z, 0)", sub(sub(x, y), z, c0)),
+        ("N-ARY long chain: sub(x, y, z, 1, 2, -1)", sub(x, y, z, c1, c2, cneg1)),
+        ("N-ARY repeated vars: sub(x, x, x)", sub(x, x, x)),
+        ("N-ARY mixed constants only: sub(3, 2, 1)", sub(c3, c2, c1)),
     ]
 
-    print("\nElementwise Add N-ary deep-check (print/simplify/diff/eval)")
+    print("\nElementwise Sub N-ary deep-check (print/simplify/diff/eval)")
     print("Values used for eval: x=2, y=3, z=4")
 
     for title, expr in cases:
