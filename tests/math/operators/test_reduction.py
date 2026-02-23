@@ -31,7 +31,7 @@ import numpy as np
 import pytest
 
 import pixelprism.math as pm
-from pixelprism.math import utils, DType, render
+from pixelprism.math import typing_utils, DType, render
 from pixelprism.math.dtype import to_numpy
 from pixelprism.math.functional import reduction as R
 

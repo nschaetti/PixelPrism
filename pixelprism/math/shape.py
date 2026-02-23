@@ -46,7 +46,7 @@ from typing import Iterable, List, Optional, Sequence, Union, Dict, TypeAlias, T
 import numpy as np
 
 from .dtype import TypeLike, to_numpy, DType
-from .mixins import PredicateMixin
+from .mixins import ExpressionMixin
 from .typing import MathExpr, LeafKind, SimplifyOptions
 from .math_exceptions import SymbolicMathInvalidDimensionError, SymbolicMathNotImplementedError
 from .random import rand_name
@@ -74,7 +74,7 @@ DimLike: TypeAlias = Union[int, "MathExpr"]
 ShapeLike = Union['Shape', Sequence[DimLike]]
 
 
-class Shape(MathExpr, PredicateMixin):
+class Shape(MathExpr, ExpressionMixin):
     """
     TODO: documentation
     """
@@ -242,7 +242,7 @@ class Shape(MathExpr, PredicateMixin):
             return self.eval().tolist() == list(other)
         # end if
 
-        return PredicateMixin.equals(
+        return ExpressionMixin.equals(
             self,
             other,
             rtol=rtol,

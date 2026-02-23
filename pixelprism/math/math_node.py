@@ -36,11 +36,12 @@ from .math_exceptions import (
     SymbolicMathOperatorError,
     SymbolicMathNotImplementedError
 )
-from .mixins import PredicateMixin, ExprOperatorsMixin
+from .mixins import ExpressionMixin, AlgebraicMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .typing import MathExpr, Operands, Operator, LeafKind, SimplifyOptions
+from .typing import MathExpr, Operands, Operator, LeafKind, SimplifyOptions, ExprKind, ExprDomain, OperatorSpec
+from .typing_expr import FoldPolicy, OpSimplifyResult
 
 if TYPE_CHECKING:
     from .math_leaves import Constant, Variable
@@ -54,8 +55,8 @@ __all__ = [
 
 class MathNode(
     MathBase,
-    PredicateMixin,
-    ExprOperatorsMixin,
+    ExpressionMixin,
+    AlgebraicMixin,
     MathExpr
 ):
     """
@@ -101,7 +102,13 @@ class MathNode(
         shape : Shape
             Symbolic tensor shape describing the node's extent.
         """
-        super(MathNode, self).__init__(name=name, dtype=dtype, shape=shape)
+        super(MathNode, self).__init__(
+            name=name,
+            kind=ExprKind.NODE,
+            domain=ExprDomain.ALGEBRAIC,
+            dtype=dtype,
+            shape=shape
+        )
         self._op = op
         self._children: Operands = children
         self._parents_weak: weakref.WeakSet[MathExpr] = weakref.WeakSet()
@@ -111,29 +118,11 @@ class MathNode(
 
     # endregion CONSTRUCTOR
 
-    # region PROPERTIES
+    # region MATH_EXPR
 
-    @property
-    def op(self) -> Optional[Operator]:
-        """
-        Returns
-        -------
-        Operator or None
-            Operator descriptor for non-leaf nodes.
-        """
-        return self._op
-    # end op
-
-    @property
-    def children(self) -> Sequence[MathExpr]:
-        """
-        Returns
-        -------
-        Sequence['MathExpr']
-            Child nodes (empty tuple for leaves).
-        """
-        return self._children
-    # end def children
+    #
+    # Properties
+    #
 
     @property
     def parents(self) -> FrozenSet[MathExpr]:
@@ -157,13 +146,49 @@ class MathNode(
         return len(self._children)
     # end def arity
 
-    # endregion PROPERTIES
+    @property
+    def op(self) -> Optional[Operator]:
+        """
+        Returns
+        -------
+        Operator or None
+            Operator descriptor for non-leaf nodes.
+        """
+        return self._op
+    # end op
 
-    # region MATH_EXPR
+    @property
+    def op_name(self) -> Optional[str]:
+        """
+        Returns
+        -------
+        str or None
+            Name of the operator for non-leaf nodes.
+        """
+        return self._op.name if self._op is not None else None
+    # end def op_name
 
-    #
-    # Properties
-    #
+    @property
+    def spec(self) -> Optional[OperatorSpec]:
+        """
+        Returns
+        -------
+        OperatorSpec or None
+            Operator specification for non-leaf nodes.
+        """
+        return self._op.spec if self._op is not None else None
+    # end def spec
+
+    @property
+    def children(self) -> Sequence[MathExpr]:
+        """
+        Returns
+        -------
+        Sequence['MathExpr']
+            Child nodes (empty tuple for leaves).
+        """
+        return self._children
+    # end def children
 
     @property
     def rank(self) -> int:
@@ -524,6 +549,16 @@ class MathNode(
     # Immutable transforms
     #
 
+    def _check_operator_min_operands(self):
+        """Check that the number of operands is still ok for the operator"""
+        if len(self._children) < self._op.arity.min_operands:
+            raise RuntimeError(
+                f"Operator '{self._op.name}' requires at least {self._op.arity.min_operands} operands, "
+                f"got {len(self._children)}"
+            )
+        # end if
+    # end if
+
     def simplify(self, options: SimplifyOptions | None = None) -> MathExpr:
         """
         Apply symbolic rewrite rules and return a simplified expression.
@@ -590,13 +625,18 @@ class MathNode(
         children = [child.simplify(options=options) for child in self._children]
 
         # Apply operator rules
-        simplify_result = self._op.simplify(operands=children, options=options)
+        simplify_result: OpSimplifyResult = self._op.simplify(operands=children, options=options)
 
+        # If remplacement available, return it
         if simplify_result.replacement is not None:
             return simplify_result.replacement
         # end if
 
+        # Otherwise rebuild a new node with simplified operands
         self._children = simplify_result.operands
+
+        # Check that the number of operands is still ok for the operator
+        self._check_operator_min_operands()
 
         return self
     # end def simplify
@@ -611,7 +651,24 @@ class MathNode(
         'MathExpr'
             Normalized expression.
         """
-        pass
+        # Canonicalize children first
+        children = [child.canonicalize() for child in self._children]
+
+        # Ask the operator to canonicalize its operands
+        canon_result: OpSimplifyResult = self._op.canonicalize(operands=children)
+
+        # if remplacement available, return it
+        if canon_result.replacement is not None:
+            return canon_result.replacement
+        # end if
+
+        # Otherwise rebuild a new node with canonicalized operands
+        self._children = canon_result.operands
+
+        # Check that the number of operands is still ok for the operator
+        self._check_operator_min_operands()
+
+        return self
     # end def canonicalize
 
     def fold_constants(self) -> "MathExpr":
@@ -624,8 +681,24 @@ class MathNode(
         'MathExpr'
             Expression with constant folding applied.
         """
-        # TODO: to implement
-        pass
+        # Fold children first
+        self._children = [child.fold_constants() for child in self._children]
+
+        # Ask the operator to fold constants
+        fold_result: OpSimplifyResult = self._op.fold_constants(operands=self._children)
+
+        # if remplacement available, return it
+        if fold_result.replacement is not None:
+            return fold_result.replacement
+        # end if
+
+        # Otherwise rebuild a new node with folded operands
+        self._children = fold_result.operands
+
+        # Check that the number of operands is still ok for the operator
+        self._check_operator_min_operands()
+
+        return self
     # end def fold_constants
 
     # Replace matching subexpressions using `mapping` and return a new tree.
@@ -649,8 +722,22 @@ class MathNode(
         Returns:
 
         """
-        # TODO: to implement
-        pass
+        if len(mapping) == 0:
+            return self
+        # end if
+
+        # Check if we are in the substitution scope
+        if self in mapping:
+            return mapping[self]
+        # end if
+
+        # Substitute children
+        new_children = list()
+        for child in self._children:
+            new_children.append(child.substitute(mapping, by_ref=by_ref))
+        # end for
+        self._children = new_children
+        return self
     # end def substitute
 
     def renamed(self, old_name: str, new_name: str) -> MathExpr:
@@ -737,6 +824,33 @@ class MathNode(
         return len(self._children) == 0
     # end is_leaf
 
+    def is_constant_leaf(self) -> bool:
+        """
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression is a leaf node and represents a constant value.
+        """
+        return False
+    # end def is_constant_leaf
+
+    def is_variable_leaf(self) -> bool:
+        """
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression is a leaf node and represents a variable.
+        """
+        return False
+    # end def is_variable_leaf
+
+    def is_pure(self) -> bool:
+        """
+        Check if the expression is pure, i.e. has no side effects.
+        """
+        return all(child.is_pure() for child in self._children)
+    # end def is_pure
+
     def has_operator(self, name: str) -> bool:
         """
         Check if the expression as an operator with the given name.
@@ -772,6 +886,34 @@ class MathNode(
         """
         return len(self._children) if self._children is not None else 0
     # end def num_children
+
+    #
+    # Rules and policy
+    #
+
+    def is_foldable(self) -> bool:
+        """
+        Check if the expression can be folded into a single node.
+
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression can be folded.
+        """
+        return all(child.is_foldable() for child in self._children)
+    # end def is_foldable
+
+    def fold_policy(self) -> "FoldPolicy":
+        """
+        Get the fold policy for this expression.
+
+        Returns
+        -------
+        'FoldPolicy'
+            The fold policy for this expression.
+        """
+        return FoldPolicy.FOLDABLE
+    # end def fold_policy
 
     #
     # Structure
@@ -914,15 +1056,21 @@ class MathNode(
         if self._op is None:
             return
         # end if
-        if not self._op.IS_VARIADIC:
-            if self.arity != self._op.arity:
+        if not self._op.arity.variadic:
+            if self.arity != self._op.spec.arity.exact:
                 raise SymbolicMathOperatorError(
                     f"Operator and arity mismatch: "
-                    f"{self._op.name}({self._op.arity}) != {self.__class__.__name__}({self.arity})"
+                    f"{self._op.name}({self._op.spec.arity.exact}) != {self.__class__.__name__}({self.arity})"
                 )
             # end if
         else:
-            self._op.arity = self.arity
+            if self.arity < self._op.spec.arity.min_operands:
+                raise SymbolicMathOperatorError(
+                    f"Operator and arity mismatch: "
+                    f"{self._op.name}({self._op.spec.arity.min_operands}, ...) != {self.__class__.__name__}({self.arity})"
+                )
+            # end if
+            self._op.set_parent(self)
         # end if
     # end _def_check_operator
 

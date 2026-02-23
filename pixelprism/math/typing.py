@@ -61,7 +61,8 @@ from .typing_expr import (
     AlgebraicExpr,
     ExprLike,
     ExprDomain,
-    ExprKind
+    ExprKind,
+    OperatorSpec,
 )
 
 
@@ -85,7 +86,8 @@ __all__ = [
     "AlgebraicExpr",
     "ExprLike",
     "ExprDomain",
-    "ExprKind"
+    "ExprKind",
+    "OperatorSpec",
 ]
 
 

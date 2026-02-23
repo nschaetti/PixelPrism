@@ -36,22 +36,94 @@ from .typing_expr import LeafKind, MathExpr, ExprLike, Index, OpSimplifyResult
 from .typing_rules import SimplifyRule, SimplifyOptions, SimplifyRuleType, RuleSpec
 
 if TYPE_CHECKING:
+    from .tensor import Tensor
     from .math_leaves import Variable, Constant
     from .math_node import MathNode
 # end if
 
 
 __all__ = [
-    "PredicateMixin",
-    "ExprOperatorsMixin",
+    "ExpressionMixin",
+    "AlgebraicMixin",
     "SimplifyRuleMixin",
 ]
 
 
-class PredicateMixin(ABC):
+class ExpressionMixin(ABC):
     """
     TODO: Add documentation.
     """
+
+    #
+    # Evaluate and differentiate
+    #
+
+    # Evaluate the expression in the active runtime context and return a tensor.
+    # The returned value must match the expression contract (`dtype`, `shape`).
+    @abstractmethod
+    def eval(self) -> "Tensor":
+        """Evaluate the expression in the active runtime context."""
+    # end def eval
+
+    # Symbolic derivative of the expression with respect to one variable.
+    # Returns a new expression tree (not a numeric value), suitable for further rewrites.
+    @abstractmethod
+    def diff(self, wrt: "Variable") -> "MathExpr":
+        """Symbolic derivative of the expression with respect to one variable."""
+    # end def diff
+
+    def equals(
+            self: MathExpr,
+            other: MathExpr | Tuple | List,
+            *,
+            rtol: float = 1e-6,
+            atol: float = 1e-9,
+            equal_nan: bool = False,
+            require_same_shape: bool = True,
+            require_same_dtype: bool = False
+    ) -> bool:
+        """
+        Compare the numerical values of two expressions in a given context.
+
+        Notes
+        -----
+        - This method compares a numerical evaluation (not symbolic equivalence).
+        - `bindings` provides the values of variables used by the two expressions.
+        """
+        from . import as_expr
+
+        # To math expression
+        other_expr = as_expr(other)
+
+        # Evaluate
+        left_val = self.eval()
+        right_val = other_expr.eval()
+
+        # To numpy array
+        left_arr = np.asarray(left_val)
+        right_arr = np.asarray(right_val)
+
+        if require_same_shape and left_arr.shape != right_arr.shape:
+            return False
+        # end if
+
+        if require_same_dtype:
+            if left_val.dtype != right_val.dtype:
+                return False
+            # end if
+        # end if
+
+        try:
+            return bool(np.allclose(left_arr, right_arr, rtol=rtol, atol=atol, equal_nan=equal_nan))
+        except ValueError:
+            # Shapes non broadcastables (si require_same_shape=False)
+            return False
+        # end try
+    # end def equals
+
+    #
+    # Structure
+    #
 
     @abstractmethod
     def variables(self) -> List['Variable']:
@@ -133,54 +205,24 @@ class PredicateMixin(ABC):
 
     # end def contains_constant
 
-    def equals(
-            self: MathExpr,
-            other: MathExpr | Tuple | List,
-            *,
-            rtol: float = 1e-6,
-            atol: float = 1e-9,
-            equal_nan: bool = False,
-            require_same_shape: bool = True,
-            require_same_dtype: bool = False
-    ) -> bool:
-        """
-        Compare the numerical values of two expressions in a given context.
+    #
+    # Immutable transforms
+    #
 
-        Notes
-        -----
-        - This method compares a numerical evaluation (not symbolic equivalence).
-        - `bindings` provides the values of variables used by the two expressions.
-        """
-        from . import as_expr
+    @abstractmethod
+    def simplify(self, options: SimplifyOptions | None = None) -> "MathExpr":
+        """Return a simplified version of the expression."""
+    # end def simplify
 
-        # To math expression
-        other_expr = as_expr(other)
+    @abstractmethod
+    def canonicalize(self) -> "MathExpr":
+        """Return a canonicalized version of the expression."""
+    # end def canonicalize
 
-        # Evaluate
-        left_val = self.eval()
-        right_val = other_expr.eval()
-
-        # To numpy array
-        left_arr = np.asarray(left_val)
-        right_arr = np.asarray(right_val)
-
-        if require_same_shape and left_arr.shape != right_arr.shape:
-            return False
-        # end if
-
-        if require_same_dtype:
-            if left_val.dtype != right_val.dtype:
-                return False
-            # end if
-        # end if
-
-        try:
-            return bool(np.allclose(left_arr, right_arr, rtol=rtol, atol=atol, equal_nan=equal_nan))
-        except ValueError:
-            # Shapes non broadcastables (si require_same_shape=False)
-            return False
-        # end try
-    # end def equals
+    @abstractmethod
+    def fold_constants(self) -> "MathExpr":
+        """Return a version of the expression with constants folded."""
+    # end def fold_constants
 
     def substitute(
             self,
@@ -197,7 +239,7 @@ class PredicateMixin(ABC):
         by_ref : bool, default True
             ``True`` for identity matching, ``False`` for symbolic matching.
         """
-        if type(self).replace is not PredicateMixin.replace:
+        if type(self).replace is not ExpressionMixin.replace:
             if not by_ref:
                 raise NotImplementedError(
                     "Legacy replace(...) bridge supports only by_ref=True."
@@ -222,7 +264,7 @@ class PredicateMixin(ABC):
         new_name: str
             New name for the variable/constant.
         """
-        if type(self).rename is not PredicateMixin.rename:
+        if type(self).rename is not ExpressionMixin.rename:
             self.rename(old_name, new_name)
             return cast(MathExpr, cast(object, self))
         # end if
@@ -241,6 +283,10 @@ class PredicateMixin(ABC):
         return {old_name: new_name}
     # end def rename
 
+    #
+    # Boolean check
+    #
+
     @abstractmethod
     def is_constant(self) -> bool:
         """Does the expression contain only constant values?"""
@@ -251,10 +297,58 @@ class PredicateMixin(ABC):
         """Does the expression contain a variable?"""
     # end def is_variable
 
+    @abstractmethod
+    # True for operator-based internal tree nodes.
+    def is_node(self) -> bool:
+        """Is the expression an operator-based internal tree node?"""
+    # end def is_node
+
+    @abstractmethod
+    # True for terminal tree elements (variables/constants) with no children.
+    def is_leaf(self) -> bool:
+        """Is the expression a terminal tree element (variables/constants) with no children?"""
+    # end def is_leaf
+
+    @abstractmethod
+    # True if leaf and constant
+    def is_constant_leaf(self) -> bool:
+        """Is the expression a terminal tree element (variables/constants) with no children and constant value?"""
+    # end def is_constant_leaf
+
+    @abstractmethod
+    # True if leaf and variable
+    def is_variable_leaf(self) -> bool:
+        """Is the expression a terminal tree element (variables/constants) with no children and variable name?"""
+    # end def is_variable_leaf
+
+    @abstractmethod
+    # True if the expression is deterministically evaluable (no randomness or context side effects).
+    def is_pure(self) -> bool:
+        """Is the expression deterministically evaluable (no randomness or context side effects)?"""
+    # end def is_pure
+
+    @abstractmethod
+    # True if behave like a scalar (rank = 1)
+    def is_scalar(self) -> bool:
+        """Is the expression behave like a scalar (rank = 1)?"""
+    # end def is_scalar
+
+    @abstractmethod
+    # Check if the expression as an operator with the given name.
+    def has_operator(self, name: str) -> bool:
+        """Check if the expression as an operator with the given name."""
+    # end def has_operator
+
+    @abstractmethod
+    # Check if the expression has children.
+    def has_children(self) -> bool:
+        """Check if the expression has children."""
+    # end def has_children
+
 # end class PredicateMixin
 
 
-class ExprOperatorsMixin:
+class AlgebraicMixin:
     """
     Shared arithmetic operator overloads for symbolic expressions.
     """
@@ -262,7 +356,7 @@ class ExprOperatorsMixin:
     # region OPERATORS
 
     @staticmethod
-    def add(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def add(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Create an elementwise addition node.
 
@@ -275,7 +369,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Symbolic addition of ``operand1`` and ``operand2``.
         """
         from .functional.elementwise import add
@@ -283,7 +377,7 @@ class ExprOperatorsMixin:
     # end def add
 
     @staticmethod
-    def sub(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def sub(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Create an elementwise subtraction node.
 
@@ -296,7 +390,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Symbolic subtraction ``operand1 - operand2``.
         """
         from .functional.elementwise import sub
@@ -304,7 +398,7 @@ class ExprOperatorsMixin:
     # end def sub
 
     @staticmethod
-    def mul(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def mul(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Create an elementwise multiplication node.
 
@@ -317,7 +411,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Symbolic product of the operands.
         """
         from .functional.elementwise import mul
@@ -325,7 +419,7 @@ class ExprOperatorsMixin:
     # end def mul
 
     @staticmethod
-    def div(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def div(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Create an elementwise division node.
 
@@ -338,7 +432,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Symbolic quotient ``operand1 / operand2``.
         """
         from .functional.elementwise import div
@@ -346,7 +440,7 @@ class ExprOperatorsMixin:
     # end def div
 
     @staticmethod
-    def neg(operand: ExprLike) -> MathNode:
+    def neg(operand: ExprLike) -> MathExpr:
         """
         Create an elementwise negation node.
 
@@ -357,7 +451,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Symbolic negation of ``operand``.
         """
         from .functional.elementwise import neg
@@ -365,7 +459,7 @@ class ExprOperatorsMixin:
     # end def neg
 
     @staticmethod
-    def pow(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def pow(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Create an elementwise power node.
 
@@ -378,7 +472,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Symbolic representation of ``operand1 ** operand2``.
         """
         from .functional.elementwise import pow as elementwise_pow
@@ -386,7 +480,7 @@ class ExprOperatorsMixin:
     # end def pow
 
     @staticmethod
-    def exp(operand: ExprLike) -> MathNode:
+    def exp(operand: ExprLike) -> MathExpr:
         """
         Create an elementwise exponential node.
 
@@ -397,7 +491,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Node computing ``exp(operand)``.
         """
         from .functional.elementwise import exp as elementwise_exp
@@ -405,7 +499,7 @@ class ExprOperatorsMixin:
     # end def exp
 
     @staticmethod
-    def log(operand: ExprLike) -> MathNode:
+    def log(operand: ExprLike) -> MathExpr:
         """
         Create an elementwise natural-logarithm node.
 
@@ -416,7 +510,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Node computing ``log(operand)``.
         """
         from .functional.elementwise import log as elementwise_log
@@ -424,7 +518,7 @@ class ExprOperatorsMixin:
     # end def log
 
     @staticmethod
-    def sqrt(operand: ExprLike) -> MathNode:
+    def sqrt(operand: ExprLike) -> MathExpr:
         """
         Create an elementwise square-root node.
 
@@ -435,7 +529,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Node computing ``sqrt(operand)``.
         """
         from .functional.elementwise import sqrt as elementwise_sqrt
@@ -443,7 +537,7 @@ class ExprOperatorsMixin:
     # end def sqrt
 
     @staticmethod
-    def log2(operand: ExprLike) -> MathNode:
+    def log2(operand: ExprLike) -> MathExpr:
         """
         Create an elementwise base-2 logarithm node.
 
@@ -454,7 +548,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Node computing ``log2(operand)``.
         """
         from .functional.elementwise import log2 as elementwise_log2
@@ -462,7 +556,7 @@ class ExprOperatorsMixin:
     # end def log2
 
     @staticmethod
-    def log10(operand: ExprLike) -> MathNode:
+    def log10(operand: ExprLike) -> MathExpr:
         """
         Create an elementwise base-10 logarithm node.
 
@@ -473,7 +567,7 @@ class ExprOperatorsMixin:
 
         Returns
         -------
-        MathNode
+        MathExpr
             Node computing ``log10(operand)``.
         """
         from .functional.elementwise import log10 as elementwise_log10
@@ -481,7 +575,7 @@ class ExprOperatorsMixin:
     # end def log10
 
     @staticmethod
-    def matmul(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def matmul(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Create a matrix multiplication node.
         """
@@ -490,7 +584,7 @@ class ExprOperatorsMixin:
     # end def matmul
 
     @staticmethod
-    def getitem(operand: ExprLike, index: Index) -> MathNode:
+    def getitem(operand: ExprLike, index: Index) -> MathExpr:
         """
         Create a getitem node.
         """
@@ -504,14 +598,14 @@ class ExprOperatorsMixin:
     # end def getitem
 
     @staticmethod
-    def eq(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def eq(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         from .functional.boolean import eq
         from . import as_expr
         return eq(as_expr(operand1), as_expr(operand2))
     # end def eq
 
     @staticmethod
-    def ne(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def ne(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         from .functional.boolean import ne
         from . import as_expr
         return ne(as_expr(operand1), as_expr(operand2))
@@ -519,7 +613,7 @@ class ExprOperatorsMixin:
 
     @staticmethod
     # Override less
-    def lt(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def lt(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Placeholder less-than operator.
 
@@ -535,7 +629,7 @@ class ExprOperatorsMixin:
 
     # Override less or equal
     @staticmethod
-    def le(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def le(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Placeholder less-or-equal operator.
 
@@ -551,7 +645,7 @@ class ExprOperatorsMixin:
 
     # Override greater
     @staticmethod
-    def gt(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def gt(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Placeholder greater-than operator.
 
@@ -567,7 +661,7 @@ class ExprOperatorsMixin:
 
     # Override greater or equal
     @staticmethod
-    def ge(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def ge(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         """
         Placeholder greater-or-equal operator.
 
@@ -582,42 +676,42 @@ class ExprOperatorsMixin:
     # end def ge
 
     @staticmethod
-    def logical_not(operand: ExprLike) -> MathNode:
+    def logical_not(operand: ExprLike) -> MathExpr:
         from .functional.boolean import logical_not
         from . import as_expr
         return logical_not(as_expr(operand))
     # end def logical_not
 
     @staticmethod
-    def logical_any(operand: ExprLike) -> MathNode:
+    def logical_any(operand: ExprLike) -> MathExpr:
         from .functional.boolean import logical_any
         from . import as_expr
         return logical_any(as_expr(operand))
     # end def logical_any
 
     @staticmethod
-    def logical_all(operand: ExprLike) -> MathNode:
+    def logical_all(operand: ExprLike) -> MathExpr:
         from .functional.boolean import logical_all
         from . import as_expr
         return logical_all(as_expr(operand))
     # end def logical_all
 
     @staticmethod
-    def logical_and(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def logical_and(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         from .functional.boolean import logical_and
         from . import as_expr
         return logical_and(as_expr(operand1), as_expr(operand2))
     # end def logical_and
 
     @staticmethod
-    def logical_or(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def logical_or(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         from .functional.boolean import logical_or
         from . import as_expr
         return logical_or(as_expr(operand1), as_expr(operand2))
     # end def logical_or
 
     @staticmethod
-    def logical_xor(operand1: ExprLike, operand2: ExprLike) -> MathNode:
+    def logical_xor(operand1: ExprLike, operand2: ExprLike) -> MathExpr:
         from .functional.boolean import logical_xor
         from . import as_expr
         return logical_xor(as_expr(operand1), as_expr(operand2))
@@ -627,61 +721,61 @@ class ExprOperatorsMixin:
 
     # region BINARY
 
-    def __add__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __add__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import add
         from . import as_expr
         return add(as_expr(self), as_expr(other))
     # end def __add__
 
-    def __radd__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __radd__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import add
         from . import as_expr
         return add(as_expr(other), as_expr(self))
     # end def __radd__
 
-    def __sub__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __sub__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import sub
         from . import as_expr
         return sub(as_expr(self), as_expr(other))
     # end def __sub__
 
-    def __rsub__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __rsub__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import sub
         from . import as_expr
         return sub(as_expr(other), as_expr(self))
     # end def __rsub__
 
-    def __mul__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __mul__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import mul
         from . import as_expr
         return mul(as_expr(self), as_expr(other))
     # end def __mul__
 
-    def __rmul__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __rmul__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import mul
         from . import as_expr
         return mul(as_expr(other), as_expr(self))
     # end def __rmul__
 
-    def __truediv__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __truediv__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import div
         from . import as_expr
         return div(as_expr(self), as_expr(other))
     # end def __truediv__
 
-    def __rtruediv__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __rtruediv__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import div
         from . import as_expr
         return div(as_expr(other), as_expr(self))
     # end def __rtruediv__
 
-    def __pow__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __pow__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import pow
         from . import as_expr
         return pow(as_expr(self), as_expr(other))
     # end def __pow__
 
-    def __rpow__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __rpow__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.elementwise import pow
         from . import as_expr
         return pow(as_expr(other), as_expr(self))
@@ -691,19 +785,19 @@ class ExprOperatorsMixin:
 
     # region UNARY
 
-    def __neg__(self: MathExpr) -> "MathNode":
+    def __neg__(self: MathExpr) -> "MathExpr":
         from .functional.elementwise import neg
         from . import as_expr
         return neg(as_expr(self))
     # end def __neg__
 
-    def __matmul__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __matmul__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.linear_algebra import matmul
         from . import as_expr
         return matmul(as_expr(self), as_expr(other))
     # end def __matmul__
 
-    def __rmatmul__(self: MathExpr, other: ExprLike) -> "MathNode":
+    def __rmatmul__(self: MathExpr, other: ExprLike) -> "MathExpr":
         from .functional.linear_algebra import matmul
         from . import as_expr
         return matmul(as_expr(other), as_expr(self))
@@ -780,7 +874,7 @@ class ExprOperatorsMixin:
     # # end __gt__
     #
     # # Override greater or equal
-    # def __ge__(self: MathExpr, other: ExprLike) -> MathNode:
+    # def __ge__(self: MathExpr, other: ExprLike) -> MathExpr:
     #     """
     #     Placeholder greater-or-equal operator.
     #
@@ -794,43 +888,43 @@ class ExprOperatorsMixin:
     #     return ge(as_expr(self), as_expr(other))
     # # end __ge__
 
-    def __invert__(self: MathExpr) -> MathNode:
+    def __invert__(self: MathExpr) -> MathExpr:
         from .functional.boolean import logical_not
         from . import as_expr
         return logical_not(as_expr(self))
     # end __invert__
 
-    def __and__(self: MathExpr, other: ExprLike) -> MathNode:
+    def __and__(self: MathExpr, other: ExprLike) -> MathExpr:
         from .functional.boolean import logical_and
         from . import as_expr
         return logical_and(as_expr(self), as_expr(other))
     # end __and__
 
-    def __rand__(self: MathExpr, other: ExprLike) -> MathNode:
+    def __rand__(self: MathExpr, other: ExprLike) -> MathExpr:
         from .functional.boolean import logical_and
         from . import as_expr
         return logical_and(as_expr(other), as_expr(self))
     # end __rand__
 
-    def __or__(self: MathExpr, other: ExprLike) -> MathNode:
+    def __or__(self: MathExpr, other: ExprLike) -> MathExpr:
         from .functional.boolean import logical_or
         from . import as_expr
         return logical_or(as_expr(self), as_expr(other))
     # end __or__
 
-    def __ror__(self: MathExpr, other: ExprLike) -> MathNode:
+    def __ror__(self: MathExpr, other: ExprLike) -> MathExpr:
         from .functional.boolean import logical_or
         from . import as_expr
         return logical_or(as_expr(other), as_expr(self))
     # end __ror__
 
-    def __xor__(self: MathExpr, other: ExprLike) -> MathNode:
+    def __xor__(self: MathExpr, other: ExprLike) -> MathExpr:
         from .functional.boolean import logical_xor
         from . import as_expr
         return logical_xor(as_expr(self), as_expr(other))
     # end __xor__
 
-    def __rxor__(self: MathExpr, other: ExprLike) -> MathNode:
+    def __rxor__(self: MathExpr, other: ExprLike) -> MathExpr:
         from .functional.boolean import logical_xor
         from . import as_expr
         return logical_xor(as_expr(other), as_expr(self))

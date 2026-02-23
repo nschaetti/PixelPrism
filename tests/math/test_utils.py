@@ -29,7 +29,7 @@
 # Imports
 import numpy as np
 
-from pixelprism.math import utils
+from pixelprism.math import typing_utils
 from pixelprism.math.dtype import DType
 from pixelprism.math.shape import Shape
 

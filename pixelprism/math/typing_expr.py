@@ -30,15 +30,11 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Protocol, runtime_checkable, NamedTuple, List, Optional
+from typing import Protocol, runtime_checkable, NamedTuple, List, Optional, FrozenSet
 from typing import TYPE_CHECKING, Tuple, Union, Sequence, TypeAlias
-from typing import ClassVar, Mapping, TypeGuard
+from typing import ClassVar, Mapping
 from dataclasses import dataclass
 
-import numpy
-import numpy as np
-
-from . import TensorLike, TypeLike, const, MathBase
 from .typing_data import ScalarLike, Index
 from .typing_rules import SimplifyOptions
 
@@ -66,8 +62,7 @@ __all__ = [
     "ExprKind",
     "ExprDomain",
     "FoldPolicy",
-    "is_algebraic",
-    "as_algebraic",
+    "ScalarLike"
 ]
 
 
@@ -75,9 +70,9 @@ __all__ = [
 # Expression tree node kinds
 #
 class ExprKind(Enum):
-    ALGEBRAIC_NODE = auto()
-    CONSTANT_LEAF = auto()
-    VARIABLE_LEAF = auto()
+    NODE = auto()
+    CONSTANT = auto()
+    VARIABLE = auto()
     SHAPE = auto()
     SLICE = auto()
 # end class ExprKind
@@ -117,6 +112,7 @@ class FoldPolicy(Enum):
 
 
 # Protocol for mathematical expressions
+# Abstract class is ExpressionMixin
 @runtime_checkable
 class MathExpr(Protocol):
 
@@ -172,6 +168,10 @@ class MathExpr(Protocol):
     @property
     def children(self) -> Sequence["MathExpr"]: ...
 
+    # Parent nodes
+    @property
+    def parents(self) -> FrozenSet[MathExpr]: ...
+
     #
     # Evaluate and differentiate
     #
@@ -185,6 +185,7 @@ class MathExpr(Protocol):
     def diff(self, wrt: "Variable") -> "MathExpr": ...
 
     # Return `true` if the two expressions return the same value when evaluated.
+    # In ExpressionMixin
     def equals(
             self: "MathExpr",
             other: "MathExpr | Tuple | List",
@@ -202,10 +203,12 @@ class MathExpr(Protocol):
 
     # Return all variable leaves reachable from this expression.
     # Order may follow traversal order; duplicates are not allowed.
+    # In ExpressionMixin
     def variables(self) -> Sequence["Variable"]: ...
 
     # Return all constant leaves reachable from this expression.
     # Order may follow traversal order; duplicates not are allowed.
+    # In ExpressionMixin
     def constants(self) -> Sequence["Constant"]: ...
 
     # Generic membership query in the expression tree.
@@ -213,6 +216,7 @@ class MathExpr(Protocol):
     # - `by_ref=True` enforces identity-based matching.
     # - `check_operator=True` also inspects operator-owned symbolic parameters.
     # - `look_for` narrows the search domain (e.g. "var", "const"); None means no filter.
+    # In ExpressionMixin
     def contains(
             self,
             leaf: Union[str, "MathExpr"],
@@ -222,6 +226,7 @@ class MathExpr(Protocol):
     ) -> bool: ...
 
     # Convenience wrapper around `contains(..., look_for=LeafKind.VARIABLE)`.
+    # In ExpressionMixin
     def contains_variable(
             self,
             variable: Union[str, "Variable"],
@@ -230,6 +235,7 @@ class MathExpr(Protocol):
     ) -> bool: ...
 
     # Convenience wrapper around `contains(..., look_for=LeafKind.CONSTANT)`.
+    # In ExpressionMixin
     def contains_constant(
             self,
             constant: Union[str, "Constant"],
@@ -255,8 +261,9 @@ class MathExpr(Protocol):
     def fold_constants(self) -> "MathExpr": ...
 
     # Replace matching subexpressions using `mapping` and return a new tree.
-    # - `by_ref=True`: match by object identity.
+    # - `by_re  f=True`: match by object identity.
     # - `by_ref=False`: match by symbolic/tree equality policy.
+    # In ExpressionMixin
     def substitute(
             self,
             mapping: Mapping["MathExpr", "MathExpr"],
@@ -266,6 +273,7 @@ class MathExpr(Protocol):
 
     # Return a new expression where occurrences of `old_name` are renamed to `new_name`.
     # This transform is immutable and does not alter the current instance.
+    # In ExpressionMixin
     def renamed(self, old_name: str, new_name: str) -> "MathExpr": ...
 
     #
@@ -289,9 +297,11 @@ class MathExpr(Protocol):
 
     # True if the expression contains no variable dependency
     # (i.e., it evaluates from constants only).
+    # In ExpressionMixin
     def is_constant(self) -> bool: ...
 
     # True if the expression contains at least one variable dependency.
+    # In ExpressionMixin
     def is_variable(self) -> bool: ...
 
     # True for operator-based internal tree nodes.
@@ -459,7 +469,7 @@ class Operator(Protocol):
     # For fixed-arity operators, this typically equals `ARITY`.
     # For variadic operators, this may reflect runtime operand count.
     @property
-    def arity(self) -> int: ...
+    def arity(self) -> AritySpec: ...
 
     # The minimum number of operands required by the operator.
     # This is the same as `MIN_OPERANDS` for fixed-arity operators.
@@ -467,10 +477,38 @@ class Operator(Protocol):
     @property
     def min_operands(self) -> int: ...
 
-    # Set effective arity for this operator instance.
-    # Intended mainly for variadic operators after operand validation.
-    @arity.setter
-    def arity(self, value: int) -> None: ...
+    # Operator specification.
+    @property
+    def spec(self) -> OperatorSpec: ...
+
+    # Operator symbol in the expression tree.
+    @property
+    def symbol(self) -> str: ...
+
+    # Operator precedence in the expression tree.
+    @property
+    def precedence(self) -> int: ...
+
+    # Operator associativity in the expression tree.
+    @property
+    def associativity(self) -> OpAssociativity: ...
+
+    # Commutativity flag.
+    @property
+    def commutative(self) -> bool: ...
+
+    # True if the operator is intended for differentiation-time semantics.
+    @property
+    def is_diff(self) -> bool: ...
+
+    # Parent operator instance.
+    @property
+    def parent(self) -> Operator | None: ...
+
+    #
+    # Parent
+    #
+    def set_parent(self, parent: MathExpr) -> None: ...
 
     #
     # Evaluate and differentiate
@@ -489,6 +527,10 @@ class Operator(Protocol):
     #
     # Simplification
     #
+
+    # Fold constant-only subexpressions into constant leaves.
+    # This is a focused transform and may be used independently of full simplifying.
+    def fold_constants(self, operands: Operands) -> OpSimplifyResult: ...
 
     # Apply operator-local simplification rules to already simplified operands.
     # Returns:
@@ -589,6 +631,7 @@ class Operator(Protocol):
 
 
 # Algebraic expression
+# It's abstract class is AlgebraicMixin
 @runtime_checkable
 class AlgebraicExpr(MathExpr, Protocol):
 
@@ -674,96 +717,3 @@ class AlgebraicExpr(MathExpr, Protocol):
 
 # end class AlgebraicExpr
 
-
-def is_algebraic(expr: MathExpr) -> TypeGuard[AlgebraicExpr]:
-    return expr.kind in {
-        ExprKind.ALGEBRAIC_NODE,
-        ExprKind.CONSTANT_LEAF,
-        ExprKind.VARIABLE_LEAF,
-    }
-# end def is_algebraic
-
-
-def as_algebraic(expr: MathExpr) -> AlgebraicExpr:
-    if not is_algebraic(expr):
-        raise TypeError(f"Expected AlgebraicExpr, got {expr.kind}")
-    # end if
-    return expr
-# end def is_algebraic
-
-
-def as_expr(
-        obj: Union[MathExpr, TensorLike],
-        dtype: Optional[TypeLike] = None,
-) -> MathExpr:
-    """
-    Convert Python and NumPy inputs to a :class:`~pixelprism.math.MathExpr`.
-
-    This helper follows NumPy-style conversion rules: scalars and nested
-    Python sequences are treated as array-like data and are converted via
-    ``numpy.asarray`` inside :func:`pixelprism.math.tensor`. NumPy arrays are
-    wrapped as :class:`~pixelprism.math.Tensor` instances; when ``dtype`` is
-    provided, the array is cast to that dtype.
-
-    Conversion rules (by input type)
-    --------------------------------
-    - ``MathExpr``: returned unchanged.
-    - Scalar (Python or ``np.number``): converted to a scalar ``Tensor`` using
-      ``dtype``.
-    - ``numpy.ndarray``: wrapped as a ``Tensor``; if ``dtype`` is provided,
-      it overrides the array's dtype.
-    - Nested Python lists: converted to a ``Tensor`` using ``dtype``; when
-      ``dtype`` is ``None``, defaults to ``R``.
-
-    Parameters
-    ----------
-    obj : MathNode | DataType | numpy.ndarray
-        Input object to convert.
-    dtype : AnyDType | None, default None
-        Target dtype for scalar, list, and array inputs. When ``None``,
-        lists default to ``R`` and arrays keep their existing dtype.
-
-    Returns
-    -------
-    MathExpr
-        A math expression node representing the input.
-
-    Examples
-    --------
-    >>> from pixelprism.math import as_expr, DType
-    >>> as_expr(3.5, dtype=DType.R).dtype
-    <DType.R: 'R'>
-
-    >>> import numpy as npy
-    >>> arr = npy.array([[1, 2], [3, 4]], dtype=np.int64)
-    >>> as_expr(arr, dtype=DType.R).dtype
-    <DType.R: 'R'>
-
-    >>> as_expr([[1, 2], [3, 4]], dtype=None).dtype
-    <DType.R: 'R'>
-    """
-    if isinstance(obj, MathExpr):
-        return obj
-    # end if
-    if isinstance(obj, ScalarLike) or isinstance(obj, np.ndarray):
-        return const(
-            name=f"constant_{MathBase.next_id()}",
-            data=obj,
-            dtype=dtype
-        )
-    # end if
-    if isinstance(obj, (list, tuple)):
-        return const(
-            name=f"constant_{MathBase.next_id()}",
-            data=obj,
-            dtype=dtype or DType.R
-        )
-    # end if
-    if isinstance(obj, Tensor):
-        return const(
-            name=f"constant_{MathBase.next_id()}",
-            data=obj.value,
-        )
-    # end if
-    raise TypeError(f"Cannot convert {type(obj)} to MathExpr")
-# end if

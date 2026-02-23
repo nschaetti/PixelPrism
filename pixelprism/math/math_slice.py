@@ -33,7 +33,7 @@ from typing import List, Optional, Union, Dict, Mapping, Sequence, TYPE_CHECKING
 from .math_base import MathBase
 from .math_exceptions import SymbolicMathValidationError, SymbolicMathNotImplementedError
 from .math_leaves import Constant, MathLeaf
-from .mixins import PredicateMixin
+from .mixins import ExpressionMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
@@ -52,7 +52,7 @@ __all__ = [
 
 class SliceExpr(
     MathBase,
-    PredicateMixin,
+    ExpressionMixin,
     MathExpr
 ):
     """

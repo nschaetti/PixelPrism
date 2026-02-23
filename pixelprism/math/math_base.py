@@ -56,7 +56,7 @@ __all__ = [
 
 class MathBase(MathExpr):
     """
-    TODO: Add documentation.
+    Abstract base for symbolic math expression nodes.
     """
 
     __slots__ = (
@@ -173,6 +173,28 @@ class MathBase(MathExpr):
         """
         return self._name
     # end def name
+
+    @property
+    def kind(self) -> ExprKind:
+        """
+        Returns
+        -------
+        ExprKind
+            Kind of expression.
+        """
+        return self._kind
+    # end def kind
+
+    @property
+    def domain(self) -> ExprDomain:
+        """
+        Returns
+        -------
+        ExprDomain
+            Domain of the expression.
+        """
+        return self._domain
+    # end def domain
 
     # endregion MATH_EXPR
 

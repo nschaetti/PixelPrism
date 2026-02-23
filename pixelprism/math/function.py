@@ -20,7 +20,7 @@ from typing import Any, Mapping, TYPE_CHECKING, cast
 from .math_base import MathBase
 from .math_exceptions import SymbolicMathValidationError, SymbolicMathNotImplementedError
 from .math_node import MathNode
-from .mixins import PredicateMixin
+from .mixins import ExpressionMixin
 from .context import new_context, set_value
 
 
@@ -39,7 +39,7 @@ __all__ = [
 
 class Function(
     MathBase,
-    PredicateMixin,
+    ExpressionMixin,
 ):
     """Atomic symbolic function built from an expression body.
 

@@ -42,7 +42,7 @@ from .math_exceptions import (
     SymbolicMathLookupError
 )
 # from .math_node import MathNode
-from .mixins import PredicateMixin, ExprOperatorsMixin
+from .mixins import ExpressionMixin, AlgebraicMixin
 from .dtype import DType, TypeLike, create
 from .shape import Shape, ShapeLike
 from .tensor import Tensor, TensorLike, tensor
@@ -55,6 +55,8 @@ __all__ = [
     "MathLeaf",
     "Variable",
     "Constant",
+    "var",
+    "const"
 ]
 
 
@@ -94,8 +96,8 @@ def const(name: str, data: TensorLike, dtype: Optional[TypeLike] = None) -> Cons
 # An expression which does not contain sub-expressions
 class MathLeaf(
     MathBase,
-    PredicateMixin,
-    ExprOperatorsMixin,
+    ExpressionMixin,
+    AlgebraicMixin,
     MathExpr,
     ABC
 ):
@@ -611,9 +613,9 @@ class Variable(MathLeaf):
 
         Parameters
         ----------
-        old_m: PredicateMixin
+        old_m: ExpressionMixin
             MathExpr to replace.
-        new_m: PredicateMixin
+        new_m: ExpressionMixin
             New MathExpr replacing the old one.
         """
         # TODO: decide whether leaf-level replace should mutate in-place

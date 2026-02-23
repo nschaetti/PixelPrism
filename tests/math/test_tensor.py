@@ -29,7 +29,7 @@
 # Imports
 import numpy as np
 import pytest
-from pixelprism.math import utils
+from pixelprism.math import typing_utils
 from pixelprism.math.dtype import DType, from_numpy
 from pixelprism.math.shape import Shape
 from pixelprism.math.tensor import Tensor, _convert_data_to_numpy_array, _numpy_dtype_to_dtype, einsum

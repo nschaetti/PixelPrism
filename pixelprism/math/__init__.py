@@ -27,7 +27,7 @@
 #
 """Unified symbolic math package with split class modules."""
 
-from .typing_expr import as_expr
+from .typing_utils import as_expr
 
 from .context import (
     Context,
@@ -100,7 +100,7 @@ from .math_leaves import MathLeaf, Variable, Constant, var, const
 
 from .function import Function
 
-from .mixins import PredicateMixin, ExprOperatorsMixin, SimplifyRuleMixin
+from .mixins import ExpressionMixin, AlgebraicMixin, SimplifyRuleMixin
 
 from .operators import (
     OperatorBase,
@@ -428,8 +428,8 @@ __all__ = [
     "SVC",
 
     # Mixins
-    "PredicateMixin",
-    "ExprOperatorsMixin",
+    "ExpressionMixin",
+    "AlgebraicMixin",
     "SimplifyRuleMixin",
 
     # Operators
