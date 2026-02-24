@@ -25,13 +25,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+from __future__ import annotations
 
+from functools import wraps
+from typing import Any, Callable, Sequence
 
+from .typing_expr import OpSimplifyResult
 from .typing_rules import SimplifyRule, RuleSpec, SimplifyRuleType
 
 
 __all__ = [
     "rule",
+    "when",
+    "needs_constants",
+    "needs_variables",
+    "returns_operands",
+    "no_op_if_unchanged",
+    "finalize_result",
 ]
 
 
@@ -59,3 +69,150 @@ def rule(flag: SimplifyRule, rule_type: SimplifyRuleType, priority: int = 100):
     # end def
     return deco
 # end def rule
+
+
+def when(*predicates: Callable[[Any, Sequence[Any]], bool]):
+    """
+    Apply a rule only when all predicates return ``True``.
+    """
+    def deco(fn):
+        @wraps(fn)
+        def wrapper(self, operands, *args, **kwargs):
+            for predicate in predicates:
+                if not predicate(self, operands):
+                    return None
+                # end if
+            # end for
+            return fn(self, operands, *args, **kwargs)
+        # end def wrapper
+        return wrapper
+    # end def deco
+    return deco
+# end def when
+
+
+def needs_constants(min_count: int = 1):
+    """
+    Skip rule when fewer than ``min_count`` operands are constant.
+    """
+    def _predicate(_self, operands: Sequence[Any]) -> bool:
+        return sum(1 for op in operands if op.is_constant()) >= min_count
+    # end def _predicate
+    return when(_predicate)
+# end def needs_constants
+
+
+def needs_variables(min_count: int = 1):
+    """
+    Skip rule when fewer than ``min_count`` operands are variable-containing.
+    """
+    def _predicate(_self, operands: Sequence[Any]) -> bool:
+        return sum(1 for op in operands if op.is_variable()) >= min_count
+    # end def _predicate
+    return when(_predicate)
+# end def needs_variables
+
+
+def returns_operands(fn):
+    """
+    Allow rules to return operands directly instead of ``OpSimplifyResult``.
+    """
+    @wraps(fn)
+    def wrapper(self, operands, *args, **kwargs):
+        out = fn(self, operands, *args, **kwargs)
+        if out is None:
+            return None
+        # end if
+        if isinstance(out, OpSimplifyResult):
+            return out
+        # end if
+        return OpSimplifyResult(operands=list(out), replacement=None)
+    # end def wrapper
+    return wrapper
+# end def returns_operands
+
+
+def no_op_if_unchanged(fn):
+    """
+    Convert unchanged outputs to ``None`` (rule not applied).
+    """
+    @wraps(fn)
+    def wrapper(self, operands, *args, **kwargs):
+        out = fn(self, operands, *args, **kwargs)
+        if out is None:
+            return None
+        # end if
+        if out.replacement is not None:
+            return out
+        # end if
+        if out.operands is None:
+            return out
+        # end if
+
+        old_operands = list(operands)
+        new_operands = list(out.operands)
+        unchanged = (
+            len(old_operands) == len(new_operands)
+            and all(old is new for old, new in zip(old_operands, new_operands))
+        )
+        if unchanged:
+            return None
+        # end if
+        return OpSimplifyResult(operands=new_operands, replacement=None)
+    # end def wrapper
+    return wrapper
+# end def no_op_if_unchanged
+
+
+def finalize_result(
+        *,
+        empty: Any | Callable[[Any, Sequence[Any]], Any] | None = None,
+        collapse_single: bool = True,
+        min_out: int | None = None,
+):
+    """
+    Finalize a rule output by enforcing cardinality and replacement policy.
+    """
+    def deco(fn):
+        @wraps(fn)
+        def wrapper(self, operands, *args, **kwargs):
+            out = fn(self, operands, *args, **kwargs)
+            if out is None:
+                return None
+            # end if
+            if out.replacement is not None:
+                return out
+            # end if
+            if out.operands is None:
+                return out
+            # end if
+
+            new_operands = list(out.operands)
+
+            if min_out is not None and len(new_operands) < min_out:
+                raise RuntimeError(
+                    f"Rule produced too few operands: {len(new_operands)} < {min_out} "
+                    f"for {self.__class__.__name__}."
+                )
+            # end if
+
+            if len(new_operands) == 0:
+                if empty is None:
+                    raise RuntimeError(
+                        f"Rule produced empty operands for {self.__class__.__name__}."
+                    )
+                # end if
+                replacement = empty(self, operands) if callable(empty) else empty
+                return OpSimplifyResult(operands=None, replacement=replacement)
+            # end if
+
+            if collapse_single and len(new_operands) == 1:
+                return OpSimplifyResult(operands=None, replacement=new_operands[0])
+            # end if
+
+            return OpSimplifyResult(operands=new_operands, replacement=None)
+        # end def wrapper
+        return wrapper
+    # end def deco
+    return deco
+# end def finalize_result
