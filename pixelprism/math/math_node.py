@@ -29,7 +29,7 @@
 # Imports
 from __future__ import annotations
 import weakref
-from typing import Any, FrozenSet, List, Optional, Union, Sequence, TYPE_CHECKING, Mapping
+from typing import Any, FrozenSet, List, Optional, Union, Sequence, TYPE_CHECKING, Mapping, Dict
 
 from .math_base import MathBase
 from .math_exceptions import (
@@ -682,12 +682,12 @@ class MathNode(
             Expression with constant folding applied.
         """
         # Fold children first
-        self._children = [child.fold_constants() for child in self._children]
+        # self._children = [child.fold_constants() for child in self._children]
 
         # Ask the operator to fold constants
         fold_result: OpSimplifyResult = self._op.fold_constants(operands=self._children)
 
-        # if remplacement available, return it
+        # if replacement available, return it
         if fold_result.replacement is not None:
             return fold_result.replacement
         # end if
@@ -740,7 +740,7 @@ class MathNode(
         return self
     # end def substitute
 
-    def renamed(self, old_name: str, new_name: str) -> MathExpr:
+    def renamed(self, old_name: str, new_name: str) -> List[str]:
         """
         Rename all variables/constants named ``old_name`` with ``new_name`` in the tree.
         The replacement is in-place.
@@ -754,17 +754,18 @@ class MathNode(
 
         Returns
         -------
-        MathExpr
-            Expression with renamed variables/constants.
+        List[str]
+            List of renamed variables/constants.
         """
-        # rename_dict = {}
-        # for child in self._children:
-        #     rn_out = child.renamed(old_name, new_name)
-        #     rename_dict.update(rn_out)
-        # # end for
-        # return rename_dict
-        # TODO: to implement
-        pass
+        if self.name == old_name:
+            self._name = new_name
+        # end if
+        rename_list = list()
+        for child in self.children:
+            c_renamed = child.renamed(old_name, new_name)
+            rename_list.extend(c_renamed)
+        # end for
+        return rename_list
     # end rename
 
     #
@@ -775,8 +776,32 @@ class MathNode(
     # Returns True only if both expressions have the same structure
     # (same node kinds/operators, same operand order, same leaf content).
     def eq_tree(self, other: "MathExpr") -> bool:
-        # TODO: to implement
-        pass
+        """
+        Strict symbolic tree equality.
+
+        Parameters
+        ----------
+        other : MathExpr
+            The other expression to compare with.
+
+        Returns
+        -------
+        bool
+            True if the trees are equal, False otherwise.
+        """
+        if not isinstance(other, MathNode):
+            return False
+        # end if
+        return (
+            self.__class__ == other.__class__ and
+            self._dtype == other.dtype and
+            self._shape == other.shape and
+            self._kind == other.kind and
+            self._domain == other.domain and
+            len(self._children) == len(other.children) and
+            all(c1.eq_tree(c2) for c1, c2 in zip(self.children, other.children)) and
+            self._op == other.op
+        )
     # end def eq_tree
 
     # Mathematical symbolic equivalence.
@@ -929,21 +954,67 @@ class MathNode(
         'int'
             Maximum depth of the subtree rooted at this node.
         """
-        return max([c.depth() for c in self._children]) + 1
+        return max([c.depth() for c in self.children]) + 1
     # end def depth
+
+    def _copy_deep(self) -> MathExpr:
+        """
+        Create a deep copy of the expression tree.
+        """
+        new_expr = MathNode(
+            name=self._name,
+            op=self._op.copy(deep=True),
+            children=[c.copy(deep=True) for c in self.children],
+            dtype=self._dtype.copy(),
+            shape=self._shape.copy(),
+        )
+        return new_expr
+    # end def _copy_deep
+
+    def _copy_shallow(self) -> MathExpr:
+        """Create a shallow copy of the expression tree."""
+        new_expr = MathNode(
+            name=self._name,
+            op=self._op.copy(),
+            children=self._children,
+            dtype=self._dtype.copy(),
+            shape=self._shape.copy(),
+        )
+        return new_expr
+    # end def _copy_shallow
 
     def copy(self, deep: bool = False) -> MathExpr:
         """
-        TODO: define a stable copy contract for MathNode.
+        Create a deep or shallow copy of the expression tree.
 
-        Current implementation is intentionally conservative: deep copies of
-        DAG nodes are not yet specified (shared children, parent weakrefs,
-        operator-owned parameters).
+        Parameters
+        ----------
+        deep : bool, optional
+            If True, create a deep copy of the tree (default is False).
+
+        Returns
+        -------
+        MathExpr
+            A copy of the expression tree.
         """
-        raise SymbolicMathNotImplementedError(
-            "TODO: implement MathNode.copy(deep=...) once graph copy semantics are finalized."
-        )
+        if deep:
+            return self._copy_deep()
+        else:
+            return self._copy_shallow()
+        # end if
     # end def copy
+
+    #
+    # Comparison
+    #
+
+    def __eq__(self, other: object) -> bool:
+        return self is other
+    # end def __eq__
+
+    def __ne__(self, other: object) -> bool:
+        return not self.__eq__(other)
+    # end def __ne__
 
     #
     # Representation
@@ -952,7 +1023,6 @@ class MathNode(
     def __str__(self) -> str:
         """
         Human-readable representation intended for users/logs.
-        TODO: provide a dedicated human-readable string format.
         """
         return self._op.print(self._children)
     # end def __str__
@@ -1070,8 +1140,8 @@ class MathNode(
                     f"{self._op.name}({self._op.spec.arity.min_operands}, ...) != {self.__class__.__name__}({self.arity})"
                 )
             # end if
-            self._op.set_parent(self)
         # end if
+        self._op.set_parent(self)
     # end _def_check_operator
 
     def _register_as_parent_of(self, *children: "MathNode") -> None:

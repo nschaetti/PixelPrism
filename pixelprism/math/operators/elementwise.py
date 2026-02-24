@@ -45,20 +45,18 @@ from ..typing_expr import (
     LeafKind,
     OpSimplifyResult,
     OpAssociativity,
-    AlgebraicExpr,
     Operator,
     OperatorSpec, AritySpec,
 )
 from ..typing_rules import SimplifyOptions, SimplifyRule, SimplifyRuleType
-from ..decorators import rule
+from ..decorators import rule, when, needs_constants, needs_variables, returns_operands, no_op_if_unchanged, finalize_result
 
-from .base import Operands, OperatorBase, operator_registry, ParametricOperator
+from .base import Operands, OperatorBase, operator_registry
 
 
 __all__ = [
     "ElementwiseOperator",
     "UnaryElementwiseOperator",
-    "UnaryElementwiseParametricOperator",
     "Add",
     "Sub",
     "Mul",
@@ -128,7 +126,7 @@ class ElementwiseOperator(OperatorBase, ABC):
     @classmethod
     def check_parameters(cls, **kwargs) -> bool:
         """Check that the operands have compatible shapes."""
-        pass
+        return True
     # end def check_shapes
 
     # endregion STATIC
@@ -235,7 +233,7 @@ class BinaryElementwiseOperator(ElementwiseOperator, ABC):
         bool
             Whether the child operator needs parentheses.
         """
-        if hasattr(child, "op"):
+        if hasattr(child, "op") and child.op is not None:
             if child.op.SPEC.precedence <= self.SPEC.precedence:
                 # mêmes précédences
                 if self.SPEC.associativity == OpAssociativity.LEFT and is_right_child:
@@ -374,7 +372,7 @@ class NaryElementwiseOperator(ElementwiseOperator, ABC):
             Whether the child operator needs parentheses.
         """
         parent: Operator = self
-        if hasattr(child, "op"):
+        if hasattr(child, "op") and child.op is not None:
             if child.op.SPEC.precedence < parent.SPEC.precedence:
                 return True
             # end if
@@ -447,11 +445,13 @@ class Add(NaryElementwiseOperator):
 
     # region RULES
 
-    @rule(SimplifyRule.ADD_FLATTEN, priority=0, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.ADD_FLATTEN, priority=0, rule_type=SimplifyRuleType.ALL)
+    @returns_operands
+    @finalize_result(collapse_single=True)
     def _r_add_identity(
             self,
             operands: Sequence[MathExpr]
-    ) -> OpSimplifyResult | None:
+    ) -> Sequence[MathExpr]:
         """Eliminate additive identity elements."""
         new_operands = list()
         for o in operands:
@@ -462,24 +462,17 @@ class Add(NaryElementwiseOperator):
                 new_operands.append(o)
             # end if
         # end for
-        if len(new_operands) == 0:
-            raise RuntimeError(
-                f"Issue with operands simplification in operator {self.__class__.__name__}, "
-                f"with operands {operands}."
-            )
-        # end if
-        if len(new_operands) == 1:
-            return OpSimplifyResult(operands=None, replacement=new_operands[0])
-        else:
-            return OpSimplifyResult(operands=new_operands, replacement=None)
-        # end if
+        return new_operands
     # end def _r_add_identity
 
-    @rule(SimplifyRule.MERGE_CONSTANTS, priority=1, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.MERGE_CONSTANTS, priority=1, rule_type=SimplifyRuleType.ALL)
+    @needs_constants(min_count=1)
+    @returns_operands
+    @finalize_result(collapse_single=True)
     def _r_sum_constants(
             self,
             operands: Sequence[MathExpr]
-    ) -> OpSimplifyResult | None:
+    ) -> Sequence[MathExpr]:
         """Merge constant terms in addition.
 
         Applies the rule ``a + b -> c`` when operands are constants,
@@ -502,28 +495,16 @@ class Add(NaryElementwiseOperator):
         # end if
         new_constant = Constant.new(sum(op.eval() for op in constants))
         new_operands = [new_constant] + non_constant
-        # Replaces with sum and non‑constant terms
-        if len(new_operands) == 0:
-            raise RuntimeError(
-                f"Issue with operands simplification in operator {self.__class__.__name__}, "
-                f"with operands {operands}."
-            )
-        # end if
-        if len(new_operands) == 1:
-            return OpSimplifyResult(operands=None, replacement=new_operands[0])
-        else:
-            return OpSimplifyResult(
-                operands=new_operands,
-                replacement=None
-            )
-        # end if
+        return new_operands
     # end def _r_merge_constants
 
-    @rule(SimplifyRule.ADD_REMOVE_ZEROS, priority=2, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.ADD_REMOVE_ZEROS, priority=2, rule_type=SimplifyRuleType.ALL)
+    @returns_operands
+    @finalize_result(empty=Constant.new(0.0), collapse_single=True)
     def _r_remove_zeros(
             self,
             operands: Sequence[MathExpr]
-    ) -> OpSimplifyResult | None:
+    ) -> Sequence[MathExpr]:
         """
         Eliminate additive neutral elements.
         """
@@ -531,16 +512,11 @@ class Add(NaryElementwiseOperator):
             op for op in operands
             if (op.is_constant() and not op.eval().is_null()) or op.is_variable()
         ]
-        if len(non_zeros) == 0:
-            return OpSimplifyResult(operands=None, replacement=Constant.new(0.0))
-        elif len(non_zeros) == 1:
-            return OpSimplifyResult(operands=None, replacement=non_zeros[0])
-        else:
-            return OpSimplifyResult(operands=non_zeros, replacement=None)
-        # end if
+        return non_zeros
     # end def _r_remove_zeros
 
-    @rule(SimplifyRule.ADD_GROUP_ALIKE, priority=8, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.ADD_GROUP_ALIKE, priority=8, rule_type=SimplifyRuleType.ALL)
+    @needs_variables(min_count=1)
     def _r_group_alike(
             self,
             operands: Sequence[MathExpr]
@@ -623,7 +599,7 @@ class Sub(NaryElementwiseOperator):
         return acc
     # end def _backward
 
-    @rule(SimplifyRule.SUB_FLATTEN, priority=0, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.SUB_FLATTEN, priority=0, rule_type=SimplifyRuleType.ALL)
     def _r_sub_flatten(
             self,
             operands: Sequence[MathExpr]
@@ -638,7 +614,7 @@ class Sub(NaryElementwiseOperator):
         return None
     # end def _r_sub_first_zero
 
-    @rule(SimplifyRule.SUB_FIRST_ZERO, priority=1, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.SUB_FIRST_ZERO, priority=1, rule_type=SimplifyRuleType.ALL)
     def _r_sub_first_zero(
             self,
             operands: Sequence[MathExpr]
@@ -658,7 +634,7 @@ class Sub(NaryElementwiseOperator):
         return None
     # end def _r_sub_first_zero
 
-    @rule(SimplifyRule.MERGE_CONSTANTS, priority=2, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.MERGE_CONSTANTS, priority=2, rule_type=SimplifyRuleType.ALL)
     def _r_sum_constants(
             self,
             operands: Sequence[MathExpr]
@@ -719,7 +695,7 @@ class Sub(NaryElementwiseOperator):
         # end if
     # end def _r_merge_constants
 
-    @rule(SimplifyRule.SUB_REMOVE_ZEROS, priority=3, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.SUB_REMOVE_ZEROS, priority=3, rule_type=SimplifyRuleType.ALL)
     def _r_remove_zeros(
             self,
             operands: Sequence[MathExpr]
@@ -835,7 +811,7 @@ class Mul(NaryElementwiseOperator):
         return acc
     # end def _diff
 
-    @rule(SimplifyRule.MERGE_CONSTANTS, priority=20, rule_type=SimplifyRuleType.BOTH)
+    @rule(SimplifyRule.MERGE_CONSTANTS, priority=20, rule_type=SimplifyRuleType.ALL)
     def _r_product_constants(
             self,
             operands: Sequence[MathExpr]
@@ -1180,17 +1156,12 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
     @classmethod
     def check_parameters(cls, **kwargs) -> bool:
         """Check that the operands have compatible shapes."""
-        pass
+        return True
     # end def check_shapes
 
     # endregion STATIC
 
 # end class UnaryElementwiseOperator
-
-
-class UnaryElementwiseParametricOperator(UnaryElementwiseOperator, ParametricOperator, ABC):
-    pass
-# end class UnaryElementwiseParametricOperator
 
 
 class Neg(UnaryElementwiseOperator):
@@ -1227,32 +1198,34 @@ class Neg(UnaryElementwiseOperator):
         -------
         str : A human-readable representation of the operator.
         """
-        need_paren = (isinstance(operands[0], MathNode) and operands[0].op.arity > 1
-                      and operands[0].op.SPEC.precedence <= self.SPEC.precedence)
+        need_paren = (
+                isinstance(operands[0], MathNode)
+                and hasattr(operands[0], "op")
+                and operands[0].op is not None
+                and (operands[0].op.arity.exact > 1 or operands[0].op.arity.min_operands > 1)
+                and operands[0].op.SPEC.precedence <= self.SPEC.precedence
+        )
         child_str = f"({operands[0]})" if need_paren else operands[0].__str__()
         return f"{self.SPEC.symbol}{child_str}"
     # end def print
 
     def _needs_parentheses(self, *args, **kwargs):
-        pass
+        return False
     # end def _needs_parentheses
 
     # region STATIC
 
-    @classmethod
-    def check_shapes(cls, operands: Operands) -> bool:
+    def check_shapes(self, operands: Operands) -> bool:
         """Neg accepts any operand shape."""
         return True
     # end def check_shapes
 
-    @classmethod
-    def infer_shape(cls, operands: Operands) -> Shape:
+    def infer_shape(self, operands: Operands) -> Shape:
         """Shape matches operand."""
         return operands[0].shape
     # end def infer_shape
 
-    @classmethod
-    def infer_dtype(cls, operands: Operands) -> DType:
+    def infer_dtype(self, operands: Operands) -> DType:
         """Return operand dtype."""
         return operands[0].dtype
     # end def infer_dtype
@@ -1294,7 +1267,7 @@ class Neg(UnaryElementwiseOperator):
         # end if
 
         # --x = x
-        if hasattr(a, "op") and isinstance(a, MathNode) and a.op.name == Neg.SPEC.name:
+        if hasattr(a, "op") and a.op is not None and isinstance(a, MathNode) and a.op.name == Neg.SPEC.name:
             if self._apply_rule(SimplifyRule.NEGATE_NEGATE, options):
                 repr_expr = a.children[0]
                 new_operands = []
@@ -1356,8 +1329,8 @@ class Pow(ElementwiseOperator):
         -------
         str : A human-readable representation of the operator.
         """
-        left_need_paren = isinstance(operands[0], MathNode) and operands[0].op.arity > 1
-        right_need_paren = isinstance(operands[1], MathNode) and operands[1].op.arity > 1
+        left_need_paren = isinstance(operands[0], MathNode) and (operands[0].op.arity.exact > 1 or operands[0].op.arity.min_operands > 1)
+        right_need_paren = isinstance(operands[1], MathNode) and (operands[1].op.arity.exact > 1 or operands[1].op.arity.min_operands > 1)
         left_child_str = f"({operands[0]})" if left_need_paren else operands[0].__str__()
         right_child_str = f"({operands[1]})" if right_need_paren else operands[1].__str__()
         return f"{left_child_str}{self.SPEC.symbol}{right_child_str}"

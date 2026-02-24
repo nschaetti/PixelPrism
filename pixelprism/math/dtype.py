@@ -105,6 +105,18 @@ class DType(Enum):
         return to_numpy(self)
     # end def to_numpy
 
+    def copy(self) -> "DType":
+        return copy(self)
+    # end def copy
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, DType) and self.name == other.name
+    # end def __eq__
+
+    def __neq__(self, other: object) -> bool:
+        return not self.__eq__(other)
+    # end def __neq_
+
     def __repr__(self) -> str:
         if self.name == "Z":
             return "Integers"

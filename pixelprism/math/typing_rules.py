@@ -90,9 +90,10 @@ class SimplifyRule(Enum):
 
 
 class SimplifyRuleType(Enum):
+    FOLD_CONSTANTS = auto()
     SIMPLIFICATION = auto()
     CANONICALIZATION = auto()
-    BOTH = auto()
+    ALL = auto()
 # end class SimplifyRuleType
 
 

@@ -805,89 +805,6 @@ class AlgebraicMixin:
 
     # endregion UNARY
 
-    # region COMPARISON
-
-    def __eq__(self: MathExpr, other: ExprLike) -> bool:
-        """Nodes are equal if they are the same object."""
-        return self is other
-    # end __eq__
-
-    def __neq__(self: MathExpr, other: ExprLike) -> bool:
-        return not self.__eq__(other)
-    # end def __neq__
-
-    # def __eq__(self: MathExpr, other: ExprLike) -> MathNode:
-    #     from .functional.boolean import eq
-    #     from .build import as_expr
-    #     return eq(as_expr(self), as_expr(other))
-    # # end __eq__
-    #
-    # def __ne__(self: MathExpr, other: ExprLike) -> MathNode:
-    #     from .functional.boolean import ne
-    #     from .build import as_expr
-    #     return ne(as_expr(self), as_expr(other))
-    # # end __ne__
-    #
-    # # Override less
-    # def __lt__(self: MathExpr, other: ExprLike) -> MathNode:
-    #     """
-    #     Placeholder less-than operator.
-    #
-    #     Raises
-    #     ------
-    #     MathExprNotImplementedError
-    #         Always raised; ordering is not defined for ``MathExpr``.
-    #     """
-    #     from .functional.boolean import lt
-    #     from .build import as_expr
-    #     return lt(as_expr(self), as_expr(other))
-    # # end __lt__
-    #
-    # # Override less or equal
-    # def __le__(self: MathExpr, other: ExprLike) -> MathNode:
-    #     """
-    #     Placeholder less-or-equal operator.
-    #
-    #     Raises
-    #     ------
-    #     MathExprNotImplementedError
-    #         Always raised; ordering is not defined for ``MathExpr``.
-    #     """
-    #     from .functional.boolean import le
-    #     from .build import as_expr
-    #     return le(as_expr(self), as_expr(other))
-    # # end __le__
-    #
-    # # Override greater
-    # def __gt__(self: MathExpr, other: ExprLike) -> MathNode:
-    #     """
-    #     Placeholder greater-than operator.
-    #
-    #     Raises
-    #     ------
-    #     MathExprNotImplementedError
-    #         Always raised; ordering is not defined for ``MathExpr``.
-    #     """
-    #     from .functional.boolean import gt
-    #     from .build import as_expr
-    #     return gt(as_expr(self), as_expr(other))
-    # # end __gt__
-    #
-    # # Override greater or equal
-    # def __ge__(self: MathExpr, other: ExprLike) -> MathExpr:
-    #     """
-    #     Placeholder greater-or-equal operator.
-    #
-    #     Raises
-    #     ------
-    #     MathExprNotImplementedError
-    #         Always raised; ordering is not defined for ``MathExpr``.
-    #     """
-    #     from .functional.boolean import ge
-    #     from .build import as_expr
-    #     return ge(as_expr(self), as_expr(other))
-    # # end __ge__
-
     def __invert__(self: MathExpr) -> MathExpr:
         from .functional.boolean import logical_not
         from . import as_expr
@@ -992,7 +909,7 @@ class SimplifyRuleMixin:
             return True
         # end if
 
-        if rule_type and rule_type != rule.rule_type:
+        if rule_type and rule_type != rule.rule_type and rule.rule_type != SimplifyRuleType.ALL:
             return False
         # end if
 

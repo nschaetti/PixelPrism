@@ -30,7 +30,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Protocol, runtime_checkable, NamedTuple, List, Optional, FrozenSet
+from typing import Protocol, runtime_checkable, NamedTuple, List, Optional, FrozenSet, Dict, Any
 from typing import TYPE_CHECKING, Tuple, Union, Sequence, TypeAlias
 from typing import ClassVar, Mapping
 from dataclasses import dataclass
@@ -62,7 +62,9 @@ __all__ = [
     "ExprKind",
     "ExprDomain",
     "FoldPolicy",
-    "ScalarLike"
+    "ScalarLike",
+    "AritySpec",
+    "OperatorSpec",
 ]
 
 
@@ -271,10 +273,10 @@ class MathExpr(Protocol):
             by_ref: bool = True
     ) -> "MathExpr": ...
 
-    # Return a new expression where occurrences of `old_name` are renamed to `new_name`.
-    # This transform is immutable and does not alter the current instance.
+    # Rename occurrences of `old_name` to `new_name`.
+    # The change is in-place and does not return a new tree.
     # In ExpressionMixin
-    def renamed(self, old_name: str, new_name: str) -> "MathExpr": ...
+    def renamed(self, old_name: str, new_name: str) -> List[str]: ...
 
     #
     # Comparison
@@ -353,6 +355,12 @@ class MathExpr(Protocol):
     # - deep=False: may reuse existing children/subtrees when safe.
     # - deep=True: recursively duplicates the full expression tree.
     def copy(self, deep: bool = False) -> "MathExpr": ...
+
+    #
+    # Comparaison
+    #
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
 
     #
     # Representation
@@ -501,9 +509,16 @@ class Operator(Protocol):
     @property
     def is_diff(self) -> bool: ...
 
+    # True if the operator accepts a variable number of operands.
+    @property
+    def is_variadic(self) -> bool: ...
+
     # Parent operator instance.
     @property
     def parent(self) -> Operator | None: ...
+
+    @property
+    def parameters(self) -> dict[str, Any]: ...
 
     #
     # Parent
@@ -566,6 +581,9 @@ class Operator(Protocol):
             look_for: LeafKind = LeafKind.ANY
     ) -> bool: ...
 
+    # Copy the operator instance with new operands.
+    def copy(self, deep: bool = False) -> Operator: ...
+
     #
     # Infer shapes and dtypes
     #
@@ -594,15 +612,15 @@ class Operator(Protocol):
     # Example: elementwise compatibility, matmul inner dims, concat axis agreement.
     def check_shapes(self, operands: Operands) -> bool: ...
 
-    #
-    # Factory methods
-    #
-
     @classmethod
     # Validate operand count against operator arity contract.
     # For fixed-arity operators, this checks the exact length.
     # For variadic operators, this validates the minimal / allowed count policy.
     def check_arity(cls, operands: Operands) -> bool: ...
+
+    #
+    # Factory methods
+    #
 
     @classmethod
     # Construct the operator. This is the official and only way to create the operator instance.
@@ -619,6 +637,10 @@ class Operator(Protocol):
 
     # Print operator as a mathematical expression.
     def print(self, operands: Operands, **kwargs) -> str: ...
+
+    # Two operators are equals if they do the same operation.
+    def __eq__(self, other: object) -> bool: ...
+    def __neq__(self, other: object) -> bool: ...
 
     # Human-readable operator representation for logs and user-facing displays.
     def __str__(self) -> str: ...
