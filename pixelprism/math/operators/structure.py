@@ -40,7 +40,7 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..math_slice import SliceExpr
 from ..math_node import MathNode
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, operator_registry, OperatorBase
 
 
@@ -50,6 +50,20 @@ __all__ = [
     "Squeeze",
     "Unsqueeze",
 ]
+
+
+def _structure_spec(name: str, *, exact: int | None, min_operands: int, variadic: bool) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        symbol=name,
+        arity=AritySpec(exact=exact, min_operands=min_operands, variadic=variadic),
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+# end def _structure_spec
 
 
 class StructureOperator(OperatorBase, ABC):
@@ -101,10 +115,20 @@ class StructureOperator(OperatorBase, ABC):
         return ", ".join(f"{key}={value!r}" for key, value in self._parameters.items())
     # end def _format_parameters
 
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
+
 # end class StructureOperator
 
 
 class Reshape(StructureOperator):
+
+    SPEC = _structure_spec("reshape", exact=1, min_operands=1, variadic=False)
 
     NAME = "reshape"
     ARITY = 1
@@ -182,6 +206,8 @@ class Reshape(StructureOperator):
 
 class Getitem(StructureOperator):
     """Getitem operator."""
+
+    SPEC = _structure_spec("getitem", exact=1, min_operands=1, variadic=False)
 
     NAME = "getitem"
     ARITY = 1
@@ -337,6 +363,8 @@ class Getitem(StructureOperator):
 
 class Flatten(StructureOperator):
 
+    SPEC = _structure_spec("flatten", exact=1, min_operands=1, variadic=False)
+
     NAME = "flatten"
     ARITY = 1
 
@@ -388,6 +416,8 @@ class Flatten(StructureOperator):
 
 class Squeeze(StructureOperator):
     """Remove axes of length one optionally restricted by ``axes``."""
+
+    SPEC = _structure_spec("squeeze", exact=1, min_operands=1, variadic=False)
 
     NAME = "squeeze"
     ARITY = 1
@@ -477,6 +507,8 @@ class Squeeze(StructureOperator):
 
 class Unsqueeze(StructureOperator):
     """Insert size-one axes at the requested positions."""
+
+    SPEC = _structure_spec("unsqueeze", exact=1, min_operands=1, variadic=False)
 
     NAME = "unsqueeze"
     ARITY = 1

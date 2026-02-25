@@ -37,7 +37,7 @@ from ..dtype import DType, to_numpy, promote
 from ..shape import Shape
 from ..tensor import Tensor
 from ..math_node import MathNode
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, OperatorBase, operator_registry
 
 __all__ = [
@@ -51,8 +51,32 @@ class Where(OperatorBase):
     Elementwise conditional operator mirroring ``np.where`` semantics.
     """
 
+    SPEC = OperatorSpec(
+        name="where",
+        arity=AritySpec(exact=3, min_operands=3, variadic=False),
+        symbol="where",
+        precedence=10,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+
     NAME = "where"
     ARITY = 3
+
+    def check_parameters(self, **kwargs) -> bool:
+        return True
+    # end def check_parameters
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        cond, x, y = operands
+        return f"where({cond}, {x}, {y})"
+    # end def print
 
     def check_operands(self, operands: Operands) -> bool:
         if len(operands) != self.ARITY:
@@ -124,8 +148,33 @@ class IfOperator(OperatorBase):
     Scalar conditional operator selecting between two branches.
     """
 
+    SPEC = OperatorSpec(
+        name="if",
+        arity=AritySpec(exact=2, min_operands=2, variadic=False),
+        symbol="if",
+        precedence=10,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+
     NAME = "if"
     ARITY = 2
+
+    def check_parameters(self, **kwargs) -> bool:
+        cond = kwargs.get("cond")
+        return cond is not None
+    # end def check_parameters
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        then_expr, else_expr = operands
+        return f"if({self._cond}, {then_expr}, {else_expr})"
+    # end def print
 
     def __init__(self, cond: MathNode):
         super().__init__(cond=cond)

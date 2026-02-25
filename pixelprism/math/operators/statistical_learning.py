@@ -40,7 +40,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
 
@@ -59,6 +59,21 @@ __all__ = [
     "MAE",
     "R2",
 ]
+
+
+def _sl_spec(name: str, *, exact: int, min_operands: int | None = None, variadic: bool = False) -> OperatorSpec:
+    mo = exact if min_operands is None else min_operands
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=exact, min_operands=mo, variadic=variadic),
+        symbol=name,
+        precedence=10,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+# end def _sl_spec
 
 
 def _ensure_scalar_parameter(value: ScalarParameter, name: str) -> MathExpr:
@@ -156,6 +171,10 @@ def _n_poly_terms(n_features: int, degree: int, include_bias: bool, interaction_
 class StatisticalLearningOperator(OperatorBase, ParametricOperator, ABC):
     """Base class for statistical learning operators."""
 
+    def check_parameters(self, **kwargs) -> bool:
+        return True
+    # end def check_parameters
+
     def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
@@ -164,11 +183,21 @@ class StatisticalLearningOperator(OperatorBase, ParametricOperator, ABC):
         return DType.R
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
+
 # end class StatisticalLearningOperator
 
 
 class LinearRegressionFit(StatisticalLearningOperator):
     """Fit linear regression coefficients with optional ridge regularization."""
+
+    SPEC = _sl_spec("linear_regression_fit", exact=2)
 
     NAME = "linear_regression_fit"
     ARITY = 2
@@ -255,6 +284,8 @@ class LinearRegressionFit(StatisticalLearningOperator):
 class LinearRegressionPredict(StatisticalLearningOperator):
     """Predict from fitted linear regression coefficients."""
 
+    SPEC = _sl_spec("linear_regression_predict", exact=2)
+
     NAME = "linear_regression_predict"
     ARITY = 2
     IS_VARIADIC = False
@@ -311,6 +342,8 @@ class LinearRegressionPredict(StatisticalLearningOperator):
 
 class PolynomialFeatures(StatisticalLearningOperator):
     """Build polynomial feature matrix from univariate or multivariate x."""
+
+    SPEC = _sl_spec("polynomial_features", exact=1)
 
     NAME = "polynomial_features"
     ARITY = 1
@@ -397,6 +430,8 @@ class PolynomialFeatures(StatisticalLearningOperator):
 
 class PolynomialRegressionFit(StatisticalLearningOperator):
     """Fit polynomial regression coefficients for rank-1 or rank-2 x."""
+
+    SPEC = _sl_spec("polynomial_regression_fit", exact=2)
 
     NAME = "polynomial_regression_fit"
     ARITY = 2
@@ -511,6 +546,8 @@ class PolynomialRegressionFit(StatisticalLearningOperator):
 
 class PolynomialRegressionPredict(StatisticalLearningOperator):
     """Predict values from polynomial coefficients."""
+
+    SPEC = _sl_spec("polynomial_regression_predict", exact=2)
 
     NAME = "polynomial_regression_predict"
     ARITY = 2
@@ -654,6 +691,8 @@ class RegressionMetricOperator(StatisticalLearningOperator, ABC):
 class MSE(RegressionMetricOperator):
     """Mean squared error metric."""
 
+    SPEC = _sl_spec("mse", exact=2)
+
     NAME = "mse"
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -671,6 +710,8 @@ class MSE(RegressionMetricOperator):
 
 class RMSE(RegressionMetricOperator):
     """Root mean squared error metric."""
+
+    SPEC = _sl_spec("rmse", exact=2)
 
     NAME = "rmse"
 
@@ -690,6 +731,8 @@ class RMSE(RegressionMetricOperator):
 class MAE(RegressionMetricOperator):
     """Mean absolute error metric."""
 
+    SPEC = _sl_spec("mae", exact=2)
+
     NAME = "mae"
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -707,6 +750,8 @@ class MAE(RegressionMetricOperator):
 
 class R2(RegressionMetricOperator):
     """Coefficient of determination (R-squared) metric."""
+
+    SPEC = _sl_spec("r2", exact=2)
 
     NAME = "r2"
 

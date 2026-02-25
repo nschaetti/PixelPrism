@@ -35,6 +35,7 @@ from .elementwise import ElementwiseOperator, UnaryElementwiseOperator, Sqrt
 from ..tensor import Tensor
 from ..math_node import MathNode
 from ..math_leaves import Variable, Constant
+from ..typing import OperatorSpec, AritySpec, OpAssociativity
 
 
 __all__ = [
@@ -57,6 +58,34 @@ __all__ = [
 ]
 
 
+def _trig_unary_spec(name: str) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol=name,
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
+# end def _trig_unary_spec
+
+
+def _trig_binary_spec(name: str) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=2, min_operands=2, variadic=False),
+        symbol=name,
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=True,
+    )
+# end def _trig_binary_spec
+
+
 class Sin(UnaryElementwiseOperator):
     """
     Element-wise sine operator.
@@ -68,6 +97,8 @@ class Sin(UnaryElementwiseOperator):
     >>> op._eval([np.array([0.0, np.pi / 2])])
     array([0., 1.])
     """
+
+    SPEC = _trig_unary_spec("sin")
 
     NAME = "sin"
     IS_VARIADIC = False
@@ -97,6 +128,8 @@ class Cos(UnaryElementwiseOperator):
     array([1.])
     """
 
+    SPEC = _trig_unary_spec("cos")
+
     NAME = "cos"
     IS_VARIADIC = False
     IS_DIFF = True
@@ -124,6 +157,8 @@ class Tan(UnaryElementwiseOperator):
     >>> Tan()._eval([np.array([0.0])])
     array([0.])
     """
+
+    SPEC = _trig_unary_spec("tan")
 
     NAME = "tan"
     IS_DIFF = True
@@ -153,6 +188,8 @@ class Asin(UnaryElementwiseOperator):
     array([0.])
     """
 
+    SPEC = _trig_unary_spec("asin")
+
     NAME = "asin"
     IS_DIFF = True
 
@@ -180,6 +217,8 @@ class Acos(UnaryElementwiseOperator):
     >>> Acos()._eval([np.array([1.0])])
     array([0.])
     """
+
+    SPEC = _trig_unary_spec("acos")
 
     NAME = "acos"
     IS_DIFF = True
@@ -209,6 +248,8 @@ class Atan(UnaryElementwiseOperator):
     array([0.])
     """
 
+    SPEC = _trig_unary_spec("atan")
+
     NAME = "atan"
     IS_DIFF = True
 
@@ -236,6 +277,8 @@ class Atan2(ElementwiseOperator):
     >>> Atan2()._eval([np.array([1.0]), np.array([1.0])])
     array([0.78539816])
     """
+
+    SPEC = _trig_binary_spec("atan2")
 
     NAME = "atan2"
     ARITY = 2
@@ -268,6 +311,8 @@ class Sec(UnaryElementwiseOperator):
     array([1.])
     """
 
+    SPEC = _trig_unary_spec("sec")
+
     NAME = "sec"
     IS_DIFF = True
 
@@ -295,6 +340,8 @@ class Csc(UnaryElementwiseOperator):
     array([1.])
     """
 
+    SPEC = _trig_unary_spec("csc")
+
     NAME = "csc"
     IS_DIFF = True
 
@@ -321,6 +368,8 @@ class Cot(UnaryElementwiseOperator):
     >>> Cot()._eval([np.array([np.pi / 4])])
     array([1.])
     """
+
+    SPEC = _trig_unary_spec("cot")
 
     NAME = "cot"
     IS_DIFF = True
@@ -350,6 +399,8 @@ class Sinh(UnaryElementwiseOperator):
     array([0.])
     """
 
+    SPEC = _trig_unary_spec("sinh")
+
     NAME = "sinh"
     IS_DIFF = True
 
@@ -377,6 +428,8 @@ class Cosh(UnaryElementwiseOperator):
     array([1.])
     """
 
+    SPEC = _trig_unary_spec("cosh")
+
     NAME = "cosh"
     IS_DIFF = True
 
@@ -403,6 +456,8 @@ class Tanh(UnaryElementwiseOperator):
     >>> Tanh()._eval([np.array([0.0])])
     array([0.])
     """
+
+    SPEC = _trig_unary_spec("tanh")
 
     NAME = "tanh"
     IS_DIFF = True
@@ -432,6 +487,8 @@ class Asinh(UnaryElementwiseOperator):
     array([0.])
     """
 
+    SPEC = _trig_unary_spec("asinh")
+
     NAME = "asinh"
     IS_DIFF = True
 
@@ -459,6 +516,8 @@ class Acosh(UnaryElementwiseOperator):
     >>> Acosh()._eval([np.array([1.5])])
     array([0.96242365])
     """
+
+    SPEC = _trig_unary_spec("acosh")
 
     NAME = "acosh"
     IS_DIFF = True
@@ -490,6 +549,8 @@ class Atanh(UnaryElementwiseOperator):
     >>> Atanh()._eval([np.array([0.2])])
     array([0.20273255])
     """
+
+    SPEC = _trig_unary_spec("atanh")
 
     NAME = "atanh"
     IS_DIFF = True

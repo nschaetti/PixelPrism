@@ -40,7 +40,7 @@ from .mixins import ExpressionMixin, AlgebraicMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .typing import MathExpr, Operands, Operator, LeafKind, SimplifyOptions, ExprKind, ExprDomain, OperatorSpec
+from .typing import MathExpr, Operands, Operator, LeafKind, SimplifyOptions, ExprKind, ExprDomain, OperatorSpec, AlgebraicExpr
 from .typing_expr import FoldPolicy, OpSimplifyResult
 
 if TYPE_CHECKING:
@@ -57,7 +57,7 @@ class MathNode(
     MathBase,
     ExpressionMixin,
     AlgebraicMixin,
-    MathExpr
+    AlgebraicExpr
 ):
     """
     Canonical symbolic expression node.
@@ -681,8 +681,10 @@ class MathNode(
         'MathExpr'
             Expression with constant folding applied.
         """
-        # Fold children first
-        # self._children = [child.fold_constants() for child in self._children]
+        # if this node is foldable
+        if not self.is_foldable():
+            return self
+        # end if
 
         # Ask the operator to fold constants
         fold_result: OpSimplifyResult = self._op.fold_constants(operands=self._children)
@@ -742,15 +744,15 @@ class MathNode(
 
     def renamed(self, old_name: str, new_name: str) -> List[str]:
         """
-        Rename all variables/constants named ``old_name`` with ``new_name`` in the tree.
+        Rename all variables/constants/node named ``old_name`` with ``new_name`` in the tree.
         The replacement is in-place.
 
         Parameters
         ----------
         old_name : str
-            Name of the variable/constant to rename.
+            Name of the variable/constant/node to rename.
         new_name: str
-            New name for the variable/constant.
+            New name for the variable/constant/node.
 
         Returns
         -------
@@ -809,8 +811,17 @@ class MathNode(
     # even if their trees differ (e.g., after canonicalization/simplification).
     # This check is symbolic only (no numeric/probabilistic fallback).
     def equivalent(self, other: "MathExpr") -> bool:
-        # TODO: to implement
-        pass
+        """Return True if both expressions are equivalent."""
+        # Copy both expressions
+        a = self.copy(deep=True)
+        b = other.copy(deep=True)
+
+        # Simplify both expressions
+        a = a.simplify()
+        b = b.simplify()
+
+        # Check if the simplified trees are equal
+        return a.eq_tree(b)
     # end def equivalent
 
     #
@@ -875,6 +886,44 @@ class MathNode(
         """
         return all(child.is_pure() for child in self._children)
     # end def is_pure
+
+    # True if behave like a scalar (rank = 1)
+    def is_scalar(self) -> bool:
+        """
+        Check if the expression behaves like a scalar (rank = 1).
+        """
+        return self.rank == 0
+    # end def is_scalar
+
+    def is_vector(self) -> bool:
+        """
+        Is the expression a vector?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (n,)
+        """
+        return self._shape.rank == 1
+    # end def is_vector
+
+    def is_matrix(self) -> bool:
+        """
+        Is the expression a matrix?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n)
+        """
+        return self._shape.rank == 2
+    # end is_matrix
+
+    def is_tensor(self) -> bool:
+        """
+        Is the expression a tensor?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n,...)
+        """
+        return self._shape.rank > 2
+    # end def is_tensor
 
     def has_operator(self, name: str) -> bool:
         """
@@ -1045,36 +1094,6 @@ class MathNode(
     # endregion MATH_EXPR
 
     # region PUBLIC
-
-    def is_scalar(self) -> bool:
-        """
-        Is the expression a scalar?
-
-        Returns:
-            ``True`` when the expression is a leaf and its shape is (1,)
-        """
-        return self._shape.rank == 0
-    # end def is_scalar
-
-    def is_vector(self) -> bool:
-        """
-        Is the expression a vector?
-
-        Returns:
-            ``True`` when the expression is a leaf and its shape is (n,)
-        """
-        return self._shape.rank == 1
-    # end def is_vector
-
-    def is_matrix(self) -> bool:
-        """
-        Is the expression a matrix?
-
-        Returns:
-            ``True`` when the expression is a leaf and its shape is (m,n)
-        """
-        return self._shape.rank == 2
-    # end is_matrix
 
     def is_higher_order(self):
         """

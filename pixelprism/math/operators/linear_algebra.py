@@ -40,8 +40,8 @@ from ..dtype import DType, to_numpy, promote
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor, einsum
-from ..typing import MathExpr, LeafKind
-from .base import Operands, operator_registry, OperatorBase, ParametricOperator
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
+from .base import Operands, operator_registry, OperatorBase
 
 
 __all__ = [
@@ -58,6 +58,21 @@ __all__ = [
     "InftyNorm",
     "FrobeniusNorm",
 ]
+
+
+def _la_spec(name: str, *, exact: int | None, min_operands: int, variadic: bool,
+             commutative: bool = False, associative: bool = False) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=exact, min_operands=min_operands, variadic=variadic),
+        symbol=name,
+        precedence=30,
+        associativity=OpAssociativity.NONE,
+        commutative=commutative,
+        associative=associative,
+        is_diff=False,
+    )
+# end def _la_spec
 
 
 class LinearAlgebraOperator(OperatorBase, ABC):
@@ -98,13 +113,21 @@ class LinearAlgebraOperator(OperatorBase, ABC):
 
     def check_parameters(self, **kwargs) -> bool:
         """Check that the operands have compatible shapes."""
-        pass
+        return True
     # end def check_shapes
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
 
 # end class LinearAlgebraOperator
 
 
-class LinearAlgebraParametricOperator(LinearAlgebraOperator, ParametricOperator, ABC):
+class LinearAlgebraParametricOperator(LinearAlgebraOperator, ABC):
     """Linear algebra parametric operator."""
 
     def contains(
@@ -124,6 +147,8 @@ class MatMul(LinearAlgebraOperator):
     """
     Matrix Multiplication operator.
     """
+
+    SPEC = _la_spec("matmul", exact=2, min_operands=2, variadic=False, commutative=False, associative=True)
 
     NAME = "matmul"
     ARITY = 2
@@ -258,6 +283,8 @@ class Dot(LinearAlgebraOperator):
     Dot product operator.
     """
 
+    SPEC = _la_spec("dot", exact=2, min_operands=2, variadic=False, commutative=True, associative=False)
+
     NAME = "dot"
     ARITY = 2
     COMMUTATIVE = True
@@ -324,6 +351,8 @@ class Outer(LinearAlgebraOperator):
     Outer product operator.
     """
 
+    SPEC = _la_spec("outer", exact=2, min_operands=2, variadic=False, commutative=False, associative=False)
+
     NAME = "outer"
     ARITY = 2
     COMMUTATIVE = False
@@ -385,6 +414,8 @@ class Trace(LinearAlgebraOperator):
     """
     Trace operator.
     """
+
+    SPEC = _la_spec("trace", exact=1, min_operands=1, variadic=False, commutative=False, associative=False)
 
     NAME = "trace"
     ARITY = 1
@@ -450,6 +481,8 @@ class Transpose(LinearAlgebraParametricOperator):
     """
     Transpose operator.
     """
+
+    SPEC = _la_spec("transpose", exact=1, min_operands=1, variadic=False, commutative=False, associative=False)
 
     NAME = "transpose"
     ARITY = 1
@@ -537,6 +570,8 @@ class Det(LinearAlgebraOperator):
     Compute the determinant of a square matrix.
     """
 
+    SPEC = _la_spec("det", exact=1, min_operands=1, variadic=False, commutative=False, associative=False)
+
     NAME = "det"
     ARITY = 1
     COMMUTATIVE = False
@@ -576,6 +611,8 @@ class Inverse(LinearAlgebraOperator):
     Compute the inverse of a square matrix.
     """
 
+    SPEC = _la_spec("inverse", exact=1, min_operands=1, variadic=False, commutative=False, associative=False)
+
     NAME = "inverse"
     ARITY = 1
     COMMUTATIVE = False
@@ -611,6 +648,8 @@ class Norm(LinearAlgebraParametricOperator):
     Compute the norm of a vector.
     """
     
+    SPEC = _la_spec("norm", exact=1, min_operands=1, variadic=False, commutative=False, associative=False)
+
     NAME = "norm"
     ARITY = 1
     IS_SCALAR = False
@@ -681,6 +720,8 @@ class InftyNorm(LinearAlgebraOperator):
     Infinity norm returning the maximum absolute element per vector entry.
     """
 
+    SPEC = _la_spec("infty_norm", exact=1, min_operands=1, variadic=False, commutative=False, associative=False)
+
     NAME = "infty_norm"
     ARITY = 1
     COMMUTATIVE = False
@@ -729,6 +770,8 @@ class FrobeniusNorm(LinearAlgebraOperator):
     """
     Frobenius norm computed over the last two axes of a tensor.
     """
+
+    SPEC = _la_spec("frobenius_norm", exact=1, min_operands=1, variadic=False, commutative=False, associative=False)
 
     NAME = "frobenius_norm"
     ARITY = 1

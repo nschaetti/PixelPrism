@@ -39,9 +39,9 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, operator_registry
-from .builders import ParametricBuilder
+from .builders import Builder
 
 
 ScalarParameter = Union[MathExpr, int, float]
@@ -83,8 +83,31 @@ def _eval_int_parameter(expr: MathExpr, name: str) -> int:
 # end def _eval_int_parameter
 
 
-class Normal(ParametricBuilder):
+class _StatsOperatorBase(Builder):
+    """Common concrete hooks for stats operators."""
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
+
+
+class Normal(_StatsOperatorBase):
     """Tensor sampled from a normal distribution."""
+
+    SPEC = OperatorSpec(
+        name="normal",
+        arity=AritySpec(exact=0, min_operands=0, variadic=False),
+        symbol="normal",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "normal"
     ARITY = 0
@@ -171,8 +194,19 @@ class Normal(ParametricBuilder):
 # end class Normal
 
 
-class Uniform(ParametricBuilder):
+class Uniform(_StatsOperatorBase):
     """Tensor sampled from a uniform distribution."""
+
+    SPEC = OperatorSpec(
+        name="uniform",
+        arity=AritySpec(exact=0, min_operands=0, variadic=False),
+        symbol="uniform",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "uniform"
     ARITY = 0
@@ -259,8 +293,19 @@ class Uniform(ParametricBuilder):
 # end class Uniform
 
 
-class RandInt(ParametricBuilder):
+class RandInt(_StatsOperatorBase):
     """Tensor sampled from a discrete uniform integer distribution."""
+
+    SPEC = OperatorSpec(
+        name="randint",
+        arity=AritySpec(exact=0, min_operands=0, variadic=False),
+        symbol="randint",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "randint"
     ARITY = 0
@@ -350,8 +395,19 @@ class RandInt(ParametricBuilder):
 # end class RandInt
 
 
-class Poisson(ParametricBuilder):
+class Poisson(_StatsOperatorBase):
     """Tensor sampled from a Poisson distribution."""
+
+    SPEC = OperatorSpec(
+        name="poisson",
+        arity=AritySpec(exact=0, min_operands=0, variadic=False),
+        symbol="poisson",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "poisson"
     ARITY = 0
@@ -425,8 +481,19 @@ class Poisson(ParametricBuilder):
 # end class Poisson
 
 
-class Bernoulli(ParametricBuilder):
+class Bernoulli(_StatsOperatorBase):
     """Tensor sampled from independent Bernoulli trials."""
+
+    SPEC = OperatorSpec(
+        name="bernoulli",
+        arity=AritySpec(exact=0, min_operands=0, variadic=False),
+        symbol="bernoulli",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "bernoulli"
     ARITY = 0
@@ -500,8 +567,19 @@ class Bernoulli(ParametricBuilder):
 # end class Bernoulli
 
 
-class Covariance(ParametricBuilder):
+class Covariance(_StatsOperatorBase):
     """Covariance scalar or matrix operator."""
+
+    SPEC = OperatorSpec(
+        name="cov",
+        arity=AritySpec(exact=None, min_operands=1, variadic=True),
+        symbol="cov",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "cov"
     ARITY = 1
@@ -610,8 +688,19 @@ class Covariance(ParametricBuilder):
 # end class Covariance
 
 
-class Correlation(ParametricBuilder):
+class Correlation(_StatsOperatorBase):
     """Correlation scalar or matrix operator."""
+
+    SPEC = OperatorSpec(
+        name="corr",
+        arity=AritySpec(exact=None, min_operands=1, variadic=True),
+        symbol="corr",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "corr"
     ARITY = 1
@@ -706,8 +795,19 @@ class Correlation(ParametricBuilder):
 # end class Correlation
 
 
-class ZScore(ParametricBuilder):
+class ZScore(_StatsOperatorBase):
     """Z-score normalization operator."""
+
+    SPEC = OperatorSpec(
+        name="zscore",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="zscore",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "zscore"
     ARITY = 1

@@ -46,8 +46,8 @@ from ..tensor import (
 from ..context import new_context, set_value
 from ..math_leaves import const
 from ..random import random_const_name
-from ..typing import MathExpr, LeafKind
-from .base import Operands, OperatorBase, ParametricOperator, operator_registry
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
+from .base import Operands, OperatorBase, operator_registry
 
 
 Element = Union[MathNode, float, int]
@@ -56,7 +56,6 @@ Elements = Sequence[Element]
 
 __all__ = [
     "Builder",
-    "ParametricBuilder",
     "BuildTensor",
     "Vector",
     "Matrix",
@@ -84,21 +83,42 @@ __all__ = [
 
 class Builder(OperatorBase, ABC):
     """Tensor builder operator."""
-    pass
+
+    def check_parameters(self, **kwargs) -> bool:
+        return True
+    # end def check_parameters
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
 # end class TensorBuilder
 
 
-class ParametricBuilder(Builder, ParametricOperator, ABC):
-    """Parametric tensor builder operator."""
-    pass
-# end def ParametricTensorBuilder
+def _builder_spec(name: str, *, exact: int | None, min_operands: int, variadic: bool) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=exact, min_operands=min_operands, variadic=variadic),
+        symbol=name,
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+# end def _builder_spec
 
 
 from .stats import Normal, Uniform, RandInt, Poisson, Bernoulli
 
 
-class BuildTensor(ParametricBuilder):
-    """Tensor builder from list."""
+class BuildTensor(Builder):
+    """Tensor builder from a list."""
+
+    SPEC = _builder_spec("build_tensor", exact=None, min_operands=1, variadic=True)
 
     NAME = "build_tensor"
     ARITY = -1
@@ -191,6 +211,14 @@ class BuildTensor(ParametricBuilder):
         return True
     # end def check_shapes
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     # endregion PUBLIC
 
     # region PRIVATE
@@ -235,6 +263,8 @@ class Vector(Builder):
     Construct a 1-D tensor from scalar expressions.
     """
 
+    SPEC = _builder_spec("vector", exact=None, min_operands=1, variadic=True)
+
     NAME = "vector"
     ARITY = -1
     IS_VARIADIC = True
@@ -268,6 +298,14 @@ class Vector(Builder):
         return dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(operands)
         numpy_dtype = to_numpy(dtype)
@@ -281,20 +319,22 @@ class Vector(Builder):
     # end def _backward
 
     def __str__(self) -> str:
-        return f"{self.NAME}(n={self.arity if self.arity >= 0 else 'variadic'})"
+        return f"{self.NAME}(n={self.arity if self.is_variadic else 'variadic'})"
     # end def __str__
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(size={self.arity if self.arity >= 0 else 'variadic'})"
+        return f"{self.__class__.__name__}(size={self.arity if self.is_variadic else 'variadic'})"
     # end def __repr__
 
 # end class Vector
 
 
-class Matrix(ParametricBuilder):
+class Matrix(Builder):
     """
     Construct a 2-D tensor from scalar expressions.
     """
+
+    SPEC = _builder_spec("matrix", exact=None, min_operands=1, variadic=True)
 
     NAME = "matrix"
     ARITY = -1
@@ -338,6 +378,14 @@ class Matrix(ParametricBuilder):
         return dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(operands)
         numpy_dtype = to_numpy(dtype)
@@ -361,10 +409,12 @@ class Matrix(ParametricBuilder):
 # end class Matrix
 
 
-class Full(ParametricBuilder):
+class Full(Builder):
     """
     Fill a tensor with a single scalar expression.
     """
+
+    SPEC = _builder_spec("full", exact=1, min_operands=1, variadic=False)
 
     NAME = "full"
     ARITY = 1
@@ -399,6 +449,14 @@ class Full(ParametricBuilder):
         return operands[0].dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         operand, = operands
         dtype = operand.dtype
@@ -427,6 +485,8 @@ class Diag(Builder):
     """
     Build a diagonal matrix from a vector.
     """
+
+    SPEC = _builder_spec("diag", exact=1, min_operands=1, variadic=False)
 
     NAME = "diag"
     ARITY = 1
@@ -480,6 +540,8 @@ class Diag(Builder):
 class Concatenate(Builder):
     """Concatenate tensors along an axis, mirroring ``np.concatenate``."""
 
+    SPEC = _builder_spec("concatenate", exact=None, min_operands=1, variadic=True)
+
     NAME = "concatenate"
     ARITY = -1
     IS_VARIADIC = True
@@ -517,6 +579,14 @@ class Concatenate(Builder):
         return len(operands) >= 1
     # end def check_operands
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         tensors = [operand.eval() for operand in operands]
         return tensor_concatenate(tensors, axis=self._axis)
@@ -537,12 +607,12 @@ class Concatenate(Builder):
         if not operands:
             raise ValueError("Cannot infer shape without operands.")
         if self._axis is None:
-            return Shape((self._flattened_size(operands),))
+            return Shape(dims=(self._flattened_size(operands),))
         base_shape = operands[0].shape
         axis = self._normalized_axis(base_shape.rank)
         dims = list(base_shape.dims)
         dims[axis] = sum(operand.shape[axis] for operand in operands)
-        return Shape(tuple(dims))
+        return Shape(dims=tuple(dims))
     # end def infer_shape
 
     def check_shapes(self, operands: Operands) -> bool:
@@ -593,6 +663,8 @@ class Concatenate(Builder):
 class HStack(Concatenate):
     """Concatenate tensors along axis 1."""
 
+    SPEC = _builder_spec("hstack", exact=None, min_operands=1, variadic=True)
+
     NAME = "hstack"
 
     def __init__(self):
@@ -610,6 +682,8 @@ class HStack(Concatenate):
 class VStack(Concatenate):
     """Concatenate tensors along axis 0."""
 
+    SPEC = _builder_spec("vstack", exact=None, min_operands=1, variadic=True)
+
     NAME = "vstack"
 
     def __init__(self):
@@ -624,10 +698,12 @@ class VStack(Concatenate):
 # end class VStack
 
 
-class Zeros(ParametricBuilder):
+class Zeros(Builder):
     """
     Tensor of zeros with a prescribed shape and dtype.
     """
+
+    SPEC = _builder_spec("zeros", exact=0, min_operands=0, variadic=False)
 
     NAME = "zeros"
     ARITY = 0
@@ -663,6 +739,14 @@ class Zeros(ParametricBuilder):
         return self._dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         numpy_dtype = to_numpy(self._dtype)
         data = np.zeros(self._shape.dims, dtype=numpy_dtype)
@@ -684,10 +768,12 @@ class Zeros(ParametricBuilder):
 # end class Zeros
 
 
-class Ones(ParametricBuilder):
+class Ones(Builder):
     """
     Tensor of ones with a prescribed shape and dtype.
     """
+
+    SPEC = _builder_spec("ones", exact=0, min_operands=0, variadic=False)
 
     NAME = "ones"
     ARITY = 0
@@ -723,6 +809,14 @@ class Ones(ParametricBuilder):
         return self._dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         numpy_dtype = to_numpy(self._dtype)
         data = np.ones(self._shape.dims, dtype=numpy_dtype)
@@ -744,10 +838,12 @@ class Ones(ParametricBuilder):
 # end class Ones
 
 
-class Eye(ParametricBuilder):
+class Eye(Builder):
     """
     Identity matrix builder.
     """
+
+    SPEC = _builder_spec("eye", exact=0, min_operands=0, variadic=False)
 
     NAME = "eye"
     ARITY = 0
@@ -791,6 +887,14 @@ class Eye(ParametricBuilder):
         return self._dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         numpy_dtype = to_numpy(self._dtype)
         data = np.eye(self._rows, self._cols, dtype=numpy_dtype)
@@ -817,6 +921,8 @@ class Identity(Eye):
     Square identity builder shortcut.
     """
 
+    SPEC = _builder_spec("identity", exact=0, min_operands=0, variadic=False)
+
     NAME = "identity"
 
     def __init__(self, size: int, dtype: DType = DType.R):
@@ -839,6 +945,8 @@ class Linspace(Builder):
     """
     Generate linearly spaced values between two scalars.
     """
+
+    SPEC = _builder_spec("linspace", exact=0, min_operands=0, variadic=False)
 
     NAME = "linspace"
     ARITY = 0
@@ -893,6 +1001,14 @@ class Linspace(Builder):
         return promote(self._start.dtype, self._stop.dtype)
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(())
         numpy_dtype = to_numpy(dtype)
@@ -921,6 +1037,8 @@ class Logspace(Builder):
     """
     Generate logarithmically spaced values.
     """
+
+    SPEC = _builder_spec("logspace", exact=0, min_operands=0, variadic=False)
 
     NAME = "logspace"
     ARITY = 0
@@ -995,6 +1113,14 @@ class Logspace(Builder):
         return dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(())
         numpy_dtype = to_numpy(dtype)
@@ -1029,6 +1155,8 @@ class Map(Builder):
     """
     Apply a symbolic body expression over each element of a tensor.
     """
+
+    SPEC = _builder_spec("map", exact=1, min_operands=1, variadic=False)
 
     NAME = "map"
     ARITY = 1
@@ -1067,6 +1195,14 @@ class Map(Builder):
         return self._body.dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         tensor, = operands
         tensor_value = tensor.eval().value
@@ -1102,6 +1238,8 @@ class SparseCOO(Builder):
     """
     Build a dense tensor from sparse COO data.
     """
+
+    SPEC = _builder_spec("sparse_coo", exact=None, min_operands=1, variadic=True)
 
     NAME = "sparse_coo"
     ARITY = -1
@@ -1188,6 +1326,14 @@ class SparseCOO(Builder):
         return dtype
     # end def infer_dtype
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
+
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         dtype = self.infer_dtype(operands)
         numpy_dtype = to_numpy(dtype)
@@ -1223,6 +1369,8 @@ class FromFunction(Builder):
     """
     Build a tensor by evaluating a body expression over index variables.
     """
+
+    SPEC = _builder_spec("from_function", exact=1, min_operands=1, variadic=False)
 
     NAME = "from_function"
     ARITY = 1
@@ -1307,6 +1455,14 @@ class FromFunction(Builder):
         body, = operands
         return body.dtype
     # end def infer_dtype
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+    # end def print
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
         body, = operands

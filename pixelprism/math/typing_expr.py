@@ -73,6 +73,7 @@ __all__ = [
 #
 class ExprKind(Enum):
     NODE = auto()
+    LEAF = auto()
     CONSTANT = auto()
     VARIABLE = auto()
     SHAPE = auto()
@@ -186,19 +187,6 @@ class MathExpr(Protocol):
     # Returns a new expression tree (not a numeric value), suitable for further rewrites.
     def diff(self, wrt: "Variable") -> "MathExpr": ...
 
-    # Return `true` if the two expressions return the same value when evaluated.
-    # In ExpressionMixin
-    def equals(
-            self: "MathExpr",
-            other: "MathExpr | Tuple | List",
-            *,
-            rtol: float = 1e-6,
-            atol: float = 1e-9,
-            equal_nan: bool = False,
-            require_same_shape: bool = True,
-            require_same_dtype: bool = False
-    ) -> bool: ...
-
     #
     # Structure
     #
@@ -246,7 +234,7 @@ class MathExpr(Protocol):
     ) -> bool: ...
 
     #
-    # Immutable transforms
+    # Transforms
     #
 
     # Apply symbolic rewrite rules and return a simplified expression.
@@ -293,6 +281,19 @@ class MathExpr(Protocol):
     # This check is symbolic only (no numeric/probabilistic fallback).
     def equivalent(self, other: "MathExpr") -> bool: ...
 
+    # Return `true` if the two expressions return the same value when evaluated.
+    # In ExpressionMixin
+    def equals(
+            self: "MathExpr",
+            other: "MathExpr | Tuple | List",
+            *,
+            rtol: float = 1e-6,
+            atol: float = 1e-9,
+            equal_nan: bool = False,
+            require_same_shape: bool = True,
+            require_same_dtype: bool = False
+    ) -> bool: ...
+
     #
     # Boolean checks
     #
@@ -323,6 +324,9 @@ class MathExpr(Protocol):
 
     # True if behave like a scalar (rank = 1)
     def is_scalar(self) -> bool: ...
+    def is_vector(self) -> bool: ...
+    def is_matrix(self) -> bool: ...
+    def is_tensor(self) -> bool: ...
 
     # Check if the expression as an operator with the given name.
     def has_operator(self, name: str) -> bool: ...
@@ -653,7 +657,7 @@ class Operator(Protocol):
 
 
 # Algebraic expression
-# It's abstract class is AlgebraicMixin
+#  It abstracts class is AlgebraicMixin
 @runtime_checkable
 class AlgebraicExpr(MathExpr, Protocol):
 

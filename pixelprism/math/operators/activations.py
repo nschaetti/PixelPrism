@@ -36,6 +36,7 @@ import numpy as np
 
 from ..tensor import Tensor
 from ..dtype import DType, to_numpy
+from ..typing import OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, operator_registry
 from .elementwise import UnaryElementwiseOperator
 
@@ -46,6 +47,20 @@ __all__ = [
     "Softplus",
     "GELU",
 ]
+
+
+def _activation_spec(name: str) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol=name,
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+# end def _activation_spec
 
 
 class _UnaryActivation(UnaryElementwiseOperator):
@@ -66,6 +81,8 @@ class _UnaryActivation(UnaryElementwiseOperator):
 class ReLU(_UnaryActivation):
     """Rectified Linear activation."""
 
+    SPEC = _activation_spec("relu")
+
     NAME = "relu"
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -84,6 +101,8 @@ class ReLU(_UnaryActivation):
 
 class LeakyReLU(_UnaryActivation):
     """Leaky ReLU activation."""
+
+    SPEC = _activation_spec("leaky_relu")
 
     NAME = "leaky_relu"
 
@@ -109,6 +128,8 @@ class LeakyReLU(_UnaryActivation):
 class Sigmoid(_UnaryActivation):
     """Logistic sigmoid activation."""
 
+    SPEC = _activation_spec("sigmoid")
+
     NAME = "sigmoid"
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -128,6 +149,8 @@ class Sigmoid(_UnaryActivation):
 class Softplus(_UnaryActivation):
     """Softplus activation."""
 
+    SPEC = _activation_spec("softplus")
+
     NAME = "softplus"
 
     def _eval(self, operands: Operands, **kwargs) -> Tensor:
@@ -146,6 +169,8 @@ class Softplus(_UnaryActivation):
 
 class GELU(_UnaryActivation):
     """Gaussian Error Linear Unit using tanh approximation."""
+
+    SPEC = _activation_spec("gelu")
 
     NAME = "gelu"
 

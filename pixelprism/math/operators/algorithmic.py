@@ -38,7 +38,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
 
@@ -101,6 +101,17 @@ def _resolve_param(value: Any) -> Any:
 
 class AlgorithmicOperator(OperatorBase, ParametricOperator):
     """Execute a user-registered Python algorithm at eval time."""
+
+    SPEC = OperatorSpec(
+        name="algorithm",
+        arity=AritySpec(exact=None, min_operands=0, variadic=True),
+        symbol="algorithm",
+        precedence=10,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "algorithm"
     ARITY = 0
@@ -168,6 +179,14 @@ class AlgorithmicOperator(OperatorBase, ParametricOperator):
     def _backward(self, out_grad: MathNode, node: MathNode) -> Sequence[MathNode]:
         raise NotImplementedError("AlgorithmicOperator does not support backward propagation.")
     # end def _backward
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
 
     def __str__(self) -> str:
         return f"{self.NAME}({self._algorithm_name})"

@@ -33,8 +33,9 @@ from typing import Optional, Union
 
 from ..tensor import Tensor
 from ..math_node import MathNode
+from ..typing import OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, operator_registry
-from .elementwise import UnaryElementwiseOperator, UnaryElementwiseParametricOperator
+from .elementwise import UnaryElementwiseOperator
 
 
 __all__ = [
@@ -51,6 +52,17 @@ __all__ = [
 class Sign(UnaryElementwiseOperator):
     """Element-wise sign operator."""
 
+    SPEC = OperatorSpec(
+        name="sign",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="sign",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+
     NAME = "sign"
     IS_VARIADIC = False
     IS_DIFF = False
@@ -65,6 +77,17 @@ class Sign(UnaryElementwiseOperator):
 
 class Floor(UnaryElementwiseOperator):
     """Element-wise floor operator."""
+
+    SPEC = OperatorSpec(
+        name="floor",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="floor",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "floor"
     IS_VARIADIC = False
@@ -81,6 +104,17 @@ class Floor(UnaryElementwiseOperator):
 class Ceil(UnaryElementwiseOperator):
     """Element-wise ceil operator."""
 
+    SPEC = OperatorSpec(
+        name="ceil",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="ceil",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+
     NAME = "ceil"
     IS_DIFF = False
 
@@ -95,6 +129,17 @@ class Ceil(UnaryElementwiseOperator):
 class Trunc(UnaryElementwiseOperator):
     """Element-wise truncation operator."""
 
+    SPEC = OperatorSpec(
+        name="trunc",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="trunc",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+
     NAME = "trunc"
     IS_DIFF = False
 
@@ -108,6 +153,17 @@ class Trunc(UnaryElementwiseOperator):
 class Rint(UnaryElementwiseOperator):
     """Element-wise rounding to nearest integer."""
 
+    SPEC = OperatorSpec(
+        name="rint",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="rint",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+
     NAME = "rint"
     IS_DIFF = False
 
@@ -118,8 +174,19 @@ class Rint(UnaryElementwiseOperator):
 # end class Rint
 
 
-class Round(UnaryElementwiseParametricOperator):
+class Round(UnaryElementwiseOperator):
     """Element-wise rounding with configurable decimals."""
+
+    SPEC = OperatorSpec(
+        name="round",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="round",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "round"
     IS_DIFF = False
@@ -157,8 +224,19 @@ class Round(UnaryElementwiseParametricOperator):
 # end class Round
 
 
-class Clip(UnaryElementwiseParametricOperator):
+class Clip(UnaryElementwiseOperator):
     """Element-wise clipping operator."""
+
+    SPEC = OperatorSpec(
+        name="clip",
+        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        symbol="clip",
+        precedence=40,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
 
     NAME = "clip"
     IS_DIFF = False

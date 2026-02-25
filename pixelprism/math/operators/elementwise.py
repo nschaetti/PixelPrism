@@ -1159,6 +1159,12 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
         return True
     # end def check_shapes
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion STATIC
 
 # end class UnaryElementwiseOperator
@@ -1294,6 +1300,12 @@ class Neg(UnaryElementwiseOperator):
         return OpSimplifyResult(operands=operands, replacement=None)
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Neg
@@ -1373,6 +1385,12 @@ class Pow(ElementwiseOperator):
         pass
     # end def _simplify
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Pow
@@ -1419,6 +1437,12 @@ class Exp(UnaryElementwiseOperator):
         pass
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Exp
@@ -1463,6 +1487,12 @@ class Exp2(UnaryElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
 
     # endregion PRIVATE
 
@@ -1512,6 +1542,12 @@ class Expm1(UnaryElementwiseOperator):
         pass
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Expm1
@@ -1556,6 +1592,12 @@ class Log(UnaryElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
 
     # endregion PRIVATE
 
@@ -1605,6 +1647,12 @@ class Log1p(UnaryElementwiseOperator):
         pass
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Log1p
@@ -1649,6 +1697,12 @@ class Sqrt(UnaryElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
 
     # endregion PRIVATE
 
@@ -1697,6 +1751,12 @@ class Square(UnaryElementwiseOperator):
 
     # endregion PRIVATE
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
 # end class Square
 
 
@@ -1742,6 +1802,12 @@ class Cbrt(UnaryElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
 
     # endregion PRIVATE
 
@@ -1791,6 +1857,12 @@ class Reciprocal(UnaryElementwiseOperator):
         pass
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Reciprocal
@@ -1838,6 +1910,12 @@ class Log2(UnaryElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
 
     # endregion PRIVATE
 
@@ -1887,6 +1965,12 @@ class Log10(UnaryElementwiseOperator):
         pass
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Log10
@@ -1934,6 +2018,12 @@ class Deg2rad(UnaryElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
 
     # endregion PRIVATE
 
@@ -1983,6 +2073,12 @@ class Rad2deg(UnaryElementwiseOperator):
         pass
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Rad2deg
@@ -2031,6 +2127,12 @@ class Absolute(UnaryElementwiseOperator):
         pass
     # end def _canonicalize
 
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
+
     # endregion PRIVATE
 
 # end class Absolute
@@ -2078,6 +2180,12 @@ class Abs(UnaryElementwiseOperator):
     def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
         pass
     # end def _canonicalize
+
+    def _needs_parentheses(self, *args, **kwargs):
+        pass
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        pass
 
     # endregion PRIVATE
 

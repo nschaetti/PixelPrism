@@ -118,12 +118,12 @@ class Shape(MathExpr, ExpressionMixin):
     # end def dims
 
     @property
-    def size(self) -> Optional[int]:
+    def size(self) -> int:
         """Return the total number of elements when known.
 
         Returns
         -------
-        Optional[int]
+        'int'
             Number of elements represented by the shape.
         """
         return self._num_elements()
@@ -135,7 +135,7 @@ class Shape(MathExpr, ExpressionMixin):
 
         Returns
         -------
-        int
+        'int'
             Number of dimensions in the shape.
         """
         return self.rank
@@ -782,12 +782,12 @@ class Shape(MathExpr, ExpressionMixin):
 
     # region PRIVATE
 
-    def _num_elements(self) -> int | None:
+    def _num_elements(self) -> int:
         """Compute the product of symbolic dimensions when possible.
 
         Returns
         -------
-        int | None
+        'int' | None
             Number of elements or ``None`` when any dimension is unknown.
         """
         total = 1

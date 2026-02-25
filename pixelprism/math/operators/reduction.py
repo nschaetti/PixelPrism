@@ -36,8 +36,8 @@ from ..shape import Shape
 from ..tensor import Tensor
 from ..context import new_context, set_value
 from ..math_node import MathNode
-from ..typing import MathExpr, LeafKind
-from .base import Operands, operator_registry, OperatorBase, ParametricOperator
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
+from .base import Operands, operator_registry, OperatorBase
 
 
 __all__ = [
@@ -55,7 +55,21 @@ __all__ = [
 ]
 
 
-class ReductionOperator(OperatorBase, ParametricOperator, ABC):
+def _reduction_spec(name: str, *, exact: int | None, min_operands: int, variadic: bool) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        symbol=name,
+        arity=AritySpec(exact=exact, min_operands=min_operands, variadic=variadic),
+        precedence=20,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+# end def _reduction_spec
+
+
+class ReductionOperator(OperatorBase, ABC):
     """
     Reduction operators.
     """
@@ -83,11 +97,18 @@ class ReductionOperator(OperatorBase, ParametricOperator, ABC):
         raise NotImplementedError("Parametric reduction operators must implement contains(..).")
     # end def contains
 
-    @classmethod
-    def check_parameters(cls, **kwargs) -> bool:
+    def check_parameters(self, **kwargs) -> bool:
         """Check that the operands have compatible shapes."""
-        raise NotImplementedError("Parametric reduction operators must check their parameters (not implemented).")
+        return True
     # end def check_shapes
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
 
     def __str__(self) -> str:
         return f"{self.NAME}()"
@@ -191,6 +212,8 @@ class Sum(AxisReductionOperator):
     Sum operator.
     """
 
+    SPEC = _reduction_spec("sum", exact=1, min_operands=1, variadic=False)
+
     NAME = "sum"
     ARITY = 1
 
@@ -221,6 +244,8 @@ class Mean(AxisReductionOperator):
     Mean operator.
     """
 
+    SPEC = _reduction_spec("mean", exact=1, min_operands=1, variadic=False)
+
     NAME = "mean"
     ARITY = 1
 
@@ -250,6 +275,8 @@ class Std(AxisReductionOperator):
     """
     Standard deviation operator.
     """
+
+    SPEC = _reduction_spec("std", exact=1, min_operands=1, variadic=False)
 
     NAME = "std"
     ARITY = 1
@@ -299,10 +326,12 @@ class Median(AxisReductionOperator):
 
     Examples
     --------
-    >>> x = pm.const(\"med_a\", data=[[1., 3.], [2., 4.]], dtype=pm.DType.R)
+    >>> x = pm.const("med_a", data=[[1., 3.], [2., 4.]], dtype=pm.DType.R)
     >>> R.median(x, axis=0).eval()
     tensor([1.5, 3.5], dtype=float32)
     """
+
+    SPEC = _reduction_spec("median", exact=1, min_operands=1, variadic=False)
 
     NAME = "median"
     ARITY = 1
@@ -363,10 +392,12 @@ class Max(AxisReductionOperator):
 
     Examples
     --------
-    >>> x = pm.const(\"max_a\", data=[[1, 2], [3, 4]], dtype=pm.DType.R)
+    >>> x = pm.const("max_a", data=[[1, 2], [3, 4]], dtype=pm.DType.R)
     >>> R.max(x, axis=0).eval()
     tensor([3., 4.], dtype=float32)
     """
+
+    SPEC = _reduction_spec("max", exact=1, min_operands=1, variadic=False)
 
     NAME = "max"
     ARITY = 1
@@ -404,6 +435,8 @@ class Min(AxisReductionOperator):
         Tensor containing the minimum values.
     """
 
+    SPEC = _reduction_spec("min", exact=1, min_operands=1, variadic=False)
+
     NAME = "min"
     ARITY = 1
 
@@ -440,6 +473,8 @@ class Q1(Median):
         Tensor containing the 25th percentile values.
     """
 
+    SPEC = _reduction_spec("q1", exact=1, min_operands=1, variadic=False)
+
     NAME = "q1"
     ARITY = 1
     _PERCENTILE = 25.0
@@ -462,6 +497,8 @@ class Q3(Q1):
         Tensor containing the 75th percentile values.
     """
 
+    SPEC = _reduction_spec("q3", exact=1, min_operands=1, variadic=False)
+
     NAME = "q3"
     _PERCENTILE = 75.0
 
@@ -472,6 +509,8 @@ class Summation(ReductionOperator):
     """
     Summation operator.
     """
+
+    SPEC = _reduction_spec("summation", exact=1, min_operands=1, variadic=False)
 
     NAME = "summation"
     ARITY = 1
@@ -666,6 +705,8 @@ class Product(ReductionOperator):
     >>> expr.eval()
     tensor(24., dtype=float32)
     """
+
+    SPEC = _reduction_spec("product", exact=1, min_operands=1, variadic=False)
 
     NAME = "product"
     ARITY = 1

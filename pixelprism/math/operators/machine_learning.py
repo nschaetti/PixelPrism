@@ -49,7 +49,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
 from .algorithmic import register_algorithm, get_algorithm
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
@@ -74,6 +74,20 @@ __all__ = [
     "SVMClasses",
     "SKLEARN_AVAILABLE",
 ]
+
+
+def _ml_spec(name: str, *, exact: int) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=exact, min_operands=exact, variadic=False),
+        symbol=name,
+        precedence=10,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+# end def _ml_spec
 
 
 def _ensure_scalar_parameter(value: ScalarParameter, name: str) -> MathExpr:
@@ -412,9 +426,21 @@ if SKLEARN_AVAILABLE:
 class MachineLearningOperator(OperatorBase, ParametricOperator, ABC):
     """Base class for machine learning operators."""
 
+    def check_parameters(self, **kwargs) -> bool:
+        return True
+    # end def check_parameters
+
     def contains(self, expr: MathExpr, by_ref: bool = False, look_for: LeafKind = LeafKind.ANY) -> bool:
         return False
     # end def contains
+
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -426,6 +452,7 @@ class MachineLearningOperator(OperatorBase, ParametricOperator, ABC):
 class PerceptronTrain(MachineLearningOperator):
     """Fit binary perceptron and return hyperplane parameters theta=[w..., b]."""
 
+    SPEC = _ml_spec("perceptron_train", exact=2)
     NAME = "perceptron_train"
     ARITY = 2
     IS_VARIADIC = False
@@ -535,6 +562,7 @@ class PerceptronTrain(MachineLearningOperator):
 class PerceptronPredict(MachineLearningOperator):
     """Predict binary classes {-1,+1} from x and theta."""
 
+    SPEC = _ml_spec("perceptron_predict", exact=2)
     NAME = "perceptron_predict"
     ARITY = 2
     IS_VARIADIC = False
@@ -588,6 +616,7 @@ class PerceptronPredict(MachineLearningOperator):
 class PerceptronDecisionBoundary(MachineLearningOperator):
     """Return hyperplane parameters theta=[w..., b]."""
 
+    SPEC = _ml_spec("perceptron_decision_boundary", exact=2)
     NAME = "perceptron_decision_boundary"
     ARITY = 1
     IS_VARIADIC = False
@@ -637,6 +666,7 @@ class PerceptronDecisionBoundary(MachineLearningOperator):
 class PerceptronCoefficients(MachineLearningOperator):
     """Extract perceptron coefficients w from theta=[w..., b]."""
 
+    SPEC = _ml_spec("perceptron_coefficients", exact=1)
     NAME = "perceptron_coefficients"
     ARITY = 1
     IS_VARIADIC = False
@@ -687,6 +717,7 @@ class PerceptronCoefficients(MachineLearningOperator):
 class PerceptronIntercept(MachineLearningOperator):
     """Extract perceptron intercept b from theta=[w..., b]."""
 
+    SPEC = _ml_spec("perceptron_intercept", exact=1)
     NAME = "perceptron_intercept"
     ARITY = 1
     IS_VARIADIC = False
@@ -737,6 +768,7 @@ class PerceptronIntercept(MachineLearningOperator):
 class PerceptronClasses(MachineLearningOperator):
     """Return class labels used by the perceptron classifier: [-1, +1]."""
 
+    SPEC = _ml_spec("perceptron_classes", exact=1)
     NAME = "perceptron_classes"
     ARITY = 0
     IS_VARIADIC = False
@@ -785,6 +817,7 @@ class PerceptronClasses(MachineLearningOperator):
 class DecisionTreeTrain(MachineLearningOperator):
     """Train a multiclass decision tree and return serialized tree matrix."""
 
+    SPEC = _ml_spec("decision_tree_train", exact=2)
     NAME = "decision_tree_train"
     ARITY = 2
     IS_VARIADIC = False
@@ -893,6 +926,7 @@ class DecisionTreeTrain(MachineLearningOperator):
 class DecisionTreePredict(MachineLearningOperator):
     """Predict multiclass labels from x and serialized tree model."""
 
+    SPEC = _ml_spec("decision_tree_predict", exact=2)
     NAME = "decision_tree_predict"
     ARITY = 2
     IS_VARIADIC = False
@@ -946,6 +980,7 @@ class DecisionTreePredict(MachineLearningOperator):
 class DecisionTreeClasses(MachineLearningOperator):
     """Return sorted unique class labels from y."""
 
+    SPEC = _ml_spec("decision_tree_classes", exact=1)
     NAME = "decision_tree_classes"
     ARITY = 1
     IS_VARIADIC = False
@@ -1001,6 +1036,7 @@ class DecisionTreeClasses(MachineLearningOperator):
 class SVMTrain(MachineLearningOperator):
     """Train binary linear SVM and return hyperplane parameters theta=[w..., b]."""
 
+    SPEC = _ml_spec("svm_train", exact=2)
     NAME = "svm_train"
     ARITY = 2
     IS_VARIADIC = False
@@ -1105,6 +1141,7 @@ class SVMTrain(MachineLearningOperator):
 class SVMDecisionFunction(MachineLearningOperator):
     """Compute linear SVM decision score for each sample."""
 
+    SPEC = _ml_spec("svm_decision_function", exact=2)
     NAME = "svm_decision_function"
     ARITY = 2
     IS_VARIADIC = False
@@ -1158,6 +1195,7 @@ class SVMDecisionFunction(MachineLearningOperator):
 class SVMPredict(MachineLearningOperator):
     """Predict binary classes {-1,+1} from x and SVM theta."""
 
+    SPEC = _ml_spec("svm_predict", exact=2)
     NAME = "svm_predict"
     ARITY = 2
     IS_VARIADIC = False
@@ -1211,6 +1249,7 @@ class SVMPredict(MachineLearningOperator):
 class SVMClasses(MachineLearningOperator):
     """Return class labels used by binary linear SVM: [-1, +1]."""
 
+    SPEC = _ml_spec("svm_classes", exact=1)
     NAME = "svm_classes"
     ARITY = 0
     IS_VARIADIC = False

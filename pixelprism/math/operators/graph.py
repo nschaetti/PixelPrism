@@ -38,7 +38,7 @@ from ..dtype import DType, to_numpy
 from ..math_node import MathNode
 from ..shape import Shape
 from ..tensor import Tensor
-from ..typing import MathExpr, LeafKind
+from ..typing import MathExpr, LeafKind, OperatorSpec, AritySpec, OpAssociativity
 from .base import Operands, OperatorBase, ParametricOperator, operator_registry
 
 
@@ -51,6 +51,20 @@ __all__ = [
     "IsCyclic",
     "TopologicalSort",
 ]
+
+
+def _graph_spec(name: str, *, exact: int = 1) -> OperatorSpec:
+    return OperatorSpec(
+        name=name,
+        arity=AritySpec(exact=exact, min_operands=exact, variadic=False),
+        symbol=name,
+        precedence=10,
+        associativity=OpAssociativity.NONE,
+        commutative=False,
+        associative=False,
+        is_diff=False,
+    )
+# end def _graph_spec
 
 
 class GraphOperator(OperatorBase, ParametricOperator, ABC):
@@ -118,11 +132,21 @@ class GraphOperator(OperatorBase, ParametricOperator, ABC):
         return not np.array_equal(matrix, matrix.T)
     # end def _resolve_directed
 
+    def _needs_parentheses(self, *args, **kwargs):
+        return None
+    # end def _needs_parentheses
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        return str(self)
+    # end def print
+
 # end class GraphOperator
 
 
 class Degree(GraphOperator):
     """Node degree vector from adjacency matrix."""
+
+    SPEC = _graph_spec("degree")
 
     NAME = "degree"
 
@@ -182,6 +206,8 @@ class Degree(GraphOperator):
 class InDegree(Degree):
     """Incoming degree vector for directed adjacency matrix."""
 
+    SPEC = _graph_spec("in_degree")
+
     NAME = "in_degree"
 
     def __init__(self, directed: Optional[bool] = None):
@@ -194,6 +220,8 @@ class InDegree(Degree):
 class OutDegree(Degree):
     """Outgoing degree vector for directed adjacency matrix."""
 
+    SPEC = _graph_spec("out_degree")
+
     NAME = "out_degree"
 
     def __init__(self, directed: Optional[bool] = None):
@@ -205,6 +233,8 @@ class OutDegree(Degree):
 
 class Laplacian(GraphOperator):
     """Graph Laplacian (unnormalized or symmetric normalized)."""
+
+    SPEC = _graph_spec("laplacian")
 
     NAME = "laplacian"
 
@@ -274,6 +304,8 @@ class Laplacian(GraphOperator):
 class IsCyclic(GraphOperator):
     """Return whether the graph represented by adjacency has a cycle."""
 
+    SPEC = _graph_spec("is_cyclic")
+
     NAME = "is_cyclic"
 
     def infer_shape(self, operands: Operands) -> Shape:
@@ -300,6 +332,8 @@ class IsCyclic(GraphOperator):
 
 class TopologicalSort(GraphOperator):
     """Topological ordering from a directed acyclic adjacency matrix."""
+
+    SPEC = _graph_spec("topological_sort")
 
     NAME = "topological_sort"
 

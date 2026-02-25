@@ -63,6 +63,7 @@ from .typing_expr import (
     ExprDomain,
     ExprKind,
     OperatorSpec,
+    AritySpec,
 )
 
 
@@ -88,6 +89,7 @@ __all__ = [
     "ExprDomain",
     "ExprKind",
     "OperatorSpec",
+    "AritySpec"
 ]
 
 

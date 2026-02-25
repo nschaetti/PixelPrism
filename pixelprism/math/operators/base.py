@@ -54,6 +54,7 @@ from ..mixins import SimplifyRuleMixin
 
 __all__ = [
     "OperatorBase",
+    "ParametricOperator",
     "OperatorRegistry",
     "operator_registry",
 ]
@@ -532,6 +533,14 @@ class OperatorBase(
 # end class Operator
 
 
+class ParametricOperator:
+    """Marker mixin for operators carrying explicit parameters."""
+
+    pass
+
+# end class ParametricOperator
+
+
 class OperatorRegistry:
     """
     Global registry for Operator instances.
@@ -553,10 +562,10 @@ class OperatorRegistry:
         if not issubclass(op_cls, OperatorBase):
             raise TypeError("Only Operator subclasses can be registered")
         # end if
-        if op_cls.NAME in cls._by_name:
-            raise ValueError(f"Operator '{op_cls.NAME}' is already registered.")
+        if op_cls.SPEC.name in cls._by_name:
+            raise ValueError(f"Operator '{op_cls.SPEC.name}' is already registered.")
         # end if
-        cls._by_name[op_cls.NAME] = op_cls
+        cls._by_name[op_cls.SPEC.name] = op_cls
     # end def register
 
     @classmethod

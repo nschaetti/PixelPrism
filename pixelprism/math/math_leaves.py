@@ -28,27 +28,27 @@
 
 # Imports
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union, Dict, Mapping, Sequence
-import weakref
 
-import numpy as np
+from abc import ABC, abstractmethod
+from typing import List, Optional, Tuple, Union, Mapping, Sequence, FrozenSet
+import weakref
 
 from .math_base import MathBase
 
 from .math_exceptions import (
     SymbolicMathNotImplementedError,
     SymbolicMathValidationError,
-    SymbolicMathLookupError
+    SymbolicMathLookupError,
+    SymbolicMathRuntimeError
 )
-# from .math_node import MathNode
+
 from .mixins import ExpressionMixin, AlgebraicMixin
 from .dtype import DType, TypeLike, create
-from .shape import Shape, ShapeLike
+from .shape import Shape, ShapeLike, DimLike
 from .tensor import Tensor, TensorLike, tensor
 from .context import get_value
 from .random import rand_name
-from .typing import MathExpr, LeafKind, SimplifyOptions
+from .typing import MathExpr, LeafKind, SimplifyOptions, AlgebraicExpr, ExprKind, ExprDomain, Operator
 
 
 __all__ = [
@@ -58,6 +58,8 @@ __all__ = [
     "var",
     "const"
 ]
+
+from .typing_expr import FoldPolicy
 
 
 def var(name: str, dtype: TypeLike, shape: ShapeLike) -> Variable:
@@ -98,7 +100,7 @@ class MathLeaf(
     MathBase,
     ExpressionMixin,
     AlgebraicMixin,
-    MathExpr,
+    AlgebraicExpr,
     ABC
 ):
     """
@@ -112,8 +114,9 @@ class MathLeaf(
 
     def __init__(
             self,
-            *,
             name: str,
+            kind: ExprKind,
+            domain: ExprDomain,
             dtype: DType,
             shape: Shape
     ):
@@ -130,11 +133,77 @@ class MathLeaf(
             Symbolic tensor shape of the stored value.
         """
         # Init
-        super(MathLeaf, self).__init__(name=name, dtype=dtype, shape=shape)
+        super(MathLeaf, self).__init__(
+            name=name,
+            kind=kind,
+            domain=domain,
+            dtype=dtype,
+            shape=shape
+        )
         self._parents_weak = weakref.WeakSet()
     # end __init__
 
     # region MATH_EXPR
+
+    @property
+    def rank(self) -> int:
+        """Return tensor rank derived from shape."""
+        return self._shape.rank
+    # end def rank
+
+    @property
+    def spec(self) -> Optional[Operator]:
+        """Leaves do not """
+        raise SymbolicMathRuntimeError("Leaf nodes do not have a spec.")
+    # end def spec
+
+    @property
+    def op(self) -> Optional[Operator]:
+        """Leaves do not """
+        raise SymbolicMathRuntimeError("Leaf nodes do not have an op.")
+    # end def op
+
+    @property
+    def op_name(self) -> Optional[str]:
+        """Leaves do not """
+        raise SymbolicMathRuntimeError("Leaf nodes do not have an op_name.")
+    # end def op_name
+
+    @property
+    def arity(self) -> int:
+        """Leaves do not """
+        return 0
+    # end def arity
+
+    @property
+    def children(self) -> list:
+        """Leaves do not """
+        return []
+    # end def children
+
+    @property
+    def parents(self) -> FrozenSet[MathExpr]:
+        """Leaves do not """
+        return FrozenSet(self._parents_weak)
+    # end def parents
+
+    #
+    # Evaluate and differentiate
+    #
+
+    @abstractmethod
+    def eval(self) -> "Tensor":
+        """Evaluate the expression in the active runtime context."""
+    # end def eval
+
+    @abstractmethod
+    def diff(self, wrt: "Variable") -> "MathExpr":
+        """Symbolic derivative of the expression with respect to one variable."""
+    # end def diff
+
+    #
+    # Structure
+    #
 
     @abstractmethod
     def variables(self) -> list:
@@ -155,27 +224,6 @@ class MathLeaf(
             Constant leaves referenced by the node.
         """
     # end def constants
-
-    def depth(self) -> int:
-        """Return the depth of the node in the tree"""
-        return 1
-    # end def depth
-
-    @property
-    def rank(self) -> int:
-        """Return tensor rank derived from shape."""
-        return self._shape.rank
-    # end def rank
-
-    def is_constant(self):
-        """Does the expression contain only constant values?"""
-        raise SymbolicMathNotImplementedError("Class must override is_constant.")
-    # end def is_constant
-
-    def is_variable(self):
-        """Does the expression contain a variable?"""
-        raise SymbolicMathNotImplementedError("Class must override is_variable.")
-    # end def is_variable
 
     def contains(
             self,
@@ -233,7 +281,7 @@ class MathLeaf(
             check_operator: bool = True
     ) -> bool:
         """
-        TODO: concrete leaf classes must provide variable-specific lookup logic.
+        Concrete leaf classes must provide variable-specific lookup logic.
         """
     # end def contains_variable
 
@@ -245,9 +293,13 @@ class MathLeaf(
             check_operator: bool = True
     ) -> bool:
         """
-        TODO: concrete leaf classes must provide constant-specific lookup logic.
+        Concrete leaf classes must provide constant-specific lookup logic.
         """
     # end def contains_constant
+
+    #
+    # Transforms
+    #
 
     def simplify(self, options: SimplifyOptions | None = None) -> MathExpr:
         """Return this leaf unchanged."""
@@ -282,20 +334,7 @@ class MathLeaf(
         return self
     # end def substitute
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr) -> MathExpr:
-        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
-
-        Parameters
-        ----------
-        old_m: MathNode
-            MathExpr to replace.
-        new_m: MathNode
-            New MathExpr replacing the old one.
-        """
-        raise SymbolicMathNotImplementedError("Leaf nodes do not support replace.")
-    # end def replace
-
-    def renamed(self, old_name: str, new_name: str) -> MathExpr:
+    def renamed(self, old_name: str, new_name: str) -> List[str]:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -305,18 +344,40 @@ class MathLeaf(
         new_name: str
             New name for the variable/constant.
         """
-        raise SymbolicMathNotImplementedError("Leaf nodes do not support rename.")
+        if self.name == old_name:
+            self._name = new_name
+            return [old_name]
+        # end if
+        return []
     # end rename
 
+    #
+    # Comparison
+    #
+
+    @abstractmethod
     def eq_tree(self, other: MathExpr) -> bool:
         """Return strict symbolic tree equality for leaves."""
-        return self is other
     # end def eq_tree
 
     def equivalent(self, other: MathExpr) -> bool:
         """Return symbolic equivalence for leaves."""
         return self.eq_tree(other)
     # end def equivalent
+
+    #
+    # Boolean predicates
+    #
+
+    @abstractmethod
+    def is_constant(self):
+        """Does the expression contain only constant values?"""
+    # end def is_constant
+
+    @abstractmethod
+    def is_variable(self):
+        """Does the expression contain a variable?"""
+    # end def is_variable
 
     def is_node(self) -> bool:
         """
@@ -331,6 +392,61 @@ class MathLeaf(
         """
         return True
     # end def is_leaf
+
+    @abstractmethod
+    def is_constant_leaf(self) -> bool:
+        """
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression is a leaf node and represents a constant value.
+        """
+    # end def is_constant_leaf
+
+    @abstractmethod
+    def is_variable_leaf(self) -> bool:
+        """
+        Returns
+        -------
+        'bool'
+            ``True`` when the expression is a leaf node and represents a variable.
+        """
+    # end def is_variable_leaf
+
+    @abstractmethod
+    def is_pure(self) -> bool:
+        """
+        Check if the expression is pure, i.e. has no side effects.
+        """
+    # end def is_pure
+
+    # True if behave like a scalar (rank = 1)
+    def is_scalar(self) -> bool:
+        """
+        Check if the expression behaves like a scalar (rank = 1).
+        """
+        return self.rank == 1
+    # end def is_scalar
+
+    def is_matrix(self) -> bool:
+        """
+        Is the expression a matrix?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n)
+        """
+        return self._shape.rank == 2
+    # end is_matrix
+
+    def is_tensor(self) -> bool:
+        """
+        Is the expression a tensor?
+
+        Returns:
+            ``True`` when the expression is a leaf and its shape is (m,n,...)
+        """
+        return self._shape.rank > 2
+    # end def is_tensor
 
     def has_operator(self, name: str) -> bool:
         """
@@ -349,26 +465,91 @@ class MathLeaf(
         return False
     # end if
 
-    def copy(self, deep: bool = False) -> "MathLeaf":
+    # Check if the expression has children.
+    def has_children(self) -> bool:
         """
-        TODO: unify leaf copy contract (`deep`) with Variable/Constant copy APIs.
+        Check if the expression has children.
         """
-        # TODO: return type should likely be covariant and preserve leaf subtype.
-        return self
+        return False
+    # end def has_children
+
+    # Check the number of children of the expression.
+    def num_children(self) -> int:
+        """
+        Check the number of children of the expression.
+        """
+        return 0
+    # end def num_children
+
+    #
+    # Rules and policy
+    #
+
+    @abstractmethod
+    def is_foldable(self) -> bool:
+        """
+        Check if the expression can be folded into a single node.
+        """
+    # end def is_foldable
+
+    def fold_policy(self) -> FoldPolicy:
+        """
+        Get the folding policy for the expression.
+
+        Returns
+        -------
+        'FoldPolicy'
+            The folding policy for the expression.
+        """
+        return FoldPolicy.FOLDABLE
+    # end def fold_policy
+
+    #
+    # Structure
+    #
+
+    def depth(self) -> int:
+        """Return the depth of the node in the tree"""
+        return 1
+    # end def depth
+
+    @abstractmethod
+    def copy(self, deep: bool = False) -> MathExpr:
+        """
+        Copy the leaf node.
+        """
     # end def copy
 
+    #
+    # Comparaison
+    #
+
+    def __eq__(self, other: object) -> bool:
+        """Check if two MathExpr are equal."""
+        return self is other
+    # end def __eq_
+
+    def __ne__(self, other: object) -> bool:
+        """Check if two MathExpr are not equal."""
+        return not (self is other)
+    # end def __ne_
+
+    #
+    # Representation
+    #
+
+    @abstractmethod
     def __str__(self) -> str:
         """
-        TODO: subclasses should provide domain-specific string representations.
+        Human-readable description of the leaf node.
         """
-        return self.name
     # end def __str__
 
+    @abstractmethod
     def __repr__(self) -> str:
         """
-        TODO: subclasses should override for richer debug output.
+        Debug representation identical to :meth:`__str__`.
         """
-        return f"{self.__class__.__name__}({self.name})"
     # end def __repr__
 
     # endregion MATH_EXPR
@@ -383,7 +564,6 @@ class Variable(MathLeaf):
 
     def __init__(
             self,
-            *,
             name: str,
             dtype: DType,
             shape: Shape
@@ -401,6 +581,8 @@ class Variable(MathLeaf):
         # Super
         super(Variable, self).__init__(
             name=name,
+            kind=ExprKind.VARIABLE,
+            domain=ExprDomain.ALGEBRAIC,
             dtype=dtype,
             shape=shape
         )
@@ -413,18 +595,18 @@ class Variable(MathLeaf):
         """
         Returns
         -------
-        Tensor
+        'Tensor'
             Tensor currently stored in the runtime context.
         """
         return get_value(self._name)
     # end def value
 
     @property
-    def dims(self) -> Sequence[MathExpr]:
+    def dims(self) -> Sequence[DimLike]:
         """
         Returns
         -------
-        Sequence[MathExpr]
+        Sequence['MathExpr']
             Tuple of shape dimensions.
         """
         return self._shape.dims
@@ -435,29 +617,18 @@ class Variable(MathLeaf):
         """
         Returns
         -------
-        int
+        'int'
             Rank (number of axes) of the variable.
         """
         return self._shape.rank
     # end def dim
 
     @property
-    def rank(self) -> int:
-        """
-        Returns
-        -------
-        int
-            Rank (number of axes) of the variable.
-        """
-        return self._shape.rank
-    # end def rank
-
-    @property
     def size(self) -> int:
         """
         Returns
         -------
-        int
+        'int'
             Total number of elements (when fully defined).
         """
         return self._shape.size
@@ -468,7 +639,7 @@ class Variable(MathLeaf):
         """
         Returns
         -------
-        int
+        'int'
             Total number of elements (alias for ``size``).
         """
         return self._shape.size
@@ -478,7 +649,24 @@ class Variable(MathLeaf):
 
     # region MATH_EXPR
 
-    # region EVALUABLE_MIXIN
+    #
+    # Properties
+    #
+
+    @property
+    def rank(self) -> int:
+        """
+        Returns
+        -------
+        'int'
+            Rank (number of axes) of the variable.
+        """
+        return self._shape.rank
+    # end def rank
+
+    #
+    # Evaluate and differentiate
+    #
 
     def eval(self) -> Tensor:
         """
@@ -511,36 +699,32 @@ class Variable(MathLeaf):
         return var_val
     # end def eval
 
-    # endregion EVALUABLE_MIXIN
+    def diff(self, wrt: MathExpr) -> MathExpr:
+        """
+        Compute the derivative of this leaf with respect to a variable.
+        """
+        if isinstance(wrt, Variable) and wrt.name == self.name:
+            return Constant(
+                name=rand_name(f"{self.name}_autodiff_"),
+                data=Tensor.full(1, shape=self.shape.eval().tolist(), dtype=self.dtype)
+            )
+        else:
+            return Constant(
+                name=rand_name(f"{self.name}_autodiff_"),
+                data=Tensor.full(0, shape=self.shape.eval().tolist(), dtype=self.dtype)
+            )
+        # end if
+    # end def diff
 
-    # region PREDICATE_MIXIN
-
-    def contains_variable(
-            self,
-            variable: Union[str, MathExpr],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool:
-        # TODO: keep dedicated leaf-level specialization if variable lookup
-        # semantics diverge from generic `contains(..., look_for="var")`.
-        return self.contains(variable, by_ref=by_ref, check_operator=check_operator, look_for="var")
-    # end def contains_variable
-
-    def contains_constant(
-            self,
-            constant: Union[str, MathExpr],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool:
-        # TODO: if variables can capture constants via metadata later, update.
-        return False
-    # end def contains_constant
+    #
+    # Structure
+    #
 
     def variables(self) -> list:
         """
         Returns
         -------
-        list
+        'list'
             List containing ``self``.
         """
         return [self]
@@ -550,21 +734,11 @@ class Variable(MathLeaf):
         """
         Returns
         -------
-        list
+        'list'
             Empty list because variables do not reference constants.
         """
         return []
     # end def constants
-
-    def is_constant(self):
-        """Does the expression contain only constant values?"""
-        return False
-    # end def is_constant
-
-    def is_variable(self):
-        """Does the expression contain a variable?"""
-        return True
-    # end def is_variable
 
     def contains(
             self,
@@ -608,24 +782,49 @@ class Variable(MathLeaf):
         return False
     # end def contains
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr) -> MathExpr:
-        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+    def contains_variable(
+            self,
+            variable: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        return self.contains(variable, by_ref=by_ref, check_operator=check_operator, look_for=LeafKind.VARIABLE)
+    # end def contains_variable
 
-        Parameters
-        ----------
-        old_m: ExpressionMixin
-            MathExpr to replace.
-        new_m: ExpressionMixin
-            New MathExpr replacing the old one.
+    def contains_constant(
+            self,
+            constant: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
         """
-        # TODO: decide whether leaf-level replace should mutate in-place
-        # (rename/value swap) or be handled exclusively by parent nodes.
-        raise SymbolicMathNotImplementedError(
-            "TODO: implement Variable.replace(...) semantics for leaf substitution."
-        )
-    # end def replace
+        Check if ``constant`` is contained in this expression.
+        """
+        return False
+    # end def contains_constant
 
-    def renamed(self, old_name: str, new_name: str) -> MathExpr:
+    #
+    # Comparison
+    #
+
+    # def replace(self, old_m: MathExpr, new_m: MathExpr) -> MathExpr:
+    #     """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+    #
+    #     Parameters
+    #     ----------
+    #     old_m: ExpressionMixin
+    #         MathExpr to replace.
+    #     new_m: ExpressionMixin
+    #         New MathExpr replacing the old one.
+    #     """
+    #     # TODO: decide whether leaf-level replace should mutate in-place
+    #     # (rename/value swap) or be handled exclusively by parent nodes.
+    #     raise SymbolicMathNotImplementedError(
+    #         "TODO: implement Variable.replace(...) semantics for leaf substitution."
+    #     )
+    # # end def replace
+
+    def renamed(self, old_name: str, new_name: str) -> List[str]:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -637,49 +836,80 @@ class Variable(MathLeaf):
         """
         if self._name == old_name:
             self._name = new_name
+            return [old_name]
         # end if
-        return self
+        return []
     # end rename
 
-    # endregion PREDICATE_MIXIN
-
-    # region DIFFERENTIABLE_MIXIN
-
-    def diff(self, wrt: MathExpr) -> MathExpr:
+    def eq_tree(self, other: MathExpr) -> bool:
         """
-        Compute the derivative of this leaf with respect to a variable.
+        Check if two MathExpr trees are equal in structure and value.
         """
-        if wrt is self:
-            return Constant(
-                name=rand_name(f"{self.name}_autodiff_"),
-                data=Tensor.full(1, shape=self.shape.eval().tolist(), dtype=self.dtype)
-            )
-        else:
-            return Constant(
-                name=rand_name(f"{self.name}_autodiff_"),
-                data=Tensor.full(0, shape=self.shape.eval().tolist(), dtype=self.dtype)
-            )
-        # end if
-    # end def diff
+        return (
+            isinstance(other, Variable)
+            and self._name == other._name
+            and self._dtype == other._dtype
+            and self._shape == other._shape
+        )
+    # end def eq_tree
 
-    # endregion DIFFERENTIABLE_MIXIN
+    #
+    # Boolean checks
+    #
 
-    # region MATH_EXPR_MISC
+    def is_constant(self) -> bool:
+        """Does the expression contain only constant values?"""
+        return False
+    # end def is_constant
+
+    def is_variable(self) -> bool:
+        """Does the expression contain a variable?"""
+        return True
+    # end def is_variable
+
+    def is_constant_leaf(self) -> bool:
+        """Does the expression contain only constant values?"""
+        return False
+    # end def is_constant_leaf
+
+    def is_variable_leaf(self) -> bool:
+        """Does the expression contain a variable?"""
+        return True
+    # end def is_variable_leaf
+
+    def is_pure(self) -> bool:
+        """Is the expression pure?"""
+        return False
+    # end def is_pure
+
+    #
+    # Rules and policy
+    #
+
+    def is_foldable(self) -> bool:
+        """Is the expression foldable?"""
+        return False
+    # end def is_foldable
+
+    def fold_policy(self) -> FoldPolicy:
+        """Get the folding policy for the expression."""
+        return FoldPolicy.NON_FOLDABLE
+    # end def fold_policy
+
+    #
+    # Structure
+    #
 
     def copy(
             self,
-            deep: bool = False,
-            name: Optional[str] = None,
+            deep: bool = False
     ) -> 'Variable':
         """
         Create a shallow copy with a new name.
 
         Parameters
         ----------
-        name : str, optional
-            Name assigned to the clone. Uses current name when ``None``.
         deep : bool, optional
-            TODO: deep copy semantics are currently unused for leaves.
 
         Returns
         -------
@@ -687,11 +917,23 @@ class Variable(MathLeaf):
             New variable sharing dtype/shape metadata.
         """
         return Variable(
-            name=name or self._name,
+            name=self._name,
             dtype=self._dtype,
             shape=self._shape.copy(),
         )
     # end def copy
+
+    #
+    # Comparaison
+    #
+
+    def __eq__(self, other: object) -> bool:
+        return self is other
+    # end def __eq__
+
+    def __ne__(self, other: object) -> bool:
+        return not (self is other)
+    # end def __ne__
 
     # endregion MATH_EXPR_MISC
 
@@ -701,7 +943,7 @@ class Variable(MathLeaf):
         """
         Returns
         -------
-        str
+        'str'
             Human-readable description of the variable.
         """
         return self.name
@@ -711,7 +953,7 @@ class Variable(MathLeaf):
         """
         Returns
         -------
-        str
+        'str'
             Debug representation identical to :meth:`__str__`.
         """
         return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
@@ -782,6 +1024,8 @@ class Constant(MathLeaf):
         # Super
         super(Constant, self).__init__(
             name=name,
+            kind=ExprKind.CONSTANT,
+            domain=ExprDomain.ALGEBRAIC,
             dtype=data.dtype,
             shape=Shape(dims=data.shape.dims)
         )
@@ -801,7 +1045,7 @@ class Constant(MathLeaf):
         """
         Returns
         -------
-        Tensor
+        'Tensor'
             Stored tensor value.
         """
         return self._data
@@ -815,7 +1059,7 @@ class Constant(MathLeaf):
         tuple[int, ...]
             Tuple of dimensions.
         """
-        return self._shape.dims
+        return tuple(self._shape.dims)
     # end def dims
 
     @property
@@ -823,29 +1067,18 @@ class Constant(MathLeaf):
         """
         Returns
         -------
-        int
+        'int'
             Rank (number of axes).
         """
         return self._shape.rank
     # end def dim
 
     @property
-    def rank(self) -> int:
-        """
-        Returns
-        -------
-        int
-            Rank (number of axes).
-        """
-        return self._shape.rank
-    # end def rank
-
-    @property
     def size(self) -> int:
         """
         Returns
         -------
-        int
+        'int'
             Total number of elements.
         """
         return self._shape.size
@@ -856,7 +1089,7 @@ class Constant(MathLeaf):
         """
         Returns
         -------
-        int
+        'int'
             Total number of elements.
         """
         return self._shape.size
@@ -866,27 +1099,50 @@ class Constant(MathLeaf):
 
     # region MATH_EXPR
 
-    # region EVALUABLE_MIXIN
+    @property
+    def rank(self) -> int:
+        """
+        Returns
+        -------
+        'int'
+            Rank (number of axes).
+        """
+        return self._shape.rank
+    # end def rank
+
+    #
+    # Evaluate and differentiate
+    #
 
     def eval(self) -> Tensor:
         """
         Returns
         -------
-        Tensor
+        'Tensor'
             Copy of the stored tensor.
         """
         return self._data.copy()
     # end def eval
 
-    # endregion EVALUABLE_MIXIN
+    def diff(self, wrt: MathExpr) -> MathExpr:
+        """
+        Compute the derivative of this leaf with respect to a variable.
+        """
+        return Constant(
+            name=rand_name(f"{self.name}_autodiff"),
+            data=Tensor.zeros_like(self.value, self.dtype)
+        )
+    # end def diff
 
-    # region PREDICATE_MIXIN
+    #
+    # Structure
+    #
 
     def variables(self) -> list:
         """
         Returns
         -------
-        list
+        'list'
             Empty list because constants do not reference variables.
         """
         return []
@@ -896,7 +1152,7 @@ class Constant(MathLeaf):
         """
         Returns
         -------
-        list
+        'list'
             List containing ``self``.
         """
         return [self]
@@ -911,31 +1167,6 @@ class Constant(MathLeaf):
         """Does the expression contain a variable?"""
         return False
     # end def is_variable
-
-    def contains_variable(
-            self,
-            variable: Union[str, MathExpr],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool:
-        return False
-    # end def contains_variable
-
-    def contains_constant(
-            self,
-            constant: Union[str, MathExpr],
-            by_ref: bool = False,
-            check_operator: bool = True
-    ) -> bool:
-        if isinstance(constant, Constant):
-            return constant is self
-        elif isinstance(constant, Variable):
-            return False
-        elif isinstance(constant, str):
-            return constant == self._name
-        # end if
-        return False
-    # end def contains_constant
 
     def contains(
             self,
@@ -979,24 +1210,35 @@ class Constant(MathLeaf):
         return False
     # en def contains
 
-    def replace(self, old_m: MathExpr, new_m: MathExpr) -> MathExpr:
-        """Replace all occurrences of ``old`` with ``new`` in the tree. The replacement is in-place and by occurrence.
+    def contains_variable(
+            self,
+            variable: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        return False
+    # end def contains_variable
 
-        Parameters
-        ----------
-        old_m: MathNode
-            MathExpr to replace.
-        new_m: MathNode
-            New MathExpr replacing the old one.
-        """
-        # TODO: decide whether replacing a constant leaf should mutate this
-        # instance or be performed at parent-level by child substitution.
-        raise SymbolicMathNotImplementedError(
-            "TODO: implement Constant.replace(...) semantics for leaf substitution."
-        )
-    # end def replace
+    def contains_constant(
+            self,
+            constant: Union[str, MathExpr],
+            by_ref: bool = False,
+            check_operator: bool = True
+    ) -> bool:
+        if constant is self:
+            return True
+        # end if
+        if isinstance(constant, Constant) and constant.name == self.name and constant.value == self.value:
+            return True
+        # end if
+        return False
+    # end def contains_constant
 
-    def renamed(self, old_name: str, new_name: str) -> MathExpr:
+    #
+    # Transforms
+    #
+
+    def renamed(self, old_name: str, new_name: str) -> List[str]:
         """Rename all variables/constants named ``old_name`` with ``new_name`` in the tree. The replacement is in-place.
 
         Parameters
@@ -1008,42 +1250,117 @@ class Constant(MathLeaf):
         """
         if self._name == old_name:
             self._name = new_name
+            return [old_name]
         # end if
-        return self
+        return []
     # end rename
 
-    # endregion PREDICATE_MIXIN
+    #
+    # Comparison
+    #
 
-    # region DIFFERENTIABLE_MIXIN
+    def eq_tree(self, other: MathExpr) -> bool:
+        """Check if two constants are equal in terms of name, dtype, shape, and data.
 
-    def diff(self, wrt: MathExpr) -> MathExpr:
+        Returns
+        -------
+        'bool'
+            True if the constants are equal, False otherwise.
         """
-        Compute the derivative of this leaf with respect to a variable.
-        """
-        return Constant(
-            name=rand_name(f"{self.name}_autodiff_"),
-            data=Tensor.zeros_like(self.value, self.dtype)
+        return (
+            isinstance(other, Constant)
+            and self._name == other._name
+            and self._dtype == other._dtype
+            and self._shape == other._shape
+            and self._data == other._data
         )
-    # end def diff
+    # end def eq_tree
 
-    # endregion DIFFERENTIABLE_MIXIN
+    #
+    # Boolean checks
+    #
 
-    # region MATH_EXPR_MISC
+    def is_constant_leaf(self) -> bool:
+        """Check if the node is a constant leaf.
+
+        Returns
+        -------
+        'bool'
+            True if the node is a constant leaf, False otherwise.
+        """
+        return True
+    # end def is_constant_leaf
+
+    def is_variable_leaf(self) -> bool:
+        """
+        Determines if a variable is a leaf in a computational graph.
+
+        A leaf variable is typically considered as one that is not a result of
+        any operation in a computational graph, often serving as input data
+        or a parameter. This function checks whether the current variable meets
+        these criteria and returns the result.
+
+        Returns
+        -------
+        'bool'
+            Indicates whether the variable is a leaf node.
+        """
+        return False
+    # end def is_variable_leaf
+
+    def is_pure(self) -> bool:
+        """
+        Determines if the current instance meets the purity criteria.
+
+        This method evaluates whether the instance satisfies a predefined set
+        of conditions to be considered "pure." The specifics of these purity
+        criteria are determined by the implementation details of the class.
+
+        Returns
+        -------
+        'bool'
+            True if the instance is pure, according to the defined criteria, otherwise False.
+        """
+        return True
+    # end def is_pure
+
+    #
+    # Rules and policy
+    #
+
+    def is_foldable(self) -> bool:
+        """
+        Determines if the current instance can be folded into a single operation.
+
+        Returns
+        -------
+        'bool'
+            True if the instance can be folded, otherwise False.
+        """
+        return True
+    # end def is_foldable
+
+    def fold_policy(self) -> FoldPolicy:
+        """
+        Returns the folding policy for the current instance.
+        """
+        return FoldPolicy.FOLDABLE
+    # end def fold_policy
+
+    #
+    # Structure
+    #
 
     def copy(
             self,
-            deep: bool = False,
-            name: Optional[str] = None,
+            deep: bool = False
     ) -> 'Constant':
         """
         Create a copy of the constant with a new name.
 
         Parameters
         ----------
-        name : str, optional
-            Identifier assigned to the clone. Uses current name when ``None``.
         deep : bool, optional
-            TODO: deep copy semantics are currently unused for leaves.
 
         Returns
         -------
@@ -1051,7 +1368,7 @@ class Constant(MathLeaf):
             New constant carrying a copy of the tensor.
         """
         return Constant(
-            name=name or self._name,
+            name=self._name,
             data=self._data.copy()
         )
     # end def copy
@@ -1072,15 +1389,15 @@ class Constant(MathLeaf):
         return 0
     # end def num_children
 
-    # endregion MATH_EXPR_MISC
-
-    # region MATH_EXPR_MISC
+    #
+    # Representation
+    #
 
     def __str__(self):
         """
         Returns
         -------
-        str
+        'str'
             Human-readable description of the constant.
         """
         return self.value.__str__()
@@ -1090,13 +1407,11 @@ class Constant(MathLeaf):
         """
         Returns
         -------
-        str
+        'str'
             Debug representation identical to :meth:`__str__`.
         """
         return f"constant({self.name}, dtype={self._dtype}, shape={self._shape})"
     # end __repr__
-
-    # endregion MATH_EXPR_MISC
 
     # endregion MATH_EXPR
 
