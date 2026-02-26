@@ -154,19 +154,22 @@ class MathLeaf(
     @property
     def spec(self) -> Optional[Operator]:
         """Leaves do not """
-        raise SymbolicMathRuntimeError("Leaf nodes do not have a spec.")
+        return None
+        # raise SymbolicMathRuntimeError("Leaf nodes do not have a spec.")
     # end def spec
 
     @property
     def op(self) -> Optional[Operator]:
         """Leaves do not """
-        raise SymbolicMathRuntimeError("Leaf nodes do not have an op.")
+        return None
+        # raise SymbolicMathRuntimeError("Leaf nodes do not have an op.")
     # end def op
 
     @property
     def op_name(self) -> Optional[str]:
         """Leaves do not """
-        raise SymbolicMathRuntimeError("Leaf nodes do not have an op_name.")
+        return None
+        # raise SymbolicMathRuntimeError("Leaf nodes do not have an op_name.")
     # end def op_name
 
     @property
@@ -184,7 +187,7 @@ class MathLeaf(
     @property
     def parents(self) -> FrozenSet[MathExpr]:
         """Leaves do not """
-        return FrozenSet(self._parents_weak)
+        return frozenset(self._parents_weak)
     # end def parents
 
     #
@@ -533,6 +536,8 @@ class MathLeaf(
         """Check if two MathExpr are not equal."""
         return not (self is other)
     # end def __ne_
+
+    __hash__ = MathBase.__hash__
 
     #
     # Representation
@@ -923,22 +928,6 @@ class Variable(MathLeaf):
         )
     # end def copy
 
-    #
-    # Comparaison
-    #
-
-    def __eq__(self, other: object) -> bool:
-        return self is other
-    # end def __eq__
-
-    def __ne__(self, other: object) -> bool:
-        return not (self is other)
-    # end def __ne__
-
-    # endregion MATH_EXPR_MISC
-
-    # region MATH_EXPR_MISC
-
     def __str__(self):
         """
         Returns
@@ -958,8 +947,6 @@ class Variable(MathLeaf):
         """
         return f"variable({self.name}, dtype={self._dtype}, shape={self._shape})"
     # end __repr__
-
-    # endregion MATH_EXPR_MISC
 
     # endregion MATH_EXPR
 

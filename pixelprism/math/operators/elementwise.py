@@ -445,9 +445,9 @@ class Add(NaryElementwiseOperator):
 
     # region RULES
 
-    @rule(SimplifyRule.ADD_FLATTEN, priority=0, rule_type=SimplifyRuleType.ALL)
-    @returns_operands
     @finalize_result(collapse_single=True)
+    @returns_operands
+    @rule(SimplifyRule.ADD_FLATTEN, priority=0, rule_type=SimplifyRuleType.ALL)
     def _r_add_identity(
             self,
             operands: Sequence[MathExpr]
@@ -465,10 +465,10 @@ class Add(NaryElementwiseOperator):
         return new_operands
     # end def _r_add_identity
 
-    @rule(SimplifyRule.MERGE_CONSTANTS, priority=1, rule_type=SimplifyRuleType.ALL)
-    @needs_constants(min_count=1)
-    @returns_operands
     @finalize_result(collapse_single=True)
+    @returns_operands
+    @needs_constants(min_count=1)
+    @rule(SimplifyRule.MERGE_CONSTANTS, priority=1, rule_type=SimplifyRuleType.ALL)
     def _r_sum_constants(
             self,
             operands: Sequence[MathExpr]
@@ -498,9 +498,9 @@ class Add(NaryElementwiseOperator):
         return new_operands
     # end def _r_merge_constants
 
-    @rule(SimplifyRule.ADD_REMOVE_ZEROS, priority=2, rule_type=SimplifyRuleType.ALL)
-    @returns_operands
     @finalize_result(empty=Constant.new(0.0), collapse_single=True)
+    @returns_operands
+    @rule(SimplifyRule.ADD_REMOVE_ZEROS, priority=2, rule_type=SimplifyRuleType.ALL)
     def _r_remove_zeros(
             self,
             operands: Sequence[MathExpr]
@@ -515,8 +515,8 @@ class Add(NaryElementwiseOperator):
         return non_zeros
     # end def _r_remove_zeros
 
-    @rule(SimplifyRule.ADD_GROUP_ALIKE, priority=8, rule_type=SimplifyRuleType.ALL)
     @needs_variables(min_count=1)
+    @rule(SimplifyRule.ADD_GROUP_ALIKE, priority=8, rule_type=SimplifyRuleType.ALL)
     def _r_group_alike(
             self,
             operands: Sequence[MathExpr]
@@ -559,6 +559,8 @@ class Add(NaryElementwiseOperator):
         return OpSimplifyResult(operands=constants + new_ops, replacement=None)
     # end def _r_group_alike
 
+    # endregion RULES
+
 # end class Add
 
 
@@ -569,7 +571,7 @@ class Sub(NaryElementwiseOperator):
 
     SPEC = OperatorSpec(
         name="sub",
-        arity=AritySpec(exact=None, min_operands=2, variadic=True),
+        arity=AritySpec(min_operands=2, variadic=True),
         symbol="-",
         precedence=10,
         associativity=OpAssociativity.LEFT,
@@ -599,46 +601,50 @@ class Sub(NaryElementwiseOperator):
         return acc
     # end def _backward
 
+    # region RULES
+
+    @returns_operands
     @rule(SimplifyRule.SUB_FLATTEN, priority=0, rule_type=SimplifyRuleType.ALL)
     def _r_sub_flatten(
             self,
             operands: Sequence[MathExpr]
     ):
         """Flatten if the first operand is a subtraction."""
-        if hasattr(operands[0], 'op') and operands[0].has_operator(Sub.SPEC.name):
-            return OpSimplifyResult(
-                operands=operands[0].children + operands[1:],
-                replacement=None
-            )
+        # (x - y) - z => x - y - z
+        if operands[0].has_operator(Sub.SPEC.name):
+            return list(operands[0].children) + list(operands[1:])
         # end if
         return None
     # end def _r_sub_first_zero
 
+    @finalize_result(collapse_single=True)
+    @returns_operands
     @rule(SimplifyRule.SUB_FIRST_ZERO, priority=1, rule_type=SimplifyRuleType.ALL)
     def _r_sub_first_zero(
             self,
             operands: Sequence[MathExpr]
     ):
-        """Eliminate subtraction of a zero from the first operand."""
+        """Remove subtraction of a zero from the first operand."""
+        # 0 - x - y => -(x + y)
         if operands[0].is_constant() and operands[0].eval().is_null():
             new_operands = operands[1:]
             if len(new_operands) == 1:
-                return OpSimplifyResult(operands=None, replacement=Neg.create_node([new_operands[0]]))
+                return [Neg.create_node([new_operands[0]])]
             else:
-                return OpSimplifyResult(
-                    operands=None,
-                    replacement=Neg.create_node([Add.create_node(new_operands)])
-                )
+                return [Neg.create_node([Add.create_node(new_operands)])]
             # end if
         # end if
         return None
     # end def _r_sub_first_zero
 
+    @finalize_result(collapse_single=True)
+    @returns_operands
+    @needs_constants(min_count=1)
     @rule(SimplifyRule.MERGE_CONSTANTS, priority=2, rule_type=SimplifyRuleType.ALL)
     def _r_sum_constants(
             self,
             operands: Sequence[MathExpr]
-    ) -> OpSimplifyResult | None:
+    ):
         """Merge constant terms in addition.
 
         Applies the rule ``a + b -> c`` when operands are constants,
@@ -656,50 +662,34 @@ class Sub(NaryElementwiseOperator):
         """
         constants = [op for op in operands if op.is_constant()]
         non_constant = [op for op in operands if not op.is_constant()]
-        if len(constants) == 0 or len(operands) == 1:
-            return None
-        # end if
         if operands[0].is_constant():
             if len(non_constant) > 0:
                 # a - x - y => -(-a + x + y)
-                return OpSimplifyResult(
-                    operands=None,
-                    replacement=Neg.create_node([
+                return [
+                    Neg.create_node([
                         Add.create_node([Constant.new(operands[0].eval() * -1)] + list(operands)[1:])
                     ])
-                )
+                ]
             else:
                 # a - b => -(-a + b)
-                return OpSimplifyResult(
-                    operands=None,
-                    replacement=Constant.new((operands[0].eval() * -1 + sum(o.eval() for o in operands[1:]))*-1)
-                )
+                return [
+                    Constant.new((operands[0].eval() * -1 + sum(o.eval() for o in operands[1:])) * -1)
+                ]
             # end if
         else:
             new_constant = Constant.new(sum(op.eval() for op in constants))
             new_operands = [new_constant] + non_constant
-            if len(new_operands) == 0:
-                raise RuntimeError(
-                    f"Issue with operands simplification in operator {self.__class__.__name__}, "
-                    f"with operands {operands}."
-                )
-            # end if
-            if len(new_operands) == 1:
-                return OpSimplifyResult(operands=None, replacement=new_operands[0])
-            else:
-                return OpSimplifyResult(
-                    operands=new_operands,
-                    replacement=None
-                )
-            # end if
+            return new_operands
         # end if
     # end def _r_merge_constants
 
+    @finalize_result(empty=Constant.new(0.0), collapse_single=True)
+    @returns_operands
     @rule(SimplifyRule.SUB_REMOVE_ZEROS, priority=3, rule_type=SimplifyRuleType.ALL)
     def _r_remove_zeros(
             self,
             operands: Sequence[MathExpr]
-    ) -> OpSimplifyResult | None:
+    ):
         """
         Eliminate additive neutral elements.
         """
@@ -707,69 +697,67 @@ class Sub(NaryElementwiseOperator):
             op for op in operands
             if (op.is_constant() and not op.eval().is_null()) or op.is_variable()
         ]
-        if len(non_zeros) == 0:
-            return OpSimplifyResult(operands=None, replacement=Constant.new(0.0))
-        elif len(non_zeros) == 1:
-            return OpSimplifyResult(operands=None, replacement=non_zeros[0])
-        else:
-            return OpSimplifyResult(operands=non_zeros, replacement=None)
-        # end if
+        return non_zeros
     # end def _r_remove_zeros
 
-    # @rule(SimplifyRule.SUB_GROUP_ALIKE, priority=4, rule_type=SimplifyRuleType.BOTH)
-    # def _r_sub_group_alike(
-    #         self,
-    #         operands: Sequence[MathExpr]
-    # ) -> OpSimplifyResult | None:
-    #     """
-    #     Group alike terms.
-    #     """
-    #     print(f"_r_sub_group_alike called with operands: {operands}")
-    #     first_variable = _is_constant_variable(operands[0])
-    #     constants = [op for op in operands if op.is_constant()]
-    #     variables = [op for op in operands if op.is_variable()]
-    #     if len(variables) == 0:
-    #         return None
-    #     # end if
-    #     groups = defaultdict(lambda: 0)
-    #     for op in variables:
-    #         const_var = _is_constant_variable(op)
-    #         if const_var:
-    #             if first_variable and const_var[1] == first_variable[1]:
-    #                 groups[const_var[1]] += const_var[0].eval()
-    #             else:
-    #                 groups[const_var[1]] -= const_var[0].eval()
-    #             # end if
-    #         else:
-    #             if op == first_variable[1]:
-    #                 groups[op] += 1
-    #             else:
-    #                 groups[op] -= 1
-    #             # end if
-    #         # end if
-    #     # end for
-    #     new_ops = list()
-    #     for v, count in groups.items():
-    #         if count != 1:
-    #             new_ops += [Mul.create_node([Constant.new(count), v])]
-    #         elif count != 0:
-    #             new_ops.append(v)
-    #         # end if
-    #     # end for
-    #     if len(new_ops) + len(constants) == len(operands):
-    #         return None
-    #     # end if
-    #     if len(new_ops) + len(constants) == 1:
-    #         if len(new_ops) == 0:
-    #             return OpSimplifyResult(operands=None, replacement=constants[0])
-    #         else:
-    #             return OpSimplifyResult(operands=None, replacement=new_ops[0])
-    #         # end if
-    #     # end if
-    #     return OpSimplifyResult(operands=constants + new_ops, replacement=None)
-    # # end def _r_sub_group_alike
+    @finalize_result(collapse_single=True)
+    @returns_operands
+    @needs_variables(min_count=2)
+    @rule(SimplifyRule.SUB_GROUP_ALIKE, priority=4, rule_type=SimplifyRuleType.ALL)
+    def _r_sub_group_alike(
+            self,
+            operands: Sequence[MathExpr]
+    ):
+        """
+        Group alike terms.
+        """
+        constants = [op for op in operands if op.is_constant()]
+        variables = [op for op in operands if op.is_variable()]
+        if len(variables) == 0:
+            return None
+        # end if
+        groups = defaultdict(lambda: 0)
+        for op_i, op in enumerate(variables):
+            if op.is_variable():
+                const_var = _is_constant_variable(op)
+                if const_var:
+                    if op_i == 0:
+                        groups[const_var[1]] += const_var[0].eval()
+                    else:
+                        groups[const_var[1]] -= const_var[0].eval()
+                    # end if
+                else:
+                    if op_i == 0:
+                        groups[op] += 1
 
-    # endregion PRIVATE
+                    else:
+                        groups[op] -= 1
+                    # end if
+                # end if
+            # end if
+        # end for
+        new_ops = list()
+        for v, count in groups.items():
+            if count != 1:
+                new_ops += [Mul.create_node([Constant.new(count), v])]
+            elif count != 0:
+                new_ops.append(v)
+            # end if
+        # end for
+        if len(new_ops) + len(constants) == len(operands):
+            return None
+        # end if
+        if len(new_ops) + len(constants) == 1:
+            if len(new_ops) == 0:
+                return constants
+            else:
+                return new_ops
+            # end if
+        # end if
+        return constants + new_ops
+    # end def _r_sub_group_alike
+
+    # endregion RULES
 
 # end class Sub
 
@@ -781,7 +769,7 @@ class Mul(NaryElementwiseOperator):
 
     SPEC = OperatorSpec(
         name="mul",
-        arity=AritySpec(exact=None, min_operands=2, variadic=True),
+        arity=AritySpec(min_operands=2, variadic=True),
         symbol="*",
         precedence=20,
         associativity=OpAssociativity.LEFT,
@@ -811,7 +799,9 @@ class Mul(NaryElementwiseOperator):
         return acc
     # end def _diff
 
-    @rule(SimplifyRule.MERGE_CONSTANTS, priority=20, rule_type=SimplifyRuleType.ALL)
+    # region RULES
+
+    @rule(SimplifyRule.MERGE_CONSTANTS, priority=0, rule_type=SimplifyRuleType.ALL)
     def _r_product_constants(
             self,
             operands: Sequence[MathExpr]
@@ -835,178 +825,98 @@ class Mul(NaryElementwiseOperator):
         # end if
     # end def _r_merge_constants
 
-    # def _simplify(
-    #         self,
-    #         operands: Sequence[MathExpr],
-    #         options: SimplifyOptions | None = None
-    # ) -> OpSimplifyResult:
-    #     a: MathExpr = operands[0]
-    #     b: MathExpr = operands[1]
-    #
-    #     # Replace expression
-    #     new_operands = [a, b]
-    #     repr_expr = None
-    #
-    #     # a * b = c
-    #     if self._apply_rule(SimplifyRule.MERGE_CONSTANTS, options):
-    #         # Replaces with constant when both operands are constant
-    #         if isinstance(a, Constant) and isinstance(b, Constant):
-    #             repr_expr = Constant.new(a.eval() * b.eval())
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * 1 = x
-    #     if self._apply_rule(SimplifyRule.MUL_ONE, options):
-    #         if isinstance(a, Constant) and a.eval().is_full(1):
-    #             repr_expr = b
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         elif isinstance(b, Constant) and b.eval().is_full(1):
-    #             repr_expr = a
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * 0 = 0
-    #     if self._apply_rule(SimplifyRule.MUL_ZERO, options):
-    #         if isinstance(a, Constant) and a.eval().is_null():
-    #             repr_expr = Constant.new(0)
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         elif isinstance(b, Constant) and b.eval().is_null():
-    #             repr_expr = Constant.new(0)
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * c = c * x
-    #     if self._apply_rule(SimplifyRule.MUL_BY_CONSTANT, options):
-    #         if a.is_variable() and b.is_constant():
-    #             repr_expr = None
-    #             new_operands = [b, a]
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * x = x^2
-    #     if self._apply_rule(SimplifyRule.MUL_ITSELF, options):
-    #         if a == b:
-    #             repr_expr = a.pow(a, 2.0)
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * -y -> -x * y
-    #     if self._apply_rule(SimplifyRule.MUL_NEG, options):
-    #         # b is a node, and has the neg operator
-    #         if hasattr(b, "op") and b.op.name == Neg.NAME:
-    #             repr_expr = -a * b.children[0]
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * -1 = -x
-    #     if self._apply_rule(SimplifyRule.MUL_BY_NEG_ONE, options):
-    #         if isinstance(b, Constant) and b.eval().is_full(-1):
-    #             repr_expr = -a
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #         if isinstance(a, Constant) and a.eval().is_full(-1):
-    #             repr_expr = -b
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * 1/y = x/y
-    #     if self._apply_rule(SimplifyRule.MUL_BY_INV, options):
-    #         if (hasattr(b, 'op') and b.op.name == Div.NAME and
-    #                 isinstance(b.children[0], Constant)
-    #                 and b.children[0].eval().is_full(1.0)):
-    #             repr_expr = a / b.children[1]
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * -1/y = -(x/y)
-    #     if self._apply_rule(SimplifyRule.MUL_BY_INV_NEG, options):
-    #         if (hasattr(b, 'op') and b.op.name == Div.NAME and
-    #                 isinstance(b.children[0], Constant)
-    #                 and b.children[0].eval().is_full(-1)):
-    #             repr_expr = -(a / b.children[1])
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     # x * -x = -x^2
-    #     if self._apply_rule(SimplifyRule.MUL_BY_NEG_ITSELF, options):
-    #         if hasattr(b, 'op') and b.op.name == Neg.NAME and a == b.children[0]:
-    #             repr_expr = -(a**2)
-    #             new_operands = []
-    #             return OpSimplifyResult(new_operands, repr_expr)
-    #         # end if
-    #     # end if
-    #
-    #     return OpSimplifyResult(new_operands, repr_expr)
-    # # end def _simplify
-    #
-    # def _canonicalize(
+    @finalize_result(empty=Constant.new(0), collapse_single=True)
+    @returns_operands
+    @needs_constants(min_count=1)
+    @rule(SimplifyRule.MUL_ZERO, priority=1, rule_type=SimplifyRuleType.ALL)
+    def _r_mul_zero(
+            self,
+            operands: Sequence[MathExpr],
+    ):
+        """If multiplying by zero, return zero."""
+        zero_constant = [op for op in operands if op.is_constant() and op.eval() == 0]
+        if any(zero_constant):
+            return []
+        else:
+            return None
+        # end if
+    # end def _r_mul_zero
+
+    @finalize_result(collapse_single=True)
+    @returns_operands
+    @needs_constants(min_count=1)
+    @rule(SimplifyRule.MUL_ONE, priority=2, rule_type=SimplifyRuleType.ALL)
+    def _r_mul_one(
+            self,
+            operands: Sequence[MathExpr]
+    ):
+        """Remove multiplication by one."""
+        new_ops = [op for op in operands if op.is_variable() or not op.eval().is_full(1)]
+        return new_ops
+    # end def _r_mul_one
+
+    # @finalize_result(collapse_single=True)
+    # @returns_operands
+    # @needs_variables(min_count=2)
+    # @rule(SimplifyRule.SUB_GROUP_ALIKE, priority=4, rule_type=SimplifyRuleType.ALL)
+    # def _r_mul_group_alike(
     #         self,
     #         operands: Sequence[MathExpr]
-    # ) -> OpSimplifyResult:
+    # ):
     #     """
-    #     Simplify an expression by combining adjacent terms.
+    #     Group alike terms.
     #     """
-    #     a, b = operands
-    #
-    #     # a * b = c
-    #     if a.is_constant() and b.is_constant():
-    #         return OpSimplifyResult(operands=None, replacement=Constant.new(a.eval() * b.eval()))
+    #     constants = [op for op in operands if op.is_constant()]
+    #     variables = [op for op in operands if op.is_variable()]
+    #     if len(variables) == 0:
+    #         return None
     #     # end if
+    #     groups = defaultdict(lambda: 0)
+    #     for op_i, op in enumerate(variables):
+    #         if op.is_variable():
+    #             const_var = _is_constant_variable(op)
+    #             if const_var:
+    #                 if op_i == 0:
+    #                     groups[const_var[1]] += const_var[0].eval()
+    #                 else:
+    #                     groups[const_var[1]] -= const_var[0].eval()
+    #                 # end if
+    #             else:
+    #                 if op_i == 0:
+    #                     groups[op] += 1
     #
-    #     # x * 0 = 0
-    #     if b.is_constant() and b.eval().is_null():
-    #         return OpSimplifyResult(operands=None, replacement=Constant.new(0))
+    #                 else:
+    #                     groups[op] -= 1
+    #                 # end if
+    #             # end if
+    #         # end if
+    #     # end for
+    #     new_ops = list()
+    #     for v, count in groups.items():
+    #         if count != 1:
+    #             new_ops += [Mul.create_node([Constant.new(count), v])]
+    #         elif count != 0:
+    #             new_ops.append(v)
+    #         # end if
+    #     # end for
+    #     if len(new_ops) + len(constants) == len(operands):
+    #         return None
     #     # end if
-    #
-    #     # 0 * x = 0
-    #     if a.is_constant() and a.eval().is_null():
-    #         return OpSimplifyResult(operands=None, replacement=Constant.new(0))
+    #     if len(new_ops) + len(constants) == 1:
+    #         if len(new_ops) == 0:
+    #             return constants
+    #         else:
+    #             return new_ops
+    #         # end if
     #     # end if
-    #
-    #     # x * 1 = x
-    #     if a.is_constant() and a.eval().is_full(1):
-    #         return OpSimplifyResult(operands=None, replacement=b)
-    #     # end if
-    #
-    #     # 1 * x = x
-    #     if b.is_constant() and b.eval().is_full(1):
-    #         return OpSimplifyResult(operands=None, replacement=a)
-    #     # end if
-    #
-    #     # x * -1 = -x
-    #     if b.is_constant() and b.eval().is_full(-1):
-    #         return OpSimplifyResult(operands=[a], replacement=-a)
-    #     # end if
-    #
-    #     # -1 * x = -x
-    #     if a.is_constant() and a.eval().is_full(-1):
-    #         return OpSimplifyResult(operands=[b], replacement=-b)
-    #     # end if
-    #
-    #     return OpSimplifyResult(operands=operands, replacement=None)
-    # # end def _canonicalize
+    #     return constants + new_ops
+    # # end def _r_mul_group_alike
 
-    # endregion PRIVATE
+    # endregion RULES
+
+    def print(self, operands: Operands, **kwargs) -> str:
+        """Print the expression."""
+        return "".join([str(op) for op in operands])
 
 # end class Mul
 
@@ -1018,7 +928,7 @@ class Div(BinaryElementwiseOperator):
 
     SPEC = OperatorSpec(
         name="div",
-        arity=AritySpec(exact=2, min_operands=2, variadic=False),
+        arity=AritySpec(exact=2, variadic=False),
         symbol="/",
         precedence=20,
         associativity=OpAssociativity.LEFT,
@@ -1041,6 +951,8 @@ class Div(BinaryElementwiseOperator):
         denom = b * b
         return num / denom
     # end def _diff
+
+    # region RULES
 
     # def _simplify(
     #         self,
@@ -1082,7 +994,7 @@ class Div(BinaryElementwiseOperator):
     #     return OpSimplifyResult(new_operands, repr_expr)
     # # end def _simplify
 
-    # endregion PRIVATE
+    # endregion RULES
 
 # end class Div
 
@@ -1095,7 +1007,7 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
 
     SPEC = OperatorSpec(
         name="unary_elementwise",
-        arity=AritySpec(exact=1, min_operands=1, variadic=False),
+        arity=AritySpec(exact=1, variadic=False),
         symbol="?",
         precedence=40,
         associativity=OpAssociativity.NONE,
@@ -1160,10 +1072,12 @@ class UnaryElementwiseOperator(OperatorBase, ABC):
     # end def check_shapes
 
     def _needs_parentheses(self, *args, **kwargs):
-        pass
+        return False
+    # end def _needs_parentheses
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
+        return f"{self.SPEC.symbol}"
+    # end def print
 
     # endregion STATIC
 
@@ -1208,7 +1122,7 @@ class Neg(UnaryElementwiseOperator):
                 isinstance(operands[0], MathNode)
                 and hasattr(operands[0], "op")
                 and operands[0].op is not None
-                and (operands[0].op.arity.exact > 1 or operands[0].op.arity.min_operands > 1)
+                and operands[0].op.arity.n_ops > 1
                 and operands[0].op.SPEC.precedence <= self.SPEC.precedence
         )
         child_str = f"({operands[0]})" if need_paren else operands[0].__str__()
@@ -1246,7 +1160,6 @@ class Neg(UnaryElementwiseOperator):
         return -value.eval()
     # end def _eval
 
-    # TODO: That issue with MathNode -> diff should return MathNode
     def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
         x = operands[0]
         return -(x.diff(wrt))
@@ -1299,12 +1212,6 @@ class Neg(UnaryElementwiseOperator):
 
         return OpSimplifyResult(operands=operands, replacement=None)
     # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
-
-    def print(self, operands: Operands, **kwargs) -> str:
-        pass
 
     # endregion PRIVATE
 

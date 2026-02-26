@@ -420,6 +420,12 @@ class AritySpec:
     # True when the operator accepts a variable number of operands.
     # When True, arity validation is handled dynamically.
     variadic: bool = False
+
+    @property
+    def n_ops(self) -> int:
+        return self.exact if not self.variadic else self.min_operands
+    # end def arity
+
 # end class AritySpec
 
 

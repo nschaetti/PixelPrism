@@ -1065,6 +1065,8 @@ class MathNode(
         return not self.__eq__(other)
     # end def __ne__
 
+    __hash__ = MathBase.__hash__
+
     #
     # Representation
     #

@@ -174,8 +174,8 @@ class OperatorBase(
                 f"got {len(operands)}: {operands}"
             )
         # end if
-        if not self.is_variadic and len(operands) != self.arity:
-            raise ValueError(f"Expected {self.arity} operands, got {len(operands)}")
+        if not self.is_variadic and len(operands) != self.arity.exact:
+            raise ValueError(f"Expected {self.arity.exact} operand(s), got {len(operands)}")
         # end if
         return self._eval(operands=operands, **kwargs)
     # end def eval

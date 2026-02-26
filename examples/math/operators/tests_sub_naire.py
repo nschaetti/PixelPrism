@@ -74,6 +74,7 @@ def main() -> None:
         # ("N-ARY long chain: sub(x, y, z, 1, 2, -1)", sub(x, y, z, c1, c2, cneg1)),
         ("N-ARY repeated vars: sub(x, x, x)", sub(x, x, x)),
         # ("N-ARY mixed constants only: sub(3, 2, 1)", sub(c3, c2, c1)),
+        ("N-ARY mixed constants and vars: sub(x * 2, 3 * x)", sub(x * 2, 3 * x)),
     ]
 
     print("\nElementwise Sub N-ary deep-check (print/simplify/diff/eval)")
