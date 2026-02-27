@@ -50,6 +50,12 @@ from .typing_rules import (
     RuleSpec,
 )
 from .typing_expr import (
+    ExprPattern,
+    NodePattern,
+    VariablePattern,
+    ConstantPattern,
+    AnyPattern,
+    MatchResult,
     MathExpr,
     Operand,
     Operands,
@@ -71,6 +77,11 @@ __all__ = [
     "ScalarLike",
     "ScalarListLike",
     "Index",
+    "ExprPattern",
+    "NodePattern",
+    "VariablePattern",
+    "ConstantPattern",
+    "AnyPattern",
     "MathExpr",
     "TensorLike",
     "Operand",
@@ -95,6 +106,12 @@ __all__ = [
 
 # Keep stable module identity for legacy introspection/pickle expectations.
 for _name in (
+    "ExprPattern",
+    "NodePattern",
+    "VariablePattern",
+    "ConstantPattern",
+    "AnyPattern",
+    "MatchResult",
     "SimplifyRule",
     "SimplifyRuleType",
     "SimplifyOptions",

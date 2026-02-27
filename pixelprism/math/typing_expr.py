@@ -49,6 +49,12 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "ExprPattern",
+    "NodePattern",
+    "VariablePattern",
+    "ConstantPattern",
+    "AnyPattern",
+    "MatchResult",
     "MathExpr",
     "Operand",
     "Operands",
@@ -66,6 +72,159 @@ __all__ = [
     "AritySpec",
     "OperatorSpec",
 ]
+
+
+
+# Expression pattern
+@dataclass(frozen=True, slots=True)
+class ExprPattern:
+    """Pattern for matching symbolic expressions.
+
+    This class represents a pattern that can be used to match symbolic expressions
+    against a given expression tree. It provides methods for pattern matching and
+    pattern construction.
+    """
+    name: str | None = None
+    return_expr: bool = False
+
+    def __post_init__(self):
+        if self.return_expr and self.name is None:
+            raise ValueError("An identifier (name) must be provided when return_expr is True")
+        # end if
+    # end __post_init__
+
+# end class ExprPattern
+
+
+# Pattern matching a node
+@dataclass(frozen=True, slots=True)
+class NodePattern(ExprPattern):
+    """
+    Pattern for matching a specific node type in the expression tree.
+    """
+
+    op: str | None = None
+    operands: Sequence[ExprPattern] | None = None
+    commutative: bool = False
+    arity: int | None = None
+    variable: bool | None = None
+    constant: bool | None = False
+    shape: Shape | None = None
+    dtype: DType | None = None
+
+    def __str__(self):
+        return f"node({self.op}, ({', '.join([str(x) for x in self.operands])}))"
+    # end def __str__
+
+# end class NodePattern
+
+def node_match(
+        op: str | None = None,
+        children: Sequence[ExprPattern] | None = None,
+        comm: bool = False,
+        var: bool = False,
+        const: bool = False,
+        shape: Shape = None,
+        dtype: DType = None,
+) -> ExprPattern:
+    """
+    Factory function to create a NodePattern instance.
+    """
+    return NodePattern(
+        op=op,
+        operands=children,
+        commutative=comm,
+        variable=var,
+        constant=const,
+        shape=shape,
+        dtype=dtype
+    )
+# end def node_match
+
+
+# Pattern matching a variable
+@dataclass(frozen=True, slots=True)
+class VariablePattern(ExprPattern):
+    """
+    Pattern for matching a variable node in the expression tree.
+    """
+    var_name: str | None = None
+    shape: Shape | None = None
+    dtype: DType | None = None
+
+    def __str__(self):
+        return f"var({self.var_name})"
+    # end def __str__
+
+# end class VariablePattern
+
+
+# Pattern matching a constante
+@dataclass(frozen=True, slots=True)
+class ConstantPattern(ExprPattern):
+    """
+    Pattern for matching a constant node in the expression tree.
+    """
+    const_name: str | None = None
+    value: ScalarLike | None = None
+    shape: Shape | None = None
+    dtype: DType | None = None
+
+    def __str__(self):
+        return f"const({self.const_name}={self.value})"
+    # end def __str__
+
+# end class ConstantPattern
+
+
+# Pattern matching any expression
+@dataclass(frozen=True, slots=True)
+class AnyPattern(ExprPattern):
+    """
+    Pattern for matching any node in the expression tree.
+    """
+    shape: Shape | None = None
+    dtype: DType | None = None
+
+    def __str__(self):
+        return "any()"
+    # end def __str__
+
+# end class AnyPattern
+
+
+@dataclass(slots=True)
+class MatchResult:
+    """
+    Result of a pattern matching operation.
+    """
+    matched: bool
+    bindings: dict[str, MathExpr]
+
+    @classmethod
+    def failed(cls):
+        return cls(matched=False, bindings={})
+    # end def failed
+
+    @classmethod
+    def success(cls, bindings: dict[str, MathExpr]):
+        return cls(matched=True, bindings=bindings)
+    # end def success
+
+    @classmethod
+    def merge(cls, results: Sequence[MatchResult], all_success: bool = False):
+        bindings = {}
+        for result in results:
+            if result.matched:
+                bindings.update(result.bindings)
+            elif all_success:
+                return cls.failed()
+            # end if
+        # end for
+        return cls.success(bindings)
+    # end def merge
+
+# end class MatchResult
 
 
 #
@@ -293,6 +452,16 @@ class MathExpr(Protocol):
             require_same_shape: bool = True,
             require_same_dtype: bool = False
     ) -> bool: ...
+
+    # Match a symbolic expression to a pattern.
+    # - `pattern` is a string or a regular expression.
+    # - `by_ref=True`: match by object identity.
+    # - `by_ref=False`: match by symbolic/tree equality policy.
+    # In ExpressionMixin
+    def match(
+            self,
+            pattern: ExprPattern
+    ) -> MatchResult: ...
 
     #
     # Boolean checks

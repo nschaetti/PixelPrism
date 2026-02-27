@@ -43,10 +43,10 @@ interactive help system, by static tooling, and by our reference docs.
 
 # Imports
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, List, Dict, Tuple
 from .dtype import DType
 from .shape import Shape
-from .typing import MathExpr, ExprDomain, ExprKind
+from .typing import MathExpr, ExprDomain, ExprKind, ExprPattern, AnyPattern, MatchResult
 
 
 __all__ = [
@@ -121,7 +121,7 @@ class MathBase(MathExpr):
         """
         Returns
         -------
-        int
+        'int'
             Next identifier that will be assigned to a :class:`MathExpr`.
         """
         return MathBase._next_id
@@ -131,7 +131,7 @@ class MathBase(MathExpr):
         """
         Returns
         -------
-        int
+        'int'
             Identity hash suitable for storing nodes in sets/dicts.
         """
         return hash(self._id)
@@ -197,5 +197,33 @@ class MathBase(MathExpr):
     # end def domain
 
     # endregion MATH_EXPR
+
+    def _match_shape(self, shape: Shape, match_shape: Optional[Shape] = None) -> bool:
+        return match_shape is None or shape == match_shape
+    # end def _match_shape
+
+    def _match_dtype(self, dtype: DType, match_dtype: Optional[DType] = None) -> bool:
+        return match_dtype is None or dtype == match_dtype
+    # end def _match_dtype
+
+    def _match_any_pattern(self, pattern: ExprPattern) -> Optional[MatchResult]:
+        if isinstance(pattern, AnyPattern):
+            if (self._match_shape(self.shape, pattern.shape)
+                    and self._match_dtype(self.dtype, pattern.dtype)):
+                return MatchResult.success(self._match_return(pattern))
+            # end if
+        # end if
+        return None
+    # end def _match_any_pattern
+
+    def _match_return(
+            self,
+            pattern: ExprPattern
+    ) -> Dict[str, MathExpr]:
+        if pattern.name:
+            return {pattern.name: self}
+        # end if
+        return {}
+    # end def _match_return
 
 # end class MathBase

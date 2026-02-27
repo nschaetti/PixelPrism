@@ -26,7 +26,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """Unified symbolic math package with split class modules."""
-
 from .typing_utils import as_expr
 
 from .context import (
@@ -185,7 +184,7 @@ from .tensor import (
     ceil as t_ceil,
     trunc as t_trunc,
     rint as t_rint,
-    round as t_round,
+    rounding as t_round,
     clip as t_clip,
     # Comparison
     equal as t_equal,
@@ -209,6 +208,11 @@ from .typing import (
     ScalarLike,
     ScalarListLike,
     Index,
+    ExprPattern,
+    NodePattern,
+    VariablePattern,
+    ConstantPattern,
+    AnyPattern,
     MathExpr,
     TensorLike,
     LeafKind,
@@ -549,6 +553,11 @@ __all__ = [
     # "einsum",
 
     # Typing
+    "ExprPattern",
+    "NodePattern",
+    "VariablePattern",
+    "ConstantPattern",
+    "AnyPattern",
     "ScalarLike",
     "ScalarListLike",
     "Index",

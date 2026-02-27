@@ -30,7 +30,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union, Mapping, Sequence, FrozenSet
+from typing import List, Optional, Tuple, Union, Mapping, Sequence, FrozenSet, Dict
 import weakref
 
 from .math_base import MathBase
@@ -48,7 +48,7 @@ from .shape import Shape, ShapeLike, DimLike
 from .tensor import Tensor, TensorLike, tensor
 from .context import get_value
 from .random import rand_name
-from .typing import MathExpr, LeafKind, SimplifyOptions, AlgebraicExpr, ExprKind, ExprDomain, Operator
+from .typing import MathExpr, LeafKind, SimplifyOptions, AlgebraicExpr, ExprKind, ExprDomain, Operator, ExprPattern, AnyPattern, VariablePattern, ConstantPattern
 
 
 __all__ = [
@@ -59,7 +59,7 @@ __all__ = [
     "const"
 ]
 
-from .typing_expr import FoldPolicy
+from .typing_expr import FoldPolicy, MatchResult
 
 
 def var(name: str, dtype: TypeLike, shape: ShapeLike) -> Variable:
@@ -858,6 +858,34 @@ class Variable(MathLeaf):
         )
     # end def eq_tree
 
+    # Match a symbolic expression to a pattern.
+    # - `pattern` is a string or a regular expression.
+    def match(
+            self,
+            pattern: ExprPattern
+    ) -> MatchResult:
+        """
+        Match a symbolic expression to a pattern.
+        """
+        # Any, but check shape and dtype
+        any_match = self._match_any_pattern(pattern)
+        if any_match:
+            return any_match
+        # end if
+
+        if isinstance(pattern, VariablePattern):
+            if pattern.var_name and pattern.var_name != self.name:
+                return MatchResult.failed()
+            # end if
+            if not self._match_dtype(pattern.dtype) or not self._match_shape(pattern.shape):
+                return MatchResult.failed()
+            # end if
+            return MatchResult.success(self._match_return(pattern))
+        # end if
+
+        return MatchResult.failed()
+    # end def match
+
     #
     # Boolean checks
     #
@@ -1262,6 +1290,37 @@ class Constant(MathLeaf):
             and self._data == other._data
         )
     # end def eq_tree
+
+    # Match a symbolic expression to a pattern.
+    # - `pattern` is a string or a regular expression.
+    def match(
+            self,
+            pattern: ExprPattern
+    ) -> MatchResult:
+        """
+        Match a symbolic expression to a pattern.
+        """
+        # Any, but check shape and dtype
+        any_match = self._match_any_pattern(pattern)
+        if any_match:
+            return any_match
+        # end if
+
+        if isinstance(pattern, ConstantPattern):
+            if pattern.const_name and pattern.const_name != self.name:
+                return MatchResult.failed()
+            # end if
+            if pattern.value is not None and pattern.value != self.value:
+                return MatchResult.failed()
+            # end if
+            if not self._match_dtype(pattern.dtype) or not self._match_shape(pattern.shape):
+                return MatchResult.failed()
+            # end if
+            return MatchResult.success(self._match_return(pattern))
+        # end if
+
+        return MatchResult.failed()
+    # end def match
 
     #
     # Boolean checks

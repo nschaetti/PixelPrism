@@ -49,7 +49,7 @@ from ..typing_expr import (
     OperatorSpec, AritySpec,
 )
 from ..typing_rules import SimplifyOptions, SimplifyRule, SimplifyRuleType
-from ..decorators import rule, when, needs_constants, needs_variables, returns_operands, no_op_if_unchanged, finalize_result
+from ..decorators import rule, needs_constants, needs_variables, returns_operands, finalize_result
 
 from .base import Operands, OperatorBase, operator_registry
 
@@ -80,10 +80,12 @@ __all__ = [
     "Neg",
 ]
 
+from ..typing_utils import as_algebraic
+
 
 def _is_constant_variable(
         m: MathExpr
-) -> Optional[Tuple[Constant, Variable]]:
+) -> Optional[Tuple[MathExpr, MathExpr]]:
     # Is of the form x * y
     if hasattr(m, "op") and m.has_operator(Mul.SPEC.name) and m.num_children() == 2:
         # The first is a constant, the second a variable (a * x)
@@ -472,7 +474,7 @@ class Add(NaryElementwiseOperator):
     def _r_sum_constants(
             self,
             operands: Sequence[MathExpr]
-    ) -> Sequence[MathExpr]:
+    ) -> Optional[Sequence[MathExpr]]:
         """Merge constant terms in addition.
 
         Applies the rule ``a + b -> c`` when operands are constants,
@@ -866,29 +868,11 @@ class Mul(NaryElementwiseOperator):
     #     """
     #     Group alike terms.
     #     """
-    #     constants = [op for op in operands if op.is_constant()]
     #     variables = [op for op in operands if op.is_variable()]
-    #     if len(variables) == 0:
-    #         return None
-    #     # end if
     #     groups = defaultdict(lambda: 0)
     #     for op_i, op in enumerate(variables):
     #         if op.is_variable():
-    #             const_var = _is_constant_variable(op)
-    #             if const_var:
-    #                 if op_i == 0:
-    #                     groups[const_var[1]] += const_var[0].eval()
-    #                 else:
-    #                     groups[const_var[1]] -= const_var[0].eval()
-    #                 # end if
-    #             else:
-    #                 if op_i == 0:
-    #                     groups[op] += 1
     #
-    #                 else:
-    #                     groups[op] -= 1
-    #                 # end if
-    #             # end if
     #         # end if
     #     # end for
     #     new_ops = list()
@@ -914,9 +898,16 @@ class Mul(NaryElementwiseOperator):
 
     # endregion RULES
 
-    def print(self, operands: Operands, **kwargs) -> str:
-        """Print the expression."""
-        return "".join([str(op) for op in operands])
+    # def print(self, operands: Operands, **kwargs) -> str:
+    #     """Print the expression."""
+    #     str_repr = ""
+    #     for i in range(1, len(operands)):
+    #         str_repr += f"{operands[i]}"
+    #     # end if
+    #     return f"{operands[0].print()} * {str_repr}"
+    # # end def print
+
+    # end if
 
 # end class Mul
 
@@ -945,8 +936,9 @@ class Div(BinaryElementwiseOperator):
         return a.eval() / b.eval()
     # end def _eval
 
-    def _diff(self, wrt: Variable, operands: Operands) -> MathNode:
+    def _diff(self, wrt: Variable, operands: Operands) -> MathExpr:
         a, b = operands
+        a, b = as_algebraic(a), as_algebraic(b)
         num = a.diff(wrt) * b - b.diff(wrt) * a
         denom = b * b
         return num / denom
@@ -1218,7 +1210,7 @@ class Neg(UnaryElementwiseOperator):
 # end class Neg
 
 
-class Pow(ElementwiseOperator):
+class Pow(BinaryElementwiseOperator):
     """
     Element-wise power operator.
     """
@@ -1226,7 +1218,7 @@ class Pow(ElementwiseOperator):
     SPEC = OperatorSpec(
         name="pow",
         arity=AritySpec(exact=2, min_operands=2, variadic=False),
-        symbol="^",
+        symbol="**",
         precedence=30,
         associativity=OpAssociativity.NONE,
         commutative=False,
@@ -1284,20 +1276,6 @@ class Pow(ElementwiseOperator):
         # end if
     # end def _diff
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
-
-    def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
     # endregion PRIVATE
 
 # end class Pow
@@ -1332,25 +1310,12 @@ class Exp(UnaryElementwiseOperator):
         # end if
     # end def _diff
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"exp({operands[0].__str__()})"
+    # end def print
 
 # end class Exp
 
@@ -1383,25 +1348,12 @@ class Exp2(UnaryElementwiseOperator):
         return Pow.create_node(operands=(Constant.new(2), value)) * Log.create_node(operands=(Constant.new(2),))
     # end def _diff
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"exp2({operands[0].__str__()})"
+    # end def print
 
 # end class Exp2
 
@@ -1437,25 +1389,12 @@ class Expm1(UnaryElementwiseOperator):
         raise NotImplementedError("Expm1 does not support backward.")
     # end def _backward
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"expm1({operands[0].__str__()})"
+    # end def print
 
 # end class Expm1
 
@@ -1488,25 +1427,12 @@ class Log(UnaryElementwiseOperator):
         return (Constant.new(1) / value) * value.diff(wrt)
     # end def _diff
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"log({operands[0].__str__()})"
+    # end def print
 
 # end class Log
 
@@ -1542,25 +1468,12 @@ class Log1p(UnaryElementwiseOperator):
         raise NotImplementedError("Log1p does not support backward.")
     # end def _backward
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"log1p({operands[0].__str__()})"
+    # end def print
 
 # end class Log1p
 
@@ -1593,25 +1506,12 @@ class Sqrt(UnaryElementwiseOperator):
         return (Constant.new(1) / (Constant.new(2) * Sqrt.create_node(operands=(value,)))) * value.diff(wrt)
     # end def _diff
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"sqrt({operands[0].__str__()})"
+    # end def print
 
 # end class Sqrt
 
@@ -1644,25 +1544,10 @@ class Square(UnaryElementwiseOperator):
         return Constant.new(2) * value * value.diff(wrt)
     # end def _diff
 
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    # endregion PRIVATE
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
-
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
+        """Return a human-readable representation of the operator."""
+        return f"{operands[0].__str__()}**2"
+    # end def print
 
 # end class Square
 
@@ -1690,33 +1575,12 @@ class Cbrt(UnaryElementwiseOperator):
         return Tensor.cbrt(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Cbrt does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"cbrt({operands[0].__str__()})"
+    # end def print
 
 # end class Cbrt
 
@@ -1744,33 +1608,12 @@ class Reciprocal(UnaryElementwiseOperator):
         return Tensor.reciprocal(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Reciprocal does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"reciprocal({operands[0].__str__()})"
+    # end def print
 
 # end class Reciprocal
 
@@ -1798,33 +1641,12 @@ class Log2(UnaryElementwiseOperator):
         return Tensor.log2(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Log2 does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"log2({operands[0].__str__()})"
+    # end def print
 
 # end class Log2
 
@@ -1852,33 +1674,12 @@ class Log10(UnaryElementwiseOperator):
         return Tensor.log10(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Log10 does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"log10({operands[0].__str__()})"
+    # end def print
 
 # end class Log10
 
@@ -1906,33 +1707,12 @@ class Deg2rad(UnaryElementwiseOperator):
         return Tensor.deg2rad(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Deg2rad does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"deg2rad({operands[0].__str__()})"
+    # end def print
 
 # end class Deg2rad
 
@@ -1960,33 +1740,12 @@ class Rad2deg(UnaryElementwiseOperator):
         return Tensor.rad2deg(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Rad2deg does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"rad2deg({operands[0].__str__()})"
+    # end def print
 
 # end class Rad2deg
 
@@ -2014,33 +1773,12 @@ class Absolute(UnaryElementwiseOperator):
         return Tensor.absolute(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Absolute does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"|{operands[0].__str__()}|"
+    # end def print
 
 # end class Absolute
 
@@ -2068,33 +1806,12 @@ class Abs(UnaryElementwiseOperator):
         return Tensor.abs(value.eval())
     # end def _eval
 
-    def _backward(
-            self,
-            out_grad: MathNode,
-            node: MathNode,
-    ) -> Sequence[MathNode]:
-        raise NotImplementedError("Abs does not support backward.")
-    # end def _backward
-
-    def _simplify(
-            self,
-            operands: Sequence[MathExpr],
-            options: SimplifyOptions | None = None
-    ) -> OpSimplifyResult:
-        pass
-    # end def _simplify
-
-    def _canonicalize(self, operands: Sequence[MathExpr]) -> Sequence[MathExpr]:
-        pass
-    # end def _canonicalize
-
-    def _needs_parentheses(self, *args, **kwargs):
-        pass
+    # endregion PRIVATE
 
     def print(self, operands: Operands, **kwargs) -> str:
-        pass
-
-    # endregion PRIVATE
+        """Return a human-readable representation of the operator."""
+        return f"|{operands[0].__str__()}|"
+    # end def print
 
 # end class Abs
 

@@ -29,6 +29,7 @@
 
 # Imports
 import builtins
+import math
 from typing import Iterable, List, Union, Any, Optional, Tuple, Callable, Sequence, Literal
 import numpy as np
 
@@ -89,7 +90,7 @@ __all__ = [
     "ceil",
     "trunc",
     "rint",
-    "round",
+    "rounding",
     "clip",
     "equal",
     "not_equal",
@@ -2793,7 +2794,7 @@ class Tensor:
         
         Returns
         -------
-        float
+        'float'
             Result of the operation.
         """
         if self.rank == 0:
@@ -2808,10 +2809,14 @@ class Tensor:
         
         Returns
         -------
-        str
+        'str'
             Result of the operation.
         """
         if self.rank == 0:
+            x = self._data.item()
+            if math.isclose(x, round(x), abs_tol=1e-9):
+                return str(int(x))
+            # end if
             return f"{self._data.item()}"
         else:
             return f"{self.tolist()}"
@@ -2823,7 +2828,7 @@ class Tensor:
         
         Returns
         -------
-        str
+        'str'
             Result of the operation.
         """
         return f"tensor({str(self._data.tolist())}, dtype={self._dtype}, shape={self._shape}, mutable={self._mutable})"
@@ -4454,7 +4459,7 @@ def rint(t: Tensor) -> Tensor:
 # end def rint
 
 
-def round(t: Tensor, decimals: int = 0) -> Tensor:
+def rounding(t: Tensor, decimals: int = 0) -> Tensor:
     return _call_tensor_method("round", t, decimals=decimals)
 # end def round
 

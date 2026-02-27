@@ -29,7 +29,7 @@
 # Imports
 from __future__ import annotations
 import weakref
-from typing import Any, FrozenSet, List, Optional, Union, Sequence, TYPE_CHECKING, Mapping, Dict
+from typing import Any, FrozenSet, List, Optional, Union, Sequence, TYPE_CHECKING, Mapping, Dict, Tuple
 
 from .math_base import MathBase
 from .math_exceptions import (
@@ -40,8 +40,23 @@ from .mixins import ExpressionMixin, AlgebraicMixin
 from .dtype import DType
 from .shape import Shape
 from .tensor import Tensor
-from .typing import MathExpr, Operands, Operator, LeafKind, SimplifyOptions, ExprKind, ExprDomain, OperatorSpec, AlgebraicExpr
-from .typing_expr import FoldPolicy, OpSimplifyResult
+from .typing import (
+    ExprPattern,
+    NodePattern,
+    VariablePattern,
+    ConstantPattern,
+    AnyPattern,
+    MathExpr,
+    Operands,
+    Operator,
+    LeafKind,
+    SimplifyOptions,
+    ExprKind,
+    ExprDomain,
+    OperatorSpec,
+    AlgebraicExpr
+)
+from .typing_expr import FoldPolicy, OpSimplifyResult, MatchResult
 
 if TYPE_CHECKING:
     from .math_leaves import Constant, Variable
@@ -823,6 +838,124 @@ class MathNode(
         # Check if the simplified trees are equal
         return a.eq_tree(b)
     # end def equivalent
+
+    def _match_operator(self, op: Operator, match_op: Optional[str] = None) -> bool:
+        return match_op is None or op.name == match_op
+    # end def _match_operator
+
+    def _match_error_operands_length(self, len_operands: int, len_match_operands: int):
+        raise RuntimeError(f"Expected {len_operands} operands, got {len_match_operands}")
+    # end if
+
+    def _match_operands(
+            self,
+            operands: List[MathExpr],
+            match_operands: Optional[List[ExprPattern]] = None
+    ) -> MatchResult:
+        if not match_operands:
+            return MatchResult.success({})
+        elif len(operands) != len(match_operands):
+            self._match_error_operands_length(len(operands), len(match_operands))
+        # end if
+        match_operands = [
+            op.match(op_pattern) for op, op_pattern in zip(operands, match_operands)
+        ]
+        match_bool = [m.matched for m in match_operands]
+        match_expr = [m.bindings for m in match_operands]
+
+        if all(match_bool):
+            return MatchResult.success({k:v for d in match_expr for k,v in d.items()})
+        else:
+            return MatchResult.failed()
+        # end if
+    # end def _match_operands
+
+    def _match_operands_comm(
+            self,
+            operands: List[MathExpr],
+            match_operands: Optional[List[ExprPattern]] = None
+    ) -> MatchResult:
+        if not match_operands:
+            return MatchResult.success({})
+        elif len(operands) != len(match_operands):
+            raise RuntimeError(f"Expected {len(operands)} operands, got {len(match_operands)}")
+        # end if
+        op_copy = list(match_operands)
+        matched_exprs = {}
+        for op in operands:
+            match_found = False
+            for op_pattern in op_copy:
+                op_match_result = op.match(op_pattern)
+                if op_match_result.matched:
+                    match_found = True
+                    op_copy.remove(op_pattern)
+                    matched_exprs.update(op_match_result.bindings)
+                    break
+                # end if
+            # end for
+            if not match_found:
+                return MatchResult.failed()
+            # end if
+        # end for
+        return MatchResult.success(matched_exprs)
+    # end def _match_operands_comm
+
+    def _match_arity(self, arity: int, match_arity: Optional[int] = None) -> bool:
+        return match_arity is None or arity == match_arity
+    # end def _match_arity
+
+    # Match a symbolic expression to a pattern.
+    # - `pattern` is a string or a regular expression.
+    def match(
+            self,
+            pattern: ExprPattern
+    ) -> MatchResult:
+        """
+        Match a symbolic expression to a pattern.
+        """
+        # Any, but check shape and dtype
+        any_match = self._match_any_pattern(pattern)
+        if any_match:
+            return any_match
+        # end if
+
+        # Node, check kind and operator
+        if isinstance(pattern, NodePattern):
+            # Operator
+            if not self._match_operator(self.op, pattern.op):
+                return MatchResult.failed()
+            # end if
+            # Operands
+            if pattern.commutative:
+                operands_match = self._match_operands_comm(list(self.children), pattern.operands)
+                if not operands_match.matched:
+                    return MatchResult.failed()
+                # end if
+            else:
+                operands_match = self._match_operands(list(self.children), pattern.operands)
+                if not operands_match.matched:
+                    return MatchResult.failed()
+                # end if
+            # end if
+            if pattern.variable is not None and pattern.variable and not self.is_variable():
+                return MatchResult.failed()
+            # end if
+            if pattern.constant is not None and pattern.constant and not self.is_constant():
+                return MatchResult.failed()
+            # end if
+            if not self._match_shape(self.shape, pattern.shape):
+                return MatchResult.failed()
+            # end if
+            if not self._match_dtype(self.dtype, pattern.dtype):
+                return MatchResult.failed()
+            # end if
+            if not self._match_arity(len(self.children), pattern.arity):
+                return MatchResult.failed()
+            # end if
+            return MatchResult.success({**self._match_return(pattern), **operands_match.bindings})
+        # end if
+        return MatchResult.failed()
+    # end def match
 
     #
     # Boolean predicates
