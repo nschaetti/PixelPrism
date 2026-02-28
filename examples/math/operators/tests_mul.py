@@ -67,6 +67,7 @@ def main() -> None:
     x = pm.var("x", dtype=pm.DType.R, shape=())
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
+    k = pm.constants
 
     c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
     c1 = pm.const("one", dtype=pm.DType.R, data=1.0)
@@ -98,6 +99,8 @@ def main() -> None:
         ("3 vars: (x * y) * z", (x * y) * z),
         ("3 vars: x * (y * z)", x * (y * z)),
         ("3 vars + neg: (x * y) * (-z)", (x * y) * (-z)),
+        ("with symbolic constants: x * pi * e", x * k.PI * k.E),
+        ("symbolic-only: phi * pi * e", k.PHI * k.PI * k.E),
     ]
 
     print("\nElementwise Mul deep-check (print/simplify/diff/eval)")

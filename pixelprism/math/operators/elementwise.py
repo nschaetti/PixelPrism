@@ -35,6 +35,7 @@ from abc import ABC
 from collections import defaultdict
 from typing import Sequence, Union, Optional, Tuple
 
+from .. import SymbolicConstant
 from ..tensor import Tensor
 from ..dtype import DType, promote
 from ..shape import Shape
@@ -46,7 +47,7 @@ from ..typing_expr import (
     OpSimplifyResult,
     OpAssociativity,
     Operator,
-    OperatorSpec, AritySpec,
+    OperatorSpec, AritySpec, FoldPolicy,
 )
 from ..typing_rules import SimplifyOptions, SimplifyRule, SimplifyRuleType
 from ..decorators import rule, needs_constants, needs_variables, returns_operands, finalize_result
@@ -471,7 +472,7 @@ class Add(NaryElementwiseOperator):
     @returns_operands
     @needs_constants(min_count=1)
     @rule(SimplifyRule.MERGE_CONSTANTS, priority=1, rule_type=SimplifyRuleType.ALL)
-    def _r_sum_constants(
+    def _fold_constants(
             self,
             operands: Sequence[MathExpr]
     ) -> Optional[Sequence[MathExpr]]:
@@ -490,15 +491,13 @@ class Add(NaryElementwiseOperator):
         OpSimplifyResult or None
             Replacement result when the rule matches, otherwise ``None``.
         """
-        constants = [op for op in operands if op.is_constant()]
+        constants = [op for op in operands if op.is_constant() and op.fold_policy() == FoldPolicy.FOLDABLE]
+        non_foldable_constant = [op for op in operands if op.is_constant() and op.fold_policy() != FoldPolicy.FOLDABLE]
         non_constant = [op for op in operands if not op.is_constant()]
-        if len(constants) == 0:
-            return None
-        # end if
         new_constant = Constant.new(sum(op.eval() for op in constants))
-        new_operands = [new_constant] + non_constant
+        new_operands = [new_constant] + non_foldable_constant + non_constant
         return new_operands
-    # end def _r_merge_constants
+    # end def _r_fold_constants
 
     @finalize_result(empty=Constant.new(0.0), collapse_single=True)
     @returns_operands
@@ -643,7 +642,7 @@ class Sub(NaryElementwiseOperator):
     @returns_operands
     @needs_constants(min_count=1)
     @rule(SimplifyRule.MERGE_CONSTANTS, priority=2, rule_type=SimplifyRuleType.ALL)
-    def _r_sum_constants(
+    def _r_fold_constants(
             self,
             operands: Sequence[MathExpr]
     ):
@@ -662,28 +661,33 @@ class Sub(NaryElementwiseOperator):
         OpSimplifyResult or None
             Replacement result when the rule matches, otherwise ``None``.
         """
-        constants = [op for op in operands if op.is_constant()]
-        non_constant = [op for op in operands if not op.is_constant()]
-        if operands[0].is_constant():
-            if len(non_constant) > 0:
-                # a - x - y => -(-a + x + y)
-                return [
-                    Neg.create_node([
-                        Add.create_node([Constant.new(operands[0].eval() * -1)] + list(operands)[1:])
-                    ])
-                ]
-            else:
-                # a - b => -(-a + b)
-                return [
-                    Constant.new((operands[0].eval() * -1 + sum(o.eval() for o in operands[1:])) * -1)
-                ]
+        def _remove_if_present(lst, obj):
+            if obj in lst:
+                lst.remove(obj)
             # end if
+            return lst
+        # end def _remove_if_present
+
+        first_op = operands[0]
+        constants = [op for op in operands if op.is_constant() and op.fold_policy() == FoldPolicy.FOLDABLE]
+        sym_constants = [op for op in operands if op.is_constant() and op.fold_policy() == FoldPolicy.SYMBOLIC_LOCKED]
+        variables = [op for op in operands if not op.is_constant()]
+        non_constant = [*sym_constants, *variables]
+        constants = _remove_if_present(constants, first_op)
+        sym_constants = _remove_if_present(sym_constants, first_op)
+        variables = _remove_if_present(variables, first_op)
+        non_constant = _remove_if_present(non_constant, first_op)
+        if isinstance(first_op, SymbolicConstant):
+            new_constant = Constant.new(sum(op.eval() for op in constants if op.fold_policy() == FoldPolicy.FOLDABLE))
+            return [first_op] + [new_constant] + non_constant
+        elif isinstance(first_op, Constant):
+            return [Constant.new(first_op.eval() - sum(op.eval() for op in constants))] + non_constant
         else:
-            new_constant = Constant.new(sum(op.eval() for op in constants))
+            new_constant = Constant.new(sum(op.eval() for op in constants if op.fold_policy() == FoldPolicy.FOLDABLE))
             new_operands = [new_constant] + non_constant
             return new_operands
         # end if
-    # end def _r_merge_constants
+    # end def _r_fold_constants
 
     @finalize_result(empty=Constant.new(0.0), collapse_single=True)
     @returns_operands

@@ -51,6 +51,7 @@ def main() -> None:
     x = pm.var("x", dtype=pm.DType.R, shape=())
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
+    k = pm.constants
 
     c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
     c1 = pm.const("one", dtype=pm.DType.R, data=1.0)
@@ -61,20 +62,22 @@ def main() -> None:
     cneg1 = pm.const("minus_one", dtype=pm.DType.R, data=-1.0)
 
     cases = [
-        # ("N-ARY single constant: sub(2)", sub(c2)),
-        # ("N-ARY single variable: sub(x)", sub(x)),
-        # ("N-ARY MERGE_CONSTANTS: sub(9, 4, 2)", sub(c9, c4, c2)),
-        # ("N-ARY SUB_REMOVE_ZEROS: sub(x, 0, y, 0, z)", sub(x, c0, y, c0, z)),
-        # ("N-ARY SUB_FIRST_ZERO: sub(0, x)", sub(c0, x)),
-        # ("N-ARY SUB_FIRST_ZERO: sub(0, x, y)", sub(c0, x, y)),
-        # ("N-ARY SUB_REMOVE_ZEROS: sub(x, 0)", sub(x, c0)),
-        # ("N-ARY MERGE_CONSTANTS: sub(x, -y, z, -1)", sub(x, -y, z, cneg1)),
-        # ("N-ARY 3 vars: sub(x, y, z)", sub(x, y, z)),
-        # ("N-ARY nested: sub(sub(x, y), z, 0)", sub(sub(x, y), z, c0)),
-        # ("N-ARY long chain: sub(x, y, z, 1, 2, -1)", sub(x, y, z, c1, c2, cneg1)),
+        ("N-ARY single constant: sub(2)", sub(c2)),
+        ("N-ARY single variable: sub(x)", sub(x)),
+        ("N-ARY MERGE_CONSTANTS: sub(9, 4, 2)", sub(c9, c4, c2)),
+        ("N-ARY SUB_REMOVE_ZEROS: sub(x, 0, y, 0, z)", sub(x, c0, y, c0, z)),
+        ("N-ARY SUB_FIRST_ZERO: sub(0, x)", sub(c0, x)),
+        ("N-ARY SUB_FIRST_ZERO: sub(0, x, y)", sub(c0, x, y)),
+        ("N-ARY SUB_REMOVE_ZEROS: sub(x, 0)", sub(x, c0)),
+        ("N-ARY MERGE_CONSTANTS: sub(x, -y, z, -1)", sub(x, -y, z, cneg1)),
+        ("N-ARY 3 vars: sub(x, y, z)", sub(x, y, z)),
+        ("N-ARY nested: sub(sub(x, y), z, 0)", sub(sub(x, y), z, c0)),
+        ("N-ARY long chain: sub(x, y, z, 1, 2, -1)", sub(x, y, z, c1, c2, cneg1)),
         ("N-ARY repeated vars: sub(x, x, x)", sub(x, x, x)),
         # ("N-ARY mixed constants only: sub(3, 2, 1)", sub(c3, c2, c1)),
         ("N-ARY mixed constants and vars: sub(x * 2, 3 * x)", sub(x * 2, 3 * x)),
+        ("N-ARY with symbolic constants: sub(pi, x, e)", sub(k.PI, x, k.E)),
+        ("N-ARY symbolic-only: sub(phi, pi, e)", sub(k.PHI, k.PI, k.E)),
     ]
 
     print("\nElementwise Sub N-ary deep-check (print/simplify/diff/eval)")

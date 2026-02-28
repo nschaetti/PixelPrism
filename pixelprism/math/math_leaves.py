@@ -55,6 +55,7 @@ __all__ = [
     "MathLeaf",
     "Variable",
     "Constant",
+    "SymbolicConstant",
     "var",
     "const"
 ]
@@ -1511,3 +1512,69 @@ class Constant(MathLeaf):
     # endregion STATIC
 
 # end class Constant
+
+
+class SymbolicConstant(Constant):
+    """Symbolic constant node."""
+
+    def set(self, data: Tensor) -> None:
+        """
+        Replace the stored tensor.
+
+        Parameters
+        ----------
+        data : Tensor
+            Replacement data.
+
+        Raises
+        ------
+        MathExprValidationError
+            If dtype or shape mismatches occur.
+        """
+        raise SymbolicMathRuntimeError(f"Cannot set value of symbolic constant: {self.name}")
+    # end def set
+
+    def is_foldable(self) -> bool:
+        """
+        Determines if the current instance can be folded into a single operation.
+
+        Returns
+        -------
+        bool
+            True if the instance can be folded, otherwise False.
+        """
+        return False
+    # end def is_foldable
+
+    def fold_policy(self) -> FoldPolicy:
+        """
+        Returns the folding policy for the current instance.
+        """
+        return FoldPolicy.SYMBOLIC_LOCKED
+    # end def fold_policy
+
+    #
+    # Representation
+    #
+
+    def __str__(self) -> str:
+        """
+        Returns
+        -------
+        'str'
+            Human-readable description of the constant.
+        """
+        return self.name
+    # end __str__
+
+    def __repr__(self) -> str:
+        """
+        Returns
+        -------
+        'str'
+            Debug representation identical to :meth:`__str__`.
+        """
+        return f"constant({self.name})"
+    # end __repr__
+
+# end class SymbolicConstant

@@ -39,6 +39,9 @@ def print_build_and_match_case(title: str, expr_builder, pattern) -> None:
 
 
 def main() -> None:
+    P = pm.P
+    k = pm.constants
+
     x = pm.var("x", dtype=pm.DType.R, shape=())
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
@@ -55,296 +58,171 @@ def main() -> None:
     expr_sub = x - y
     expr_add_comm = x + y
     expr_complex = F.mul(x + c2, y - c3)
+    expr_symbolic = x + k.PI
 
     print("Pattern matching demo (simple -> complex)")
 
     print_match_case(
         "VariablePattern: match by variable name",
         x,
-        pm.VariablePattern(var_name="x", name="vx", return_expr=True),
+        P.v("x", as_="vx"),
     )
     print_match_case(
         "VariablePattern: mismatch by variable name",
         x,
-        pm.VariablePattern(var_name="z", name="vz", return_expr=True),
+        P.v("z", as_="vz"),
     )
 
     print_match_case(
         "ConstantPattern: match by constant name + value",
         c2,
-        pm.ConstantPattern(
-            const_name="c2", value=2.0, name="const_two", return_expr=True
-        ),
+        P.c(2.0, const_name="c2", as_="const_two"),
     )
     print_match_case(
         "ConstantPattern: mismatch by value",
         c2,
-        pm.ConstantPattern(value=5.0, name="const_five", return_expr=True),
+        P.c(5.0, as_="const_five"),
     )
 
     print_match_case(
         "AnyPattern: capture any expression",
         expr_add,
-        pm.AnyPattern(name="any_expr", return_expr=True),
+        P.a(as_="any_expr"),
     )
 
     print_match_case(
         "NodePattern: add(x, c2) with operand capture",
         expr_add,
-        pm.NodePattern(
-            op="add",
-            commutative=True,
-            operands=[
-                pm.VariablePattern(var_name="x", name="left_var", return_expr=True),
-                pm.ConstantPattern(value=2.0, name="right_const", return_expr=True),
-            ],
+        P.n(
+            "add",
+            P.v("x", as_="left_var"),
+            P.c(2.0, as_="right_const"),
+            comm=True,
             arity=2,
-            name="add_node",
-            return_expr=True,
+            as_="add_node",
         ),
     )
 
     print_match_case(
         "NodePattern non-commutative: sub(x, y)",
         expr_sub,
-        pm.NodePattern(
-            op="sub",
-            commutative=False,
-            operands=[
-                pm.VariablePattern(var_name="x", name="lhs", return_expr=True),
-                pm.VariablePattern(var_name="y", name="rhs", return_expr=True),
-            ],
-            name="sub_node",
-            return_expr=True,
+        P.n(
+            "sub",
+            P.v("x", as_="lhs"),
+            P.v("y", as_="rhs"),
+            as_="sub_node",
         ),
     )
     print_match_case(
         "NodePattern non-commutative mismatch: sub(y, x)",
         expr_sub,
-        pm.NodePattern(
-            op="sub",
-            commutative=False,
-            operands=[
-                pm.VariablePattern(var_name="y"),
-                pm.VariablePattern(var_name="x"),
-            ],
-        ),
+        P.n("sub", P.v("y"), P.v("x")),
     )
 
     print_match_case(
         "NodePattern commutative: add(y, x) over x + y",
         expr_add_comm,
-        pm.NodePattern(
-            op="add",
-            commutative=True,
-            operands=[
-                pm.VariablePattern(var_name="y", name="first", return_expr=True),
-                pm.VariablePattern(var_name="x", name="second", return_expr=True),
-            ],
-            name="comm_add",
-            return_expr=True,
-        ),
+        P.n("add", P.v("y", as_="first"), P.v("x", as_="second"), comm=True, as_="comm_add"),
     )
 
     print_match_case(
         "Complex nested NodePattern: strict shape (expected mismatch)",
         expr_complex,
-        pm.NodePattern(
-            op="mul",
-            commutative=True,
-            operands=[
-                pm.NodePattern(
-                    op="add",
-                    commutative=True,
-                    operands=[
-                        pm.VariablePattern(var_name="x", name="x_leaf", return_expr=True),
-                        pm.ConstantPattern(value=2.0, name="two_leaf", return_expr=True),
-                    ],
-                    name="left_branch",
-                    return_expr=True,
-                ),
-                pm.NodePattern(
-                    op="sub",
-                    operands=[
-                        pm.VariablePattern(var_name="y", name="y_leaf", return_expr=True),
-                        pm.ConstantPattern(value=3.0, name="three_leaf", return_expr=True),
-                    ],
-                    name="right_branch",
-                    return_expr=True,
-                ),
-            ],
-            name="root_mul",
-            return_expr=True,
+        P.n(
+            "mul",
+            P.n(
+                "add",
+                P.v("x", as_="x_leaf"),
+                P.c(2.0, as_="two_leaf"),
+                comm=True,
+                as_="left_branch",
+            ),
+            P.n(
+                "sub",
+                P.v("y", as_="y_leaf"),
+                P.c(3.0, as_="three_leaf"),
+                as_="right_branch",
+            ),
+            comm=True,
+            as_="root_mul",
         ),
     )
 
     print_match_case(
         "Complex nested NodePattern: actual tree (2 + x) * (3 - y)",
         expr_complex,
-        pm.NodePattern(
-            op="mul",
-            commutative=True,
-            operands=[
-                pm.NodePattern(
-                    op="add",
-                    commutative=True,
-                    operands=[
-                        pm.VariablePattern(var_name="x", name="x_leaf", return_expr=True),
-                        pm.ConstantPattern(value=2.0, name="two_leaf", return_expr=True),
-                    ],
-                    name="left_branch",
-                    return_expr=True,
-                ),
-                pm.NodePattern(
-                    op="sub",
-                    operands=[
-                        pm.ConstantPattern(value=3.0, name="three_leaf", return_expr=True),
-                        pm.VariablePattern(var_name="y", name="y_leaf", return_expr=True),
-                    ],
-                    name="right_branch",
-                    return_expr=True,
-                ),
-            ],
-            name="root_mul",
-            return_expr=True,
+        P.n(
+            "mul",
+            P.n(
+                "add",
+                P.v("x", as_="x_leaf"),
+                P.c(2.0, as_="two_leaf"),
+                comm=True,
+                as_="left_branch",
+            ),
+            P.n(
+                "sub",
+                P.c(3.0, as_="three_leaf"),
+                P.v("y", as_="y_leaf"),
+                as_="right_branch",
+            ),
+            comm=True,
+            as_="root_mul",
         ),
     )
 
     print_match_case(
         "AnyPattern on complex expression",
         expr_complex + z,
-        pm.AnyPattern(name="complex_any", return_expr=True),
+        P.a(as_="complex_any"),
+    )
+
+    print_match_case(
+        "SymbolicConstant: x + pi",
+        expr_symbolic,
+        P.n(
+            "add",
+            P.v("x", as_="x_var"),
+            P.c(value=float(k.PI.eval().value.item()), as_="pi_const"),
+            comm=True,
+            as_="add_x_pi",
+        ),
     )
 
     print_build_and_match_case(
         "Power/log: a * x^n",
         lambda: F.mul(a, F.pow(x, n)),
-        pm.NodePattern(
-            op="mul",
-            commutative=True,
-            operands=[
-                pm.ConstantPattern(name="a_const", return_expr=True),
-                pm.NodePattern(
-                    op="pow",
-                    operands=[
-                        pm.VariablePattern(var_name="x", name="x_base", return_expr=True),
-                        pm.VariablePattern(var_name="n", name="n_exp", return_expr=True),
-                    ],
-                    name="pow_node",
-                    return_expr=True,
-                ),
-            ],
-            name="mul_axn",
-            return_expr=True,
-        ),
+        pm.patterns.axn(),
     )
 
     print_build_and_match_case(
         "Power/log: a * x^2",
         lambda: F.mul(a, F.pow(x, 2)),
-        pm.NodePattern(
-            op="mul",
-            commutative=True,
-            operands=[
-                pm.ConstantPattern(name="a_const", return_expr=True),
-                pm.NodePattern(
-                    op="pow",
-                    operands=[
-                        pm.VariablePattern(var_name="x", name="x_base", return_expr=True),
-                        pm.ConstantPattern(value=2.0, name="two_exp", return_expr=True),
-                    ],
-                    name="pow_node",
-                    return_expr=True,
-                ),
-            ],
-            name="mul_ax2",
-            return_expr=True,
-        ),
+        pm.patterns.ax2(),
     )
 
     print_build_and_match_case(
         "Power/log: a * log(b)",
         lambda: F.mul(a, F.log(b)),
-        pm.NodePattern(
-            op="mul",
-            commutative=True,
-            operands=[
-                pm.ConstantPattern(name="a_const", return_expr=True),
-                pm.NodePattern(
-                    op="log",
-                    operands=[
-                        pm.ConstantPattern(const_name="b", name="b_const", return_expr=True)
-                    ],
-                    name="log_b",
-                    return_expr=True,
-                ),
-            ],
-            name="mul_alogb",
-            return_expr=True,
-        ),
+        pm.patterns.alogb(),
     )
 
     print_build_and_match_case(
         "Power/log: a * log(n)",
         lambda: F.mul(a, F.log(n)),
-        pm.NodePattern(
-            op="mul",
-            commutative=True,
-            operands=[
-                pm.ConstantPattern(name="a_const", return_expr=True),
-                pm.NodePattern(
-                    op="log",
-                    operands=[
-                        pm.VariablePattern(var_name="n", name="n_var", return_expr=True)
-                    ],
-                    name="log_n",
-                    return_expr=True,
-                ),
-            ],
-            name="mul_alogn",
-            return_expr=True,
+        P.n(
+            "mul",
+            P.c(as_="a_const"),
+            P.n("log", P.v("n", as_="n_var"), as_="log_n"),
+            comm=True,
+            as_="mul_alogn",
         ),
     )
 
     print_build_and_match_case(
         "Power/log: a * (log(n) / log(m))",
         lambda: F.mul(a, F.div(F.log(n), F.log(m))),
-        pm.NodePattern(
-            op="mul",
-            commutative=True,
-            operands=[
-                pm.ConstantPattern(name="a_const", return_expr=True),
-                pm.NodePattern(
-                    op="div",
-                    operands=[
-                        pm.NodePattern(
-                            op="log",
-                            operands=[
-                                pm.VariablePattern(
-                                    var_name="n", name="n_var", return_expr=True
-                                )
-                            ],
-                            name="log_n",
-                            return_expr=True,
-                        ),
-                        pm.NodePattern(
-                            op="log",
-                            operands=[
-                                pm.VariablePattern(
-                                    var_name="m", name="m_var", return_expr=True
-                                )
-                            ],
-                            name="log_m",
-                            return_expr=True,
-                        ),
-                    ],
-                    name="ratio",
-                    return_expr=True,
-                ),
-            ],
-            name="mul_ratio",
-            return_expr=True,
-        ),
+        pm.patterns.alog_ratio(),
     )
 
 

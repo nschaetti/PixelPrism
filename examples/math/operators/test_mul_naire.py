@@ -51,6 +51,7 @@ def main() -> None:
     x = pm.var("x", dtype=pm.DType.R, shape=())
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
+    k = pm.constants
 
     c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
     c1 = pm.const("one", dtype=pm.DType.R, data=1.0)
@@ -70,6 +71,8 @@ def main() -> None:
         ("N-ARY long chain: mul(x, y, z, 1, 2, 3)", mul(x, y, z, c1, c2, c3)),
         ("N-ARY mixed constants only: mul(3, 2, 1, 4)", mul(c3, c2, c1, c4)),
         ("N-ARY grouped alike (coeff): mul(2, x, 3, x, 9)", mul(c2, x, c3, x, c9)),
+        ("N-ARY with symbolic constants: mul(x, pi, e)", mul(x, k.PI, k.E)),
+        ("N-ARY symbolic-only: mul(phi, pi, e)", mul(k.PHI, k.PI, k.E)),
     ]
 
     print("\nElementwise Mul N-ary deep-check (print/simplify/diff/eval)")

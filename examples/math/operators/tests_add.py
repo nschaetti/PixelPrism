@@ -69,6 +69,7 @@ def main() -> None:
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
     w = pm.var("w", dtype=pm.DType.R, shape=())
+    k = pm.constants
 
     c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
     c2 = pm.const("two", dtype=pm.DType.R, data=2.0)
@@ -88,6 +89,8 @@ def main() -> None:
         ("3 vars: x + (y + z)", x + (y + z)),
         ("3 vars + neg: (x + y) + (-z)", (x + y) + (-z)),
         ("3 vars with sub: x - y + z", x - y + z),
+        ("with symbolic constants: x + pi + e", x + k.PI + k.E),
+        ("symbolic-only: phi + pi + e", k.PHI + k.PI + k.E),
         # ("3 vars with sub: x - (y + z)", x - (y + z)),
         # ("3 vars with sub: (x - y) + z", (x - y) + z),
         # ("4 vars with sub: x - (y - z) + w", x - (y - z) + w),

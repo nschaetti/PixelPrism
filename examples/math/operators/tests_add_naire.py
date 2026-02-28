@@ -51,6 +51,7 @@ def main() -> None:
     x = pm.var("x", dtype=pm.DType.R, shape=())
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
+    k = pm.constants
 
     c0 = pm.const("zero", dtype=pm.DType.R, data=0.0)
     c1 = pm.const("one", dtype=pm.DType.R, data=1.0)
@@ -73,6 +74,8 @@ def main() -> None:
         ("N-ARY 3 vars: add(x, y, z)", add(x, y, z)),
         ("N-ARY nested: add(add(x, y), z, 0)", add(add(x, y), z, c0)),
         ("N-ARY long chain: add(x, y, z, 1, 2, -1)", add(x, y, z, c1, c2, cneg1)),
+        ("N-ARY with symbolic constants: add(x, pi, e)", add(x, k.PI, k.E)),
+        ("N-ARY symbolic-only: add(phi, pi, e)", add(k.PHI, k.PI, k.E)),
     ]
 
     print("\nElementwise Add N-ary deep-check (print/simplify/diff/eval)")

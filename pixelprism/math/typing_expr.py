@@ -54,6 +54,11 @@ __all__ = [
     "VariablePattern",
     "ConstantPattern",
     "AnyPattern",
+    "p_node",
+    "p_var",
+    "p_const",
+    "p_any",
+    "node_match",
     "MatchResult",
     "MathExpr",
     "Operand",
@@ -72,7 +77,6 @@ __all__ = [
     "AritySpec",
     "OperatorSpec",
 ]
-
 
 
 # Expression pattern
@@ -113,7 +117,8 @@ class NodePattern(ExprPattern):
     dtype: DType | None = None
 
     def __str__(self):
-        return f"node({self.op}, ({', '.join([str(x) for x in self.operands])}))"
+        operands = self.operands or ()
+        return f"node({self.op}, ({', '.join([str(x) for x in operands])}))"
     # end def __str__
 
 # end class NodePattern
@@ -124,22 +129,110 @@ def node_match(
         comm: bool = False,
         var: bool = False,
         const: bool = False,
-        shape: Shape = None,
-        dtype: DType = None,
+        shape: Shape | None = None,
+        dtype: DType | None = None,
 ) -> ExprPattern:
     """
     Factory function to create a NodePattern instance.
     """
+    return p_node(
+        op,
+        *(tuple(children) if children is not None else ()),
+        comm=comm,
+        var=var,
+        const=const,
+        shape=shape,
+        dtype=dtype,
+    )
+# end def node_match
+
+
+def _pattern_capture_kwargs(as_: str | None) -> dict[str, Any]:
+    if as_ is None:
+        return {}
+    # end if
+    return {
+        "name": as_,
+        "return_expr": True,
+    }
+# end def _pattern_capture_kwargs
+
+
+def p_node(
+        op: str | None = None,
+        *operands: ExprPattern,
+        comm: bool = False,
+        arity: int | None = None,
+        var: bool | None = None,
+        const: bool = False,
+        shape: Shape | None = None,
+        dtype: DType | None = None,
+        as_: str | None = None,
+) -> NodePattern:
+    """Compact builder for :class:`NodePattern`."""
     return NodePattern(
         op=op,
-        operands=children,
+        operands=operands or None,
         commutative=comm,
+        arity=arity,
         variable=var,
         constant=const,
         shape=shape,
-        dtype=dtype
+        dtype=dtype,
+        **_pattern_capture_kwargs(as_),
     )
-# end def node_match
+# end def p_node
+
+
+def p_var(
+        var_name: str | None = None,
+        *,
+        shape: Shape | None = None,
+        dtype: DType | None = None,
+        as_: str | None = None,
+) -> VariablePattern:
+    """Compact builder for :class:`VariablePattern`."""
+    return VariablePattern(
+        var_name=var_name,
+        shape=shape,
+        dtype=dtype,
+        **_pattern_capture_kwargs(as_),
+    )
+# end def p_var
+
+
+def p_const(
+        value: ScalarLike | None = None,
+        const_name: str | None = None,
+        *,
+        shape: Shape | None = None,
+        dtype: DType | None = None,
+        as_: str | None = None,
+) -> ConstantPattern:
+    """Compact builder for :class:`ConstantPattern`."""
+    return ConstantPattern(
+        const_name=const_name,
+        value=value,
+        shape=shape,
+        dtype=dtype,
+        **_pattern_capture_kwargs(as_),
+    )
+# end def p_const
+
+
+def p_any(
+        *,
+        shape: Shape | None = None,
+        dtype: DType | None = None,
+        as_: str | None = None,
+) -> AnyPattern:
+    """Compact builder for :class:`AnyPattern`."""
+    return AnyPattern(
+        shape=shape,
+        dtype=dtype,
+        **_pattern_capture_kwargs(as_),
+    )
+# end def p_any
 
 
 # Pattern matching a variable
@@ -592,7 +685,13 @@ class AritySpec:
 
     @property
     def n_ops(self) -> int:
-        return self.exact if not self.variadic else self.min_operands
+        if self.variadic:
+            return self.min_operands
+        # end if
+        if self.exact is None:
+            raise ValueError("AritySpec.exact must be set for non-variadic operators")
+        # end if
+        return self.exact
     # end def arity
 
 # end class AritySpec
@@ -917,4 +1016,3 @@ class AlgebraicExpr(MathExpr, Protocol):
     def __getitem__(self, item: Index) -> MathNode: ...
 
 # end class AlgebraicExpr
-

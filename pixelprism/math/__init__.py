@@ -95,7 +95,9 @@ from .math_base import MathBase
 
 from .math_node import MathNode
 
-from .math_leaves import MathLeaf, Variable, Constant, var, const
+from .math_leaves import MathLeaf, Variable, Constant, SymbolicConstant, var, const
+
+from . import constants
 
 from .function import Function
 
@@ -213,6 +215,11 @@ from .typing import (
     VariablePattern,
     ConstantPattern,
     AnyPattern,
+    p_node,
+    p_var,
+    p_const,
+    p_any,
+    node_match,
     MathExpr,
     TensorLike,
     LeafKind,
@@ -224,6 +231,11 @@ from .typing import (
     AlgebraicExpr,
     ExprLike,
     OpAssociativity
+)
+
+from .pattern import (
+    P,
+    patterns,
 )
 
 from .geometry import (
@@ -362,6 +374,8 @@ __all__ = [
     # Alias
     "T",
     "S",
+    "P",
+    "patterns",
     "VARIABLE",
     "CONSTANT",
 
@@ -422,6 +436,8 @@ __all__ = [
     "MathLeaf",
     "Variable",
     "Constant",
+    "SymbolicConstant",
+    "constants",
     "var",
     "const",
 
@@ -558,6 +574,11 @@ __all__ = [
     "VariablePattern",
     "ConstantPattern",
     "AnyPattern",
+    "p_node",
+    "p_var",
+    "p_const",
+    "p_any",
+    "node_match",
     "ScalarLike",
     "ScalarListLike",
     "Index",
