@@ -54,10 +54,12 @@ __all__ = [
     "VariablePattern",
     "ConstantPattern",
     "AnyPattern",
+    "EllipsisPattern",
     "p_node",
     "p_var",
     "p_const",
     "p_any",
+    "p_ellipsis",
     "node_match",
     "MatchResult",
     "MathExpr",
@@ -235,6 +237,17 @@ def p_any(
 # end def p_any
 
 
+def p_ellipsis(
+        *,
+        as_: str | None = None,
+) -> EllipsisPattern:
+    """Compact builder for :class:`EllipsisPattern`."""
+    return EllipsisPattern(
+        **_pattern_capture_kwargs(as_),
+    )
+# end def p_ellipsis
+
+
 # Pattern matching a variable
 @dataclass(frozen=True, slots=True)
 class VariablePattern(ExprPattern):
@@ -284,6 +297,20 @@ class AnyPattern(ExprPattern):
     # end def __str__
 
 # end class AnyPattern
+
+
+# Pattern matching a variable number of operands
+@dataclass(frozen=True, slots=True)
+class EllipsisPattern(ExprPattern):
+    """
+    Pattern for matching a variable number of operands.
+    """
+
+    def __str__(self):
+        return "..."
+    # end def __str__
+
+# end class EllipsisPattern
 
 
 @dataclass(slots=True)

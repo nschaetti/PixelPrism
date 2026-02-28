@@ -50,7 +50,7 @@ from ..typing_expr import (
     OperatorSpec, AritySpec, FoldPolicy,
 )
 from ..typing_rules import SimplifyOptions, SimplifyRule, SimplifyRuleType
-from ..decorators import rule, needs_constants, needs_variables, returns_operands, finalize_result
+from ..decorators import rule, rule_needs_constants, rule_needs_variables, rule_returns_operands, rule_finalize_result
 
 from .base import Operands, OperatorBase, operator_registry
 
@@ -448,8 +448,8 @@ class Add(NaryElementwiseOperator):
 
     # region RULES
 
-    @finalize_result(collapse_single=True)
-    @returns_operands
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
     @rule(SimplifyRule.ADD_FLATTEN, priority=0, rule_type=SimplifyRuleType.ALL)
     def _r_add_identity(
             self,
@@ -468,9 +468,9 @@ class Add(NaryElementwiseOperator):
         return new_operands
     # end def _r_add_identity
 
-    @finalize_result(collapse_single=True)
-    @returns_operands
-    @needs_constants(min_count=1)
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_constants(min_count=1)
     @rule(SimplifyRule.MERGE_CONSTANTS, priority=1, rule_type=SimplifyRuleType.ALL)
     def _fold_constants(
             self,
@@ -499,8 +499,8 @@ class Add(NaryElementwiseOperator):
         return new_operands
     # end def _r_fold_constants
 
-    @finalize_result(empty=Constant.new(0.0), collapse_single=True)
-    @returns_operands
+    @rule_finalize_result(empty=Constant.new(0.0), collapse_single=True)
+    @rule_returns_operands
     @rule(SimplifyRule.ADD_REMOVE_ZEROS, priority=2, rule_type=SimplifyRuleType.ALL)
     def _r_remove_zeros(
             self,
@@ -516,7 +516,7 @@ class Add(NaryElementwiseOperator):
         return non_zeros
     # end def _r_remove_zeros
 
-    @needs_variables(min_count=1)
+    @rule_needs_variables(min_count=1)
     @rule(SimplifyRule.ADD_GROUP_ALIKE, priority=8, rule_type=SimplifyRuleType.ALL)
     def _r_group_alike(
             self,
@@ -604,7 +604,7 @@ class Sub(NaryElementwiseOperator):
 
     # region RULES
 
-    @returns_operands
+    @rule_returns_operands
     @rule(SimplifyRule.SUB_FLATTEN, priority=0, rule_type=SimplifyRuleType.ALL)
     def _r_sub_flatten(
             self,
@@ -618,8 +618,8 @@ class Sub(NaryElementwiseOperator):
         return None
     # end def _r_sub_first_zero
 
-    @finalize_result(collapse_single=True)
-    @returns_operands
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
     @rule(SimplifyRule.SUB_FIRST_ZERO, priority=1, rule_type=SimplifyRuleType.ALL)
     def _r_sub_first_zero(
             self,
@@ -638,9 +638,9 @@ class Sub(NaryElementwiseOperator):
         return None
     # end def _r_sub_first_zero
 
-    @finalize_result(collapse_single=True)
-    @returns_operands
-    @needs_constants(min_count=1)
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_constants(min_count=1)
     @rule(SimplifyRule.MERGE_CONSTANTS, priority=2, rule_type=SimplifyRuleType.ALL)
     def _r_fold_constants(
             self,
@@ -689,8 +689,8 @@ class Sub(NaryElementwiseOperator):
         # end if
     # end def _r_fold_constants
 
-    @finalize_result(empty=Constant.new(0.0), collapse_single=True)
-    @returns_operands
+    @rule_finalize_result(empty=Constant.new(0.0), collapse_single=True)
+    @rule_returns_operands
     @rule(SimplifyRule.SUB_REMOVE_ZEROS, priority=3, rule_type=SimplifyRuleType.ALL)
     def _r_remove_zeros(
             self,
@@ -706,9 +706,9 @@ class Sub(NaryElementwiseOperator):
         return non_zeros
     # end def _r_remove_zeros
 
-    @finalize_result(collapse_single=True)
-    @returns_operands
-    @needs_variables(min_count=2)
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_variables(min_count=2)
     @rule(SimplifyRule.SUB_GROUP_ALIKE, priority=4, rule_type=SimplifyRuleType.ALL)
     def _r_sub_group_alike(
             self,
@@ -831,9 +831,9 @@ class Mul(NaryElementwiseOperator):
         # end if
     # end def _r_merge_constants
 
-    @finalize_result(empty=Constant.new(0), collapse_single=True)
-    @returns_operands
-    @needs_constants(min_count=1)
+    @rule_finalize_result(empty=Constant.new(0), collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_constants(min_count=1)
     @rule(SimplifyRule.MUL_ZERO, priority=1, rule_type=SimplifyRuleType.ALL)
     def _r_mul_zero(
             self,
@@ -848,9 +848,9 @@ class Mul(NaryElementwiseOperator):
         # end if
     # end def _r_mul_zero
 
-    @finalize_result(collapse_single=True)
-    @returns_operands
-    @needs_constants(min_count=1)
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_constants(min_count=1)
     @rule(SimplifyRule.MUL_ONE, priority=2, rule_type=SimplifyRuleType.ALL)
     def _r_mul_one(
             self,

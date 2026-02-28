@@ -36,12 +36,12 @@ from .typing_rules import SimplifyRule, RuleSpec, SimplifyRuleType
 
 __all__ = [
     "rule",
-    "when",
-    "needs_constants",
-    "needs_variables",
-    "returns_operands",
-    "no_op_if_unchanged",
-    "finalize_result",
+    "rule_when",
+    "rule_needs_constants",
+    "rule_needs_variables",
+    "rule_returns_operands",
+    "rule_no_op_if_unchanged",
+    "rule_finalize_result",
 ]
 
 
@@ -71,7 +71,7 @@ def rule(flag: SimplifyRule, rule_type: SimplifyRuleType, priority: int = 100):
 # end def rule
 
 
-def when(*predicates: Callable[[Any, Sequence[Any]], bool]):
+def rule_when(*predicates: Callable[[Any, Sequence[Any]], bool]):
     """
     Apply a rule only when all predicates return ``True``.
     """
@@ -88,32 +88,32 @@ def when(*predicates: Callable[[Any, Sequence[Any]], bool]):
         return wrapper
     # end def deco
     return deco
-# end def when
+# end def rule_when
 
 
-def needs_constants(min_count: int = 1):
+def rule_needs_constants(min_count: int = 1):
     """
     Skip rule when fewer than ``min_count`` operands are constant.
     """
     def _predicate(_self, operands: Sequence[Any]) -> bool:
         return sum(1 for op in operands if op.is_constant()) >= min_count
     # end def _predicate
-    return when(_predicate)
-# end def needs_constants
+    return rule_when(_predicate)
+# end def rule_needs_constants
 
 
-def needs_variables(min_count: int = 1):
+def rule_needs_variables(min_count: int = 1):
     """
     Skip rule when fewer than ``min_count`` operands are variable-containing.
     """
     def _predicate(_self, operands: Sequence[Any]) -> bool:
         return sum(1 for op in operands if op.is_variable()) >= min_count
     # end def _predicate
-    return when(_predicate)
-# end def needs_variables
+    return rule_when(_predicate)
+# end def rule_needs_variables
 
 
-def returns_operands(fn):
+def rule_returns_operands(fn):
     """
     Allow rules to return operands directly instead of ``OpSimplifyResult``.
     """
@@ -129,10 +129,10 @@ def returns_operands(fn):
         return OpSimplifyResult(operands=list(out), replacement=None)
     # end def wrapper
     return wrapper
-# end def returns_operands
+# end def rule_returns_operands
 
 
-def no_op_if_unchanged(fn):
+def rule_no_op_if_unchanged(fn):
     """
     Convert unchanged outputs to ``None`` (rule not applied).
     """
@@ -161,10 +161,10 @@ def no_op_if_unchanged(fn):
         return OpSimplifyResult(operands=new_operands, replacement=None)
     # end def wrapper
     return wrapper
-# end def no_op_if_unchanged
+# end def rule_no_op_if_unchanged
 
 
-def finalize_result(
+def rule_finalize_result(
         *,
         empty: Any | Callable[[Any, Sequence[Any]], Any] | None = None,
         collapse_single: bool = True,
@@ -215,4 +215,4 @@ def finalize_result(
         return wrapper
     # end def deco
     return deco
-# end def finalize_result
+# end def rule_finalize_result

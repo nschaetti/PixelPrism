@@ -29,6 +29,7 @@
 # Imports
 from __future__ import annotations
 import weakref
+from lib2to3.pytree import LeafPattern
 from typing import Any, FrozenSet, List, Optional, Union, Sequence, TYPE_CHECKING, Mapping, Dict, Tuple
 
 from .math_base import MathBase
@@ -56,7 +57,7 @@ from .typing import (
     OperatorSpec,
     AlgebraicExpr
 )
-from .typing_expr import FoldPolicy, OpSimplifyResult, MatchResult
+from .typing_expr import FoldPolicy, OpSimplifyResult, MatchResult, EllipsisPattern
 
 if TYPE_CHECKING:
     from .math_leaves import Constant, Variable
@@ -847,41 +848,102 @@ class MathNode(
         raise RuntimeError(f"Expected {len_operands} operands, got {len_match_operands}")
     # end if
 
+    def _pattern_contains_ellipsis(self, patterns: List[ExprPattern]) -> bool:
+        """Check if any pattern contains Ellipsis or EllipsisPattern"""
+        pattern_type = [op is Ellipsis or isinstance(op, EllipsisPattern) for op in patterns]
+        return any(pattern_type)
+    # end def _pattern_contains_ellipsis
+
     def _match_operands(
             self,
             operands: List[MathExpr],
             match_operands: Optional[List[ExprPattern]] = None
     ) -> MatchResult:
+        has_ellipsis = self._pattern_contains_ellipsis(match_operands)
         if not match_operands:
             return MatchResult.success({})
-        elif len(operands) != len(match_operands):
+        elif len(operands) != len(match_operands) and not has_ellipsis:
             self._match_error_operands_length(len(operands), len(match_operands))
         # end if
-        match_operands = [
-            op.match(op_pattern) for op, op_pattern in zip(operands, match_operands)
-        ]
-        match_bool = [m.matched for m in match_operands]
-        match_expr = [m.bindings for m in match_operands]
+
+        first_m_op = match_operands[0]
+        last_m_op = match_operands[-1]
+        additional_expr = {}
+
+        if not has_ellipsis:
+            match_results = [
+                op.match(op_pattern) for op, op_pattern in zip(operands, match_operands)
+            ]
+        # x, y, ...
+        elif last_m_op is Ellipsis or isinstance(last_m_op, EllipsisPattern):
+            match_results = list()
+            matched_operands = list()
+            for op, op_pattern in zip(operands, match_operands[:-1]):
+                m = op.match(op_pattern)
+                match_results.append(m)
+                if m.matched:
+                    matched_operands.append(op)
+                # end if
+            # end for
+            if isinstance(last_m_op, EllipsisPattern) and last_m_op.name is not None:
+                additional_expr = {last_m_op.name: [op for op in operands if op not in matched_operands]}
+            # end if
+        elif first_m_op is Ellipsis or isinstance(first_m_op, EllipsisPattern):
+            match_results = list()
+            matched_operands = list()
+            for op, op_pattern in zip(operands[::-1], match_operands[::-1][:-1]):
+                m = op.match(op_pattern)
+                match_results.append(m)
+                if m.matched:
+                    matched_operands.append(op)
+                # end if
+            # end for
+            if isinstance(first_m_op, EllipsisPattern) and first_m_op.name is not None:
+                additional_expr = {first_m_op.name: [op for op in operands if op not in matched_operands]}
+            # end if
+        else:
+            raise RuntimeError(f"Ellipsis must be at the end or at the beginning: {match_operands}")
+        # end if
+
+        match_bool = [m.matched for m in match_results]
+        match_expr = [m.bindings for m in match_results]
+
+        match_dict = {k:v for d in match_expr for k,v in d.items()}
+        match_dict.update(additional_expr)
 
         if all(match_bool):
-            return MatchResult.success({k:v for d in match_expr for k,v in d.items()})
+            return MatchResult.success(match_dict)
         else:
             return MatchResult.failed()
         # end if
     # end def _match_operands
+
+    def _get_ellipsis(self, match_operands: List[ExprPattern]):
+        """Get the ellipsis pattern if it exists in the match_operands"""
+        for op_pattern in match_operands:
+            if op_pattern is Ellipsis or isinstance(op_pattern, EllipsisPattern):
+                return op_pattern
+            # end if
+        # end for
+        return None
+    # end def _get_ellipsis
 
     def _match_operands_comm(
             self,
             operands: List[MathExpr],
             match_operands: Optional[List[ExprPattern]] = None
     ) -> MatchResult:
+        has_ellipsis = self._pattern_contains_ellipsis(match_operands)
         if not match_operands:
             return MatchResult.success({})
-        elif len(operands) != len(match_operands):
-            raise RuntimeError(f"Expected {len(operands)} operands, got {len(match_operands)}")
+        elif len(operands) != len(match_operands) and not has_ellipsis:
+            self._match_error_operands_length(len(operands), len(match_operands))
         # end if
+
         op_copy = list(match_operands)
+        op_copy = [op for op in op_copy if not op is Ellipsis and not isinstance(op, EllipsisPattern)]
         matched_exprs = {}
+        matched_operands = []
         for op in operands:
             match_found = False
             for op_pattern in op_copy:
@@ -890,13 +952,32 @@ class MathNode(
                     match_found = True
                     op_copy.remove(op_pattern)
                     matched_exprs.update(op_match_result.bindings)
+                    matched_operands.append(op)
                     break
                 # end if
             # end for
-            if not match_found:
-                return MatchResult.failed()
+            if has_ellipsis and len(op_copy) == 0:
+                break
             # end if
         # end for
+
+        if not has_ellipsis and len(op_copy) > 0:
+            return MatchResult.failed()
+        # end if
+
+        # No ... -> we need all operands to be matched
+        additional_expr = {}
+        if len(matched_operands) != len(operands) and not has_ellipsis:
+            return MatchResult.failed()
+        elif has_ellipsis:
+            ellipsis_pattern = self._get_ellipsis(match_operands)
+            if isinstance(ellipsis_pattern, EllipsisPattern) and ellipsis_pattern.name is not None:
+                additional_expr = {ellipsis_pattern.name: [op for op in operands if op not in matched_operands]}
+            # end if
+        # end if
+
+        matched_exprs.update(additional_expr)
+
         return MatchResult.success(matched_exprs)
     # end def _match_operands_comm
 
@@ -912,6 +993,16 @@ class MathNode(
     ) -> MatchResult:
         """
         Match a symbolic expression to a pattern.
+
+        Parameters
+        ----------
+        pattern : ExprPattern
+            The pattern to match against.
+
+        Returns
+        -------
+        MatchResult
+            The result of the match.
         """
         # Any, but check shape and dtype
         any_match = self._match_any_pattern(pattern)
