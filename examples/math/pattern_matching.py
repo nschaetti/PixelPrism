@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pixelprism.math as pm
 import pixelprism.math.functional as F
 
@@ -38,6 +40,54 @@ def print_build_and_match_case(title: str, expr_builder, pattern) -> None:
         print("bindings: {}")
 
 
+def assert_match_case(
+        title: str,
+        expr,
+        pattern,
+        *,
+        expected_matched: bool,
+        expected_binding_keys: set[str] | None = None,
+        expected_rest_len: int | None = None,
+) -> None:
+    """Run one match case with sanity assertions and readable output."""
+    result = expr.match(pattern)
+    print(f"\n=== {title} ===")
+    print(f"expr    : {expr}")
+    print(f"pattern : {pattern}")
+    print(f"matched : {result.matched}")
+    print(f"bindings: {result.bindings}")
+
+    assert result.matched is expected_matched, (
+        f"{title}: expected matched={expected_matched}, got {result.matched}"
+    )
+
+    if expected_binding_keys is not None:
+        got_keys = set(result.bindings.keys())
+        assert got_keys == expected_binding_keys, (
+            f"{title}: expected binding keys={expected_binding_keys}, got={got_keys}"
+        )
+
+    if expected_rest_len is not None:
+        rest = result.bindings.get("rest")
+        assert isinstance(rest, list), f"{title}: expected 'rest' to be a list"
+        assert len(rest) == expected_rest_len, (
+            f"{title}: expected len(rest)={expected_rest_len}, got={len(rest)}"
+        )
+
+
+def assert_runtime_error_case(title: str, expr, pattern) -> None:
+    """Ensure a pattern raises the expected RuntimeError."""
+    print(f"\n=== {title} ===")
+    print(f"expr    : {expr}")
+    print(f"pattern : {pattern}")
+    try:
+        _ = expr.match(pattern)
+    except RuntimeError as err:
+        print(f"raised  : RuntimeError ({err})")
+        return
+    raise AssertionError(f"{title}: expected RuntimeError, but match succeeded")
+
+
 def main() -> None:
     P = pm.P
     k = pm.constants
@@ -45,6 +95,7 @@ def main() -> None:
     x = pm.var("x", dtype=pm.DType.R, shape=())
     y = pm.var("y", dtype=pm.DType.R, shape=())
     z = pm.var("z", dtype=pm.DType.R, shape=())
+    w = pm.var("w", dtype=pm.DType.R, shape=())
     n = pm.var("n", dtype=pm.DType.R, shape=())
     m = pm.var("m", dtype=pm.DType.R, shape=())
 
@@ -59,6 +110,8 @@ def main() -> None:
     expr_add_comm = x + y
     expr_complex = F.mul(x + c2, y - c3)
     expr_symbolic = x + k.PI
+    expr2 = F.add(x, y)
+    expr4 = F.add(x, y, z, w)
 
     print("Pattern matching demo (simple -> complex)")
 
@@ -224,6 +277,94 @@ def main() -> None:
         lambda: F.mul(a, F.div(F.log(n), F.log(m))),
         pm.patterns.alog_ratio(),
     )
+
+    print("\nEllipsis / EllipsisPattern sanity checks")
+
+    # Non-commutative: suffix ellipsis and empty remainder
+    assert_match_case(
+        "Non-comm suffix Ellipsis literal",
+        expr4,
+        P.n("add", P.v("x", as_="x"), cast(pm.ExprPattern, ...)),
+        expected_matched=True,
+        expected_binding_keys={"x"},
+    )
+    assert_match_case(
+        "Non-comm suffix EllipsisPattern",
+        expr4,
+        P.n("add", P.v("x", as_="x"), pm.p_ellipsis(as_="rest")),
+        expected_matched=True,
+        expected_binding_keys={"x", "rest"},
+        expected_rest_len=3,
+    )
+    assert_match_case(
+        "Non-comm suffix EllipsisPattern with empty remainder",
+        expr2,
+        P.n("add", P.v("x", as_="x"), P.v("y", as_="y"), pm.p_ellipsis(as_="rest")),
+        expected_matched=True,
+        expected_binding_keys={"x", "y", "rest"},
+        expected_rest_len=0,
+    )
+
+    # Non-commutative: prefix ellipsis and empty remainder
+    assert_match_case(
+        "Non-comm prefix Ellipsis literal",
+        expr4,
+        P.n("add", cast(pm.ExprPattern, ...), P.v("w", as_="w")),
+        expected_matched=True,
+        expected_binding_keys={"w"},
+    )
+    assert_match_case(
+        "Non-comm prefix EllipsisPattern",
+        expr4,
+        P.n("add", pm.p_ellipsis(as_="rest"), P.v("w", as_="w")),
+        expected_matched=True,
+        expected_binding_keys={"w", "rest"},
+        expected_rest_len=3,
+    )
+    assert_match_case(
+        "Non-comm prefix EllipsisPattern with empty remainder",
+        expr2,
+        P.n("add", pm.p_ellipsis(as_="rest"), P.v("x", as_="x"), P.v("y", as_="y")),
+        expected_matched=True,
+        expected_binding_keys={"x", "y", "rest"},
+        expected_rest_len=0,
+    )
+
+    # Commutative: ellipsis can absorb non-matched operands
+    assert_match_case(
+        "Comm suffix EllipsisPattern",
+        expr4,
+        P.n("add", P.v("w", as_="w"), pm.p_ellipsis(as_="rest"), comm=True),
+        expected_matched=True,
+        expected_binding_keys={"w", "rest"},
+        expected_rest_len=3,
+    )
+    assert_match_case(
+        "Comm prefix EllipsisPattern",
+        expr4,
+        P.n("add", pm.p_ellipsis(as_="rest"), P.v("w", as_="w"), comm=True),
+        expected_matched=True,
+        expected_binding_keys={"w", "rest"},
+        expected_rest_len=3,
+    )
+
+    # Mismatch without ellipsis
+    assert_match_case(
+        "Non-comm mismatch without ellipsis",
+        expr4,
+        P.n("add", P.v("w", as_="w"), P.v("x", as_="x"), P.v("y", as_="y"), P.v("z", as_="z")),
+        expected_matched=False,
+        expected_binding_keys=set(),
+    )
+
+    # Invalid shape: ellipsis in the middle is forbidden
+    assert_runtime_error_case(
+        "Invalid ellipsis position (middle)",
+        expr4,
+        P.n("add", P.v("x"), cast(pm.ExprPattern, ...), P.v("w")),
+    )
+
+    print("\nAll ellipsis sanity checks passed.")
 
 
 if __name__ == "__main__":
