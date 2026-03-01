@@ -10,7 +10,7 @@
 # #      #  #     #        #  #   #
 # #      #   #  #####  ####   #   #
 #
-# Copyright (C) 2024 Pixel Prism
+# Copyright (C) 2026 Pixel Prism
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,12 +25,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Allow ``python -m pixelprism`` to invoke the CLI."""
+"""Root Click command group for PixelPrism.
+
+The root group exposes high-level workflows:
+
+- ``animate``: render procedural animations.
+- ``fx``: apply post-processing effects on existing videos.
+"""
 
 # Imports
-from .commands.cli import cli
+import click
+
+from .animate import animate
+from .fx import fx
 
 
-if __name__ == "__main__":
-    cli()
-# end if
+__all__ = ["cli"]
+
+
+@click.group(no_args_is_help=True)
+def cli() -> None:
+    """Entry point for the PixelPrism command-line interface.
+
+    Notes
+    -----
+    The command group is configured with ``no_args_is_help=True`` so running
+    ``python -m pixelprism`` without a subcommand shows help instead of failing.
+    """
+    # No action is required here. Subcommands handle the behavior.
+    pass
+# end def cli
+
+
+cli.add_command(animate)
+cli.add_command(fx)

@@ -10,7 +10,7 @@
 # #      #  #     #        #  #   #
 # #      #   #  #####  ####   #   #
 #
-# Copyright (C) 2024 Pixel Prism
+# Copyright (C) 2026 Pixel Prism
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,12 +25,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Allow ``python -m pixelprism`` to invoke the CLI."""
+"""Command entry points for the PixelPrism CLI.
+
+This subpackage exposes all Click commands that can be mounted on the
+top-level command group.
+
+Modules
+-------
+cli
+    Root command group that aggregates subcommands.
+animate
+    Animation rendering command.
+fx
+    Post-processing effects command.
+"""
 
 # Imports
-from .commands.cli import cli
+from .animate import animate
+from .cli import cli
+from .fx import fx
 
 
-if __name__ == "__main__":
-    cli()
-# end if
+__all__ = ["cli", "animate", "fx"]
