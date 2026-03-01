@@ -32,4 +32,8 @@ the timeline API.
 """
 
 # Imports
-from .easing import *
+from . import easing as _easing
+
+
+__all__ = list(_easing.__all__)
+globals().update({name: getattr(_easing, name) for name in __all__})
