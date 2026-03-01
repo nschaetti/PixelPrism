@@ -61,7 +61,8 @@ class ImageCanvas:
             name,
             image,
             blend_mode='normal',
-            active=True
+            active=True,
+            is_static=False
     ):
         """
         Add a layer to the image
@@ -71,7 +72,7 @@ class ImageCanvas:
             f"Image size {image.input_shape} does not match canvas size ({self.width}, {self.height})."
 
         # Add the layer
-        self.layers.append(Layer(name, image, blend_mode, active))
+        self.layers.append(Layer(name, image, blend_mode, active, is_static))
     # end add_layer
 
     def remove_layer(
@@ -147,7 +148,8 @@ class ImageCanvas:
             name,
             color,
             blend_mode='normal',
-            active=True
+            active=True,
+            is_static=False
     ):
         """
         Create a color layer with the specified color
@@ -159,7 +161,7 @@ class ImageCanvas:
             active (bool): Whether the layer is active
         """
         layer_image = Image.color(self.width, self.height, color)
-        self.add_layer(name, layer_image, blend_mode, active)
+        self.add_layer(name, layer_image, blend_mode, active, is_static)
     # end create_color_layer
 
     # Create a transparent layer
@@ -167,7 +169,8 @@ class ImageCanvas:
             self,
             name,
             blend_mode='normal',
-            active=True
+            active=True,
+            is_static=False
     ):
         """
         Create a transparent layer.
@@ -177,7 +180,13 @@ class ImageCanvas:
             blend_mode (str): Blend mode for the layer
             active (bool): Whether the layer is active
         """
-        self.add_layer(name, Image.transparent(self.width, self.height), blend_mode, active)
+        self.add_layer(
+            name,
+            Image.transparent(self.width, self.height),
+            blend_mode,
+            active,
+            is_static
+        )
     # end create_transparent_layer
 
     # Update the image of a layer
@@ -304,4 +313,3 @@ class ImageCanvas:
     # endregion STATICS
 
 # end Image
-

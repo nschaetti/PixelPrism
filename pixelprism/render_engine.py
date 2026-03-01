@@ -10,7 +10,7 @@
 # #      #  #     #        #  #   #
 # #      #   #  #####  ####   #   #
 #
-# Copyright (C) 2024 Pixel Prism
+# Copyright (C) 2026 Pixel Prism
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,68 +25,136 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""
-Render Engine Module
-===================
+"""Layer compositing engine for :class:`~pixelprism.base.imagecanvas.ImageCanvas`.
 
-This module provides the RenderEngine class for rendering image canvases with multiple layers.
+This module provides :class:`RenderEngine`, a stateless utility class that
+merges active layers into a final RGBA frame.
 """
+
+# Imports
+from __future__ import annotations
 
 import numpy as np
 
+from pixelprism.base import Image, ImageMode
 from pixelprism.base.imagecanvas import ImageCanvas
-from pixelprism.base import ImageMode, Image
 
 
 class RenderEngine:
-    """
-    Engine for rendering image canvases with multiple layers.
+    """Compose all active layers from an image canvas.
 
-    The RenderEngine provides functionality to merge multiple image layers into a single
-    composite image, handling transparency and blending modes.
+    Notes
+    -----
+    Current implementation supports only the ``normal`` blend mode and alpha
+    compositing over an opaque black background.
     """
 
     @staticmethod
-    def render(image_canvas: ImageCanvas) -> 'Image':
+    def render(
+            image_canvas: ImageCanvas,
+            output_buffer: Image | None = None,
+            base_image: Image | None = None
+    ) -> Image:
+        """Merge all active layers into a single output image.
+
+        Parameters
+        ----------
+        image_canvas : ImageCanvas
+            Canvas containing layers to composite.
+
+        output_buffer : Image | None, default=None
+            Optional reusable output buffer to avoid repeated allocations.
+        base_image : Image | None, default=None
+            Optional base image copied before compositing active layers.
+
+        Returns
+        -------
+        Image
+            Final composited image.
         """
-        Merge all layers in the image canvas into a single image.
+        active_layers = [layer for layer in image_canvas.layers if layer.active]
 
-        This method takes an ImageCanvas containing multiple layers and blends them together
-        according to their blend modes and opacity settings to create a final composite image.
-
-        Args:
-            image_canvas (ImageCanvas): The image canvas containing layers to render
-
-        Returns:
-            Image: The final rendered image, or None if the canvas has no layers
-        """
-        if not image_canvas.layers:
-            return None
+        # Resolve output buffer
+        if output_buffer is None:
+            final_image = Image.fill(
+                image_canvas.width,
+                image_canvas.height,
+                (0, 0, 0, 255),
+            )
+        else:
+            if (
+                output_buffer.width != image_canvas.width
+                or output_buffer.height != image_canvas.height
+            ):
+                raise ValueError("output_buffer size must match image_canvas size.")
+            # end if
+            final_image = output_buffer
         # end if
 
-        # Initialize the final image as a black image
-        final_image = Image.fill(image_canvas.width, image_canvas.height, (0, 0, 0, 255))
+        final_data = final_image.data
 
-        # Iterate over all layers and blend them together
-        for layer in image_canvas.layers:
-            if layer.active:
-                if layer.blend_mode == 'normal':
-                    # Get the alpha channel if it exists
-                    if layer.image.mode == ImageMode.RGBA:
-                        alpha = layer.image.data[:, :, 3] / 255.0
-                    else:
-                        alpha = 1.0
-                    # end if
+        if base_image is not None:
+            if (
+                base_image.width != image_canvas.width
+                or base_image.height != image_canvas.height
+            ):
+                raise ValueError("base_image size must match image_canvas size.")
+            # end if
+            final_data[:, :, :] = base_image.data[:, :, :]
+        # end if
 
-                    # Blend the layers
-                    for c in range(0, 3):
-                        final_image.data[:, :, c] = alpha * layer.image.data[:, :, c] + (1 - alpha) * final_image.data[:, :, c]
-                    # end for
+        # Empty scene
+        if not active_layers:
+            if base_image is None:
+                final_data[:, :, 0:3] = 0
+                final_data[:, :, 3] = 255
+            # end if
+            return final_image
+        # end if
+
+        # Fast path: one normal layer can be returned directly
+        if (
+            base_image is None
+            and len(active_layers) == 1
+            and active_layers[0].blend_mode == "normal"
+        ):
+            return active_layers[0].image
+        # end if
+
+        # Reset reusable buffer when no base image is provided
+        if base_image is None:
+            final_data[:, :, 0:3] = 0
+            final_data[:, :, 3] = 255
+        # end if
+
+        for layer in active_layers:
+            if layer.blend_mode == "normal":
+                layer_image = layer.image
+                layer_data = layer_image.data
+
+                # Opaque layer: direct copy
+                if layer_image.mode != ImageMode.RGBA:
+                    final_data[:, :, 0:3] = layer_data[:, :, 0:3]
+                    continue
                 # end if
+
+                alpha_channel = layer_data[:, :, 3]
+                if np.all(alpha_channel == 255):
+                    final_data[:, :, 0:3] = layer_data[:, :, 0:3]
+                    continue
+                # end if
+
+                alpha = alpha_channel / 255.0
+                for channel in range(0, 3):
+                    final_data[:, :, channel] = (
+                        alpha * layer_data[:, :, channel]
+                        + (1 - alpha) * final_data[:, :, channel]
+                    )
+                # end for
             # end if
         # end for
 
         return final_image
-    # end render
+    # end def render
 
-# end RenderEngine
+# end class RenderEngine

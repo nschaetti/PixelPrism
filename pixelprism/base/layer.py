@@ -35,7 +35,8 @@ class Layer:
             name,
             image,
             blend_mode='normal',
-            active=True
+            active=True,
+            is_static=False
     ):
         """
         Initialize the layer with a name, image, blend mode, and active status
@@ -50,6 +51,7 @@ class Layer:
         self.image = image
         self.blend_mode = blend_mode
         self.active = active
+        self.is_static = is_static
     # end __init__
 
     def __repr__(self):
@@ -60,4 +62,3 @@ class Layer:
     # end __repr__
 
 # end Layer
-

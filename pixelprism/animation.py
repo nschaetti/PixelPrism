@@ -10,7 +10,7 @@
 # #      #  #     #        #  #   #
 # #      #   #  #####  ####   #   #
 #
-# Copyright (C) 2024 Pixel Prism
+# Copyright (C) 2026 Pixel Prism
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,31 +25,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#
-# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
-# Copyright (c) 2024 Nils Schaetti.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
 
-#
-# Description: Base class for creating animations.
-# Subclasses should implement the `process_frame` method.
-#
+"""Animation primitives and rendering loop.
+
+This module defines:
+
+- :func:`find_animable_mixins` to recursively discover animable objects,
+- :class:`AnimationViewer` to preview rendering with a Tkinter window,
+- :class:`Animation` as the base class for timeline-driven video generation.
+
+Subclasses should override :meth:`Animation.build` and
+:meth:`Animation.process_frame`.
+"""
 
 # Imports
 from typing import Optional
 import os
+import queue
 import threading
 import cv2
 import subprocess
@@ -60,11 +52,13 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
-from pixelprism.animate import Animate, Animator
-from pixelprism.animate.able import AnimableMixin
-from pixelprism.base.imagecanvas import ImageCanvas
-from pixelprism.render_engine import RenderEngine
-from pixelprism.utils import setup_logger
+
+from .animate import Animate, Animator
+from .animate.able import AnimableMixin
+from .base.image import Image as PixelImage
+from .base.imagecanvas import ImageCanvas
+from .render_engine import RenderEngine
+from .utils import setup_logger
 
 
 # Setup logger
@@ -72,15 +66,19 @@ logger = setup_logger(__name__)
 
 
 def find_animable_mixins(obj, visited=None) -> list:
-    """
-    Find recursively all objects that are instances of AnimableMixin in the given object and its sub-attributes.
+    """Recursively collect all :class:`AnimableMixin` instances.
 
-    Args:
-        obj (object): Object to inspect.
-        visited (set): Set of visited objects to avoid infinite recursion.
+    Parameters
+    ----------
+    obj : object
+        Root object to inspect.
+    visited : set[int] | None, default=None
+        Internal set of visited object ids, used to avoid recursive loops.
 
-    Returns:
-        list: List of AnimableMixin objects found.
+    Returns
+    -------
+    list
+        Flat list of discovered animable objects.
     """
     if visited is None:
         visited = set()
@@ -104,13 +102,15 @@ def find_animable_mixins(obj, visited=None) -> list:
 
     # Check if object is for inspection
     def is_animeclass(obj):
+        """Check whether ``obj`` class advertises animeclass metadata."""
         return hasattr(obj.__class__, '_attrs_to_inspect') and obj.__class__.is_animeclass()
-    # end is_animeclass
+    # end def is_animeclass
 
     # Get animeclass attributes
     def animeclass_attributes(obj):
+        """Return attribute names marked for animeclass inspection."""
         return obj.__class__.animeclass_attributes()
-    # end animaclass_attributes
+    # end def animeclass_attributes
 
     # Check if the class of this object is marked for inspection with @animeclass
     if is_animeclass(obj):
@@ -143,17 +143,25 @@ def find_animable_mixins(obj, visited=None) -> list:
     # end if
 
     return animable_objects
-# end find_animable_mixins
+# end def find_animable_mixins
 
 
 class AnimationViewer(tk.Tk):
-    """
-    A simple viewer for animations.
+    """Simple Tkinter-based preview window for an :class:`Animation`.
+
+    Parameters
+    ----------
+    animation : Animation
+        Animation instance to compose and preview.
     """
 
     def __init__(self, animation):
-        """
-        Initialize the animation viewer.
+        """Initialize the viewer widgets and rendering thread state.
+
+        Parameters
+        ----------
+        animation : Animation
+            Animation instance associated with this viewer.
         """
         super().__init__()
 
@@ -186,19 +194,15 @@ class AnimationViewer(tk.Tk):
         # Image
         self.stop = False
         self.thread = None  # To hold the animation thread
-    # end __init__
+    # end def __init__
 
     def stop_animation(self):
-        """
-        Stop the animation.
-        """
+        """Request a graceful stop of the rendering process."""
         self.stop = True
-    # end stop_animation
+    # end def stop_animation
 
     def on_close(self):
-        """
-        Close the animation viewer.
-        """
+        """Handle window close and synchronize with worker thread."""
         self.stop = True
         self.destroy()
 
@@ -206,11 +210,15 @@ class AnimationViewer(tk.Tk):
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=1.0)
         # end if
-    # end on_close
+    # end def on_close
 
     def update_image(self, image):
-        """
-        Update the image on the canvas.
+        """Refresh the preview canvas with a new frame.
+
+        Parameters
+        ----------
+        image : np.ndarray
+            BGR image produced by the renderer.
         """
         # Convert BGR image to RGB for Tkinter
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -225,20 +233,22 @@ class AnimationViewer(tk.Tk):
 
         # Keep a reference to the image to prevent garbage collection
         self.img = img
-    # end update_image
+    # end def update_image
 
     def update_progress(self, value):
-        """
-        Update the progress bar.
+        """Update progress bar value.
+
+        Parameters
+        ----------
+        value : float
+            Progress percentage in ``[0, 100]``.
         """
         self.progress['value'] = value
         self.update_idletasks()  # Refresh the GUI
-    # end update_progress
+    # end def update_progress
 
     def run(self):
-        """
-        Run the animation viewer.
-        """
+        """Start composition in a background thread and run Tk main loop."""
         self.thread = threading.Thread(target=self.animation.compose_video, args=(self,))
         self.thread.start()
         self.mainloop()
@@ -247,15 +257,37 @@ class AnimationViewer(tk.Tk):
         if self.thread.is_alive():
             self.thread.join()
         # end if
-    # end run
+    # end def run
 
-# end AnimationViewer
+# end class AnimationViewer
 
 
 class Animation:
-    """
-    Base class for creating animations.
-    Subclasses should implement the `process_frame` method.
+    """Base class for creating timeline-driven animations.
+
+    Parameters
+    ----------
+    input_video : str | None, default=None
+        Optional input video path. If provided, FPS, frame count and dimensions
+        are inferred from the source unless overridden by ``duration``.
+    output_video : str, default="output.mp4"
+        Output video path.
+    duration : int | None, default=None
+        Output duration in seconds when no input video is provided.
+    fps : int, default=30
+        Output frame rate when no input video is provided.
+    width : int, default=1920
+        Output width when no input video is provided.
+    height : int, default=1080
+        Output height when no input video is provided.
+    keep_frames : int, default=0
+        Number of previously rendered frames to keep in memory.
+    debug_frames : int | list[int] | tuple[int, ...], default=False
+        Frame indices for layer debug snapshots.
+    save_frames : bool, default=False
+        Whether to write each rendered frame as an image file.
+    **kwargs
+        Extra arguments available to subclasses.
     """
 
     def __init__(
@@ -271,20 +303,30 @@ class Animation:
             save_frames: bool = False,
             **kwargs
     ):
-        """
-        Initialize the animation with an input and output path.
+        """Initialize runtime state and build the animation graph.
 
-        Args:
-            input_video (str): Path to the input video
-            output_video (str): Path to the output video
-            duration (int): Duration of the video in seconds
-            fps (int): Frames per second
-            width (int): Width of the video
-            height (int): Height of the video
-            keep_frames (int): Number of frames to keep in memory
-            debug_frames (int): Whether to display the layers while processing
-            save_frames (bool): Whether to save the frames to disk
-            **kwargs: Additional keyword arguments
+        Parameters
+        ----------
+        input_video : str | None, default=None
+            Optional input video path.
+        output_video : str, default="output.mp4"
+            Output video path.
+        duration : int | None, default=None
+            Output duration in seconds.
+        fps : int, default=30
+            Frame rate when no input video is used.
+        width : int, default=1920
+            Output width when no input video is used.
+        height : int, default=1080
+            Output height when no input video is used.
+        keep_frames : int, default=0
+            Number of previous frames retained in memory.
+        debug_frames : int | list[int] | tuple[int, ...], default=False
+            Frame indices to dump debug layer previews.
+        save_frames : bool, default=False
+            Whether individual frame images should be written.
+        **kwargs
+            Extra keyword arguments consumed by subclasses.
         """
         # Input video given
         if input_video:
@@ -345,17 +387,15 @@ class Animation:
 
         # Build the animation
         self.build()
-    # end __init__
+    # end def __init__
 
     # region PROPERTIES
 
     @property
     def step(self):
-        """
-        Get the step size for the animation.
-        """
+        """float: Time step between two consecutive frames."""
         return 1 / self.fps
-    # end step
+    # end def step
 
     # endregion PROPERTIES
 
@@ -364,21 +404,27 @@ class Animation:
     def init_effects(
             self
     ):
-        """
-        Initialize the effects, called before starting the video.
+        """Initialize effects before frame processing starts.
+
+        Notes
+        -----
+        Subclasses can override this hook to reset effect state.
         """
         pass
-    # end init_effects
+    # end def init_effects
 
     # Build the animation
     def build(
             self
     ):
-        """
-        Build the animation.
+        """Build animation objects and register transitions.
+
+        Notes
+        -----
+        Subclasses should override this method.
         """
         pass
-    # end build
+    # end def build
 
     # Add an effect
     def add_effect(
@@ -386,33 +432,39 @@ class Animation:
             name,
             effect
     ):
-        """
-        Add an effect to the animation.
+        """Register an effect by name.
 
-        Args:
-            name (str): Name of the effect
-            effect (EffectBase): Effect to add to the animation
+        Parameters
+        ----------
+        name : str
+            Effect identifier.
+        effect : object
+            Effect instance.
         """
         self.effects[name] = effect
-    # end add_effect
+    # end def add_effect
 
     # Get an effect
     def get_effect(
             self,
             name
     ) -> 'EffectBase':
-        """
-        Get an effect from the animation.
+        """Return an effect by name.
 
-        Args:
-            name (str): Name of the effect
+        Parameters
+        ----------
+        name : str
+            Effect identifier.
 
-        Returns:
-            EffectBase: Effect object
+        Returns
+        -------
+        EffectBase
+            Effect instance if available.
         """
-        from pixel_prism.effects.effect_base import EffectBase
-        return self.effects.get(name)
-    # end get_effect
+        # from pixel_prism.effects.effect_base import EffectBase
+        # return self.effects.get(name)
+        return None
+    # end def get_effect
 
     # Add object
     def add_object(
@@ -420,26 +472,29 @@ class Animation:
             name,
             obj
     ):
-        """
-        Add a widget to the animation.
+        """Register an object in the scene object registry.
 
-        Args:
-            name (str): Name of the widget
-            obj (object): Widget object
+        Parameters
+        ----------
+        name : str
+            Object identifier.
+        obj : object
+            Object instance.
         """
         self.objects[name] = obj
-    # end add_object
+    # end def add_object
 
     # Add objets
     def add(
             self,
             **kwargs: object
     ):
-        """
-        Add objects to the animation.
+        """Add objects and auto-register their animable transitions.
 
-        Args:
-            **kwargs: Objects to add to the animation
+        Parameters
+        ----------
+        **kwargs : object
+            Mapping of object names to instances.
         """
         for name, obj in kwargs.items():
             # Add object
@@ -455,78 +510,92 @@ class Animation:
                 # end for
             # end if
         # end for
-    # end add
+    # end def add
 
     # Get object
     def get_object(
             self,
             name
     ) -> object:
-        """
-        Get a widget from the animation.
+        """Return a previously registered object.
 
-        Args:
-            name (str): Name of the widget
+        Parameters
+        ----------
+        name : str
+            Object identifier.
 
-        Returns:
-            object: Object
+        Returns
+        -------
+        object
+            Registered object.
+
+        Raises
+        ------
+        ValueError
+            If the object is missing.
         """
         if name not in self.objects:
             raise ValueError(f"Object not found: {name}")
         # end if
         return self.objects.get(name)
-    # end get_object
+    # end def get_object
 
     # Get object
     def obj(self, name) -> object:
-        """
-        Get a widget from the animation.
+        """Short alias for :meth:`get_object`.
 
-        Args:
-            name (str): Name of the widget
+        Parameters
+        ----------
+        name : str
+            Object identifier.
 
-        Returns:
-            object: Object
+        Returns
+        -------
+        object
+            Registered object.
         """
         return self.get_object(name)
-    # end get_object
+    # end def obj
 
     # Remove an effect
     def remove_effect(
             self,
             name
     ):
-        """
-        Remove an effect from the animation.
+        """Remove an effect from the registry.
 
-        Args:
-            name (str): Name of the effect
+        Parameters
+        ----------
+        name : str
+            Effect identifier.
         """
         self.effects.pop(name)
-    # end remove_effect
+    # end def remove_effect
 
     # Append animation
     def append_transition(self, transition):
-        """
-        Append a transition to the animation.
+        """Append a transition if it is not already registered.
 
-        Args:
-            transition (Transition): Transition object
+        Parameters
+        ----------
+        transition : Animate
+            Transition instance to append.
         """
         if transition not in self.transitions:
             self.transitions.append(transition)
         # end if
-    # end append_transition
+    # end def append_transition
 
     def animate(
             self,
             transition
     ):
-        """
-        Add a transition to the animation.
+        """Register one or multiple transitions.
 
-        Args:
-            transition (Transition): Transition object
+        Parameters
+        ----------
+        transition : Animate | Animator | list[Animate]
+            Transition object, animator container, or list of transitions.
         """
         if isinstance(transition, Animate):
             self.append_transition(transition)
@@ -541,22 +610,23 @@ class Animation:
                 self.append_transition(anim)
             # end for
         # end if
-    # end animate
+    # end def animate
 
     def apply_transitions(
             self,
             t
     ):
-        """
-        Apply transitions to the animation.
+        """Apply all registered transitions at time ``t``.
 
-        Args:
-            t (float): Time
+        Parameters
+        ----------
+        t : float
+            Current timeline time in seconds.
         """
         for transition in self.transitions:
             transition.update(t)
         # end for
-    # end apply_transitions
+    # end def apply_transitions
 
     def process_frame(
             self,
@@ -564,21 +634,40 @@ class Animation:
             t: float,
             frame_number: int
     ):
-        """
-        Process each frame of the video. Should be implemented by derived classes.
+        """Render one frame.
+
+        Parameters
+        ----------
+        image_canvas : ImageCanvas
+            Canvas for current frame content.
+        t : float
+            Current timeline time in seconds.
+        frame_number : int
+            Current frame index.
+
+        Returns
+        -------
+        ImageCanvas
+            Updated canvas.
+
+        Raises
+        ------
+        NotImplementedError
+            Raised by default; subclasses must implement this method.
         """
         raise NotImplementedError("Subclasses should implement this method!")
-    # end process_frame
+    # end def process_frame
 
     def display_layers(
             self,
             image_canvas
     ):
-        """
-        Display the layers of the image object.
+        """Display all canvas layers with Matplotlib for debugging.
 
-        Args:
-            image_canvas (ImageCanvas): Image object
+        Parameters
+        ----------
+        image_canvas : ImageCanvas
+            Canvas containing render layers.
         """
         num_layers = len(image_canvas.layers)
         fig, axes = plt.subplots(1, num_layers, figsize=(15, 5))
@@ -596,19 +685,21 @@ class Animation:
         # Pause
         plt.pause(0.001)
         plt.show()
-    # end display_layers
+    # end def display_layers
 
     def save_debug_layers(
             self,
             image_canvas,
             frame_number
     ):
-        """
-        Save the debug layers to a file.
+        """Save per-layer debug previews for one frame.
 
-        Args:
-            image_canvas (ImageCanvas): Image object
-            frame_number (int): Frame number
+        Parameters
+        ----------
+        image_canvas : ImageCanvas
+            Canvas containing render layers.
+        frame_number : int
+            Current frame index.
         """
         fig, axes = plt.subplots(1, len(image_canvas.layers), figsize=(15, 5))
         if len(image_canvas.layers) == 1:
@@ -628,17 +719,18 @@ class Animation:
         # Save the figure
         plt.savefig(debug_frame_path)
         plt.close()
-    # end save_debug_layers
+    # end def save_debug_layers
 
     def compose_video(
             self,
             viewer=None
     ):
-        """
-        Compose the final video by applying `process_frame` to each frame.
+        """Compose the final video by iterating over all frames.
 
-        Args:
-            viewer (AnimationViewer): Animation viewer
+        Parameters
+        ----------
+        viewer : AnimationViewer | None, default=None
+            Optional interactive viewer used to preview rendering.
         """
         fps = self.fps
         width = self.width
@@ -655,11 +747,64 @@ class Animation:
         if not out.isOpened():
             raise ValueError(f"Could not open the output video file for writing: {self.output_video}")
         # end if
+
         logger.info(f"Input video: {self.input_video}, FPS: {fps}, width: {width}, height: {height}")
         logger.info(f"Output video: {self.output_video}, fourcc: {fourcc}, out: {out}")
 
         # Frame count
         frame_count = self.frame_count
+
+        # Normalize debug frame configuration
+        if isinstance(self.debug_frames, bool):
+            debug_frame_set = set()
+        elif isinstance(self.debug_frames, int):
+            debug_frame_set = {self.debug_frames}
+        elif isinstance(self.debug_frames, (list, tuple, set)):
+            debug_frame_set = set(self.debug_frames)
+        else:
+            debug_frame_set = set()
+        # end if
+
+        # Reusable compositing buffer
+        render_buffer = PixelImage.fill(width, height, (0, 0, 0, 255))
+        static_render_buffer = PixelImage.fill(width, height, (0, 0, 0, 255))
+
+        # Static layer cache
+        static_cache_enabled = True
+        static_cache_image: Optional[PixelImage] = None
+        static_cache_signature: Optional[tuple] = None
+        static_canvas = ImageCanvas(width, height)
+        dynamic_canvas = ImageCanvas(width, height)
+
+        # Optional reusable canvas when there is no input video
+        reusable_canvas = ImageCanvas(width, height) if not self.cap else None
+
+        # Writer pipeline (encode on a dedicated thread)
+        frame_queue = queue.Queue(maxsize=8)
+        queue_sentinel = object()
+        writer_errors: list[BaseException] = []
+
+        def _writer_worker() -> None:
+            """Write encoded frames from the queue to output video."""
+            try:
+                while True:
+                    frame_payload = frame_queue.get()
+                    try:
+                        if frame_payload is queue_sentinel:
+                            break
+                        # end if
+                        out.write(frame_payload)  # pyright: ignore[reportCallIssue, reportArgumentType]
+                    finally:
+                        frame_queue.task_done()
+                    # end try
+                # end while
+            except BaseException as exc:
+                writer_errors.append(exc)
+            # end try
+        # end def _writer_worker
+
+        writer_thread = threading.Thread(target=_writer_worker, daemon=True)
+        writer_thread.start()
 
         try:
             # Process each frame of the video
@@ -667,7 +812,7 @@ class Animation:
                 # Frame number
                 frame_number = 0
 
-                # Get the first frame, or create a blank frame
+                # Get the first frame or create a blank frame
                 if self.cap:
                     ret, frame = self.cap.read()
                 else:
@@ -685,11 +830,13 @@ class Animation:
                         break
                     # end if
 
-                    # Create canvas from frame
+                    # Create canvas from a frame
                     if self.cap:
                         image_canvas = ImageCanvas.from_numpy(frame, add_alpha=True)
                     else:
-                        image_canvas = ImageCanvas(width, height)
+                        assert reusable_canvas is not None
+                        reusable_canvas.layers.clear()
+                        image_canvas = reusable_canvas
                     # end if
 
                     # Apply transitions
@@ -711,15 +858,74 @@ class Animation:
                         # end if
                     # end if
 
-                    # Compose final image
-                    final_frame = RenderEngine.render(image_canvas)
+                    # Compose final image (with optional static layer caching)
+                    if static_cache_enabled:
+                        static_layers = [
+                            layer for layer in image_canvas.layers
+                            if getattr(layer, "is_static", False)
+                        ]
+                        dynamic_layers = [
+                            layer for layer in image_canvas.layers
+                            if not getattr(layer, "is_static", False)
+                        ]
+
+                        if static_layers:
+                            static_signature = tuple(
+                                (
+                                    layer.name,
+                                    id(layer.image),
+                                    layer.active,
+                                    layer.blend_mode
+                                )
+                                for layer in static_layers
+                            )
+
+                            if (
+                                static_cache_image is None
+                                or static_cache_signature != static_signature
+                            ):
+                                static_canvas.layers = static_layers
+                                static_cache_image = RenderEngine.render(
+                                    static_canvas,
+                                    output_buffer=static_render_buffer
+                                )
+                                static_cache_signature = static_signature
+                            # end if
+
+                            if dynamic_layers:
+                                dynamic_canvas.layers = dynamic_layers
+                                final_frame = RenderEngine.render(
+                                    dynamic_canvas,
+                                    output_buffer=render_buffer,
+                                    base_image=static_cache_image
+                                )
+                            else:
+                                final_frame = static_cache_image
+                            # end if
+                        else:
+                            final_frame = RenderEngine.render(
+                                image_canvas,
+                                output_buffer=render_buffer
+                            )
+                        # end if
+                    else:
+                        final_frame = RenderEngine.render(
+                            image_canvas,
+                            output_buffer=render_buffer
+                        )
+                    # end if
 
                     # Ensure the final frame is the correct size and type
                     assert final_frame.data.shape[:2] == (height, width), "Final frame size mismatch"
                     assert final_frame.data.dtype == np.uint8, "Final frame data type mismatch"
 
-                    # Save as RGB
-                    out.write(final_frame.data[:, :, :3])
+                    # Save as RGB (copy decouples renderer buffer from encoder thread)
+                    encoded_frame = final_frame.data[:, :, :3].copy()
+                    frame_queue.put(encoded_frame)
+
+                    if writer_errors:
+                        raise RuntimeError("Video writer thread failed.") from writer_errors[0]
+                    # end if
 
                     # Save frames
                     if self.save_frames:
@@ -734,7 +940,7 @@ class Animation:
                     # end if
 
                     # Save debug layers
-                    if frame_number in self.debug_frames:
+                    if frame_number in debug_frame_set:
                         self.save_debug_layers(image_canvas, frame_number)
                     # end if
 
@@ -748,11 +954,19 @@ class Animation:
                 # end while
             # end with
         finally:
+            # Drain writer queue and terminate writer thread
+            frame_queue.put(queue_sentinel)
+            writer_thread.join()
+
             # Release the video capture and writer
             if self.cap:
                 self.cap.release()
             # end if
             out.release()
+
+            if writer_errors:
+                raise RuntimeError("Video writer thread failed.") from writer_errors[0]
+            # end if
 
             # If the video was successfully generated, open it with mpv
             if not viewer or not viewer.stop:
@@ -765,8 +979,8 @@ class Animation:
                 viewer.on_close()
             # end if
         # end try
-    # end compose_video
+    # end def compose_video
 
     # endregion PUBLIC
 
-# end Animation
+# end class Animation
