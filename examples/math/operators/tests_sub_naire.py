@@ -74,7 +74,7 @@ def main() -> None:
         ("N-ARY nested: sub(sub(x, y), z, 0)", sub(sub(x, y), z, c0)),
         ("N-ARY long chain: sub(x, y, z, 1, 2, -1)", sub(x, y, z, c1, c2, cneg1)),
         ("N-ARY repeated vars: sub(x, x, x)", sub(x, x, x)),
-        # ("N-ARY mixed constants only: sub(3, 2, 1)", sub(c3, c2, c1)),
+        ("N-ARY mixed constants only: sub(3, 2, 1)", sub(c3, c2, c1)),
         ("N-ARY mixed constants and vars: sub(x * 2, 3 * x)", sub(x * 2, 3 * x)),
         ("N-ARY with symbolic constants: sub(pi, x, e)", sub(k.PI, x, k.E)),
         ("N-ARY symbolic-only: sub(phi, pi, e)", sub(k.PHI, k.PI, k.E)),

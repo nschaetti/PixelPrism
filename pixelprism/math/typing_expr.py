@@ -608,6 +608,10 @@ class MathExpr(Protocol):
     # True if leaf and variable
     def is_variable_leaf(self) -> bool: ...
 
+    # True if defined constant (not symbolic)
+    def is_defined_constant(self) -> bool: ...
+    def is_symbolic_constant(self) -> bool: ...
+
     # True if the expression is deterministically evaluable (no randomness or context side effects).
     def is_pure(self) -> bool: ...
 
@@ -679,9 +683,23 @@ Operands = Sequence[Operand]
 ExprLike = Union[MathExpr, ScalarLike]
 
 
-class OpSimplifyResult(NamedTuple):
+@dataclass(frozen=True, slots=True)
+class OpSimplifyResult:
+
     operands: Operands | None                      # Normalized/simplified operands
     replacement: MathExpr | None = None     # If not None, the operator was replaced by this expression
+
+    def __post_init__(self) -> None:
+        if self.operands is not None:
+            # Check that operands is not list
+            for op in self.operands:
+                if not isinstance(op, MathExpr):
+                    raise ValueError(f"operands must be a MathExpr, {type(op)} given")
+                # end if
+            # end for
+        # end if
+    # end def __post_init__
+
 # end def OpSimplifyResult
 
 

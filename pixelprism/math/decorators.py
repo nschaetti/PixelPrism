@@ -180,6 +180,7 @@ def rule_finalize_result(
             if out is None:
                 return None
             # end if
+
             if out.replacement is not None:
                 return out
             # end if

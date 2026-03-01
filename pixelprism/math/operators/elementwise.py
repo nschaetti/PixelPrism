@@ -33,21 +33,22 @@ Elementwise operator implementations.
 import math
 from abc import ABC
 from collections import defaultdict
-from typing import Sequence, Union, Optional, Tuple
+from typing import Sequence, Union, Optional, Tuple, List
 
-from .. import SymbolicConstant
 from ..tensor import Tensor
 from ..dtype import DType, promote
 from ..shape import Shape
 from ..math_node import MathNode
-from ..math_leaves import Variable, Constant
+from ..math_leaves import Variable, Constant, SymbolicConstant
 from ..typing_expr import (
     MathExpr,
     LeafKind,
     OpSimplifyResult,
     OpAssociativity,
     Operator,
-    OperatorSpec, AritySpec, FoldPolicy,
+    OperatorSpec,
+    AritySpec,
+    FoldPolicy
 )
 from ..typing_rules import SimplifyOptions, SimplifyRule, SimplifyRuleType
 from ..decorators import rule, rule_needs_constants, rule_needs_variables, rule_returns_operands, rule_finalize_result
@@ -82,6 +83,7 @@ __all__ = [
 ]
 
 from ..typing_utils import as_algebraic
+from ..pattern import P
 
 
 def _is_constant_variable(
@@ -668,23 +670,29 @@ class Sub(NaryElementwiseOperator):
             return lst
         # end def _remove_if_present
 
+        # First operand
         first_op = operands[0]
-        constants = [op for op in operands if op.is_constant() and op.fold_policy() == FoldPolicy.FOLDABLE]
-        sym_constants = [op for op in operands if op.is_constant() and op.fold_policy() == FoldPolicy.SYMBOLIC_LOCKED]
-        variables = [op for op in operands if not op.is_constant()]
-        non_constant = [*sym_constants, *variables]
+        constant_first = first_op.is_constant()
+        sym_first = first_op.is_symbolic_constant()
+
+        # Get constants, symbolic constants, and non-constant operands
+        constants = [op for op in operands if op.is_constant() and op.fold_policy() == FoldPolicy.FOLDABLE and op.is_foldable()]
+        sym_constants = [op for op in operands if op.is_constant() and not op.is_foldable()]
+        variables = [op for op in operands if op.is_variable()]
+
+        # Remove first operand
         constants = _remove_if_present(constants, first_op)
         sym_constants = _remove_if_present(sym_constants, first_op)
         variables = _remove_if_present(variables, first_op)
-        non_constant = _remove_if_present(non_constant, first_op)
-        if isinstance(first_op, SymbolicConstant):
-            new_constant = Constant.new(sum(op.eval() for op in constants if op.fold_policy() == FoldPolicy.FOLDABLE))
-            return [first_op] + [new_constant] + non_constant
-        elif isinstance(first_op, Constant):
-            return [Constant.new(first_op.eval() - sum(op.eval() for op in constants))] + non_constant
+
+        if sym_first:
+            new_constant = Constant.new(sum(op.eval() for op in constants))
+            return [first_op] + [new_constant] + sym_constants + variables
+        elif constant_first:
+            return [Constant.new(first_op.eval() - sum(op.eval() for op in constants))] + sym_constants + variables
         else:
-            new_constant = Constant.new(sum(op.eval() for op in constants if op.fold_policy() == FoldPolicy.FOLDABLE))
-            new_operands = [new_constant] + non_constant
+            new_constant = Constant.new(sum(op.eval() for op in constants))
+            new_operands = [first_op] + [new_constant] + sym_constants + variables
             return new_operands
         # end if
     # end def _r_fold_constants
@@ -807,28 +815,21 @@ class Mul(NaryElementwiseOperator):
 
     # region RULES
 
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_constants(min_count=1)
     @rule(SimplifyRule.MERGE_CONSTANTS, priority=0, rule_type=SimplifyRuleType.ALL)
     def _r_product_constants(
             self,
             operands: Sequence[MathExpr]
-    ) -> OpSimplifyResult | None:
+    ):
         """Merge constant terms in addition.
         """
-        constants = [op for op in operands if op.is_constant()]
-        non_constant = [op for op in operands if not op.is_constant()]
-        if len(constants) == 0:
-            return None
-        # end if
+        constants = [op for op in operands if op.is_constant() and op.fold_policy() == FoldPolicy.FOLDABLE and op.is_foldable()]
+        symbols = [op for op in operands if op.is_constant() and not op.is_foldable()]
+        variables = [op for op in operands if op.is_variable()]
         new_constant = Constant.new(math.prod(op.eval() for op in constants))
-        # Replaces with the product and non‑constant terms
-        if len(non_constant) == 0:
-            return OpSimplifyResult(operands=None, replacement=new_constant)
-        else:
-            return OpSimplifyResult(
-                operands=[new_constant] + non_constant,
-                replacement=None
-            )
-        # end if
+        return [new_constant] + symbols + variables
     # end def _r_merge_constants
 
     @rule_finalize_result(empty=Constant.new(0), collapse_single=True)
@@ -861,57 +862,113 @@ class Mul(NaryElementwiseOperator):
         return new_ops
     # end def _r_mul_one
 
-    # @finalize_result(collapse_single=True)
-    # @returns_operands
-    # @needs_variables(min_count=2)
-    # @rule(SimplifyRule.SUB_GROUP_ALIKE, priority=4, rule_type=SimplifyRuleType.ALL)
-    # def _r_mul_group_alike(
-    #         self,
-    #         operands: Sequence[MathExpr]
-    # ):
-    #     """
-    #     Group alike terms.
-    #     """
-    #     variables = [op for op in operands if op.is_variable()]
-    #     groups = defaultdict(lambda: 0)
-    #     for op_i, op in enumerate(variables):
-    #         if op.is_variable():
-    #
-    #         # end if
-    #     # end for
-    #     new_ops = list()
-    #     for v, count in groups.items():
-    #         if count != 1:
-    #             new_ops += [Mul.create_node([Constant.new(count), v])]
-    #         elif count != 0:
-    #             new_ops.append(v)
-    #         # end if
-    #     # end for
-    #     if len(new_ops) + len(constants) == len(operands):
-    #         return None
-    #     # end if
-    #     if len(new_ops) + len(constants) == 1:
-    #         if len(new_ops) == 0:
-    #             return constants
-    #         else:
-    #             return new_ops
-    #         # end if
-    #     # end if
-    #     return constants + new_ops
-    # # end def _r_mul_group_alike
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_variables(min_count=1)
+    @rule_needs_constants(min_count=1)
+    @rule(SimplifyRule.MUL_BY_NEG_ONE, priority=5, rule_type=SimplifyRuleType.ALL)
+    def _r_mul_by_neg_one(
+            self,
+            operands: Sequence[MathExpr]
+    ):
+        """Replace -1 * x by -x"""
+        if len(operands) != 2:
+            return None
+        # end if
+
+        # A variable and a constant
+        cm = P.c(-1)
+        vm = P.v()
+
+        if operands[0].match(cm).matched and operands[1].match(vm).matched:
+            return [Neg.create_node([operands[1]])]
+        elif operands[0].match(vm).matched and operands[1].match(cm).matched:
+            return [Neg.create_node([operands[0]])]
+        # end if
+
+        return None
+    # end def _r_mul_by_neg_one
+
+    @rule_finalize_result(collapse_single=True)
+    @rule_returns_operands
+    @rule_needs_variables(min_count=2)
+    @rule(SimplifyRule.SUB_GROUP_ALIKE, priority=4, rule_type=SimplifyRuleType.ALL)
+    def _r_mul_group_alike(
+            self,
+            operands: Sequence[MathExpr]
+    ):
+        """
+        Group alike terms.
+        """
+        groups = dict()
+        operands = list(operands)
+        matched_operands = []
+
+        class _var_info:
+            def __init__(self, var, exp: List[MathExpr] = None):
+                self.var: MathExpr = var
+                self.exponent: List[MathExpr] = [Constant.new(1)] if exp is None else exp
+                self.occ: int = 1
+            # end def __init__
+            def __str__(self):
+                return f"_var_info(var: {self.var}, exp: {self.exponent}, occ: {self.occ})"
+            # end def __str__
+            def __repr__(self):
+                return f"_var_info(var: {self.var}, exp: {self.exponent}, occ: {self.occ})"
+            # end def _op_repr__
+        # end class _var_info
+
+        # Patterns
+        vm = P.v(as_='x')
+        vpm = P.n('pow', P.v(as_='x'), P.a(as_='n'))
+
+        # Matches operands
+        for op_i, op in enumerate(operands):
+            # x
+            m = op.match(vm)
+            if m.matched:
+                x = m.bindings['x']
+                if op not in groups:
+                    groups[op] = _var_info(x)
+                else:
+                    groups[op].exponent += [Constant.new(1)]
+                    groups[op].occ += 1
+                # end if
+                matched_operands.append(op)
+            # end if
+
+            # x^n
+            m = op.match(vpm)
+            if m.matched:
+                x = m.bindings['x']
+                n = m.bindings['n']
+                if op not in groups:
+                    groups[op] = _var_info(x, [n])
+                else:
+                    groups[op].exponent += [n]
+                    groups[op].occ += 1
+                # end if
+                matched_operands.append(op)
+            # end if
+        # end for
+
+        new_ops = list()
+        for _, matches in groups.items():
+            exp_expr = Add.create_node(matches.exponent)
+            # Conditionally wraps a variable with a non-unit exponent in the power node
+            if matches.occ > 1 or (exp_expr.is_constant() and exp_expr.eval().item() != 1):
+                new_ops += [Pow.create_node([matches.var, exp_expr])]
+            else:
+                new_ops += [matches.var]
+            # end if
+        # end for
+
+        other_ops = [op for op in operands if op not in matched_operands]
+
+        return other_ops + new_ops
+    # end def _r_mul_group_alike
 
     # endregion RULES
-
-    # def print(self, operands: Operands, **kwargs) -> str:
-    #     """Print the expression."""
-    #     str_repr = ""
-    #     for i in range(1, len(operands)):
-    #         str_repr += f"{operands[i]}"
-    #     # end if
-    #     return f"{operands[0].print()} * {str_repr}"
-    # # end def print
-
-    # end if
 
 # end class Mul
 

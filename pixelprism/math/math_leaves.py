@@ -911,6 +911,14 @@ class Variable(MathLeaf):
         return True
     # end def is_variable_leaf
 
+    def is_defined_constant(self) -> bool:
+        return False
+    # end def is_defined_constant
+
+    def is_symbolic_constant(self) -> bool:
+        return False
+    # end def is_symbolic_constant
+
     def is_pure(self) -> bool:
         """Is the expression pure?"""
         return False
@@ -1355,6 +1363,14 @@ class Constant(MathLeaf):
         return False
     # end def is_variable_leaf
 
+    def is_defined_constant(self) -> bool:
+        return True
+    # end def is_defined_constant
+
+    def is_symbolic_constant(self) -> bool:
+        return False
+    # end def is_symbolic_constant
+
     def is_pure(self) -> bool:
         """
         Determines if the current instance meets the purity criteria.
@@ -1552,6 +1568,14 @@ class SymbolicConstant(Constant):
         """
         return FoldPolicy.SYMBOLIC_LOCKED
     # end def fold_policy
+
+    def is_defined_constant(self) -> bool:
+        return False
+    # end def is_defined_constant
+
+    def is_symbolic_constant(self) -> bool:
+        return True
+    # end def is_symbolic_constant
 
     #
     # Representation

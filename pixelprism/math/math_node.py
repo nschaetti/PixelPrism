@@ -1104,6 +1104,14 @@ class MathNode(
         return False
     # end def is_variable_leaf
 
+    def is_defined_constant(self) -> bool:
+        return False
+    # end def is_defined_constant
+
+    def is_symbolic_constant(self) -> bool:
+        return False
+    # end def is_symbolic_constant
+
     def is_pure(self) -> bool:
         """
         Check if the expression is pure, i.e. has no side effects.
