@@ -43,7 +43,7 @@
 #
 
 # Imports
-from typing import Tuple, List
+from typing import List
 import cairo
 from pixelprism.widgets.widget import Widget
 from pixelprism.base import Context

@@ -10,7 +10,7 @@
 # #      #  #     #        #  #   #
 # #      #   #  #####  ####   #   #
 #
-# Copyright (C) 2024 Pixel Prism
+# Copyright (C) 2026 Pixel Prism
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,83 +25,103 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""
-Effect Pipeline Module
-=====================
+"""Effect pipeline orchestration utilities.
 
-This module provides the EffectPipeline class for applying a sequence of effects to images.
+This module defines :class:`EffectPipeline`, a lightweight container that
+applies effects sequentially and reports timing statistics.
 """
+
+# Imports
+from __future__ import annotations
 
 import time
+from typing import Any, cast
 
 
 class EffectPipeline:
+    """Apply a sequence of effects to input frames.
+
+    Parameters
+    ----------
+    effects : list[object] | None, default=None
+        Initial list of effect objects. Each effect is expected to implement
+        ``apply(image, **kwargs)``.
+
+    Attributes
+    ----------
+    effects : list[object]
+        Ordered list of effects in the pipeline.
+    time_stats : dict[str, float]
+        Cumulative runtime per effect name and total runtime.
     """
-    A pipeline for applying a sequence of effects to images.
 
-    The EffectPipeline allows you to chain multiple effects together and apply them
-    sequentially to an image. It also tracks performance statistics for each effect.
+    def __init__(self, effects: list[object] | None = None):
+        """Initialize a new effect pipeline.
 
-    Attributes:
-        effects (list): List of effect objects to apply
-        time_stats (dict): Dictionary to store timing statistics for each effect
-    """
-
-    def __init__(self, effects=[]):
+        Parameters
+        ----------
+        effects : list[object] | None, default=None
+            Initial effect list.
         """
-        Initialize the effect pipeline.
+        self.effects = list(effects) if effects is not None else []
+        self.time_stats: dict[str, float] = {}
+    # end def __init__
 
-        Args:
-            effects (list, optional): Initial list of effects to add to the pipeline. Defaults to [].
-        """
-        self.effects = effects
-        self.time_stats = {}
+    def add_effect(self, effect: object) -> None:
+        """Append an effect to the pipeline.
 
-    def add_effect(self, effect: object):
-        """
-        Add an effect to the pipeline.
-
-        Args:
-            effect: The effect object to add to the pipeline. Must have an apply() method.
+        Parameters
+        ----------
+        effect : object
+            Effect object exposing an ``apply`` method.
         """
         self.effects.append(effect)
+    # end def add_effect
 
     def apply(self, image: object, **kwargs: object) -> object:
-        """
-        Apply all effects in the pipeline to the image.
+        """Apply all effects to an image.
 
-        This method applies each effect in the pipeline sequentially to the image,
-        and tracks the time taken by each effect.
+        Parameters
+        ----------
+        image : object
+            Input frame.
+        **kwargs : object
+            Additional keyword arguments forwarded to each effect.
 
-        Args:
-            image: The input image to process.
-            **kwargs: Additional keyword arguments to pass to each effect's apply method.
-
-        Returns:
-            The processed image after applying all effects.
+        Returns
+        -------
+        object
+            Processed frame.
         """
         total_start = time.time()
+
         for effect in self.effects:
+            effect_obj = effect
             start = time.time()
-            image = effect.apply(image, **kwargs)
+            image = cast(Any, effect_obj).apply(image, **kwargs)
             end = time.time()
-            effect_name = effect.__class__.__name__
+
+            effect_name = effect_obj.__class__.__name__
             if effect_name not in self.time_stats:
-                self.time_stats[effect_name] = 0
+                self.time_stats[effect_name] = 0.0
+            # end if
             self.time_stats[effect_name] += end - start
+        # end for
+
         self.time_stats["Total"] = time.time() - total_start
         return image
+    # end def apply
 
-    def print_stats(self):
-        """
-        Print performance statistics for each effect in the pipeline.
-
-        This method prints the total processing time and the time taken by each effect,
-        along with the percentage of total time each effect consumed.
-        """
+    def print_stats(self) -> None:
+        """Print cumulative timing statistics for the pipeline."""
         total_time = self.time_stats.pop("Total", None)
         if total_time:
             print(f"Total processing time: {total_time:.2f} seconds")
             for effect, time_taken in self.time_stats.items():
                 percentage = (time_taken / total_time) * 100
                 print(f"{effect}: {time_taken:.2f} seconds ({percentage:.2f}%)")
+            # end for
+        # end if
+    # end def print_stats
+
+# end class EffectPipeline

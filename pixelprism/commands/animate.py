@@ -34,18 +34,33 @@ This module exposes the ``animate`` command used to render a custom
 # Imports
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import importlib.util
+import importlib
 
 import click
 
-from ..utils import setup_logger
+try:
+    RichConsole = importlib.import_module("rich.console").Console
+    RichPanel = importlib.import_module("rich.panel").Panel
+    RichTable = importlib.import_module("rich.table").Table
+    _HAS_RICH = True
+except ModuleNotFoundError:
+    RichConsole = None
+    RichPanel = None
+    RichTable = None
+    _HAS_RICH = False
+# end try
+
 from ..video_composer import VideoComposer
 
 
-# Setup logger
-logger = setup_logger(__name__)
+if _HAS_RICH and RichConsole is not None:
+    console = RichConsole()
+else:
+    console = None
+# end if
 
 
 def _load_class_from_file(file_path: str, class_name: str) -> type:
@@ -143,6 +158,119 @@ def _parse_kwargs(kwargs: tuple[str, ...]) -> dict[str, str]:
 # end def _parse_kwargs
 
 
+def _display_animation_parameters(
+    output: str,
+    input_path: str | None,
+    display: bool,
+    debug_frames: tuple[int, ...],
+    class_file: str,
+    class_name: str,
+    duration: float | None,
+    fps: int | None,
+    width: int,
+    height: int,
+    save_frames: bool | None,
+    kwargs_dict: dict[str, str],
+) -> None:
+    """Render an elegant Rich summary of animation parameters.
+
+    Parameters
+    ----------
+    output : str
+        Output video path.
+    input_path : str | None
+        Optional input video path.
+    display : bool
+        Whether the viewer is enabled.
+    debug_frames : tuple[int, ...]
+        Frame indices selected for debug snapshots.
+    class_file : str
+        Python file containing the animation class.
+    class_name : str
+        Name of the animation class.
+    duration : float | None
+        Output duration in seconds.
+    fps : int | None
+        Output frame rate.
+    width : int
+        Output width in pixels.
+    height : int
+        Output height in pixels.
+    save_frames : bool | None
+        Whether intermediate frames are saved.
+    kwargs_dict : dict[str, str]
+        Additional constructor keyword arguments.
+    """
+    if not _HAS_RICH or console is None:
+        click.echo("PixelPrism Animation")
+        click.echo(f"  Animation class: {class_name} ({class_file})")
+        click.echo(f"  Output: {output}")
+        click.echo(f"  Input: {input_path or 'none'}")
+        click.echo(f"  Duration: {duration if duration is not None else 'auto'}")
+        click.echo(f"  FPS: {fps if fps is not None else 'source/default'}")
+        click.echo(f"  Resolution: {width}x{height}")
+        click.echo(f"  Display: {'yes' if display else 'no'}")
+        click.echo(f"  Save frames: {save_frames if save_frames is not None else 'auto'}")
+        click.echo(
+            "  Debug frames: "
+            + (", ".join(str(frame) for frame in debug_frames) if debug_frames else "none")
+        )
+        click.echo(
+            "  Extra kwargs: "
+            + (
+                ", ".join(
+                    f"{key}={value}" for key, value in sorted(kwargs_dict.items())
+                )
+                if kwargs_dict
+                else "none"
+            )
+        )
+        return
+    # end if
+
+    assert console is not None
+    assert RichTable is not None
+    assert RichPanel is not None
+
+    table_class = cast(Any, RichTable)
+    panel_class = cast(Any, RichPanel)
+
+    table = table_class(show_header=False, box=None, pad_edge=False)
+    table.add_column("Parameter", style="bold cyan")
+    table.add_column("Value", style="white")
+
+    debug_frames_value = ", ".join(str(frame) for frame in debug_frames)
+    if not debug_frames_value:
+        debug_frames_value = "none"
+    # end if
+
+    kwargs_value = ", ".join(
+        f"{key}={value}" for key, value in sorted(kwargs_dict.items())
+    )
+    if not kwargs_value:
+        kwargs_value = "none"
+    # end if
+
+    table.add_row("Animation class", f"{class_name} ({class_file})")
+    table.add_row("Output", output)
+    table.add_row("Input", input_path or "none")
+    table.add_row("Duration", str(duration) if duration is not None else "auto")
+    table.add_row("FPS", str(fps) if fps is not None else "source/default")
+    table.add_row("Resolution", f"{width}x{height}")
+    table.add_row("Display", "yes" if display else "no")
+    table.add_row("Save frames", str(save_frames) if save_frames is not None else "auto")
+    table.add_row("Debug frames", debug_frames_value)
+    table.add_row("Extra kwargs", kwargs_value)
+
+    panel = panel_class(
+        table,
+        title="[bold magenta]PixelPrism Animation[/bold magenta]",
+        border_style="magenta",
+    )
+    console.print(panel)
+# end def _display_animation_parameters
+
+
 @click.command("animate", help="Render a custom animation class to a video file.")
 @click.argument("output", type=click.Path())
 @click.option("--input", "input_path", type=click.Path(exists=True), help="Path to an optional input video.")
@@ -204,8 +332,6 @@ def animate(
     click.UsageError
         If ``duration`` is missing while no input video is supplied.
     """
-    logger.info("PixelPrism v0.1.0")
-
     if not input_path and not duration:
         raise click.UsageError(
             "Duration (--duration) is required if no input video is specified."
@@ -215,13 +341,20 @@ def animate(
     custom_animation_class = _load_class_from_file(class_file, class_name)
     kwargs_dict = _parse_kwargs(kwargs)
 
-    logger.info(f"CustomAnimation class: {class_name}")
-    logger.info(f"Duration: {duration}")
-    logger.info(f"FPS: {fps}")
-    logger.info(f"Width: {width}")
-    logger.info(f"Height: {height}")
-    logger.info(f"Save frames: {save_frames}")
-    logger.info(f"Keyword arguments: {kwargs_dict}")
+    _display_animation_parameters(
+        output=output,
+        input_path=input_path,
+        display=display,
+        debug_frames=debug_frames,
+        class_file=class_file,
+        class_name=class_name,
+        duration=duration,
+        fps=fps,
+        width=width,
+        height=height,
+        save_frames=save_frames,
+        kwargs_dict=kwargs_dict,
+    )
 
     duration_arg: Any = duration
     fps_arg: Any = fps

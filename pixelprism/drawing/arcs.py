@@ -44,7 +44,7 @@
 
 # Imports
 import math
-from typing import Optional
+from typing import Optional, Callable
 from pixelprism.animate import MovableMixin, CallableMixin, FadeableMixin,  animeattr
 from pixelprism.data import Point2D, Scalar, Color
 from .bounding_box import BoundingBox
@@ -823,7 +823,7 @@ class Arc(
             line_color: Color = utils.WHITE,
             fill_color: Color = None,
             on_change: Optional[Callable[..., None]] = None
-    ) -> Arc:
+    ):
         """
         Create an arc from scalar values.
 

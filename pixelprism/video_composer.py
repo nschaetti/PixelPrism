@@ -10,7 +10,7 @@
 # #      #  #     #        #  #   #
 # #      #   #  #####  ####   #   #
 #
-# Copyright (C) 2024 Pixel Prism
+# Copyright (C) 2026 Pixel Prism
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,28 +25,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#
-# This file is part of the Pixel Prism distribution (https://github.com/nschaetti/PixelPrism).
-# Copyright (c) 2024 Nils Schaetti.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
+"""Compose output videos from animation classes.
 
-"""
-Video Composer Module
-====================
-
-This module provides the VideoComposer class for creating videos from animations.
+This module provides :class:`VideoComposer`, a small orchestration layer that
+instantiates an :class:`~pixelprism.animation.Animation`, then runs it either
+through an interactive viewer or directly in headless rendering mode.
 """
 
 # Imports
@@ -58,16 +41,39 @@ from .animation import Animation, AnimationViewer
 
 
 class VideoComposer:
-    """
-    A composer for creating videos from animations.
+    """High-level wrapper that composes a video from an animation class.
 
-    The VideoComposer provides a high-level interface for creating videos using animation
-    classes. It handles the setup of the animation and optionally displays the video
-    in a viewer window as it's being created.
+    Parameters
+    ----------
+    input_path : str | None
+        Optional path to an input video used by the animation.
+    output_path : str
+        Path where the rendered video is written.
+    duration : int
+        Target duration in seconds when no input video is provided.
+    fps : int
+        Output frames per second.
+    width : int
+        Output video width in pixels.
+    height : int
+        Output video height in pixels.
+    animation_class : Type[Animation]
+        Animation class to instantiate.
+    debug_frames : bool | tuple[int, ...] | list[int], default=False
+        Debug frame configuration forwarded to :class:`Animation`.
+    save_frames : bool, default=False
+        Whether the animation should save individual rendered frames.
+    viewer : bool, default=True
+        If ``True``, run the interactive viewer while composing.
+    **kwargs : Any
+        Additional keyword arguments forwarded to ``animation_class``.
 
-    Attributes:
-        animation: The animation instance used to create the video
-        viewer (AnimationViewer): The viewer window for displaying the video, or None if not used
+    Attributes
+    ----------
+    animation : Animation
+        Instantiated animation object.
+    viewer : AnimationViewer | None
+        Optional interactive viewer.
     """
     def __init__(
             self,
@@ -83,21 +89,32 @@ class VideoComposer:
             viewer: bool = True,
             **kwargs: Any
     ):
-        """
-        Initialize the video composer with an input and output path.
+        """Initialize the video composer.
 
-        Args:
-            input_path (str): Path to the input video
-            output_path (str): Path to the output video
-            duration (int): Duration of the video in seconds
-            fps (int): Frames per second
-            width (int): Width of the video
-            height (int): Height of the video
-            animation_class: Class of the animation to compose
-            debug_frames (bool): Whether to display the layers while processing
-            save_frames (bool): Whether to save the frames to disk
-            viewer (bool): Whether to display the video after creation
-            **kwargs: Additional keyword arguments
+        Parameters
+        ----------
+        input_path : str | None
+            Optional path to an input video used by the animation.
+        output_path : str
+            Path where the rendered video is written.
+        duration : int
+            Target duration in seconds when no input video is provided.
+        fps : int
+            Output frames per second.
+        width : int
+            Output video width in pixels.
+        height : int
+            Output video height in pixels.
+        animation_class : Type[Animation]
+            Animation class to instantiate.
+        debug_frames : bool | tuple[int, ...] | list[int], default=False
+            Debug frame configuration forwarded to :class:`Animation`.
+        save_frames : bool, default=False
+            Whether the animation should save individual rendered frames.
+        viewer : bool, default=True
+            If ``True``, run the interactive viewer while composing.
+        **kwargs : Any
+            Additional keyword arguments forwarded to ``animation_class``.
         """
         self.animation = animation_class(
             input_video=input_path,
@@ -112,19 +129,24 @@ class VideoComposer:
             **kwargs
         )
 
-        # AnimationVideo object
+        # Animation viewer object
         self.viewer = AnimationViewer(self.animation) if viewer else None
-    # end __init__
+    # end def __init__
 
-    def create_video(self):
-        """
-        Create the video by composing the animation.
+    def create_video(self) -> None:
+        """Compose the output video.
+
+        Notes
+        -----
+        If a viewer is available, composition is controlled by
+        :class:`AnimationViewer`. Otherwise, composition runs directly via
+        :meth:`Animation.compose_video`.
         """
         if self.viewer is not None:
             self.viewer.run()
         else:
             self.animation.compose_video()
         # end if
-    # end create_video
+    # end def create_video
 
-# end VideoComposer
+# end class VideoComposer

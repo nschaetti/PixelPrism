@@ -230,7 +230,7 @@ class Context:
 
         Returns
         -------
-        Context
+        'Context'
             Root context that permanently exists in the process.
         """
         if cls._root is not None:
@@ -249,7 +249,7 @@ class Context:
 
         Returns
         -------
-        Context
+        'Context'
             Context instance that is active within the current thread.
         """
         if cls._current is not None:
@@ -273,7 +273,7 @@ class Context:
 
         Returns
         -------
-        Context
+        'Context'
             The context itself so it can be bound to ``as`` targets.
 
         Raises
@@ -624,7 +624,7 @@ class Context:
 
         Returns
         -------
-        Context
+        'Context'
             Root context instance that must always exist.
         """
         if cls._root is None:

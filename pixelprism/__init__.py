@@ -64,7 +64,6 @@ For more information, visit: https://github.com/nschaetti/PixelPrism
 
 
 # Imports
-from .cli import main
 from .animation import Animation, AnimationViewer, find_animable_mixins
 from .basic import (
     p2,
@@ -81,7 +80,6 @@ from .video_composer import VideoComposer
 
 # ALL
 __all__ = [
-    "main",
     # Shortcuts
     'p2',
     's',

@@ -32,6 +32,7 @@ Layer Manager Module
 This module provides the LayerManager class for managing image layers and effect groups.
 """
 
+# Imports
 import cv2
 import numpy as np
 
